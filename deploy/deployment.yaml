@@ -1,0 +1,31 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: acm-submariner
+  namespace: open-cluster-management
+  labels:
+    app: acm-submariner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: acm-submariner
+  template:
+    metadata:
+      labels:
+        app: acm-submariner
+    spec:
+      serviceAccountName: acm-submariner
+      containers:
+      - name: acm-submariner
+        image: quay.io/open-cluster-management/acm-submariner:latest
+        imagePullPolicy: IfNotPresent
+        args:
+          - "/submariner"
+          - "controller"
+        env:
+        - name: BROKER_API_SERVER
+          valueFrom:
+            configMapKeyRef:
+              name: submariner-broker-apiserver
+              key: apiserver

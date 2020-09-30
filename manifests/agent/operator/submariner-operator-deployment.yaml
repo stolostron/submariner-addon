@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: submariner-operator
+  namespace: submariner-operator
+spec:
+  selector:
+    matchLabels:
+      name: submariner-operator
+  template:
+    metadata:
+      labels:
+        name: submariner-operator
+    spec:
+      containers:
+      - command:
+        - submariner-operator
+        env:
+        - name: WATCH_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: submariner-operator
+        image: quay.io/submariner/submariner-operator:0.6.1
+        imagePullPolicy: Always
+        name: submariner-operator
+      serviceAccount: submariner-operator
+      serviceAccountName: submariner-operator

@@ -1,0 +1,15 @@
+apiVersion: submariner.io/v1alpha1
+kind: ServiceDiscovery
+metadata:
+  name: service-discovery
+  namespace: submariner-operator
+spec:
+  brokerK8sApiServer: {{ .BrokerAPIServer }}
+  brokerK8sApiServerToken: {{ .BrokerToken }}
+  brokerK8sCA: {{ .BrokerCA }}
+  brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
+  clusterID: {{ .ClusterName }}
+  debug: false
+  namespace: submariner-operator
+  repository: quay.io/submariner
+  version: 0.6.1

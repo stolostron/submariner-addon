@@ -1,0 +1,25 @@
+apiVersion: submariner.io/v1alpha1
+kind: Submariner
+metadata:
+  name: submariner
+  namespace: submariner-operator
+spec:
+  broker: k8s
+  brokerK8sApiServer: {{ .BrokerAPIServer }}
+  brokerK8sApiServerToken: {{ .BrokerToken }}
+  brokerK8sCA: {{ .BrokerCA }}
+  brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
+  ceIPSecDebug: false
+  ceIPSecIKEPort: 500
+  ceIPSecNATTPort: 4500
+  ceIPSecPSK: {{ .IPSecPSK }}
+  clusterCIDR: ""
+  clusterID: {{ .ClusterName }}
+  colorCodes: blue
+  debug: false
+  namespace: submariner-operator
+  natEnabled: false
+  repository: quay.io/submariner
+  serviceCIDR: ""
+  serviceDiscoveryEnabled: true
+  version: 0.6.1

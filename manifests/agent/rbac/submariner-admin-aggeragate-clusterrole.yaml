@@ -1,0 +1,10 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: open-cluster-management:submariner-admin-aggregate-clusterrole
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+  - apiGroups: ["submariner.io"]
+    resources: ["submariners","servicediscoveries"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

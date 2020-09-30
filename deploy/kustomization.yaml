@@ -1,0 +1,20 @@
+namespace: open-cluster-management
+resources:
+- ./crds/submariner.io_clusters_crd.yaml
+- ./crds/submariner.io_endpoints_crd.yaml
+- ./crds/lighthouse.submariner.io_multiclusterservices_crd.yaml
+- ./crds/lighthouse.submariner.io_serviceimports_crd.yaml
+- ./service_account.yaml
+- ./cluster_role.yaml
+- ./cluster_role_binding.yaml
+- ./deployment.yaml
+
+images:
+- name: quay.io/open-cluster-management/acm-submariner:latest
+  newName: quay.io/open-cluster-management/acm-submariner
+  newTag: latest
+
+configMapGenerator:
+- name: submariner-broker-apiserver
+  literals:
+    - apiserver="10.0.118.46:42415"
