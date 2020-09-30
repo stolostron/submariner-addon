@@ -10,8 +10,8 @@ resources:
 - ./deployment.yaml
 
 images:
-- name: quay.io/open-cluster-management/acm-submariner:latest
-  newName: quay.io/open-cluster-management/acm-submariner
+- name: quay.io/open-cluster-management/submariner-addon:latest
+  newName: quay.io/open-cluster-management/submariner-addon
   newTag: latest
 
 configMapGenerator:

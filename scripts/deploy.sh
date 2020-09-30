@@ -212,8 +212,8 @@ git clone --depth 1 --branch release-2.1 https://github.com/open-cluster-managem
 # the first cluster is hub cluster
 hub="${clusters[0]}"
 
-# load acm-submariner image from local
-kind load --name="${hub}" docker-image quay.io/open-cluster-management/acm-submariner:latest
+# load submariner-addon image from local
+kind load --name="${hub}" docker-image quay.io/open-cluster-management/submariner-addon:latest
 
 # deploy hub
 deploy_hub ${hub}

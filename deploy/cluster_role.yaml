@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: acm-submariner
+  name: submariner-addon
 rules:
 - apiGroups: [""]
   resources: ["configmaps","namespaces", "serviceaccounts", "secrets", "pods"]
