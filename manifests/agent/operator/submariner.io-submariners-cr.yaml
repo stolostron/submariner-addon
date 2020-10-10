@@ -18,8 +18,8 @@ spec:
   colorCodes: blue
   debug: false
   namespace: submariner-operator
-  natEnabled: false
+  natEnabled: {{ .NATEnabled }}
   repository: quay.io/submariner
   serviceCIDR: ""
   serviceDiscoveryEnabled: true
-  version: 0.6.1
+  version: {{ .Version }}

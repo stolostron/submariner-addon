@@ -142,7 +142,7 @@ func (c *submarinerAgentController) syncAllManagedClusters(ctx context.Context) 
 func (c *submarinerAgentController) syncManagedCluster(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
 	// the cluster does not have the submariner label, ignore it
 	if _, existed := managedCluster.Labels[submarinerLabel]; !existed {
-		return nil
+		return c.removeSubmarinerAgent(ctx, managedCluster.Name)
 	}
 
 	// add a submariner agent finalizer to a managed cluster
@@ -180,7 +180,7 @@ func (c *submarinerAgentController) syncManagedCluster(ctx context.Context, mana
 		if errors.IsNotFound(err) {
 			c.eventRecorder.Warning("SubmarinerUndeployed",
 				fmt.Sprintf("There are no managedClusterSets %q related to managedCluster %q", clusterSetName, managedCluster.Name))
-			return nil
+			return c.removeSubmarinerAgent(ctx, managedCluster.Name)
 		}
 		return err
 	}
@@ -214,14 +214,11 @@ func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, c
 		return err
 	}
 
-	config, err := NewSubmarinerConfig(c.kubeClient, c.dynamicClient, clusterName, brokerNamespace)
-	if err != nil {
-		c.eventRecorder.Warning("SubmarinerAgentDeployedFailed",
-			fmt.Sprintf("failed to get config of submariner agent on managed cluster %v: %v", clusterName, err))
-		return err
-	}
-
-	if err := ApplySubmarinerManifestWorks(config, c.manifestWorkClient, ctx); err != nil {
+	if err := ApplySubmarinerManifestWorks(
+		c.kubeClient,
+		c.dynamicClient,
+		c.manifestWorkClient,
+		clusterName, brokerNamespace, ctx); err != nil {
 		c.eventRecorder.Warning("SubmarinerAgentDeployedFailed",
 			fmt.Sprintf("failed to deploy submariner agent on managed cluster %v: %v", clusterName, err))
 		return err

@@ -78,15 +78,7 @@ func TestWrapManifestWorks(t *testing.T) {
 			fakeClient := kubefake.NewSimpleClientset(c.existings...)
 			fakeDynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), c.dynamicExsistings...)
 			fakeWorkClient := fakeworkclient.NewSimpleClientset()
-			config, err := NewSubmarinerConfig(fakeClient, fakeDynamicClient, c.clusterName, c.brokerName)
-			if err != nil && !c.expectErr {
-				t.Errorf("expect no err: %v", err)
-			}
-			if err == nil && c.expectErr {
-				t.Errorf("expect err")
-			}
-
-			err = ApplySubmarinerManifestWorks(config, fakeWorkClient, context.TODO())
+			err := ApplySubmarinerManifestWorks(fakeClient, fakeDynamicClient, fakeWorkClient, c.clusterName, c.brokerName, context.TODO())
 			if err != nil && !c.expectErr {
 				t.Errorf("expect no err: %v", err)
 			}

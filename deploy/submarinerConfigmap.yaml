@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: submariner-config
+  name: submariner-config
+data:
+  natEnabled: "true"
