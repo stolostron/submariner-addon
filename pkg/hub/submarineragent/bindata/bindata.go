@@ -98,7 +98,7 @@ spec:
               fieldPath: metadata.name
         - name: OPERATOR_NAME
           value: submariner-operator
-        image: quay.io/submariner/submariner-operator:0.6.1
+        image: quay.io/submariner/submariner-operator:{{ .Version }}
         imagePullPolicy: Always
         name: submariner-operator
       serviceAccount: submariner-operator
@@ -134,7 +134,7 @@ spec:
   debug: false
   namespace: submariner-operator
   repository: quay.io/submariner
-  version: 0.6.1
+  version: {{ .Version }}
 `)
 
 func manifestsAgentOperatorSubmarinerIoServicediscoveriesCrYamlBytes() ([]byte, error) {
@@ -172,11 +172,11 @@ spec:
   colorCodes: blue
   debug: false
   namespace: submariner-operator
-  natEnabled: false
+  natEnabled: {{ .NATEnabled }}
   repository: quay.io/submariner
   serviceCIDR: ""
   serviceDiscoveryEnabled: true
-  version: 0.6.1
+  version: {{ .Version }}
 `)
 
 func manifestsAgentOperatorSubmarinerIoSubmarinersCrYamlBytes() ([]byte, error) {

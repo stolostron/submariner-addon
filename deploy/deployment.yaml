@@ -27,5 +27,10 @@ spec:
         - name: BROKER_API_SERVER
           valueFrom:
             configMapKeyRef:
-              name: submariner-broker-apiserver
+              name: submariner-broker-config
               key: apiserver
+        - name: SUBMARINER_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: submariner-broker-config
+              key: version

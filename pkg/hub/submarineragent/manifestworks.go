@@ -6,11 +6,11 @@ import (
 	"github.com/ghodss/yaml"
 	workv1client "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	workv1 "github.com/open-cluster-management/api/work/v1"
-	"github.com/openshift/library-go/pkg/assets"
-	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	hubbindata "github.com/open-cluster-management/submariner-addon/pkg/hub/bindata"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent/bindata"
+	"github.com/openshift/library-go/pkg/assets"
+	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +27,10 @@ type wrapperInfo struct {
 	files     []string
 	mustAsset func(name string) []byte
 }
+
+const (
+	submarinerConfigmap = "submariner-config"
+)
 
 var (
 	wrappers = []wrapperInfo{
@@ -73,6 +77,7 @@ var (
 )
 
 type SubmarinerConfig struct {
+	NATEnabled      bool
 	BrokerAPIServer string
 	BrokerNamespace string
 	BrokerToken     string
@@ -81,16 +86,24 @@ type SubmarinerConfig struct {
 	ClusterName     string
 	ClusterCIDR     string
 	ServiceCIDR     string
+	Version         string
 }
 
-func NewSubmarinerConfig(
+func newSubmarinerConfig(
 	client kubernetes.Interface,
 	dynamicClient dynamic.Interface,
 	clusterName, brokeNamespace string) (*SubmarinerConfig, error) {
 	config := &SubmarinerConfig{
+		NATEnabled:      false,
 		BrokerNamespace: brokeNamespace,
 		ClusterName:     clusterName,
 	}
+
+	if err := fillSubmarinerConfig(client, clusterName, config); err != nil {
+		return config, err
+	}
+
+	config.Version = helpers.GetSubmarinerVersion()
 
 	apiServer, err := helpers.GetBrokerAPIServer(dynamicClient)
 	if err != nil {
@@ -112,6 +125,22 @@ func NewSubmarinerConfig(
 	config.BrokerToken = token
 
 	return config, nil
+}
+
+func fillSubmarinerConfig(client kubernetes.Interface, clusterNames string, config *SubmarinerConfig) error {
+	configMap, err := client.CoreV1().ConfigMaps(clusterNames).Get(context.TODO(), submarinerConfigmap, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to get submariner config of cluster %v : %v", clusterNames, err)
+	}
+
+	if configMap.Data["natEnabled"] == "true" {
+		config.NATEnabled = true
+	}
+
+	return nil
 }
 
 func wrapManifestWorks(config *SubmarinerConfig) ([]*workv1.ManifestWork, error) {
@@ -146,8 +175,18 @@ func wrapManifestWorks(config *SubmarinerConfig) ([]*workv1.ManifestWork, error)
 	return manifestWorks, nil
 }
 
-func ApplySubmarinerManifestWorks(config *SubmarinerConfig, client workv1client.Interface, ctx context.Context) error {
+func ApplySubmarinerManifestWorks(
+	client kubernetes.Interface,
+	dynamicClient dynamic.Interface,
+	workClient workv1client.Interface,
+	clusterName, brokeNamespace string,
+	ctx context.Context) error {
 	var errs []error
+
+	config, err := newSubmarinerConfig(client, dynamicClient, clusterName, brokeNamespace)
+	if err != nil {
+		return fmt.Errorf("failed to create submariner config of cluster %v : %v", clusterName, err)
+	}
 
 	manifestWorks, err := wrapManifestWorks(config)
 	if err != nil {
@@ -155,7 +194,7 @@ func ApplySubmarinerManifestWorks(config *SubmarinerConfig, client workv1client.
 	}
 
 	for _, work := range manifestWorks {
-		err := ApplyManifestWork(work, client, ctx)
+		err := ApplyManifestWork(work, workClient, ctx)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to apply manifestWork %+v: %+v", work.Name, err))
 			klog.Errorf("failed to apply manifestWork %+v: %+v : %+v", work.Name, work, err)

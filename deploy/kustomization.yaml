@@ -15,6 +15,7 @@ images:
   newTag: latest
 
 configMapGenerator:
-- name: submariner-broker-apiserver
+- name: submariner-broker-config
   literals:
     - apiserver="10.0.118.46:42415"
+    - version="0.6.1"
