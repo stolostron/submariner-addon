@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ghodss/yaml"
+	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	workv1client "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	workv1 "github.com/open-cluster-management/api/work/v1"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
@@ -28,12 +29,8 @@ type wrapperInfo struct {
 	mustAsset func(name string) []byte
 }
 
-const (
-	submarinerConfigmap = "submariner-config"
-)
-
 var (
-	wrappers = []wrapperInfo{
+	baseWrappers = []wrapperInfo{
 		{
 			name:      "submariner-agent-crds",
 			mustAsset: hubbindata.MustAsset,
@@ -74,6 +71,23 @@ var (
 			},
 		},
 	}
+
+	sccWrapper = []wrapperInfo{
+		{
+			name:      "submariner-scc",
+			mustAsset: bindata.MustAsset,
+			files: []string{
+				"manifests/agent/rbac/submariner-scc.yaml",
+			},
+		},
+		{
+			name:      "submariner-scc-rbac",
+			mustAsset: bindata.MustAsset,
+			files: []string{
+				"manifests/agent/rbac/submariner-scc-admin-aggeragate-clusterrole.yaml",
+			},
+		},
+	}
 )
 
 type SubmarinerConfig struct {
@@ -97,10 +111,6 @@ func newSubmarinerConfig(
 		NATEnabled:      false,
 		BrokerNamespace: brokeNamespace,
 		ClusterName:     clusterName,
-	}
-
-	if err := fillSubmarinerConfig(client, clusterName, config); err != nil {
-		return config, err
 	}
 
 	config.Version = helpers.GetSubmarinerVersion()
@@ -127,23 +137,7 @@ func newSubmarinerConfig(
 	return config, nil
 }
 
-func fillSubmarinerConfig(client kubernetes.Interface, clusterNames string, config *SubmarinerConfig) error {
-	configMap, err := client.CoreV1().ConfigMaps(clusterNames).Get(context.TODO(), submarinerConfigmap, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("failed to get submariner config of cluster %v : %v", clusterNames, err)
-	}
-
-	if configMap.Data["natEnabled"] == "true" {
-		config.NATEnabled = true
-	}
-
-	return nil
-}
-
-func wrapManifestWorks(config *SubmarinerConfig) ([]*workv1.ManifestWork, error) {
+func wrapManifestWorks(config *SubmarinerConfig, wrappers []wrapperInfo) ([]*workv1.ManifestWork, error) {
 	var manifestWorks []*workv1.ManifestWork
 	klog.V(4).Infof("config: %+v", config)
 	for _, w := range wrappers {
@@ -179,16 +173,28 @@ func ApplySubmarinerManifestWorks(
 	client kubernetes.Interface,
 	dynamicClient dynamic.Interface,
 	workClient workv1client.Interface,
+	clusterClient clientset.Interface,
 	clusterName, brokeNamespace string,
 	ctx context.Context) error {
 	var errs []error
+	var wrappers []wrapperInfo = baseWrappers
 
 	config, err := newSubmarinerConfig(client, dynamicClient, clusterName, brokeNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to create submariner config of cluster %v : %v", clusterName, err)
 	}
 
-	manifestWorks, err := wrapManifestWorks(config)
+	clusterType, err := helpers.GetClusterType(clusterClient, config.ClusterName)
+	if err != nil {
+		return fmt.Errorf("failed to get the cluster type %+v : %+v", config.ClusterName, err)
+	}
+	switch clusterType {
+	case helpers.ClusterTypeOCP:
+		config.NATEnabled = true
+		wrappers = append(wrappers, sccWrapper...)
+	}
+
+	manifestWorks, err := wrapManifestWorks(config, wrappers)
 	if err != nil {
 		return fmt.Errorf("failed to wrap mainfestWorks:%+v", err)
 	}
@@ -205,8 +211,23 @@ func ApplySubmarinerManifestWorks(
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func RemoveSubmarinerManifestWorks(namespace string, client workv1client.Interface, ctx context.Context) error {
+func RemoveSubmarinerManifestWorks(
+	namespace string,
+	client workv1client.Interface,
+	clusterClient clientset.Interface,
+	ctx context.Context) error {
 	var errs []error
+	var wrappers []wrapperInfo = baseWrappers
+
+	clusterType, err := helpers.GetClusterType(clusterClient, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get the cluster type %+v : %+v", namespace, err)
+	}
+	switch clusterType {
+	case helpers.ClusterTypeOCP:
+		wrappers = append(wrappers, sccWrapper...)
+	}
+
 	for _, w := range wrappers {
 		if err := client.WorkV1().ManifestWorks(namespace).
 			Delete(ctx, w.name, metav1.DeleteOptions{}); err != nil {

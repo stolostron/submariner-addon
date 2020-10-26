@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	fakeclusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -198,6 +200,88 @@ func TestGetBrokerTokenAndCA(t *testing.T) {
 			}
 			if (token == "" || ca == "") && !c.expectErr {
 				t.Errorf("expect valid token and ca")
+			}
+		})
+	}
+}
+
+func TestGetClusterType(t *testing.T) {
+	cases := []struct {
+		name        string
+		clusterName string
+		existings   []runtime.Object
+		expectErr   bool
+		expectType  string
+	}{
+		{
+			name:        "cluster is not existed",
+			clusterName: "cluster1",
+			existings:   []runtime.Object{},
+			expectErr:   true,
+			expectType:  "",
+		},
+		{
+			name:        "cluster is OCP",
+			clusterName: "cluster1",
+			existings: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster1",
+						Labels: map[string]string{
+							"vendor": "OpenShift",
+						},
+					},
+				},
+			},
+			expectErr:  false,
+			expectType: ClusterTypeOCP,
+		},
+		{
+			name:        "cluster is not OCP",
+			clusterName: "cluster1",
+			existings: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster1",
+						Labels: map[string]string{
+							"vendor": "others",
+						},
+					},
+				},
+			},
+			expectErr:  false,
+			expectType: "others",
+		},
+		{
+			name:        "cluster has no vendor",
+			clusterName: "cluster1",
+			existings: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster1",
+					},
+				},
+			},
+			expectErr:  false,
+			expectType: "",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			fakeClusterClient := fakeclusterclient.NewSimpleClientset(c.existings...)
+			clusterType, err := GetClusterType(fakeClusterClient, c.clusterName)
+			t.Logf("type:%v, err:%v", clusterType, err)
+			if err != nil && !c.expectErr {
+				t.Errorf("expect no err: %+v", err)
+			}
+			if err == nil && c.expectErr {
+				t.Errorf("expect err")
+			}
+			if err == nil && !c.expectErr {
+				if clusterType != c.expectType {
+					t.Errorf("cluster type is not the expectType")
+				}
 			}
 		})
 	}

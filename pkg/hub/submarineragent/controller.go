@@ -218,6 +218,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, c
 		c.kubeClient,
 		c.dynamicClient,
 		c.manifestWorkClient,
+		c.clusterClient,
 		clusterName, brokerNamespace, ctx); err != nil {
 		c.eventRecorder.Warning("SubmarinerAgentDeployedFailed",
 			fmt.Sprintf("failed to deploy submariner agent on managed cluster %v: %v", clusterName, err))
@@ -230,7 +231,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, c
 
 func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, clusterName string) error {
 	errs := []error{}
-	if err := RemoveSubmarinerManifestWorks(clusterName, c.manifestWorkClient, ctx); err != nil {
+	if err := RemoveSubmarinerManifestWorks(clusterName, c.manifestWorkClient, c.clusterClient, ctx); err != nil {
 		errs = append(errs, fmt.Errorf("failed to remove submariner agent from managed cluster %v: %v", clusterName, err))
 	}
 
