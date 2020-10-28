@@ -2,7 +2,9 @@ package submarineragent
 
 import (
 	"context"
+	fakeclusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	fakeworkclient "github.com/open-cluster-management/api/client/work/clientset/versioned/fake"
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +21,7 @@ func TestWrapManifestWorks(t *testing.T) {
 		clusterName       string
 		brokerName        string
 		existings         []runtime.Object
+		clusters          []runtime.Object
 		dynamicExsistings []runtime.Object
 		expectErr         bool
 	}{
@@ -56,6 +59,16 @@ func TestWrapManifestWorks(t *testing.T) {
 					Type: corev1.SecretTypeServiceAccountToken,
 				},
 			},
+			clusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster1",
+						Labels: map[string]string{
+							"vendor": "OpenShift",
+						},
+					},
+				},
+			},
 			dynamicExsistings: []runtime.Object{
 				&unstructured.Unstructured{
 					Object: map[string]interface{}{
@@ -78,7 +91,8 @@ func TestWrapManifestWorks(t *testing.T) {
 			fakeClient := kubefake.NewSimpleClientset(c.existings...)
 			fakeDynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), c.dynamicExsistings...)
 			fakeWorkClient := fakeworkclient.NewSimpleClientset()
-			err := ApplySubmarinerManifestWorks(fakeClient, fakeDynamicClient, fakeWorkClient, c.clusterName, c.brokerName, context.TODO())
+			fakeClusterClient := fakeclusterclient.NewSimpleClientset(c.clusters...)
+			err := ApplySubmarinerManifestWorks(fakeClient, fakeDynamicClient, fakeWorkClient, fakeClusterClient, c.clusterName, c.brokerName, context.TODO())
 			if err != nil && !c.expectErr {
 				t.Errorf("expect no err: %v", err)
 			}

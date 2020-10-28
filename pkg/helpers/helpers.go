@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+
+	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	"github.com/openshift/api"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 	errorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
-
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -30,6 +31,7 @@ import (
 )
 
 const (
+	ClusterTypeOCP       = "OCP"
 	IPSecPSKSecretLength = 48
 	IPSecPSKSecretName   = "submariner-ipsec-psk"
 	BrokerAPIServer      = "BROKER_API_SERVER"
@@ -187,4 +189,23 @@ func GetBrokerTokenAndCA(client kubernetes.Interface, brokerNS, clusterName stri
 
 	return "", "", fmt.Errorf("ServiceAccount %v/%v does not have a secret of type token", brokerNS, clusterName)
 
+}
+
+func GetClusterType(clusterClient clientset.Interface, clusterName string) (string, error) {
+	managedCluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), clusterName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get managedcluster %v: %v", clusterName, err)
+	}
+
+	labels := managedCluster.GetLabels()
+	clusterType, found := labels["vendor"]
+	if !found {
+		return "", nil
+	}
+	switch clusterType {
+	case "OCP", "OpenShift":
+		return ClusterTypeOCP, nil
+	}
+
+	return clusterType, nil
 }

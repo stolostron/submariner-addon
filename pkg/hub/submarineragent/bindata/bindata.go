@@ -15,6 +15,8 @@
 // manifests/agent/rbac/submariner-operator-role.yaml
 // manifests/agent/rbac/submariner-operator-rolebinding.yaml
 // manifests/agent/rbac/submariner-operator-serviceaccount.yaml
+// manifests/agent/rbac/submariner-scc-admin-aggeragate-clusterrole.yaml
+// manifests/agent/rbac/submariner-scc.yaml
 package bindata
 
 import (
@@ -642,6 +644,90 @@ func manifestsAgentRbacSubmarinerOperatorServiceaccountYaml() (*asset, error) {
 	return a, nil
 }
 
+var _manifestsAgentRbacSubmarinerSccAdminAggeragateClusterroleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: open-cluster-management:submariner-scc-admin-aggregate-clusterrole
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+  - apiGroups: ["security.openshift.io"]
+    resources: ["securitycontextconstraints"]
+    verbs: ["create", "delete"]
+`)
+
+func manifestsAgentRbacSubmarinerSccAdminAggeragateClusterroleYamlBytes() ([]byte, error) {
+	return _manifestsAgentRbacSubmarinerSccAdminAggeragateClusterroleYaml, nil
+}
+
+func manifestsAgentRbacSubmarinerSccAdminAggeragateClusterroleYaml() (*asset, error) {
+	bytes, err := manifestsAgentRbacSubmarinerSccAdminAggeragateClusterroleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "manifests/agent/rbac/submariner-scc-admin-aggeragate-clusterrole.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _manifestsAgentRbacSubmarinerSccYaml = []byte(`allowHostDirVolumePlugin: true
+allowHostIPC: true
+allowHostNetwork: true
+allowHostPID: true
+allowHostPorts: true
+allowPrivilegeEscalation: true
+allowPrivilegedContainer: true
+allowedCapabilities:
+- '*'
+allowedUnsafeSysctls:
+- '*'
+apiVersion: security.openshift.io/v1
+defaultAddCapabilities: null
+fsGroup:
+  type: RunAsAny
+groups:
+- system:cluster-admins
+- system:nodes
+- system:masters
+kind: SecurityContextConstraints
+metadata:
+  labels:
+    app: submariner
+  name: submariner-scc
+priority: 1
+readOnlyRootFilesystem: false
+requiredDropCapabilities: []
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: RunAsAny
+seccompProfiles:
+- '*'
+supplementalGroups:
+  type: RunAsAny
+users:
+- system:serviceaccount:submariner-operator:submariner-operator
+- system:serviceaccount:submariner-operator:submariner-lighthouse
+volumes:
+- '*'
+`)
+
+func manifestsAgentRbacSubmarinerSccYamlBytes() ([]byte, error) {
+	return _manifestsAgentRbacSubmarinerSccYaml, nil
+}
+
+func manifestsAgentRbacSubmarinerSccYaml() (*asset, error) {
+	bytes, err := manifestsAgentRbacSubmarinerSccYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "manifests/agent/rbac/submariner-scc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -694,21 +780,23 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"manifests/agent/operator/submariner-operator-deployment.yaml":       manifestsAgentOperatorSubmarinerOperatorDeploymentYaml,
-	"manifests/agent/operator/submariner.io-servicediscoveries-cr.yaml":  manifestsAgentOperatorSubmarinerIoServicediscoveriesCrYaml,
-	"manifests/agent/operator/submariner.io-submariners-cr.yaml":         manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml,
-	"manifests/agent/rbac/submariner-admin-aggeragate-clusterrole.yaml":  manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYaml,
-	"manifests/agent/rbac/submariner-cluster-rolebinding.yaml":           manifestsAgentRbacSubmarinerClusterRolebindingYaml,
-	"manifests/agent/rbac/submariner-cluster-serviceaccount.yaml":        manifestsAgentRbacSubmarinerClusterServiceaccountYaml,
-	"manifests/agent/rbac/submariner-lighthouse-clusterrole.yaml":        manifestsAgentRbacSubmarinerLighthouseClusterroleYaml,
-	"manifests/agent/rbac/submariner-lighthouse-clusterrolebinding.yaml": manifestsAgentRbacSubmarinerLighthouseClusterrolebindingYaml,
-	"manifests/agent/rbac/submariner-lighthouse-serviceaccount.yaml":     manifestsAgentRbacSubmarinerLighthouseServiceaccountYaml,
-	"manifests/agent/rbac/submariner-operator-clusterrole.yaml":          manifestsAgentRbacSubmarinerOperatorClusterroleYaml,
-	"manifests/agent/rbac/submariner-operator-clusterrolebinding.yaml":   manifestsAgentRbacSubmarinerOperatorClusterrolebindingYaml,
-	"manifests/agent/rbac/submariner-operator-namespace.yaml":            manifestsAgentRbacSubmarinerOperatorNamespaceYaml,
-	"manifests/agent/rbac/submariner-operator-role.yaml":                 manifestsAgentRbacSubmarinerOperatorRoleYaml,
-	"manifests/agent/rbac/submariner-operator-rolebinding.yaml":          manifestsAgentRbacSubmarinerOperatorRolebindingYaml,
-	"manifests/agent/rbac/submariner-operator-serviceaccount.yaml":       manifestsAgentRbacSubmarinerOperatorServiceaccountYaml,
+	"manifests/agent/operator/submariner-operator-deployment.yaml":          manifestsAgentOperatorSubmarinerOperatorDeploymentYaml,
+	"manifests/agent/operator/submariner.io-servicediscoveries-cr.yaml":     manifestsAgentOperatorSubmarinerIoServicediscoveriesCrYaml,
+	"manifests/agent/operator/submariner.io-submariners-cr.yaml":            manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml,
+	"manifests/agent/rbac/submariner-admin-aggeragate-clusterrole.yaml":     manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYaml,
+	"manifests/agent/rbac/submariner-cluster-rolebinding.yaml":              manifestsAgentRbacSubmarinerClusterRolebindingYaml,
+	"manifests/agent/rbac/submariner-cluster-serviceaccount.yaml":           manifestsAgentRbacSubmarinerClusterServiceaccountYaml,
+	"manifests/agent/rbac/submariner-lighthouse-clusterrole.yaml":           manifestsAgentRbacSubmarinerLighthouseClusterroleYaml,
+	"manifests/agent/rbac/submariner-lighthouse-clusterrolebinding.yaml":    manifestsAgentRbacSubmarinerLighthouseClusterrolebindingYaml,
+	"manifests/agent/rbac/submariner-lighthouse-serviceaccount.yaml":        manifestsAgentRbacSubmarinerLighthouseServiceaccountYaml,
+	"manifests/agent/rbac/submariner-operator-clusterrole.yaml":             manifestsAgentRbacSubmarinerOperatorClusterroleYaml,
+	"manifests/agent/rbac/submariner-operator-clusterrolebinding.yaml":      manifestsAgentRbacSubmarinerOperatorClusterrolebindingYaml,
+	"manifests/agent/rbac/submariner-operator-namespace.yaml":               manifestsAgentRbacSubmarinerOperatorNamespaceYaml,
+	"manifests/agent/rbac/submariner-operator-role.yaml":                    manifestsAgentRbacSubmarinerOperatorRoleYaml,
+	"manifests/agent/rbac/submariner-operator-rolebinding.yaml":             manifestsAgentRbacSubmarinerOperatorRolebindingYaml,
+	"manifests/agent/rbac/submariner-operator-serviceaccount.yaml":          manifestsAgentRbacSubmarinerOperatorServiceaccountYaml,
+	"manifests/agent/rbac/submariner-scc-admin-aggeragate-clusterrole.yaml": manifestsAgentRbacSubmarinerSccAdminAggeragateClusterroleYaml,
+	"manifests/agent/rbac/submariner-scc.yaml":                              manifestsAgentRbacSubmarinerSccYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -760,18 +848,20 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"submariner.io-submariners-cr.yaml":        {manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml, map[string]*bintree{}},
 			}},
 			"rbac": {nil, map[string]*bintree{
-				"submariner-admin-aggeragate-clusterrole.yaml":  {manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYaml, map[string]*bintree{}},
-				"submariner-cluster-rolebinding.yaml":           {manifestsAgentRbacSubmarinerClusterRolebindingYaml, map[string]*bintree{}},
-				"submariner-cluster-serviceaccount.yaml":        {manifestsAgentRbacSubmarinerClusterServiceaccountYaml, map[string]*bintree{}},
-				"submariner-lighthouse-clusterrole.yaml":        {manifestsAgentRbacSubmarinerLighthouseClusterroleYaml, map[string]*bintree{}},
-				"submariner-lighthouse-clusterrolebinding.yaml": {manifestsAgentRbacSubmarinerLighthouseClusterrolebindingYaml, map[string]*bintree{}},
-				"submariner-lighthouse-serviceaccount.yaml":     {manifestsAgentRbacSubmarinerLighthouseServiceaccountYaml, map[string]*bintree{}},
-				"submariner-operator-clusterrole.yaml":          {manifestsAgentRbacSubmarinerOperatorClusterroleYaml, map[string]*bintree{}},
-				"submariner-operator-clusterrolebinding.yaml":   {manifestsAgentRbacSubmarinerOperatorClusterrolebindingYaml, map[string]*bintree{}},
-				"submariner-operator-namespace.yaml":            {manifestsAgentRbacSubmarinerOperatorNamespaceYaml, map[string]*bintree{}},
-				"submariner-operator-role.yaml":                 {manifestsAgentRbacSubmarinerOperatorRoleYaml, map[string]*bintree{}},
-				"submariner-operator-rolebinding.yaml":          {manifestsAgentRbacSubmarinerOperatorRolebindingYaml, map[string]*bintree{}},
-				"submariner-operator-serviceaccount.yaml":       {manifestsAgentRbacSubmarinerOperatorServiceaccountYaml, map[string]*bintree{}},
+				"submariner-admin-aggeragate-clusterrole.yaml":     {manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYaml, map[string]*bintree{}},
+				"submariner-cluster-rolebinding.yaml":              {manifestsAgentRbacSubmarinerClusterRolebindingYaml, map[string]*bintree{}},
+				"submariner-cluster-serviceaccount.yaml":           {manifestsAgentRbacSubmarinerClusterServiceaccountYaml, map[string]*bintree{}},
+				"submariner-lighthouse-clusterrole.yaml":           {manifestsAgentRbacSubmarinerLighthouseClusterroleYaml, map[string]*bintree{}},
+				"submariner-lighthouse-clusterrolebinding.yaml":    {manifestsAgentRbacSubmarinerLighthouseClusterrolebindingYaml, map[string]*bintree{}},
+				"submariner-lighthouse-serviceaccount.yaml":        {manifestsAgentRbacSubmarinerLighthouseServiceaccountYaml, map[string]*bintree{}},
+				"submariner-operator-clusterrole.yaml":             {manifestsAgentRbacSubmarinerOperatorClusterroleYaml, map[string]*bintree{}},
+				"submariner-operator-clusterrolebinding.yaml":      {manifestsAgentRbacSubmarinerOperatorClusterrolebindingYaml, map[string]*bintree{}},
+				"submariner-operator-namespace.yaml":               {manifestsAgentRbacSubmarinerOperatorNamespaceYaml, map[string]*bintree{}},
+				"submariner-operator-role.yaml":                    {manifestsAgentRbacSubmarinerOperatorRoleYaml, map[string]*bintree{}},
+				"submariner-operator-rolebinding.yaml":             {manifestsAgentRbacSubmarinerOperatorRolebindingYaml, map[string]*bintree{}},
+				"submariner-operator-serviceaccount.yaml":          {manifestsAgentRbacSubmarinerOperatorServiceaccountYaml, map[string]*bintree{}},
+				"submariner-scc-admin-aggeragate-clusterrole.yaml": {manifestsAgentRbacSubmarinerSccAdminAggeragateClusterroleYaml, map[string]*bintree{}},
+				"submariner-scc.yaml":                              {manifestsAgentRbacSubmarinerSccYaml, map[string]*bintree{}},
 			}},
 		}},
 	}},

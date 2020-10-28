@@ -100,9 +100,12 @@ github.com/munnerz/goautoneg
 # github.com/open-cluster-management/api v0.0.0-20200923021655-f9a64b7328eb
 ## explicit
 github.com/open-cluster-management/api/client/cluster/clientset/versioned
+github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake
 github.com/open-cluster-management/api/client/cluster/clientset/versioned/scheme
 github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1
+github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1/fake
 github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1
+github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1/fake
 github.com/open-cluster-management/api/client/cluster/informers/externalversions
 github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster
 github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1
