@@ -155,14 +155,6 @@ func GetBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
 	return strings.Trim(apiServer, "https://"), nil
 }
 
-func GetSubmarinerVersion() string {
-	version := os.Getenv(SubmarinerVersion)
-	if version == "" {
-		return "0.6.1"
-	}
-	return version
-}
-
 func GetBrokerTokenAndCA(client kubernetes.Interface, brokerNS, clusterName string) (token, ca string, err error) {
 	sa, err := client.CoreV1().ServiceAccounts(brokerNS).Get(context.TODO(), clusterName, metav1.GetOptions{})
 	if err != nil {

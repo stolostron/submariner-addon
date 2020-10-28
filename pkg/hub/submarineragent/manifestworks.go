@@ -29,6 +29,10 @@ type wrapperInfo struct {
 	mustAsset func(name string) []byte
 }
 
+const (
+	SubmarinerVersion = "0.7.0"
+)
+
 var (
 	baseWrappers = []wrapperInfo{
 		{
@@ -108,12 +112,11 @@ func newSubmarinerConfig(
 	dynamicClient dynamic.Interface,
 	clusterName, brokeNamespace string) (*SubmarinerConfig, error) {
 	config := &SubmarinerConfig{
+		Version:         SubmarinerVersion,
 		NATEnabled:      false,
 		BrokerNamespace: brokeNamespace,
 		ClusterName:     clusterName,
 	}
-
-	config.Version = helpers.GetSubmarinerVersion()
 
 	apiServer, err := helpers.GetBrokerAPIServer(dynamicClient)
 	if err != nil {
