@@ -2,10 +2,13 @@ package submarineragent
 
 import (
 	"context"
+	"testing"
+
 	fakeclusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	fakeworkclient "github.com/open-cluster-management/api/client/work/clientset/versioned/fake"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubefake "k8s.io/client-go/kubernetes/fake"
-	"testing"
 )
 
 func TestWrapManifestWorks(t *testing.T) {

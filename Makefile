@@ -42,3 +42,5 @@ clusters:
 
 demo:
 	scripts/demo.sh
+
+include ./test/integration-test.mk

@@ -75,7 +75,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 
 	clusterSet, err := c.clusterSetLister.Get(clusterSetName)
 	if errors.IsNotFound(err) {
-		// ClusterManager not found, could have been deleted, do nothing.
+		// ClusterSet not found, could have been deleted, do nothing.
 		return nil
 	}
 	if err != nil {
@@ -102,7 +102,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 		}
 	}
 
-	// ClusterManager is deleting, we remove its related resources on hub
+	// ClusterSet is deleting, we remove its related resources on hub
 	if !clusterSet.DeletionTimestamp.IsZero() {
 		if err := c.cleanUp(ctx, syncCtx, config); err != nil {
 			return err
@@ -128,7 +128,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 		}
 	}
 
-	// generate IPSECPSK secret
+	// Generate IPSECPSK secret
 	if err := helpers.GenerateIPSecPSKSecret(c.kubeClient, config.SubmarinerNamespace); err != nil {
 		errs = append(errs, fmt.Errorf("unable to generate IPSECPSK secret : %v", err))
 	}

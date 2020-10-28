@@ -2,32 +2,31 @@ package helpers
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
 
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
+
 	"github.com/openshift/api"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 	errorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
-	"crypto/rand"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"strings"
 )
 
 const (
@@ -119,7 +118,7 @@ func GenerateIPSecPSKSecret(client kubernetes.Interface, brokerNamespace string)
 func GetIPSecPSK(client kubernetes.Interface, brokerNamespace string) (string, error) {
 	secret, err := client.CoreV1().Secrets(brokerNamespace).Get(context.TODO(), IPSecPSKSecretName, metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to broker IPSECPSK secret %v/%v: %v", brokerNamespace, IPSecPSKSecretName, err)
+		return "", fmt.Errorf("failed to get broker IPSECPSK secret %v/%v: %v", brokerNamespace, IPSecPSKSecretName, err)
 	}
 
 	return base64.StdEncoding.EncodeToString(secret.Data["psk"]), nil
