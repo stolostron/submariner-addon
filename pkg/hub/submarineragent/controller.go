@@ -273,14 +273,14 @@ func (c *submarinerAgentController) removeClusterRBACFiles(managedClusterName st
 	serviceAccounts, err := c.kubeClient.CoreV1().ServiceAccounts(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("%s=%s", serviceAccountLabel, managedClusterName),
 	})
-	if errors.IsNotFound(err) {
-		return nil
-	}
 	if err != nil {
 		return err
 	}
+	if len(serviceAccounts.Items) == 0 {
+		return nil
+	}
 
-	if len(serviceAccounts.Items) != 1 {
+	if len(serviceAccounts.Items) > 1 {
 		return fmt.Errorf("one more than service accounts are found for %q", managedClusterName)
 	}
 

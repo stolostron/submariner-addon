@@ -397,6 +397,9 @@ kind: ClusterRole
 metadata:
   name: submariner-operator
 rules:
+  # submariner-operator updates the config map of core-dns to forward requests to
+  # clusterset.local to Lighthouse DNS, also looks at existing configmaps
+  # to figure out network settings
   - apiGroups:
       - ""
     resources:
@@ -407,6 +410,16 @@ rules:
       - watch
       - update
   - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
+  - apiGroups:  # pods and services are looked up to figure out network settings
       - ""
     resources:
       - pods
@@ -653,7 +666,7 @@ metadata:
 rules:
   - apiGroups: ["security.openshift.io"]
     resources: ["securitycontextconstraints"]
-    verbs: ["create", "delete"]
+    verbs: ["get", "create", "delete"]
 `)
 
 func manifestsAgentRbacSubmarinerSccAdminAggeragateClusterroleYamlBytes() ([]byte, error) {
