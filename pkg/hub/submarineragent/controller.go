@@ -140,9 +140,25 @@ func (c *submarinerAgentController) syncAllManagedClusters(ctx context.Context) 
 
 // syncManagedCluster syncs one managed cluster
 func (c *submarinerAgentController) syncManagedCluster(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
-	// the cluster does not have the submariner label, ignore it
+	// the cluster does not have the submariner label, try to clean up the submariner agent
 	if _, existed := managedCluster.Labels[submarinerLabel]; !existed {
-		return c.removeSubmarinerAgent(ctx, managedCluster.Name)
+		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
+	}
+
+	// the cluster does not have the clusterset label, try to clean up the submariner agent
+	clusterSetName, existed := managedCluster.Labels[clusterSetLabel]
+	if !existed {
+		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
+	}
+
+	// find the clustersets that contains this managed cluster
+	// if the clusterset is not found, try to clean up the submariner agent
+	_, err := c.clusterClient.ClusterV1alpha1().ManagedClusterSets().Get(ctx, clusterSetName, metav1.GetOptions{})
+	switch {
+	case errors.IsNotFound(err):
+		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
+	case err != nil:
+		return err
 	}
 
 	// add a submariner agent finalizer to a managed cluster
@@ -163,29 +179,18 @@ func (c *submarinerAgentController) syncManagedCluster(ctx context.Context, mana
 
 	// managed cluster is deleting, we remove its related resources
 	if !managedCluster.DeletionTimestamp.IsZero() {
-		// remove the submariner agent from this managedCluster
-		if err := c.removeSubmarinerAgent(ctx, managedCluster.Name); err != nil {
-			return err
-		}
-		return c.removeAgentFinalizer(ctx, managedCluster)
-	}
-
-	// find the clustersets that contains this managed cluster
-	clusterSetName, existed := managedCluster.Labels[clusterSetLabel]
-	if !existed {
-		return c.removeSubmarinerAgent(ctx, managedCluster.Name)
-	}
-	_, err := c.clusterClient.ClusterV1alpha1().ManagedClusterSets().Get(ctx, clusterSetName, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			c.eventRecorder.Warning("SubmarinerUndeployed",
-				fmt.Sprintf("There are no managedClusterSets %q related to managedCluster %q", clusterSetName, managedCluster.Name))
-			return c.removeSubmarinerAgent(ctx, managedCluster.Name)
-		}
-		return err
+		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
 	}
 
 	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster.Name)
+}
+
+// clean up the submariner agent from this managedCluster
+func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
+	if err := c.removeSubmarinerAgent(ctx, managedCluster.Name); err != nil {
+		return err
+	}
+	return c.removeAgentFinalizer(ctx, managedCluster)
 }
 
 // removeAgentFinalizer removes the agent finalizer from a clusterset
@@ -220,8 +225,6 @@ func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, c
 		c.manifestWorkClient,
 		c.clusterClient,
 		clusterName, brokerNamespace, ctx); err != nil {
-		c.eventRecorder.Warning("SubmarinerAgentDeployedFailed",
-			fmt.Sprintf("failed to deploy submariner agent on managed cluster %v: %v", clusterName, err))
 		return err
 	}
 
@@ -231,18 +234,16 @@ func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, c
 
 func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, clusterName string) error {
 	errs := []error{}
-	if err := RemoveSubmarinerManifestWorks(clusterName, c.manifestWorkClient, c.clusterClient, ctx); err != nil {
+	// remove submariner manifestworks
+	if err := RemoveSubmarinerManifestWorks(ctx, c.clusterClient, c.manifestWorkClient, c.eventRecorder, clusterName); err != nil {
 		errs = append(errs, fmt.Errorf("failed to remove submariner agent from managed cluster %v: %v", clusterName, err))
 	}
 
 	// remove service account and its rolebinding from broker namespace
-	if err := c.removeClusterRBACFiles(clusterName, ctx); err != nil {
+	if err := c.removeClusterRBACFiles(ctx, clusterName); err != nil {
 		errs = append(errs, err)
 	}
 
-	if len(errs) == 0 {
-		c.eventRecorder.Event("SubmarinerAgentRemoved", fmt.Sprintf("there is no submariner agent or submariner agent was removed from managed cluster %q", clusterName))
-	}
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
@@ -269,13 +270,15 @@ func (c *submarinerAgentController) applyClusterRBACFiles(brokerNamespace, manag
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (c *submarinerAgentController) removeClusterRBACFiles(managedClusterName string, ctx context.Context) error {
+func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, managedClusterName string) error {
 	serviceAccounts, err := c.kubeClient.CoreV1().ServiceAccounts(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("%s=%s", serviceAccountLabel, managedClusterName),
 	})
 	if err != nil {
 		return err
 	}
+
+	// no serviceaccounts are found, do nothing
 	if len(serviceAccounts.Items) == 0 {
 		return nil
 	}
@@ -290,7 +293,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(managedClusterName st
 	}
 
 	return helpers.CleanUpSubmarinerManifests(
-		context.TODO(),
+		ctx,
 		c.kubeClient,
 		c.eventRecorder,
 		func(name string) ([]byte, error) {

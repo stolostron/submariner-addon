@@ -2,24 +2,24 @@ package hub
 
 import (
 	"context"
-	"k8s.io/client-go/dynamic"
 	"time"
 
+	"k8s.io/client-go/dynamic"
+
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
-	"k8s.io/client-go/kubernetes"
 
 	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterv1informers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
 	workv1client "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	workv1informers "github.com/open-cluster-management/api/client/work/informers/externalversions"
-
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker"
 
 	kubeinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 )
 
-// RunControllerManager starts the controllers on hub to manage spoke cluster registration.
+// RunControllerManager starts the controllers on hub to manage submariner deployment.
 func RunControllerManager(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
 	kubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
@@ -51,6 +51,7 @@ func RunControllerManager(ctx context.Context, controllerContext *controllercmd.
 		clusterInformers.Cluster().V1alpha1().ManagedClusterSets(),
 		controllerContext.EventRecorder,
 	)
+
 	submarinerAgentController := submarineragent.NewSubmarinerAgentController(
 		kubeClient,
 		dynamicClient,

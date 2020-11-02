@@ -3,15 +3,21 @@ package submarineragent
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
 	"github.com/ghodss/yaml"
+
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	workv1client "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	workv1 "github.com/open-cluster-management/api/work/v1"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	hubbindata "github.com/open-cluster-management/submariner-addon/pkg/hub/bindata"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent/bindata"
+
 	"github.com/openshift/library-go/pkg/assets"
+	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +26,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
-	"path/filepath"
 )
 
 type wrapperInfo struct {
@@ -158,7 +163,6 @@ func wrapManifestWorks(config *SubmarinerConfig, wrappers []wrapperInfo) ([]*wor
 			yamlData := assets.MustCreateAssetFromTemplate(file, w.mustAsset(filepath.Join("", file)), config).Data
 			jsonData, err := yaml.YAMLToJSON(yamlData)
 			if err != nil {
-				klog.Errorf("failed to YAMLToJSON %+v: %+v : %+v", file, jsonData, err)
 				return manifestWorks, err
 			}
 			manifest := workv1.Manifest{RawExtension: runtime.RawExtension{Raw: jsonData}}
@@ -206,7 +210,6 @@ func ApplySubmarinerManifestWorks(
 		err := ApplyManifestWork(work, workClient, ctx)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to apply manifestWork %+v: %+v", work.Name, err))
-			klog.Errorf("failed to apply manifestWork %+v: %+v : %+v", work.Name, work, err)
 			continue
 		}
 	}
@@ -215,10 +218,11 @@ func ApplySubmarinerManifestWorks(
 }
 
 func RemoveSubmarinerManifestWorks(
-	namespace string,
-	client workv1client.Interface,
+	ctx context.Context,
 	clusterClient clientset.Interface,
-	ctx context.Context) error {
+	workClient workv1client.Interface,
+	recorder events.Recorder,
+	namespace string) error {
 	var errs []error
 	var wrappers []wrapperInfo = baseWrappers
 
@@ -232,13 +236,15 @@ func RemoveSubmarinerManifestWorks(
 	}
 
 	for _, w := range wrappers {
-		if err := client.WorkV1().ManifestWorks(namespace).
-			Delete(ctx, w.name, metav1.DeleteOptions{}); err != nil {
-			if errors.IsNotFound(err) {
-				continue
-			}
-			errs = append(errs, err)
+		err := workClient.WorkV1().ManifestWorks(namespace).Delete(ctx, w.name, metav1.DeleteOptions{})
+		if errors.IsNotFound(err) {
+			continue
 		}
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		recorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q", fmt.Sprintf("%s/%s", namespace, w.name))
 	}
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }

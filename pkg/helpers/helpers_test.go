@@ -1,15 +1,22 @@
 package helpers
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"testing"
+
 	fakeclusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+
+	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubefake "k8s.io/client-go/kubernetes/fake"
-	"testing"
 )
 
 func TestGenerateAndGetIPSecPSKSecret(t *testing.T) {
@@ -155,13 +162,12 @@ func TestGetBrokerTokenAndCA(t *testing.T) {
 						Name:      "cluster1",
 						Namespace: "cluster1-broker",
 					},
-					Secrets: []corev1.ObjectReference{{Name: "cluster-cluster1-token-5pw5c"}},
 				},
 			},
 			expectErr: true,
 		},
 		{
-			name:            "exist sa and secret",
+			name:            "exist sa and secret, but the secret cannot be found",
 			brokerNamespace: "cluster1-broker",
 			clusterName:     "cluster1",
 			existings: []runtime.Object{
@@ -186,6 +192,32 @@ func TestGetBrokerTokenAndCA(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		{
+			name:            "exist sa and secret",
+			brokerNamespace: "cluster1-broker",
+			clusterName:     "cluster1",
+			existings: []runtime.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "cluster1-broker",
+					},
+					Secrets: []corev1.ObjectReference{{Name: "cluster1-token-5pw5c"}},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1-token-5pw5c",
+						Namespace: "cluster1-broker",
+					},
+					Data: map[string][]byte{
+						"ca.crt": []byte("ca"),
+						"token":  []byte("token"),
+					},
+					Type: corev1.SecretTypeServiceAccountToken,
+				},
+			},
+			expectErr: false,
+		},
 	}
 
 	for _, c := range cases {
@@ -200,6 +232,74 @@ func TestGetBrokerTokenAndCA(t *testing.T) {
 			}
 			if (token == "" || ca == "") && !c.expectErr {
 				t.Errorf("expect valid token and ca")
+			}
+		})
+	}
+}
+
+func TestCleanUpSubmarinerManifests(t *testing.T) {
+	applyFiles := map[string]runtime.Object{
+		"role":           newUnstructured("rbac.authorization.k8s.io/v1", "Role", "ns", "rb", map[string]interface{}{}),
+		"rolebinding":    newUnstructured("rbac.authorization.k8s.io/v1", "RoleBinding", "ns", "r", map[string]interface{}{}),
+		"serviceaccount": newUnstructured("v1", "ServiceAccount", "ns", "sa", map[string]interface{}{}),
+		"namespace":      newUnstructured("v1", "Namespace", "", "ns", map[string]interface{}{}),
+		"kind1":          newUnstructured("v1", "Kind1", "ns", "k1", map[string]interface{}{}),
+	}
+
+	testcase := []struct {
+		name          string
+		applyFileName string
+		expectErr     bool
+	}{
+		{
+			name:          "Delete role",
+			applyFileName: "role",
+			expectErr:     false,
+		},
+		{
+			name:          "Delete rolebinding",
+			applyFileName: "rolebinding",
+			expectErr:     false,
+		},
+		{
+			name:          "Delete serviceaccount",
+			applyFileName: "serviceaccount",
+			expectErr:     false,
+		},
+		{
+			name:          "Delete namespace",
+			applyFileName: "namespace",
+			expectErr:     false,
+		},
+		{
+			name:          "Delete unhandled object",
+			applyFileName: "kind1",
+			expectErr:     true,
+		},
+	}
+
+	for _, c := range testcase {
+		t.Run(c.name, func(t *testing.T) {
+			fakeKubeClient := kubefake.NewSimpleClientset()
+			err := CleanUpSubmarinerManifests(
+				context.TODO(),
+				fakeKubeClient,
+				eventstesting.NewTestingEventRecorder(t),
+				func(name string) ([]byte, error) {
+					if applyFiles[name] == nil {
+						return nil, fmt.Errorf("Failed to find file")
+					}
+
+					return json.Marshal(applyFiles[name])
+				},
+				c.applyFileName,
+			)
+
+			if err == nil && c.expectErr {
+				t.Errorf("Expect an apply error")
+			}
+			if err != nil && !c.expectErr {
+				t.Errorf("Expect no apply error, %v", err)
 			}
 		})
 	}
@@ -285,4 +385,22 @@ func TestGetClusterType(t *testing.T) {
 			}
 		})
 	}
+}
+
+func newUnstructured(apiVersion, kind, namespace, name string, content map[string]interface{}) *unstructured.Unstructured {
+	object := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": apiVersion,
+			"kind":       kind,
+			"metadata": map[string]interface{}{
+				"namespace": namespace,
+				"name":      name,
+			},
+		},
+	}
+	for key, val := range content {
+		object.Object[key] = val
+	}
+
+	return object
 }
