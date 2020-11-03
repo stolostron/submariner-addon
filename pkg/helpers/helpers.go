@@ -30,11 +30,14 @@ import (
 )
 
 const (
-	ClusterTypeOCP       = "OCP"
-	IPSecPSKSecretLength = 48
-	IPSecPSKSecretName   = "submariner-ipsec-psk"
-	BrokerAPIServer      = "BROKER_API_SERVER"
-	SubmarinerVersion    = "SUBMARINER_VERSION"
+	ClusterTypeOCP              = "OCP"
+	IPSecPSKSecretLength        = 48
+	IPSecPSKSecretName          = "submariner-ipsec-psk"
+	BrokerAPIServer             = "BROKER_API_SERVER"
+	SubmarinerVersion           = "SUBMARINER_VERSION"
+	SubmarinerDefaultVersion    = "0.7.0"
+	SubmarinerRepository        = "SUBMARINER_REPOSITORY"
+	SubmarinerDefaultRepository = "quay.io/submariner"
 )
 
 var (
@@ -199,4 +202,20 @@ func GetClusterType(clusterClient clientset.Interface, clusterName string) (stri
 	}
 
 	return clusterType, nil
+}
+
+func GetSubmarinerRepository() string {
+	repository := os.Getenv(SubmarinerRepository)
+	if repository == "" {
+		return SubmarinerDefaultRepository
+	}
+	return repository
+}
+
+func GetSubmarinerVersion() string {
+	version := os.Getenv(SubmarinerVersion)
+	if version == "" {
+		return SubmarinerDefaultVersion
+	}
+	return version
 }

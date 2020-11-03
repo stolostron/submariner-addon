@@ -100,7 +100,7 @@ spec:
               fieldPath: metadata.name
         - name: OPERATOR_NAME
           value: submariner-operator
-        image: quay.io/submariner/submariner-operator:{{ .Version }}
+        image: {{ .Repository }}/submariner-operator:{{ .Version }}
         imagePullPolicy: Always
         name: submariner-operator
       serviceAccount: submariner-operator
@@ -135,7 +135,7 @@ spec:
   clusterID: {{ .ClusterName }}
   debug: false
   namespace: submariner-operator
-  repository: quay.io/submariner
+  repository: {{ .Repository }}
   version: {{ .Version }}
 `)
 
@@ -175,7 +175,7 @@ spec:
   debug: false
   namespace: submariner-operator
   natEnabled: {{ .NATEnabled }}
-  repository: quay.io/submariner
+  repository: {{ .Repository }}
   serviceCIDR: ""
   serviceDiscoveryEnabled: true
   version: {{ .Version }}
