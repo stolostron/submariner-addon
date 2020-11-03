@@ -26,32 +26,8 @@ Below steps can be used to run this repo at a local environment
 1. Make your clusters ready for Submariner. 
 https://submariner.io/quickstart/openshift/service_discovery/#make-your-clusters-ready-for-submariner 
 
-2. Apply configmap `deploy/submarinerConfigmap.yaml` for each managedCluster namespaces.
-
-3. Grant the appropriate security context for the service accounts on each managedClusters.
+2. Grant the appropriate security context for the service accounts on each managedClusters.
 ```
 oc adm policy add-scc-to-user privileged system:serviceaccount:submariner-operator:submariner-operator
 oc adm policy add-scc-to-user privileged system:serviceaccount:submariner-operator:submariner-lighthouse
-```
-### issues in 0.6.1
-
-1. Failed to reinstall Submariner agent to OCP.
-
-Need to delete the `spec.servers` section in `dnses.operator.openshift.io/default`
-
-```
-spec:
-  servers:
-  - forwardPlugin:
-      upstreams:
-      - 172.30.103.249
-    name: lighthouse
-    zones:
-    - clusterset.local
-  - forwardPlugin:
-      upstreams:
-      - 172.30.103.249
-    name: lighthouse
-    zones:
-    - supercluster.local
 ```
