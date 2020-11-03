@@ -2,7 +2,6 @@
 An integration between acm and submariner
 
 ## Locally Testing With KIND
-
 Below steps can be used to run this repo at a local environment
 
 > Note: [`kind`](https://kind.sigs.k8s.io/) and [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) are required
