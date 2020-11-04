@@ -19,6 +19,7 @@ spec:
       containers:
       - name: submariner-addon
         image: quay.io/open-cluster-management/submariner-addon:latest
+        imagePullPolicy: IfNotPresent
         args:
           - "/submariner"
           - "controller"
@@ -26,8 +27,18 @@ spec:
         - name: BROKER_API_SERVER
           valueFrom:
             configMapKeyRef:
-              name: submariner-broker-config
+              name: submariner-config
               key: apiserver
+        - name: SUBMARINER_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: submariner-config
+              key: version
+        - name: SUBMARINER_REPOSITORY
+          valueFrom:
+            configMapKeyRef:
+              name: submariner-config
+              key: repository
         livenessProbe:
           httpGet:
             path: /healthz

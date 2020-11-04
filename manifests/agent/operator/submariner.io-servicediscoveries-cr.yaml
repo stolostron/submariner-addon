@@ -11,5 +11,5 @@ spec:
   clusterID: {{ .ClusterName }}
   debug: false
   namespace: submariner-operator
-  repository: quay.io/submariner
+  repository: {{ .Repository }}
   version: {{ .Version }}

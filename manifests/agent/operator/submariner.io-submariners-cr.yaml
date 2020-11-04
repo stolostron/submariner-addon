@@ -19,7 +19,7 @@ spec:
   debug: false
   namespace: submariner-operator
   natEnabled: {{ .NATEnabled }}
-  repository: quay.io/submariner
+  repository: {{ .Repository }}
   serviceCIDR: ""
   serviceDiscoveryEnabled: true
   version: {{ .Version }}
