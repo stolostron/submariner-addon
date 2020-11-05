@@ -31,3 +31,7 @@ https://submariner.io/quickstart/openshift/service_discovery/#make-your-clusters
 oc adm policy add-scc-to-user privileged system:serviceaccount:submariner-operator:submariner-operator
 oc adm policy add-scc-to-user privileged system:serviceaccount:submariner-operator:submariner-lighthouse
 ```
+3. Apply the deploy
+```
+kubectl apply -k deploy/
+```
