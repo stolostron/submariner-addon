@@ -4,7 +4,7 @@ An integration between acm and submariner
 ## Locally Testing With KIND
 Below steps can be used to run this repo at a local environment
 
-> Note: [`kind`](https://kind.sigs.k8s.io/), [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/), and ['imagebuilder'](https://github.com/openshift/imagebuilder) are required
+> Note: [`kind`](https://kind.sigs.k8s.io/), [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/), and [`imagebuilder`](https://github.com/openshift/imagebuilder) are required
 
 1. Build the `submariner-addon` image on local by `make images`
 2. Prepare clusters by `make clusters`, this will
