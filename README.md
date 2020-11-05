@@ -4,7 +4,7 @@ An integration between acm and submariner
 ## Locally Testing With KIND
 Below steps can be used to run this repo at a local environment
 
-> Note: [`kind`](https://kind.sigs.k8s.io/) and [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) are required
+> Note: [`kind`](https://kind.sigs.k8s.io/), [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/), and ['imagebuilder'](https://github.com/openshift/imagebuilder) are required
 
 1. Build the `submariner-addon` image on local by `make images`
 2. Prepare clusters by `make clusters`, this will
@@ -23,8 +23,8 @@ Below steps can be used to run this repo at a local environment
 
 ## Test with OCP
 
-1. Make your clusters ready for Submariner. 
-https://submariner.io/quickstart/openshift/service_discovery/#make-your-clusters-ready-for-submariner 
+1. Make your clusters ready for Submariner.
+https://submariner.io/quickstart/openshift/service_discovery/#make-your-clusters-ready-for-submariner
 
 2. Grant the appropriate security context for the service accounts on each managedClusters.
 ```
