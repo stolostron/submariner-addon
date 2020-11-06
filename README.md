@@ -25,6 +25,8 @@ The steps below can be used for testing on a local environment:
     - Create a Kubernetes Service on managed cluster `cluster3` and export it. Submariner will import this service to the managed clusters.
     - Access the exported Service from managed cluster `cluster2`.
 
+To delete the kind environment, use `make clean`.
+
 ## Test with OCP
 The steps below can be used to test with OpenShift Container Platform (OCP) clusters on AWS:
 
