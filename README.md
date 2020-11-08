@@ -11,7 +11,7 @@ The steps below can be used for testing on a local environment:
 2. Build the `submariner-addon` image locally by running `make images`.
 
 3. Prepare clusters by running `make clusters`. This will:
-    - Create three clusters: `cluster1`, `clustr2` and `cluster3`. `cluster1` is going to be used as the Hub, and the other two as the managed clusters.
+    - Create three clusters: `cluster1`, `cluster2` and `cluster3`. `cluster1` is going to be used as the Hub, and the other two as the managed clusters.
     - Load the local Docker images to the kind cluster `cluster1`.
     - Deploy the `ClusterManager` on `cluster1`. This includes the required Hub cluster components.
     - Deploy the `Klusterlet` on `cluster2` and `cluster3`. This includes the required managed cluster agents.
@@ -22,7 +22,8 @@ The steps below can be used for testing on a local environment:
     - Label the managed clusters with `cluster.open-cluster-management.io/clusterset: clusterset1`.
     - Create a `ClusterSet`.
     - Deploy the Submariner Broker on the Hub cluster and the required Submariner components on the managed clusters.
-    - Create a Kubernetes Service on managed cluster `cluster3` and export it. Submariner will import this service to the managed clusters.
+    - Interconnect `cluster2` and `cluster3` using Submariner.
+    - Create a Kubernetes Service `nginx` of type ClusterIP on managed cluster `cluster3` and export it. Submariner will import this Service to the managed clusters.
     - Access the exported Service from managed cluster `cluster2`.
 
 To delete the kind environment, use `make clean`.
