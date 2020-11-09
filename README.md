@@ -1,6 +1,9 @@
 # submariner-addon
 An integration between ACM and [Submariner](https://submariner.io/). Submariner enables direct networking between Pods and Services in different Kubernetes clusters.
 
+## Community, discussion, contribution, and support
+Check the [CONTRIBUTING Doc](CONTRIBUTING.md) for how to contribute to the repo.
+
 ## Test Locally with kind
 The steps below can be used for testing on a local environment:
 
