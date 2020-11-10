@@ -1,0 +1,64 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: "[]"
+    capabilities: Basic Install
+  name: submariner-addon.vX.Y.Z
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: Cluster
+      name: clusters.submariner.io
+      version: v1
+    - kind: Endpoint
+      name: endpoints.submariner.io
+      version: v1
+    - kind: MultiClusterService
+      name: multiclusterservices.lighthouse.submariner.io
+      version: v1
+    - kind: ServiceImport
+      name: serviceimports.lighthouse.submariner.io
+      version: v2alpha1
+    - Kind: SubmarinerConfig
+      name: submarinerconfigs.submarineraddon.open-cluster-management.io
+      version: v1alpha1
+  description: An integration between ACM and Submariner.
+  displayName: Submariner Addon
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec: null
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - open-cluster-management
+  - submariner-addon
+  links:
+  - name: Submariner Addon
+    url: https://github.com/open-cluster-management/submariner-addon
+  maintainers:
+  - email: jqiu@redhat.com
+    name: Jian Qiu
+  - email: zyin@redhat.com
+    name: Zhiwei Yin
+  - email: wliu1@redhat.com
+    name: Wei Liu
+  maturity: alpha
+  provider:
+    name: Red Hat, Inc.
+  selector:
+    matchLabels:
+      app: submariner-addon
+  version: 0.3.0

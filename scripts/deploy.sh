@@ -89,16 +89,21 @@ function deploy_hub() {
     kubectl apply -f ${deploy_dir}/crds/operator_open-cluster-management_clustermanagers.cr.yaml
 
     # deploy the acm_submariner
-    echo "Deploy ACM Submariner on cluster ${cluster} ..."
+    echo "Deploy ACM submariner-addon on cluster ${cluster} ..."
     local submariner_deploy_dir="${work_dir}/submariner/deploy"
-    local submariner_kustomization="${submariner_deploy_dir}/kustomization.yaml"
+    local submariner_deployment="${submariner_deploy_dir}/config/operator/operator.yaml"
     local master_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${hub}-control-plane | head -n 1)
 
     mkdir -p ${submariner_deploy_dir}
     cp -r deploy/* ${submariner_deploy_dir}
 
-    sed -i -- "s/apiserver=\"10.0.118.46:42415\"/apiserver=\"${master_ip}:6443\"/g" ${submariner_kustomization}
-    kubectl apply -k ${submariner_deploy_dir}
+    # add master apiserver to submariner-addon deployment
+    cat <<EOF >> ${submariner_deployment}
+        env:
+        - name: BROKER_API_SERVER
+          value: "${master_ip}:6443"
+EOF
+    kubectl apply -k ${submariner_deploy_dir}/config/manifests
 }
 
 function deploy_klusterlet() {
