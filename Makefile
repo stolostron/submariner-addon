@@ -82,6 +82,12 @@ verify-scripts:
 .PHONY: verify-scripts
 verify: verify-scripts verify-codegen-crds
 
+deploy-addon: ensure-operator-sdk
+	$(OPERATOR_SDK) run packagemanifests deploy/olm-catalog/ --namespace open-cluster-management --version $(CSV_VERSION) --install-mode OwnNamespace --timeout=10m
+
+clean-addon: ensure-operator-sdk
+	$(OPERATOR_SDK) cleanup submariner-addon --namespace open-cluster-management --timeout 10m
+
 ensure-operator-sdk:
 ifeq "" "$(wildcard $(OPERATOR_SDK))"
 	$(info Installing operator-sdk into '$(OPERATOR_SDK)')
