@@ -36,12 +36,7 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
 
 1. Prepare AWS clusters for Submariner. Please refer to [this section](https://submariner.io/quickstart/openshift/#prepare-aws-clusters-for-submariner) for detailed instructions.
 
-2. Grant the appropriate security context for the service accounts (SAs) on each managed cluster:
-```
-oc adm policy add-scc-to-user privileged system:serviceaccount:submariner-operator:submariner-operator
-oc adm policy add-scc-to-user privileged system:serviceaccount:submariner-operator:submariner-lighthouse
-```
-3. Apply the deploy:
-```
-kubectl apply -k deploy/config/manifests
-```
+2. Apply the deploy:
+    ```
+    kubectl apply -k deploy/config/manifests
+    ```
