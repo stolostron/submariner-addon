@@ -23,22 +23,6 @@ spec:
         args:
           - "/submariner"
           - "controller"
-        env:
-        - name: BROKER_API_SERVER
-          valueFrom:
-            configMapKeyRef:
-              name: submariner-config
-              key: apiserver
-        - name: SUBMARINER_VERSION
-          valueFrom:
-            configMapKeyRef:
-              name: submariner-config
-              key: version
-        - name: SUBMARINER_REPOSITORY
-          valueFrom:
-            configMapKeyRef:
-              name: submariner-config
-              key: repository
         livenessProbe:
           httpGet:
             path: /healthz

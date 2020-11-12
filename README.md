@@ -43,5 +43,5 @@ oc adm policy add-scc-to-user privileged system:serviceaccount:submariner-operat
 ```
 3. Apply the deploy:
 ```
-kubectl apply -k deploy/
+kubectl apply -k deploy/config/manifests
 ```
