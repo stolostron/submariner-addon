@@ -205,7 +205,7 @@ mkdir -p ${work_dir}
 i=1
 for cluster in "${clusters[@]}";
 do
-    (create_kind_cluster "$i" "$cluster") &
+    create_kind_cluster "$i" "$cluster"
     i=$(($i+1))
 done
 wait
