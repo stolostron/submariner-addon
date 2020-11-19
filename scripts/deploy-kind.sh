@@ -212,7 +212,7 @@ wait
 
 # downlaod registration-operator
 registration_operator_dir="${work_dir}/registration-operator"
-git clone --depth 1 --branch release-2.1 https://github.com/open-cluster-management/registration-operator.git ${registration_operator_dir}
+git clone https://github.com/open-cluster-management/registration-operator.git ${registration_operator_dir}
 
 # the first cluster is hub cluster
 hub="${clusters[0]}"

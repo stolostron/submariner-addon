@@ -1,8 +1,11 @@
-package util
+package utils
 
 import (
 	"context"
 	"fmt"
+	workv1 "github.com/open-cluster-management/api/work/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/klog/v2"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -28,6 +31,21 @@ const (
 	expectedIPSECSecret = "submariner-ipsec-psk"
 )
 
+var (
+	OCPSubmarinerWorks = []string{
+		"submariner-agent-crds",
+		"submariner-agent-rbac",
+		"submariner-agent-operator",
+		"submariner-scc",
+		"submariner-scc-rbac",
+	}
+	NonOCPSubmarinerWorks = []string{
+		"submariner-agent-crds",
+		"submariner-agent-rbac",
+		"submariner-agent-operator",
+	}
+)
+
 func FindExpectedFinalizer(finalizers []string, expected string) bool {
 	for _, finalizer := range finalizers {
 		if finalizer == expected {
@@ -45,6 +63,51 @@ func UpdateManagedClusterLabels(clusterClient clusterclientset.Interface, manage
 		}
 
 		managedCluster.Labels = labels
+
+		_, err = clusterClient.ClusterV1().ManagedClusters().Update(context.Background(), managedCluster, metav1.UpdateOptions{})
+		return err
+	})
+}
+
+func AddManagedClusterLabels(clusterClient clusterclientset.Interface, managedClusterName string, labels map[string]string) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		managedCluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.Background(), managedClusterName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		existedLabels := managedCluster.GetLabels()
+		if existedLabels == nil {
+			existedLabels = make(map[string]string)
+		}
+		for key, value := range labels {
+			existedLabels[key] = value
+		}
+
+		managedCluster.SetLabels(existedLabels)
+
+		_, err = clusterClient.ClusterV1().ManagedClusters().Update(context.Background(), managedCluster, metav1.UpdateOptions{})
+		return err
+	})
+}
+
+func RemoveManagedClusterLabels(clusterClient clusterclientset.Interface, managedClusterName string, labels map[string]string) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		managedCluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.Background(), managedClusterName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		existedLabels := managedCluster.GetLabels()
+		if existedLabels == nil {
+			return nil
+		}
+
+		for key := range labels {
+			delete(existedLabels, key)
+		}
+
+		managedCluster.SetLabels(existedLabels)
 
 		_, err = clusterClient.ClusterV1().ManagedClusters().Update(context.Background(), managedCluster, metav1.UpdateOptions{})
 		return err
@@ -75,6 +138,49 @@ func FindManifestWorks(workClient workclientset.Interface, managedClusterName st
 		}
 	}
 	return true
+}
+
+func IsOCPCluster(clusterClient clusterclientset.Interface, managedClusterName string) (bool, error) {
+	cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), managedClusterName, metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("failed to get managed clusters %v. error: %v", managedClusterName, err)
+		return false, err
+	}
+	labels := cluster.GetLabels()
+	if labels["vendor"] == "OCP" {
+		return true, nil
+	}
+	return false, nil
+}
+
+func CheckManifestWorks(workClient workclientset.Interface, clusterClient clusterclientset.Interface, managedClusterName string) error {
+	workNames := NonOCPSubmarinerWorks
+	isOCP, err := IsOCPCluster(clusterClient, managedClusterName)
+	if err != nil {
+		return err
+	}
+	if isOCP {
+		workNames = OCPSubmarinerWorks
+	}
+
+	for _, workName := range workNames {
+		work, err := workClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(), workName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		conditions := work.Status.Conditions
+		if len(conditions) == 0 {
+			return fmt.Errorf("the condition of work %v is not avaliable", workName)
+		}
+
+		if !meta.IsStatusConditionTrue(conditions, workv1.WorkApplied) {
+			return fmt.Errorf("the condition %v of work %v is not avaliable", workv1.WorkApplied, workName)
+		}
+		if !meta.IsStatusConditionTrue(conditions, workv1.WorkAvailable) {
+			return fmt.Errorf("the condition %v of work %v is not avaliable", workv1.WorkAvailable, workName)
+		}
+	}
+	return nil
 }
 
 func SetupServiceAccount(kubeClient kubernetes.Interface, namespace, name string) error {
@@ -140,6 +246,16 @@ func NewManagedClusterSet(name string) *clusterv1alpha1.ManagedClusterSet {
 			Name: name,
 		},
 	}
+}
+
+func GetAManagedCluster(clusterClient clusterclientset.Interface) (string, error) {
+	clusters, err := clusterClient.ClusterV1().ManagedClusters().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		klog.Errorf("failed to list managed clusters. error: %v", err)
+		return "", err
+	}
+
+	return clusters.Items[0].Name, nil
 }
 
 func NewIntegrationTestEventRecorder(componet string) events.Recorder {

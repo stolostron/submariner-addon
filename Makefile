@@ -11,9 +11,11 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	lib/tmp.mk \
 )
 
-# Image URL to use all building/pushing image targets;
-IMAGE ?= submariner-addon
+# IMAGE_NAME can be set in the env to override calculated value for submariner-addon image
 IMAGE_REGISTRY ?= quay.io/open-cluster-management
+IMAGE ?= submariner-addon
+IMAGE_TAG ?= latest
+SUBMARINER_ADDON_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
 
 GIT_HOST ?= github.com/open-cluster-management
 BASE_DIR := $(shell basename $(PWD))
@@ -31,6 +33,13 @@ ifeq ($(GOHOSTOS),darwin)
 	endif
 endif
 operatorsdk_gen_dir:=$(dir $(OPERATOR_SDK))
+
+SED_CMD:=sed
+ifeq ($(GOHOSTOS),darwin)
+	ifeq ($(GOHOSTARCH),amd64)
+		SED_CMD:=gsed
+	endif
+endif
 
 # Add packages to do unit test
 GO_TEST_PACKAGES :=./pkg/...
@@ -53,15 +62,15 @@ $(call add-bindata,submariner-crd,./manifests/crds/...,bindata,bindata,./pkg/hub
 $(call add-bindata,submariner-broker,./manifests/broker/...,bindata,bindata,./pkg/hub/submarinerbroker/bindata/bindata.go)
 $(call add-bindata,submariner-agent,./manifests/agent/...,bindata,bindata,./pkg/hub/submarineragent/bindata/bindata.go)
 
-clean:
-	scripts/deploy.sh cleanup
+clean-kind:
+	scripts/deploy-kind.sh cleanup
 .PHONY: clean
 
-clusters:
-	scripts/deploy.sh
+clusters-kind:
+	scripts/deploy-kind.sh
 
-demo:
-	scripts/demo.sh
+demo-kind:
+	scripts/demo-kind.sh
 
 update-csv: ensure-operator-sdk
 	cd deploy && ../$(OPERATOR_SDK) generate bundle --manifests --deploy-dir config/ --crds-dir config/crds/ --output-dir olm-catalog/ --version $(CSV_VERSION)
@@ -72,6 +81,7 @@ update-scripts:
 	hack/update-swagger-docs.sh
 	hack/update-codegen.sh
 .PHONY: update-scripts
+
 update: update-scripts update-codegen-crds
 
 verify-scripts:
@@ -82,10 +92,19 @@ verify-scripts:
 .PHONY: verify-scripts
 verify: verify-scripts verify-codegen-crds
 
-deploy-addon: ensure-operator-sdk
+munge-csv:
+	mkdir -p munge-csv
+	cp deploy/olm-catalog/manifests/submariner-addon.clusterserviceversion.yaml munge-csv/submariner-addon.clusterserviceversion.yaml.unmunged
+	$(SED_CMD) -e "s,quay.io/open-cluster-management/submariner-addon:latest,$(SUBMARINER_ADDON_IMAGE_NAME)," -i deploy/olm-catalog/manifests/submariner-addon.clusterserviceversion.yaml
+
+unmunge-csv:
+	mv munge-csv/submariner-addon.clusterserviceversion.yaml.unmunged deploy/olm-catalog/manifests/submariner-addon.clusterserviceversion.yaml
+	rm -rf munge-csv
+
+deploy-addon: ensure-operator-sdk munge-csv
 	$(OPERATOR_SDK) run packagemanifests deploy/olm-catalog/ --namespace open-cluster-management --version $(CSV_VERSION) --install-mode OwnNamespace --timeout=10m
 
-clean-addon: ensure-operator-sdk
+clean-addon: ensure-operator-sdk unmunge-csv
 	$(OPERATOR_SDK) cleanup submariner-addon --namespace open-cluster-management --timeout 10m
 
 ensure-operator-sdk:
@@ -99,3 +118,19 @@ else
 endif
 
 include ./test/integration-test.mk
+
+clean-ocm:
+	scripts/deploy-ocm.sh cleanup
+.PHONY: clean
+
+deploy-ocm:
+	scripts/deploy-ocm.sh
+
+run-e2e:
+	go test -c ./test/e2e
+	./e2e.test -test.v -ginkgo.v
+
+test-e2e: deploy-ocm deploy-addon run-e2e
+
+clean-e2e:
+	$(RM) ./e2e.test

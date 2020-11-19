@@ -14,7 +14,7 @@ import (
 	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	workclientset "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub"
-	"github.com/open-cluster-management/submariner-addon/test/util"
+	"github.com/open-cluster-management/submariner-addon/test/utils"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -82,7 +82,7 @@ var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 	go func() {
 		err := hub.RunControllerManager(context.Background(), &controllercmd.ControllerContext{
 			KubeConfig:    cfg,
-			EventRecorder: util.NewIntegrationTestEventRecorder("submariner-addon"),
+			EventRecorder: utils.NewIntegrationTestEventRecorder("submariner-addon"),
 		})
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	}()
