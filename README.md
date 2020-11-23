@@ -34,7 +34,7 @@ To delete the kind environment, use `make clean`.
 ## Test with OCP
 The steps below can be used to test with OpenShift Container Platform (OCP) clusters on AWS:
 
-1. Prepare AWS clusters for Submariner. Please refer to [this section](https://submariner.io/quickstart/openshift/#prepare-aws-clusters-for-submariner) for detailed instructions.
+1. Prepare AWS clusters for Submariner. Please refer to [this section](https://submariner.io/getting_started/quickstart/openshift/aws/#prepare-aws-clusters-for-submariner) for detailed instructions.
 
 2. Apply the deploy:
     ```
