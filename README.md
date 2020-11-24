@@ -34,9 +34,54 @@ To delete the kind environment, use `make clean`.
 ## Test with OCP
 The steps below can be used to test with OpenShift Container Platform (OCP) clusters on AWS:
 
-1. Prepare AWS clusters for Submariner. Please refer to [this section](https://submariner.io/getting_started/quickstart/openshift/aws/#prepare-aws-clusters-for-submariner) for detailed instructions.
+Setup Cluster Manager and Klusterlet:
 
-2. Apply the deploy:
+1. Prepare 3 OCP clusters(1 hub cluster and 2 managed clusters) on AWS for Submariner. Please refer to [this section](https://submariner.io/getting_started/quickstart/openshift/aws/#prepare-aws-clusters-for-submariner) for detailed instructions.
+
+2. On the hub cluster, install `Cluster Manager` Operator and instance (version >= 0.2.0) from OperatorHub.
+
+3. On the managed clusters, install `Klusterlet` Operator and instance (version >= 0.2.0) from OperatorHub. 
+
+4. Approve the `ManagedClusters` on the hub cluster.
+ 
     ```
-    kubectl apply -k deploy/config/manifests
+    $ oc get managedclusters
+    $ oc get csr | grep <managedcluster name> | grep Pending
+    $ oc certificate approve <managedcluster csr>
     ```
+
+5. Accept the `ManagedClusters` on the hub cluster.
+   
+   ```
+   $ oc patch managedclusters <managedcluster name> --type merge --patch '{"spec":{"hubAcceptsClient":true}}'
+   ```
+   
+Setup Addon on the hub cluster.
+
+1. Apply the manifests of submariner-addon.
+
+    ```
+    $ oc apply -k deploy/config/manifests
+    ```
+
+Setup Submariner on the hub cluster.
+
+1. Create a `ManagedClusterSet`.
+
+   ```
+   kind: ManagedClusterSet
+   metadata:
+     name: pro
+   ```
+
+2. Enable the `Submariner` for the `ManagedClusters`.
+
+   ```
+   $ oc label managedclusters <managedcluster name> "cluster.open-cluster-management.io/submariner-agent=true" --overwrite
+   ```
+   
+3. Join the `ManagedClusters` into the `ManagedClusterSet`.
+   
+   ```
+   $ oc label managedclusters <managedcluster name> "cluster.open-cluster-management.io/clusterset=pro" --overwrite
+   ```
