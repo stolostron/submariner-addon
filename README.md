@@ -32,31 +32,34 @@ The steps below can be used for testing on a local environment:
 To delete the kind environment, use `make clean`.
 
 ## Test with OCP
+
+> Note: minimum supported version is OpenShift 4.4/Kuberenets 1.17
+
 The steps below can be used to test with OpenShift Container Platform (OCP) clusters on AWS:
 
 ### Setup of Cluster Manager and Klusterlet
 
-1. Prepare 3 OCP clusters(1 hub cluster and 2 managed clusters) on AWS for Submariner. Please refer to [this section](https://submariner.io/getting_started/quickstart/openshift/aws/#prepare-aws-clusters-for-submariner) for detailed instructions.
+1. Prepare 3 OCP clusters (1 Hub cluster and 2 managed clusters) on AWS for Submariner. Please refer to [this section](https://submariner.io/getting_started/quickstart/openshift/aws/#prepare-aws-clusters-for-submariner) for detailed instructions.
 
-2. On the hub cluster, install `Cluster Manager` Operator and instance (version >= 0.2.0) from OperatorHub.
+2. On the Hub cluster, install `Cluster Manager` Operator and instance (version >= 0.2.0) from OperatorHub.
 
-3. On the managed clusters, install `Klusterlet` Operator and instance (version >= 0.2.0) from OperatorHub. 
+3. On the managed clusters, install `Klusterlet` Operator and instance (version >= 0.2.0) from OperatorHub.
 
 4. Approve the `ManagedClusters` on the hub cluster.
- 
+
     ```
     $ oc get managedclusters
     $ oc get csr | grep <managedcluster name> | grep Pending
     $ oc certificate approve <managedcluster csr>
     ```
 
-5. Accept the `ManagedClusters` on the hub cluster.
-   
+5. Accept the `ManagedClusters` on the Hub cluster.
+
    ```
    $ oc patch managedclusters <managedcluster name> --type merge --patch '{"spec":{"hubAcceptsClient":true}}'
    ```
-   
-### Setup of Addon on the hub cluster
+
+### Setup the Add-on on the Hub cluster
 
 1. Apply the manifests of submariner-addon.
 
@@ -64,7 +67,7 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
     $ oc apply -k deploy/config/manifests
     ```
 
-### Setup of Submariner on the hub cluster
+### Setup Submariner on the Hub cluster
 
 1. Create a `ManagedClusterSet`.
 
@@ -79,20 +82,20 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
    ```
    $ oc label managedclusters <managedcluster name> "cluster.open-cluster-management.io/submariner-agent=true" --overwrite
    ```
-   
+
 3. Join the `ManagedClusters` into the `ManagedClusterSet`.
-   
+
    ```
    $ oc label managedclusters <managedcluster name> "cluster.open-cluster-management.io/clusterset=pro" --overwrite
    ```
 
 ## Test with ACM
 
-The addon has been integrated into ACM 2.2 as a default component.
+The add-on has been integrated into ACM 2.2 as a default component:
 
 1. Install ACM following the [`deploy`](https://github.com/open-cluster-management/deploy) repo.
 
 2. Import or create OCP clusters as managed cluster through the ACM console UI.
-    >Note: The manged clusters must meet the [`prerequisites`](https://submariner.io/getting_started/#prerequisites) for the Submariner.
+    >Note: The manged clusters must meet the [`prerequisites`](https://submariner.io/getting_started/#prerequisites) for Submariner.
 
-3. Start deploying the Submariner to managed clusters following the [Setup of Submariner on the hub cluster](#setup-of-submariner-on-the-hub-cluster) above.
+3. Start deploying Submariner to managed clusters following the [Setup of Submariner on the Hub cluster](#setup-of-submariner-on-the-hub-cluster) above.
