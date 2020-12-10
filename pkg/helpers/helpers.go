@@ -35,7 +35,7 @@ const (
 	IPSecPSKSecretName          = "submariner-ipsec-psk"
 	BrokerAPIServer             = "BROKER_API_SERVER"
 	SubmarinerVersion           = "SUBMARINER_VERSION"
-	SubmarinerDefaultVersion    = "0.7.0"
+	SubmarinerDefaultVersion    = "0.8.0"
 	SubmarinerRepository        = "SUBMARINER_REPOSITORY"
 	SubmarinerDefaultRepository = "quay.io/submariner"
 )
@@ -78,6 +78,8 @@ func CleanUpSubmarinerManifests(
 			err = client.RbacV1().RoleBindings(t.Namespace).Delete(ctx, t.Name, metav1.DeleteOptions{})
 		case *corev1.ServiceAccount:
 			err = client.CoreV1().ServiceAccounts(t.Namespace).Delete(ctx, t.Name, metav1.DeleteOptions{})
+		case *corev1.ConfigMap:
+			err = client.CoreV1().ConfigMaps(t.Namespace).Delete(ctx, t.Name, metav1.DeleteOptions{})
 		default:
 			err = fmt.Errorf("unhandled type %T", object)
 		}

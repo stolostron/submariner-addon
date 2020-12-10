@@ -2,6 +2,7 @@ package submarinerbroker
 
 import (
 	"context"
+	corev1 "k8s.io/api/core/v1"
 	"testing"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kubefake "k8s.io/client-go/kubernetes/fake"
@@ -52,13 +52,14 @@ func TestSync(t *testing.T) {
 			clustersets:    []runtime.Object{newManagedClusterSet("set1", []string{brokerFinalizer}, false)},
 			validateActions: func(t *testing.T, kubeActions, clusterSetActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, clusterSetActions)
-				testinghelpers.AssertActions(t, kubeActions, "get", "create", "get", "create", "get", "create")
+				testinghelpers.AssertActions(t, kubeActions, "get", "create", "get", "create", "get", "create", "get", "create")
 				namespace := (kubeActions[1].(clienttesting.CreateActionImpl).Object).(*corev1.Namespace)
 				if namespace.Name != "submariner-clusterset-set1-broker" {
 					t.Errorf("expected submariner-clusterset-set1-broker, but got %v", namespace)
 				}
 				testinghelpers.AssertActionResource(t, kubeActions[3], "roles")
-				testinghelpers.AssertActionResource(t, kubeActions[5], "secrets")
+				testinghelpers.AssertActionResource(t, kubeActions[5], "configmaps")
+				testinghelpers.AssertActionResource(t, kubeActions[7], "secrets")
 			},
 		},
 		{
@@ -66,9 +67,10 @@ func TestSync(t *testing.T) {
 			clusterSetName: "set1",
 			clustersets:    []runtime.Object{newManagedClusterSet("set1", []string{"test", brokerFinalizer}, true)},
 			validateActions: func(t *testing.T, kubeActions, clusterSetActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, kubeActions, "delete", "delete")
+				testinghelpers.AssertActions(t, kubeActions, "delete", "delete", "delete")
 				testinghelpers.AssertActionResource(t, kubeActions[0], "namespaces")
 				testinghelpers.AssertActionResource(t, kubeActions[1], "roles")
+				testinghelpers.AssertActionResource(t, kubeActions[2], "configmaps")
 				testinghelpers.AssertActions(t, clusterSetActions, "update")
 				managedClusterSet := clusterSetActions[0].(clienttesting.UpdateActionImpl).Object
 				testinghelpers.AssertFinalizers(t, managedClusterSet, []string{"test"})

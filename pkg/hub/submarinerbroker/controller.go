@@ -35,6 +35,7 @@ var (
 	staticResourceFiles = []string{
 		"manifests/broker/broker-namespace.yaml",
 		"manifests/broker/broker-cluster-role.yaml",
+		"manifests/broker/broker-globalnet-configmap.yaml",
 	}
 )
 

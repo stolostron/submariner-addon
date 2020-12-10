@@ -12,4 +12,7 @@ rules:
   verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]
 - apiGroups: ["discovery.k8s.io"]
   resources: ["endpointslices"]
-  verbs: ["create", "get", "list", "watch","patch", "update", "delete"]
+  verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]
+- apiGroups: ["multicluster.x-k8s.io"]
+  resources: ["*"]
+  verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]

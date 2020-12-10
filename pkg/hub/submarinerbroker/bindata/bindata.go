@@ -1,6 +1,7 @@
 // Code generated for package bindata by go-bindata DO NOT EDIT. (@generated)
 // sources:
 // manifests/broker/broker-cluster-role.yaml
+// manifests/broker/broker-globalnet-configmap.yaml
 // manifests/broker/broker-namespace.yaml
 package bindata
 
@@ -69,7 +70,10 @@ rules:
   verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]
 - apiGroups: ["discovery.k8s.io"]
   resources: ["endpointslices"]
-  verbs: ["create", "get", "list", "watch","patch", "update", "delete"]
+  verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]
+- apiGroups: ["multicluster.x-k8s.io"]
+  resources: ["*"]
+  verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]
 `)
 
 func manifestsBrokerBrokerClusterRoleYamlBytes() ([]byte, error) {
@@ -83,6 +87,34 @@ func manifestsBrokerBrokerClusterRoleYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "manifests/broker/broker-cluster-role.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _manifestsBrokerBrokerGlobalnetConfigmapYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+data:
+  clusterinfo: '[]'
+  globalnetEnabled: "false"
+
+metadata:
+  labels:
+    component: submariner-globalnet
+  name: submariner-globalnet-info
+  namespace: {{ .SubmarinerNamespace }}
+`)
+
+func manifestsBrokerBrokerGlobalnetConfigmapYamlBytes() ([]byte, error) {
+	return _manifestsBrokerBrokerGlobalnetConfigmapYaml, nil
+}
+
+func manifestsBrokerBrokerGlobalnetConfigmapYaml() (*asset, error) {
+	bytes, err := manifestsBrokerBrokerGlobalnetConfigmapYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "manifests/broker/broker-globalnet-configmap.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -160,8 +192,9 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"manifests/broker/broker-cluster-role.yaml": manifestsBrokerBrokerClusterRoleYaml,
-	"manifests/broker/broker-namespace.yaml":    manifestsBrokerBrokerNamespaceYaml,
+	"manifests/broker/broker-cluster-role.yaml":        manifestsBrokerBrokerClusterRoleYaml,
+	"manifests/broker/broker-globalnet-configmap.yaml": manifestsBrokerBrokerGlobalnetConfigmapYaml,
+	"manifests/broker/broker-namespace.yaml":           manifestsBrokerBrokerNamespaceYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -207,8 +240,9 @@ type bintree struct {
 var _bintree = &bintree{nil, map[string]*bintree{
 	"manifests": {nil, map[string]*bintree{
 		"broker": {nil, map[string]*bintree{
-			"broker-cluster-role.yaml": {manifestsBrokerBrokerClusterRoleYaml, map[string]*bintree{}},
-			"broker-namespace.yaml":    {manifestsBrokerBrokerNamespaceYaml, map[string]*bintree{}},
+			"broker-cluster-role.yaml":        {manifestsBrokerBrokerClusterRoleYaml, map[string]*bintree{}},
+			"broker-globalnet-configmap.yaml": {manifestsBrokerBrokerGlobalnetConfigmapYaml, map[string]*bintree{}},
+			"broker-namespace.yaml":           {manifestsBrokerBrokerNamespaceYaml, map[string]*bintree{}},
 		}},
 	}},
 }}

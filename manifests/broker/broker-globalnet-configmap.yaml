@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+data:
+  clusterinfo: '[]'
+  globalnetEnabled: "false"
+
+metadata:
+  labels:
+    component: submariner-globalnet
+  name: submariner-globalnet-info
+  namespace: {{ .SubmarinerNamespace }}
