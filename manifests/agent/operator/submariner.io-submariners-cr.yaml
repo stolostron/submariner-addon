@@ -20,7 +20,5 @@ spec:
   debug: false
   namespace: submariner-operator
   natEnabled: {{ .NATEnabled }}
-  repository: {{ .Repository }}
   serviceCIDR: ""
   serviceDiscoveryEnabled: true
-  version: {{ .Version }}

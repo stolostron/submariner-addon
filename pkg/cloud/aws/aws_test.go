@@ -86,14 +86,23 @@ func TestPrepareSubmarinerClusterEnv(t *testing.T) {
 						},
 					},
 				}).Return(&ec2.DescribeSecurityGroupsOutput{SecurityGroups: []*ec2.SecurityGroup{masterSG}}, nil)
-				workerPermission, masterPermission := getRoutePortPermission(masterSG, workerSG)
+				routeWorkerPermission, routeMasterPermission := getRoutePortPermission(masterSG, workerSG, int64(4800), "udp")
 				mock.EXPECT().AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
 					GroupId:       workerSG.GroupId,
-					IpPermissions: []*ec2.IpPermission{workerPermission},
+					IpPermissions: []*ec2.IpPermission{routeWorkerPermission},
 				}).Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil)
 				mock.EXPECT().AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
 					GroupId:       masterSG.GroupId,
-					IpPermissions: []*ec2.IpPermission{masterPermission},
+					IpPermissions: []*ec2.IpPermission{routeMasterPermission},
+				}).Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil)
+				metricsWorkerPermission, metricsMasterPermission := getRoutePortPermission(masterSG, workerSG, int64(8080), "tcp")
+				mock.EXPECT().AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId:       workerSG.GroupId,
+					IpPermissions: []*ec2.IpPermission{metricsWorkerPermission},
+				}).Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil)
+				mock.EXPECT().AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId:       masterSG.GroupId,
+					IpPermissions: []*ec2.IpPermission{metricsMasterPermission},
 				}).Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil)
 				mock.EXPECT().DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
@@ -222,14 +231,23 @@ func TestPrepareSubmarinerClusterEnv(t *testing.T) {
 						},
 					},
 				}).Return(&ec2.DescribeSecurityGroupsOutput{SecurityGroups: []*ec2.SecurityGroup{masterSG}}, nil)
-				workerPermission, masterPermission := getRoutePortPermission(masterSG, workerSG)
+				routeWorkerPermission, routeMasterPermission := getRoutePortPermission(masterSG, workerSG, int64(4800), "udp")
 				mock.EXPECT().AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
 					GroupId:       workerSG.GroupId,
-					IpPermissions: []*ec2.IpPermission{workerPermission},
+					IpPermissions: []*ec2.IpPermission{routeWorkerPermission},
 				}).Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, awserr.New("InvalidPermission.Duplicate", "test", nil))
 				mock.EXPECT().AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
 					GroupId:       masterSG.GroupId,
-					IpPermissions: []*ec2.IpPermission{masterPermission},
+					IpPermissions: []*ec2.IpPermission{routeMasterPermission},
+				}).Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, awserr.New("InvalidPermission.Duplicate", "test", nil))
+				metricsWorkerPermission, metricsMasterPermission := getRoutePortPermission(masterSG, workerSG, int64(8080), "tcp")
+				mock.EXPECT().AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId:       workerSG.GroupId,
+					IpPermissions: []*ec2.IpPermission{metricsWorkerPermission},
+				}).Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, awserr.New("InvalidPermission.Duplicate", "test", nil))
+				mock.EXPECT().AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId:       masterSG.GroupId,
+					IpPermissions: []*ec2.IpPermission{metricsMasterPermission},
 				}).Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, awserr.New("InvalidPermission.Duplicate", "test", nil))
 				gwSG := &ec2.SecurityGroup{
 					GroupId:       aws.String("sg-3"),
@@ -386,9 +404,10 @@ func TestCleanUpSubmarinerClusterEnv(t *testing.T) {
 
 				masterSG := &ec2.SecurityGroup{GroupId: aws.String("sg-1"), OwnerId: aws.String("1234")}
 				workerSG := &ec2.SecurityGroup{GroupId: aws.String("sg-2"), OwnerId: aws.String("1234")}
-				workerPermission, masterPermission := getRoutePortPermission(masterSG, workerSG)
-				workerSG.IpPermissions = []*ec2.IpPermission{workerPermission}
-				masterSG.IpPermissions = []*ec2.IpPermission{masterPermission}
+				routeWorkerPermission, routeMasterPermission := getRoutePortPermission(masterSG, workerSG, int64(4800), "udp")
+				metricsWorkerPermission, metricsMasterPermission := getRoutePortPermission(masterSG, workerSG, int64(8080), "tcp")
+				workerSG.IpPermissions = []*ec2.IpPermission{routeWorkerPermission, metricsWorkerPermission}
+				masterSG.IpPermissions = []*ec2.IpPermission{routeMasterPermission, metricsMasterPermission}
 				mock.EXPECT().DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -415,11 +434,19 @@ func TestCleanUpSubmarinerClusterEnv(t *testing.T) {
 				}).Return(&ec2.DescribeSecurityGroupsOutput{SecurityGroups: []*ec2.SecurityGroup{masterSG}}, nil)
 				mock.EXPECT().RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
 					GroupId:       workerSG.GroupId,
-					IpPermissions: []*ec2.IpPermission{workerPermission},
+					IpPermissions: []*ec2.IpPermission{metricsWorkerPermission},
 				}).Return(&ec2.RevokeSecurityGroupIngressOutput{}, nil)
 				mock.EXPECT().RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
 					GroupId:       masterSG.GroupId,
-					IpPermissions: []*ec2.IpPermission{masterPermission},
+					IpPermissions: []*ec2.IpPermission{metricsMasterPermission},
+				}).Return(&ec2.RevokeSecurityGroupIngressOutput{}, nil)
+				mock.EXPECT().RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+					GroupId:       workerSG.GroupId,
+					IpPermissions: []*ec2.IpPermission{routeWorkerPermission},
+				}).Return(&ec2.RevokeSecurityGroupIngressOutput{}, nil)
+				mock.EXPECT().RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+					GroupId:       masterSG.GroupId,
+					IpPermissions: []*ec2.IpPermission{routeMasterPermission},
 				}).Return(&ec2.RevokeSecurityGroupIngressOutput{}, nil)
 			},
 			validateActions: func(t *testing.T, workActions []clienttesting.Action) {

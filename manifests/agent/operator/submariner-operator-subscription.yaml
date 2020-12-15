@@ -1,0 +1,12 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: submariner
+  namespace: submariner-operator
+spec:
+  channel: {{ .CatalogChannel }}
+  installPlanApproval: Automatic
+  name: {{ .CatalogName }}
+  source: {{ .CatalogSource }}
+  sourceNamespace: {{ .CatalogSourceNamespace }}
+  startingCSV: {{ .CatalogStartingCSV }}

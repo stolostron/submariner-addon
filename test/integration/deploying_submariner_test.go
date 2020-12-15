@@ -15,14 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 )
 
-const (
-	expectedCRDsWork     = "submariner-agent-crds"
-	expectedRBACWork     = "submariner-agent-rbac"
-	expectedOperatorWork = "submariner-agent-operator"
-
-	expectedSCCWork     = "submariner-scc"
-	expectedSCCRBACWork = "submariner-scc-rbac"
-)
+const expectedOperatorWork = "submariner-operator"
 
 var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 	var managedClusterSetName string
@@ -68,31 +61,7 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 
 			ginkgo.By("Check if the submariner agent manifestworks are deployed")
 			gomega.Eventually(func() bool {
-				return util.FindManifestWorks(workClient, managedClusterName, expectedCRDsWork, expectedRBACWork, expectedOperatorWork)
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-		})
-
-		ginkgo.It("Should deploy submariner agent manifestworks with vendor label on managed cluster namespace successfully", func() {
-			ginkgo.By("Create a ManagedCluster with vendor label")
-			managedCluster := util.NewManagedCluster(managedClusterName, map[string]string{
-				"cluster.open-cluster-management.io/submariner-agent": "true",
-				"cluster.open-cluster-management.io/clusterset":       managedClusterSetName,
-				"vendor": "OCP",
-			})
-			_, err := clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), managedCluster, metav1.CreateOptions{})
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-			ginkgo.By("Create the managedcluster namespace")
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName), metav1.CreateOptions{})
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-			ginkgo.By("Setup the serviceaccount")
-			err = util.SetupServiceAccount(kubeClient, expectedBrokerNamespace, managedClusterName)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-			ginkgo.By("Check if the submariner agent manifestworks are deployed")
-			gomega.Eventually(func() bool {
-				return util.FindManifestWorks(workClient, managedClusterName, expectedCRDsWork, expectedRBACWork, expectedOperatorWork, expectedSCCWork, expectedSCCRBACWork)
+				return util.FindManifestWorks(workClient, managedClusterName, expectedOperatorWork)
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 		})
 	})
@@ -126,7 +95,7 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			gomega.Eventually(func() bool {
-				return util.FindManifestWorks(workClient, managedClusterName, expectedCRDsWork, expectedRBACWork, expectedOperatorWork)
+				return util.FindManifestWorks(workClient, managedClusterName, expectedOperatorWork)
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 		})
 

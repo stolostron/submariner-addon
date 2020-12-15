@@ -4,10 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"reflect"
 	"testing"
 	"time"
 
+	fakeworkclient "github.com/open-cluster-management/api/client/work/clientset/versioned/fake"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	workv1 "github.com/open-cluster-management/api/work/v1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
@@ -22,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	clienttesting "k8s.io/client-go/testing"
 )
 
 func TestUpdateStatusCondition(t *testing.T) {
@@ -195,7 +200,7 @@ func TestGetBrokerAPIServer(t *testing.T) {
 						"apiVersion": "config.openshift.io/v1",
 						"kind":       "Infrastructure",
 						"metadata": map[string]interface{}{
-							"name": InfrastructureConfigName,
+							"name": "cluster",
 						},
 						"status": map[string]interface{}{
 							"apiServerURL": "https://api.test.dev04.red-chesterfield.com:6443",
@@ -213,7 +218,7 @@ func TestGetBrokerAPIServer(t *testing.T) {
 						"apiVersion": "config.openshift.io/v1",
 						"kind":       "Infrastructure",
 						"metadata": map[string]interface{}{
-							"name": InfrastructureConfigName,
+							"name": "cluster",
 						},
 					},
 				},
@@ -461,50 +466,221 @@ func TestGetClusterType(t *testing.T) {
 	}
 }
 
-func TestGetClusterClaims(t *testing.T) {
+func TestGetManagedClusterInfo(t *testing.T) {
 	cases := []struct {
-		name             string
-		claims           []clusterv1.ManagedClusterClaim
-		expectedPlatform string
-		expectedRegion   string
-		expectedInfraId  string
+		name           string
+		managedCluster *clusterv1.ManagedCluster
+		expected       configv1alpha1.ManagedClusterInfo
 	}{
 		{
-			name:   "no claims",
-			claims: []clusterv1.ManagedClusterClaim{},
+			name: "no claims",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+			},
+			expected: configv1alpha1.ManagedClusterInfo{
+				ClusterName: "test",
+			},
 		},
 		{
 			name: "has claims",
-			claims: []clusterv1.ManagedClusterClaim{
-				{
-					Name:  "platform.open-cluster-management.io",
-					Value: "AWS",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "test",
+					Labels: map[string]string{"vendor": "OCP"},
 				},
-				{
-					Name:  "region.open-cluster-management.io",
-					Value: "us-east-1",
-				},
-				{
-					Name:  "infrastructure.openshift.io",
-					Value: "{\"infraName\":\"cluster-1234\"}",
+				Status: clusterv1.ManagedClusterStatus{
+					ClusterClaims: []clusterv1.ManagedClusterClaim{
+						{
+							Name:  "platform.open-cluster-management.io",
+							Value: "AWS",
+						},
+						{
+							Name:  "region.open-cluster-management.io",
+							Value: "us-east-1",
+						},
+						{
+							Name:  "infrastructure.openshift.io",
+							Value: "{\"infraName\":\"cluster-1234\"}",
+						},
+					},
 				},
 			},
-			expectedPlatform: "AWS",
-			expectedRegion:   "us-east-1",
-			expectedInfraId:  "cluster-1234",
+			expected: configv1alpha1.ManagedClusterInfo{
+				ClusterName: "test",
+				Vendor:      "OCP",
+				Platform:    "AWS",
+				Region:      "us-east-1",
+				InfraId:     "cluster-1234",
+			},
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			platform, region, infraName := GetClusterClaims(c.claims)
-			if platform != c.expectedPlatform {
-				t.Errorf("expect: %v, but %v", c.expectedPlatform, platform)
+			info := GetManagedClusterInfo(c.managedCluster)
+			if !reflect.DeepEqual(info, c.expected) {
+				t.Errorf("expect %v, but %s", c.expected, info)
 			}
-			if region != c.expectedRegion {
-				t.Errorf("expect: %v, but %v", c.expectedPlatform, region)
+		})
+	}
+}
+
+func TestApplyManifestWork(t *testing.T) {
+	cases := []struct {
+		name            string
+		existingWorks   []runtime.Object
+		work            *workv1.ManifestWork
+		validateActions func(t *testing.T, workActions []clienttesting.Action)
+	}{
+		{
+			name:          "create a work",
+			existingWorks: []runtime.Object{},
+			work: &workv1.ManifestWork{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: workv1.ManifestWorkSpec{
+					Workload: workv1.ManifestsTemplate{
+						Manifests: []workv1.Manifest{},
+					},
+				},
+			},
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "get", "create")
+			},
+		},
+		{
+			name: "update a work",
+			existingWorks: []runtime.Object{
+				&workv1.ManifestWork{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "test",
+					},
+					Spec: workv1.ManifestWorkSpec{
+						Workload: workv1.ManifestsTemplate{
+							Manifests: []workv1.Manifest{
+								{
+									RawExtension: runtime.RawExtension{
+										Raw: []byte("test1"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			work: &workv1.ManifestWork{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: workv1.ManifestWorkSpec{
+					Workload: workv1.ManifestsTemplate{
+						Manifests: []workv1.Manifest{
+							{
+								RawExtension: runtime.RawExtension{
+									Raw: []byte("test2"),
+								},
+							},
+						},
+					},
+				},
+			},
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "get", "update")
+			},
+		},
+		{
+			name: "update a same work",
+			existingWorks: []runtime.Object{
+				&workv1.ManifestWork{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "test",
+					},
+					Spec: workv1.ManifestWorkSpec{
+						Workload: workv1.ManifestsTemplate{
+							Manifests: []workv1.Manifest{
+								{
+									RawExtension: runtime.RawExtension{
+										Raw: []byte("test"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			work: &workv1.ManifestWork{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: workv1.ManifestWorkSpec{
+					Workload: workv1.ManifestsTemplate{
+						Manifests: []workv1.Manifest{
+							{
+								RawExtension: runtime.RawExtension{
+									Raw: []byte("test"),
+								},
+							},
+						},
+					},
+				},
+			},
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "get")
+			},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			workClient := fakeworkclient.NewSimpleClientset(c.existingWorks...)
+			err := ApplyManifestWork(context.TODO(), workClient, c.work)
+			if err != nil {
+				t.Errorf("expect no err, but got: %v", err)
 			}
-			if infraName != c.expectedInfraId {
-				t.Errorf("expect: %v, but %v", c.expectedPlatform, infraName)
+			c.validateActions(t, workClient.Actions())
+		})
+	}
+}
+
+func TestGetEnv(t *testing.T) {
+	os.Setenv("test_env", "test_val")
+	defer os.Unsetenv("test_env")
+
+	cases := []struct {
+		name          string
+		envKey        string
+		defaultValue  string
+		expectedValue string
+	}{
+		{
+			name:          "env exists",
+			envKey:        "test_env",
+			expectedValue: "test_val",
+		},
+		{
+			name:          "env does not exist",
+			envKey:        "nonexistent",
+			defaultValue:  "default_val",
+			expectedValue: "default_val",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			value := GetEnv(c.envKey, c.defaultValue)
+			if value != c.expectedValue {
+				t.Errorf("expect %v, but got: %v", c.expectedValue, value)
 			}
 		})
 	}

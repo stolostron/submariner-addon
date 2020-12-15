@@ -67,6 +67,7 @@ func NewAWSProvider(
 	if region == "" {
 		return nil, fmt.Errorf("cluster region is empty")
 	}
+
 	if infraId == "" {
 		return nil, fmt.Errorf("cluster infraId is empty")
 	}
@@ -107,11 +108,27 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 		return fmt.Errorf("failed to find instance ami with infraID %s and vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
 	}
 
+	masterSecurityGroup, err := a.findSecurityGroup(*vpc.VpcId, fmt.Sprintf("%s-master-sg", a.infraId))
+	if err != nil {
+		return fmt.Errorf("failed to find security group %s-master-sg with vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
+	}
+
+	workerSecurityGroup, err := a.findSecurityGroup(*vpc.VpcId, fmt.Sprintf("%s-worker-sg", a.infraId))
+	if err != nil {
+		return fmt.Errorf("failed to find security group %s-worker-sg with vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
+	}
+
 	// Open submariner route port (4800/UDP) between all master and worker nodes
-	if err := a.openRoutePort(vpc); err != nil {
-		return fmt.Errorf("failed to update security group with infraID %s and vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
+	if err := a.openPort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerRoutePort, "udp"); err != nil {
+		return fmt.Errorf("failed to open route port in security group: %v \n", err)
 	}
 	a.eventRecorder.Eventf("SubmarinerRoutePortOpened", "the submariner route port is opened on aws")
+
+	// Open submariner metrics port (8080/TCP) between all master and worker nodes
+	if err := a.openPort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerMetricsPort, "tcp"); err != nil {
+		return fmt.Errorf("failed to open route port in security group: %v \n", err)
+	}
+	a.eventRecorder.Eventf("SubmarinerMetricsPortOpened", "the submariner metrics port is opened on aws")
 
 	// Open IPsec ports (by default, 4500/UDP and 500/UDP) for submariner gateway instances
 	if err := a.openIPsecPorts(vpc); err != nil {
@@ -164,7 +181,27 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 		a.eventRecorder.Eventf("SubmarinerIPsecPortsClosed", "the submariner IPsec ports are closed on aws")
 	}
 
-	if err := a.revokeRoutePort(vpc); err != nil {
+	// cannot find the worker security group, the below tasks will not continue, return directly
+	workerSecurityGroup, err := a.findSecurityGroup(*vpc.VpcId, fmt.Sprintf("%s-worker-sg", a.infraId))
+	if err != nil {
+		errs = append(errs, fmt.Errorf("failed to find security group %s-worker-sg: %v \n", a.infraId, err))
+		return operatorhelpers.NewMultiLineAggregate(errs)
+	}
+
+	// cannot find the master security group, the below tasks will not continue, return directly
+	masterSecurityGroup, err := a.findSecurityGroup(*vpc.VpcId, fmt.Sprintf("%s-master-sg", a.infraId))
+	if err != nil {
+		errs = append(errs, fmt.Errorf("failed to find security group %s-worker-sg: %v \n", a.infraId, err))
+		return operatorhelpers.NewMultiLineAggregate(errs)
+	}
+
+	if err := a.revokePort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerMetricsPort, "tcp"); err != nil {
+		errs = append(errs, fmt.Errorf("failed to revoke metrics port for %s: %v \n", a.infraId, err))
+	} else {
+		a.eventRecorder.Eventf("SubmarinerMetricsPortClosed", "the submariner metrics port is closed on aws")
+	}
+
+	if err := a.revokePort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerRoutePort, "udp"); err != nil {
 		errs = append(errs, fmt.Errorf("failed to revoke route port for %s: %v \n", a.infraId, err))
 	} else {
 		a.eventRecorder.Eventf("SubmarinerRoutePortClosed", "the submariner route port is closed on aws")
@@ -297,25 +334,15 @@ func (a *awsProvider) findSubnet(vpcId string) (*ec2.Subnet, error) {
 	return subnets.Subnets[0], nil
 }
 
-func (a *awsProvider) openRoutePort(vpc *ec2.Vpc) error {
-	workerSecurityGroup, err := a.findSecurityGroup(*vpc.VpcId, fmt.Sprintf("%s-worker-sg", a.infraId))
-	if err != nil {
-		return err
-	}
-
-	masterSecurityGroup, err := a.findSecurityGroup(*vpc.VpcId, fmt.Sprintf("%s-master-sg", a.infraId))
-	if err != nil {
-		return err
-	}
-
-	workerPermission, masterPermission := getRoutePortPermission(masterSecurityGroup, workerSecurityGroup)
-	_, err = a.awsClinet.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
+func (a *awsProvider) openPort(masterSecurityGroup, workerSecurityGroup *ec2.SecurityGroup, port int64, protocol string) error {
+	workerPermission, masterPermission := getRoutePortPermission(masterSecurityGroup, workerSecurityGroup, port, protocol)
+	_, err := a.awsClinet.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
 		GroupId:       workerSecurityGroup.GroupId,
 		IpPermissions: []*ec2.IpPermission{workerPermission},
 	})
 	switch {
 	case isAWSDuplicatedError(err):
-		klog.V(4).Infof("the route port has been opened in security group %s on aws ", *workerSecurityGroup.GroupId)
+		klog.V(4).Infof("the port %d/%s has been opened in security group %s on aws ", port, protocol, *workerSecurityGroup.GroupId)
 	case err != nil:
 		return err
 	}
@@ -326,7 +353,7 @@ func (a *awsProvider) openRoutePort(vpc *ec2.Vpc) error {
 	})
 	switch {
 	case isAWSDuplicatedError(err):
-		klog.V(4).Infof("the route port has been opened in security group %s on aws", *masterSecurityGroup.GroupId)
+		klog.V(4).Infof("the port %d/%s has been opened in security group %s on aws", port, protocol, *masterSecurityGroup.GroupId)
 	case err != nil:
 		return err
 	}
@@ -334,26 +361,16 @@ func (a *awsProvider) openRoutePort(vpc *ec2.Vpc) error {
 	return nil
 }
 
-func (a *awsProvider) revokeRoutePort(vpc *ec2.Vpc) error {
-	workerSecurityGroup, err := a.findSecurityGroup(*vpc.VpcId, fmt.Sprintf("%s-worker-sg", a.infraId))
-	if err != nil {
-		return err
-	}
+func (a *awsProvider) revokePort(masterSecurityGroup, workerSecurityGroup *ec2.SecurityGroup, port int64, protocol string) error {
+	workerPermission, masterPermission := getRoutePortPermission(masterSecurityGroup, workerSecurityGroup, port, protocol)
 
-	masterSecurityGroup, err := a.findSecurityGroup(*vpc.VpcId, fmt.Sprintf("%s-master-sg", a.infraId))
-	if err != nil {
-		return err
-	}
-
-	workerPermission, masterPermission := getRoutePortPermission(masterSecurityGroup, workerSecurityGroup)
-
-	_, err = a.awsClinet.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+	_, err := a.awsClinet.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
 		GroupId:       workerSecurityGroup.GroupId,
 		IpPermissions: []*ec2.IpPermission{workerPermission},
 	})
 	switch {
 	case isAWSNotFoundError(err):
-		klog.V(4).Infof("there is no route port in security group %s on aws", *workerSecurityGroup.GroupId)
+		klog.V(4).Infof("there is no port %d/%s in security group %s on aws", port, protocol, *workerSecurityGroup.GroupId)
 		return nil
 	case err != nil:
 		return err
@@ -365,7 +382,7 @@ func (a *awsProvider) revokeRoutePort(vpc *ec2.Vpc) error {
 	})
 	switch {
 	case isAWSNotFoundError(err):
-		klog.V(4).Infof("there is no route port in security group %s on aws", *workerSecurityGroup.GroupId)
+		klog.V(4).Infof("there is no port %d/%s in security group %s on aws", port, protocol, *workerSecurityGroup.GroupId)
 		return nil
 	case err != nil:
 		return err
@@ -567,11 +584,14 @@ func (a *awsProvider) deleteGatewayNode() error {
 	return err
 }
 
-func getRoutePortPermission(masterSecurityGroup, workerSecurityGroup *ec2.SecurityGroup) (workerPermission, masterPermission *ec2.IpPermission) {
+func getRoutePortPermission(
+	masterSecurityGroup, workerSecurityGroup *ec2.SecurityGroup,
+	port int64,
+	protocol string) (workerPermission, masterPermission *ec2.IpPermission) {
 	return (&ec2.IpPermission{}).
-			SetFromPort(helpers.SubmarinerRoutePort).
-			SetToPort(helpers.SubmarinerRoutePort).
-			SetIpProtocol("udp").
+			SetFromPort(port).
+			SetToPort(port).
+			SetIpProtocol(protocol).
 			SetUserIdGroupPairs([]*ec2.UserIdGroupPair{
 				{
 					// route traffic for all workers
@@ -584,9 +604,9 @@ func getRoutePortPermission(masterSecurityGroup, workerSecurityGroup *ec2.Securi
 					UserId:  masterSecurityGroup.OwnerId,
 				},
 			}), (&ec2.IpPermission{}).
-			SetFromPort(helpers.SubmarinerRoutePort).
-			SetToPort(helpers.SubmarinerRoutePort).
-			SetIpProtocol("udp").
+			SetFromPort(port).
+			SetToPort(port).
+			SetIpProtocol(protocol).
 			SetUserIdGroupPairs([]*ec2.UserIdGroupPair{
 				{
 					// route traffic from worker nodes to master nodes
