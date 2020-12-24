@@ -10,6 +10,8 @@ import (
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	workv1client "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	workv1 "github.com/open-cluster-management/api/work/v1"
+	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	hubbindata "github.com/open-cluster-management/submariner-addon/pkg/hub/bindata"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent/bindata"
@@ -25,7 +27,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog/v2"
 )
 
 type wrapperInfo struct {
@@ -101,6 +102,9 @@ type SubmarinerConfig struct {
 	BrokerNamespace string
 	BrokerToken     string
 	BrokerCA        string
+	CableDriver     string
+	IPSecIKEPort    int
+	IPSecNATTPort   int
 	IPSecPSK        string
 	ClusterName     string
 	ClusterCIDR     string
@@ -119,6 +123,9 @@ func newSubmarinerConfig(
 		NATEnabled:      false,
 		BrokerNamespace: brokeNamespace,
 		ClusterName:     clusterName,
+		CableDriver:     "strongswan", //TODO change to libreswan
+		IPSecIKEPort:    500,
+		IPSecNATTPort:   4500,
 	}
 
 	apiServer, err := helpers.GetBrokerAPIServer(dynamicClient)
@@ -145,7 +152,6 @@ func newSubmarinerConfig(
 
 func wrapManifestWorks(config *SubmarinerConfig, wrappers []wrapperInfo) ([]*workv1.ManifestWork, error) {
 	var manifestWorks []*workv1.ManifestWork
-	klog.V(4).Infof("config: %+v", config)
 	for _, w := range wrappers {
 		work := &workv1.ManifestWork{
 			TypeMeta: metav1.TypeMeta{},
@@ -175,28 +181,61 @@ func wrapManifestWorks(config *SubmarinerConfig, wrappers []wrapperInfo) ([]*wor
 }
 
 func ApplySubmarinerManifestWorks(
+	ctx context.Context,
 	client kubernetes.Interface,
 	dynamicClient dynamic.Interface,
 	workClient workv1client.Interface,
 	clusterClient clientset.Interface,
+	configClient configclient.Interface,
+	recorder events.Recorder,
 	clusterName, brokeNamespace string,
-	ctx context.Context) error {
-	var errs []error
-	var wrappers []wrapperInfo = baseWrappers
-
+	submarinerConfig *configv1alpha1.SubmarinerConfig) error {
 	config, err := newSubmarinerConfig(client, dynamicClient, clusterName, brokeNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to create submariner config of cluster %v : %v", clusterName, err)
 	}
 
-	clusterType, err := helpers.GetClusterType(clusterClient, config.ClusterName)
-	if err != nil {
-		return fmt.Errorf("failed to get the cluster type %+v : %+v", config.ClusterName, err)
+	// If there has SubmarinerConfig in the cluster namespace, we use the config to configure the submariner borker info
+	if submarinerConfig != nil {
+		if submarinerConfig.Spec.CableDriver != "" {
+			config.CableDriver = submarinerConfig.Spec.CableDriver
+		}
+		if submarinerConfig.Spec.IPSecIKEPort != 0 {
+			config.IPSecIKEPort = submarinerConfig.Spec.IPSecIKEPort
+		}
+		if submarinerConfig.Spec.IPSecNATTPort != 0 {
+			config.IPSecNATTPort = submarinerConfig.Spec.IPSecNATTPort
+		}
+		condition := metav1.Condition{
+			Type:    configv1alpha1.SubmarinerConfigConditionApplied,
+			Status:  metav1.ConditionTrue,
+			Reason:  "SubmarinerConfigApplied",
+			Message: "SubmarinerConfig was applied",
+		}
+		_, updated, err := helpers.UpdateSubmarinerConfigStatus(
+			configClient,
+			submarinerConfig.Namespace, submarinerConfig.Name,
+			helpers.UpdateSubmarinerConfigConditionFn(condition),
+		)
+		if err != nil {
+			return err
+		}
+		if updated {
+			recorder.Eventf("SubmarinerConfigApplied", "SubmarinerConfig %s was applied for manged cluster %s", submarinerConfig.Name, submarinerConfig.Namespace)
+		}
 	}
-	switch clusterType {
+
+	managedCluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), config.ClusterName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get managedcluster %v: %v", clusterName, err)
+	}
+
+	var wrappers []wrapperInfo = baseWrappers
+	switch helpers.GetClusterType(managedCluster) {
 	case helpers.ClusterTypeOCP:
 		config.NATEnabled = true
 		wrappers = append(wrappers, sccWrapper...)
+
 	}
 
 	manifestWorks, err := wrapManifestWorks(config, wrappers)
@@ -204,6 +243,7 @@ func ApplySubmarinerManifestWorks(
 		return fmt.Errorf("failed to wrap mainfestWorks:%+v", err)
 	}
 
+	var errs []error
 	for _, work := range manifestWorks {
 		err := ApplyManifestWork(work, workClient, ctx)
 		if err != nil {
@@ -224,11 +264,11 @@ func RemoveSubmarinerManifestWorks(
 	var errs []error
 	var wrappers []wrapperInfo = baseWrappers
 
-	clusterType, err := helpers.GetClusterType(clusterClient, namespace)
+	managedCluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), namespace, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get the cluster type %+v : %+v", namespace, err)
+		return fmt.Errorf("failed to get managedcluster %v: %v", namespace, err)
 	}
-	switch clusterType {
+	switch helpers.GetClusterType(managedCluster) {
 	case helpers.ClusterTypeOCP:
 		wrappers = append(wrappers, sccWrapper...)
 	}

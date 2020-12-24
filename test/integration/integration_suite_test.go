@@ -13,6 +13,7 @@ import (
 
 	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	workclientset "github.com/open-cluster-management/api/client/work/clientset/versioned"
+	configclientset "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub"
 	"github.com/open-cluster-management/submariner-addon/test/util"
 
@@ -39,6 +40,7 @@ var testEnv *envtest.Environment
 var kubeClient kubernetes.Interface
 var clusterClient clusterclientset.Interface
 var workClient workclientset.Interface
+var configClinet configclientset.Interface
 
 var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 	logf.SetLogger(zap.New(zap.WriteTo(ginkgo.GinkgoWriter), zap.UseDevMode(true)))
@@ -58,6 +60,7 @@ var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "cluster", "v1"),
 			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "cluster", "v1alpha1"),
 			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "work", "v1"),
+			filepath.Join(".", "pkg", "apis", "submarinerconfig", "v1alpha1"),
 		},
 	}
 
@@ -77,6 +80,10 @@ var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 	workClient, err = workclientset.NewForConfig(cfg)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(clusterClient).ToNot(gomega.BeNil())
+
+	configClinet, err = configclientset.NewForConfig(cfg)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.Expect(configClinet).ToNot(gomega.BeNil())
 
 	// start submariner broker and agent controller
 	go func() {

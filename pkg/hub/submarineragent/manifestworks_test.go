@@ -7,7 +7,9 @@ import (
 	fakeclusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	fakeworkclient "github.com/open-cluster-management/api/client/work/clientset/versioned/fake"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -154,7 +156,9 @@ func TestWrapManifestWorks(t *testing.T) {
 			fakeDynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), c.dynamicExsistings...)
 			fakeWorkClient := fakeworkclient.NewSimpleClientset()
 			fakeClusterClient := fakeclusterclient.NewSimpleClientset(c.clusters...)
-			err := ApplySubmarinerManifestWorks(fakeClient, fakeDynamicClient, fakeWorkClient, fakeClusterClient, c.clusterName, c.brokerName, context.TODO())
+			fakeConfigClient := fakeconfigclient.NewSimpleClientset()
+			recorder := eventstesting.NewTestingEventRecorder(t)
+			err := ApplySubmarinerManifestWorks(context.TODO(), fakeClient, fakeDynamicClient, fakeWorkClient, fakeClusterClient, fakeConfigClient, recorder, c.clusterName, c.brokerName, nil)
 			if err != nil && !c.expectErr {
 				t.Errorf("expect no err: %v", err)
 			}

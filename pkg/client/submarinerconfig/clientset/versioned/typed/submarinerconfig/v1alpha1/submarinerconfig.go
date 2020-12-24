@@ -24,6 +24,7 @@ type SubmarinerConfigsGetter interface {
 type SubmarinerConfigInterface interface {
 	Create(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.CreateOptions) (*v1alpha1.SubmarinerConfig, error)
 	Update(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.UpdateOptions) (*v1alpha1.SubmarinerConfig, error)
+	UpdateStatus(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.UpdateOptions) (*v1alpha1.SubmarinerConfig, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
 	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.SubmarinerConfig, error)
@@ -112,6 +113,22 @@ func (c *submarinerConfigs) Update(ctx context.Context, submarinerConfig *v1alph
 		Namespace(c.ns).
 		Resource("submarinerconfigs").
 		Name(submarinerConfig.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(submarinerConfig).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *submarinerConfigs) UpdateStatus(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.UpdateOptions) (result *v1alpha1.SubmarinerConfig, err error) {
+	result = &v1alpha1.SubmarinerConfig{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("submarinerconfigs").
+		Name(submarinerConfig.Name).
+		SubResource("status").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(submarinerConfig).
 		Do(ctx).

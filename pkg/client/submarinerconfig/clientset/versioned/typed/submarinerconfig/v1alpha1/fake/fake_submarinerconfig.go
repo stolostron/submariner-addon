@@ -86,6 +86,18 @@ func (c *FakeSubmarinerConfigs) Update(ctx context.Context, submarinerConfig *v1
 	return obj.(*v1alpha1.SubmarinerConfig), err
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeSubmarinerConfigs) UpdateStatus(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.UpdateOptions) (*v1alpha1.SubmarinerConfig, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(submarinerconfigsResource, "status", c.ns, submarinerConfig), &v1alpha1.SubmarinerConfig{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1alpha1.SubmarinerConfig), err
+}
+
 // Delete takes name of the submarinerConfig and deletes it. Returns an error if one occurs.
 func (c *FakeSubmarinerConfigs) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.

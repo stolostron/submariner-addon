@@ -14,7 +14,12 @@ import (
 	workinformer "github.com/open-cluster-management/api/client/work/informers/externalversions/work/v1"
 	worklister "github.com/open-cluster-management/api/client/work/listers/work/v1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	"k8s.io/client-go/dynamic"
+	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
+	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent/bindata"
 
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
@@ -22,22 +27,23 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent/bindata"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 )
 
 const (
-	agentFinalizer      = "cluster.open-cluster-management.io/submariner-agent-cleanup"
-	serviceAccountLabel = "cluster.open-cluster-management.io/submariner-cluster-sa"
-	submarinerLabel     = "cluster.open-cluster-management.io/submariner-agent"
-	clusterSetLabel     = "cluster.open-cluster-management.io/clusterset"
+	agentFinalizer            = "cluster.open-cluster-management.io/submariner-agent-cleanup"
+	submarinerConfigFinalizer = "submarineraddon.open-cluster-management.io/config-cleanup"
+	serviceAccountLabel       = "cluster.open-cluster-management.io/submariner-cluster-sa"
+	submarinerLabel           = "cluster.open-cluster-management.io/submariner-agent"
+	clusterSetLabel           = "cluster.open-cluster-management.io/clusterset"
 )
 
 var clusterRBACFiles = []string{
@@ -57,6 +63,7 @@ type submarinerAgentController struct {
 	dynamicClient      dynamic.Interface
 	clusterClient      clientset.Interface
 	manifestWorkClient workv1client.Interface
+	configClient       configclient.Interface
 	clusterLister      clusterlisterv1.ManagedClusterLister
 	clusterSetLister   clusterlisterv1alpha1.ManagedClusterSetLister
 	manifestWorkLister worklister.ManifestWorkLister
@@ -69,15 +76,18 @@ func NewSubmarinerAgentController(
 	dynamicClient dynamic.Interface,
 	clusterClient clientset.Interface,
 	manifestWorkClient workv1client.Interface,
+	configClient configclient.Interface,
 	clusterInformer clusterinformerv1.ManagedClusterInformer,
 	clusterSetInformer clusterinformerv1alpha1.ManagedClusterSetInformer,
 	manifestWorkInformer workinformer.ManifestWorkInformer,
+	configInformer configinformer.SubmarinerConfigInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerAgentController{
 		kubeClient:         kubeClient,
 		dynamicClient:      dynamicClient,
 		clusterClient:      clusterClient,
 		manifestWorkClient: manifestWorkClient,
+		configClient:       configClient,
 		clusterLister:      clusterInformer.Lister(),
 		clusterSetLister:   clusterSetInformer.Lister(),
 		manifestWorkLister: manifestWorkInformer.Lister(),
@@ -88,8 +98,15 @@ func NewSubmarinerAgentController(
 			accessor, _ := meta.Accessor(obj)
 			return accessor.GetName()
 		}, clusterInformer.Informer()).
+		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			accessor, _ := meta.Accessor(obj)
+			return accessor.GetNamespace()
+		}, manifestWorkInformer.Informer()).
+		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			key, _ := cache.MetaNamespaceKeyFunc(obj)
+			return key
+		}, configInformer.Informer()).
 		WithInformers(clusterSetInformer.Informer()).
-		WithInformers(manifestWorkInformer.Informer()).
 		WithSync(c.sync).
 		ToController("SubmarinerAgentController", recorder)
 }
@@ -97,7 +114,9 @@ func NewSubmarinerAgentController(
 func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	key := syncCtx.QueueKey()
 
-	// if the sync is triggered by change of ManagedClusterSet or ManifestWork, reconcile all managed clusters
+	klog.V(4).Infof("Submariner agent controller is reconciling, queue key: %s", key)
+
+	// if the sync is triggered by change of ManagedClusterSet, reconcile all managed clusters
 	if key == "key" {
 		if err := c.syncAllManagedClusters(ctx); err != nil {
 			return err
@@ -105,20 +124,66 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		return nil
 	}
 
-	managedCluster, err := c.clusterLister.Get(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		// ignore bad format key
+		return nil
+	}
+
+	// if the sync is triggered by change of ManagedCluster or ManifestWork, reconcile the managed cluster
+	if namespace == "" {
+		managedCluster, err := c.clusterLister.Get(name)
+		if errors.IsNotFound(err) {
+			// managed cluster not found, could have been deleted, do nothing.
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		config, err := c.getSubmarinerConfig(ctx, name)
+		if err != nil {
+			return err
+		}
+
+		if err := c.syncManagedCluster(ctx, managedCluster, config); err != nil {
+			return err
+		}
+
+		if config == nil {
+			// there is no submariner configuration, do nothing.
+			return nil
+		}
+
+		// handle creating submariner config before creating managed cluster
+		return c.syncConfig(ctx, managedCluster, config)
+	}
+
+	// if the sync is triggered by change of SubmarinerConfig, reconcile the submariner config
+	config, err := c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		// managed cluster not found, could have been deleted, do nothing.
+		// config is not found, could have been deleted, do nothing.
 		return nil
 	}
 	if err != nil {
 		return err
 	}
 
-	if err := c.syncManagedCluster(ctx, managedCluster); err != nil {
+	managedCluster, err := c.clusterLister.Get(namespace)
+	if errors.IsNotFound(err) {
+		// handle deleting submariner config after managed cluster was deleted.
+		return c.syncConfig(ctx, nil, config)
+	}
+	if err != nil {
 		return err
 	}
 
-	return nil
+	// the submariner agent config maybe need to update.
+	if err := c.syncManagedCluster(ctx, managedCluster, config); err != nil {
+		return err
+	}
+
+	return c.syncConfig(ctx, managedCluster, config)
 }
 
 // syncAllManagedClusters syncs all managed clusters
@@ -130,7 +195,11 @@ func (c *submarinerAgentController) syncAllManagedClusters(ctx context.Context) 
 
 	errs := []error{}
 	for _, managedCluster := range managedClusters {
-		if err = c.syncManagedCluster(ctx, managedCluster); err != nil {
+		config, err := c.getSubmarinerConfig(ctx, managedCluster.ClusterName)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		if err = c.syncManagedCluster(ctx, managedCluster, config); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -139,7 +208,10 @@ func (c *submarinerAgentController) syncAllManagedClusters(ctx context.Context) 
 }
 
 // syncManagedCluster syncs one managed cluster
-func (c *submarinerAgentController) syncManagedCluster(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
+func (c *submarinerAgentController) syncManagedCluster(
+	ctx context.Context,
+	managedCluster *clusterv1.ManagedCluster,
+	config *configv1alpha1.SubmarinerConfig) error {
 	// the cluster does not have the submariner label, try to clean up the submariner agent
 	if _, existed := managedCluster.Labels[submarinerLabel]; !existed {
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
@@ -182,7 +254,80 @@ func (c *submarinerAgentController) syncManagedCluster(ctx context.Context, mana
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
 	}
 
-	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster.Name)
+	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster.Name, config)
+}
+
+func (c *submarinerAgentController) syncConfig(ctx context.Context,
+	managedCluster *clusterv1.ManagedCluster,
+	config *configv1alpha1.SubmarinerConfig) error {
+	if config.DeletionTimestamp.IsZero() {
+		hasFinalizer := false
+		for i := range config.Finalizers {
+			if config.Finalizers[i] == submarinerConfigFinalizer {
+				hasFinalizer = true
+				break
+			}
+		}
+		if !hasFinalizer {
+			config.Finalizers = append(config.Finalizers, submarinerConfigFinalizer)
+			_, err := c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace).Update(ctx, config, metav1.UpdateOptions{})
+			return err
+		}
+	}
+
+	// config is deleting, we remove its related resources
+	if !config.DeletionTimestamp.IsZero() {
+		if err := c.cleanUpSubmarinerClusterEnv(ctx, config); err != nil {
+			return err
+		}
+		return c.removeConfigFinalizer(ctx, config)
+	}
+
+	if config.Spec.CredentialsSecret == nil {
+		// no platform credentials, the submariner cluster environment neet not to be prepared
+		return nil
+	}
+
+	if managedCluster == nil {
+		return nil
+	}
+
+	managedClusterInfo := helpers.GetManagedClusterInfo(managedCluster)
+
+	// prepare submariner cluster environment
+	errs := []error{}
+	cloudProvider, preparedErr := cloud.GetCloudProvider(c.kubeClient, c.manifestWorkClient, c.eventRecorder, managedClusterInfo, config)
+	if preparedErr == nil {
+		preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
+	}
+
+	condition := metav1.Condition{
+		Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+		Status:  metav1.ConditionTrue,
+		Reason:  "SubmarinerClusterEnvPrepared",
+		Message: "Submariner cluster environment was prepared",
+	}
+
+	if preparedErr != nil {
+		condition.Status = metav1.ConditionFalse
+		condition.Reason = "SubmarinerClusterEnvPreparationFailed"
+		condition.Message = fmt.Sprintf("Failed to prepare submariner cluster environment: %v", preparedErr)
+		errs = append(errs, preparedErr)
+	}
+
+	_, updated, updatedErr := helpers.UpdateSubmarinerConfigStatus(
+		c.configClient,
+		config.Namespace, config.Name,
+		helpers.UpdateSubmarinerConfigStatusFn(condition, managedClusterInfo),
+	)
+	if updatedErr != nil {
+		errs = append(errs, updatedErr)
+	}
+	if updated {
+		c.eventRecorder.Eventf("SubmarinerClusterEnvPrepared", "submariner cluster environment was prepared for manged cluster %s", config.Namespace)
+	}
+
+	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
 // clean up the submariner agent from this managedCluster
@@ -212,7 +357,7 @@ func (c *submarinerAgentController) removeAgentFinalizer(ctx context.Context, ma
 	return nil
 }
 
-func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, clusterSetName, clusterName string) error {
+func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, clusterSetName, clusterName string, config *configv1alpha1.SubmarinerConfig) error {
 	// generate service account and bind it to `submariner-k8s-broker-cluster` role
 	brokerNamespace := fmt.Sprintf("submariner-clusterset-%s-broker", clusterSetName)
 	if err := c.applyClusterRBACFiles(brokerNamespace, clusterName); err != nil {
@@ -220,11 +365,15 @@ func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, c
 	}
 
 	if err := ApplySubmarinerManifestWorks(
+		ctx,
 		c.kubeClient,
 		c.dynamicClient,
 		c.manifestWorkClient,
 		c.clusterClient,
-		clusterName, brokerNamespace, ctx); err != nil {
+		c.configClient,
+		c.eventRecorder,
+		clusterName, brokerNamespace,
+		config); err != nil {
 		return err
 	}
 
@@ -301,4 +450,61 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 		},
 		clusterRBACFiles...,
 	)
+}
+
+func (c *submarinerAgentController) getSubmarinerConfig(ctx context.Context, namespace string) (*configv1alpha1.SubmarinerConfig, error) {
+	configs, err := c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	switch len(configs.Items) {
+	case 0:
+		return nil, nil
+	case 1:
+		return &configs.Items[0], nil
+	default:
+		//TODO we need ensure only one config for one managed cluster in the futrue
+		c.eventRecorder.Warningf("one more than submariner configs are found from %q", namespace)
+		return nil, nil
+	}
+}
+
+func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
+	// no platform credentials, the submariner cluster environment is not prepared
+	if config.Spec.CredentialsSecret == nil {
+		return nil
+	}
+
+	managedClusterInfo := config.Status.ManagedClusterInfo
+	cloudProvider, err := cloud.GetCloudProvider(c.kubeClient, c.manifestWorkClient, c.eventRecorder, managedClusterInfo, config)
+	if err != nil {
+		//TODO handle the error gracefully in the future
+		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to create cloud provider: %v", err)
+		return nil
+	}
+	if err := cloudProvider.CleanUpSubmarinerClusterEnv(); err != nil {
+		//TODO handle the error gracefully in the future
+		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to clean up cloud environment: %v", err)
+		return nil
+	}
+	c.eventRecorder.Eventf("SubmarinerClusterEnvDeleted", "the managed cluster %s submariner cluster environment is deleted", managedClusterInfo.ClusterName)
+	return nil
+}
+
+func (c *submarinerAgentController) removeConfigFinalizer(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
+	copiedFinalizers := []string{}
+	for i := range config.Finalizers {
+		if config.Finalizers[i] == submarinerConfigFinalizer {
+			continue
+		}
+		copiedFinalizers = append(copiedFinalizers, config.Finalizers[i])
+	}
+
+	if len(config.Finalizers) != len(copiedFinalizers) {
+		config.Finalizers = copiedFinalizers
+		_, err := c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace).Update(ctx, config, metav1.UpdateOptions{})
+		return err
+	}
+
+	return nil
 }

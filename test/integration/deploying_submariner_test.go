@@ -216,4 +216,64 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 		})
 	})
+
+	ginkgo.Context("Create a SubmarinerConfig", func() {
+		ginkgo.It("Should add finalizer to created SubmarinerConfig", func() {
+			ginkgo.By("Setup the managed cluster namespace")
+			_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName), metav1.CreateOptions{})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			ginkgo.By("Create SubmarinerConfig")
+			configName := "test"
+			_, err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Create(context.Background(), util.NewSubmarinerConifg(managedClusterName, configName), metav1.CreateOptions{})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			ginkgo.By("Check SubmarinerConfig finalizer")
+			gomega.Eventually(func() bool {
+				config, err := configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Get(context.Background(), configName, metav1.GetOptions{})
+				if errors.IsNotFound(err) {
+					return false
+				}
+				if err != nil {
+					return false
+				}
+
+				if len(config.Finalizers) != 1 {
+					return false
+				}
+
+				if config.Finalizers[0] != "submarineraddon.open-cluster-management.io/config-cleanup" {
+					return false
+				}
+
+				return true
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+		})
+	})
+
+	ginkgo.Context("Delete a SubmarinerConfig", func() {
+		ginkgo.It("Should delete the created SubmarinerConfig", func() {
+			ginkgo.By("Setup the managed cluster namespace")
+			_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName), metav1.CreateOptions{})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			ginkgo.By("Create SubmarinerConfig")
+			configName := "test"
+			_, err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Create(context.Background(), util.NewSubmarinerConifg(managedClusterName, configName), metav1.CreateOptions{})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			ginkgo.By("Delete the created SubmarinerConfig")
+			err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Delete(context.Background(), configName, metav1.DeleteOptions{})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			ginkgo.By("Check if the SubmarinerConfig is deleted")
+			gomega.Eventually(func() bool {
+				_, err := configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Get(context.Background(), configName, metav1.GetOptions{})
+				if errors.IsNotFound(err) {
+					return true
+				}
+				return false
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+		})
+	})
 })
