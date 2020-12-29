@@ -4,11 +4,16 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
-	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
+	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	workv1 "github.com/open-cluster-management/api/work/v1"
+	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 
 	"github.com/openshift/api"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -18,7 +23,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +34,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 )
 
 const (
@@ -40,6 +48,13 @@ const (
 	SubmarinerDefaultRepository = "quay.io/submariner"
 )
 
+const (
+	SubmarinerIKEPort     = 500
+	SubmarinerNatTPort    = 4500
+	SubmarinerRoutePort   = 4800
+	SubmarinerMetricsPort = 8080
+)
+
 var (
 	genericScheme = runtime.NewScheme()
 	genericCodecs = serializer.NewCodecFactory(genericScheme)
@@ -48,6 +63,62 @@ var (
 
 func init() {
 	utilruntime.Must(api.InstallKube(genericScheme))
+}
+
+type UpdateSubmarinerConfigStatusFunc func(status *configv1alpha1.SubmarinerConfigStatus) error
+
+func UpdateSubmarinerConfigStatus(
+	client configclient.Interface,
+	namespace, name string,
+	updateFuncs ...UpdateSubmarinerConfigStatusFunc) (*configv1alpha1.SubmarinerConfigStatus, bool, error) {
+	updated := false
+	var updatedStatus *configv1alpha1.SubmarinerConfigStatus
+
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		config, err := client.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		oldStatus := &config.Status
+
+		newStatus := oldStatus.DeepCopy()
+		for _, update := range updateFuncs {
+			if err := update(newStatus); err != nil {
+				return err
+			}
+		}
+		if equality.Semantic.DeepEqual(oldStatus, newStatus) {
+			// We return the newStatus which is a deep copy of oldStatus but with all update funcs applied.
+			updatedStatus = newStatus
+			return nil
+		}
+
+		config.Status = *newStatus
+		updatedConfig, err := client.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).UpdateStatus(context.TODO(), config, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+		updatedStatus = &updatedConfig.Status
+		updated = err == nil
+		return err
+	})
+
+	return updatedStatus, updated, err
+}
+
+func UpdateSubmarinerConfigConditionFn(cond metav1.Condition) UpdateSubmarinerConfigStatusFunc {
+	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
+		meta.SetStatusCondition(&oldStatus.Conditions, cond)
+		return nil
+	}
+}
+
+func UpdateSubmarinerConfigStatusFn(cond metav1.Condition, managedClusterInfo configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
+	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
+		oldStatus.ManagedClusterInfo = managedClusterInfo
+		meta.SetStatusCondition(&oldStatus.Conditions, cond)
+		return nil
+	}
 }
 
 // CleanUpSubmarinerManifests clean up submariner resources from its manifest files
@@ -185,23 +256,17 @@ func GetBrokerTokenAndCA(client kubernetes.Interface, brokerNS, clusterName stri
 
 }
 
-func GetClusterType(clusterClient clientset.Interface, clusterName string) (string, error) {
-	managedCluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), clusterName, metav1.GetOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to get managedcluster %v: %v", clusterName, err)
+func GetClusterType(managedCluster *clusterv1.ManagedCluster) string {
+	if clusterType, found := managedCluster.GetLabels()["vendor"]; found {
+		switch clusterType {
+		case "OCP", "OpenShift":
+			return ClusterTypeOCP
+		default:
+			return clusterType
+		}
 	}
 
-	labels := managedCluster.GetLabels()
-	clusterType, found := labels["vendor"]
-	if !found {
-		return "", nil
-	}
-	switch clusterType {
-	case "OCP", "OpenShift":
-		return ClusterTypeOCP, nil
-	}
-
-	return clusterType, nil
+	return ""
 }
 
 func GetSubmarinerRepository() string {
@@ -218,4 +283,77 @@ func GetSubmarinerVersion() string {
 		return SubmarinerDefaultVersion
 	}
 	return version
+}
+
+func ApplyManifestWork(ctx context.Context, client workclient.Interface, required *workv1.ManifestWork) error {
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		existing, err := client.WorkV1().ManifestWorks(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				_, err = client.WorkV1().ManifestWorks(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
+			}
+			return err
+		}
+
+		if !manifestsEqual(existing.Spec.Workload.Manifests, required.Spec.Workload.Manifests) {
+			_, err = client.WorkV1().ManifestWorks(required.Namespace).Update(ctx, required, metav1.UpdateOptions{})
+		}
+
+		return err
+	})
+
+	return err
+}
+
+func GetClusterClaims(clusterClaims []clusterv1.ManagedClusterClaim) (platform, region, infraId string) {
+	for _, claim := range clusterClaims {
+		if claim.Name == "platform.open-cluster-management.io" {
+			platform = claim.Value
+		}
+		if claim.Name == "region.open-cluster-management.io" {
+			region = claim.Value
+		}
+		if claim.Name == "infrastructure.openshift.io" {
+			var infraInfo map[string]interface{}
+			if err := json.Unmarshal([]byte(claim.Value), &infraInfo); err == nil {
+				infraId = fmt.Sprintf("%v", infraInfo["infraName"])
+			}
+		}
+	}
+	return platform, region, infraId
+}
+
+func manifestsEqual(new, old []workv1.Manifest) bool {
+	if len(new) != len(old) {
+		return false
+	}
+
+	for i := range new {
+		if !equality.Semantic.DeepEqual(new[i].Raw, old[i].Raw) {
+			return false
+		}
+	}
+	return true
+}
+
+func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alpha1.ManagedClusterInfo {
+	clusterInfo := configv1alpha1.ManagedClusterInfo{
+		ClusterName: managedCluster.Name,
+		Vendor:      GetClusterType(managedCluster),
+	}
+	for _, claim := range managedCluster.Status.ClusterClaims {
+		if claim.Name == "platform.open-cluster-management.io" {
+			clusterInfo.Platform = claim.Value
+		}
+		if claim.Name == "region.open-cluster-management.io" {
+			clusterInfo.Region = claim.Value
+		}
+		if claim.Name == "infrastructure.openshift.io" {
+			var infraInfo map[string]interface{}
+			if err := json.Unmarshal([]byte(claim.Value), &infraInfo); err == nil {
+				clusterInfo.InfraId = fmt.Sprintf("%v", infraInfo["infraName"])
+			}
+		}
+	}
+	return clusterInfo
 }

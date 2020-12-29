@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -25,4 +26,17 @@ func NewFakeSyncContext(t *testing.T, key string) *fakeSyncContext {
 		queue:    workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		recorder: eventstesting.NewTestingEventRecorder(t),
 	}
+}
+
+func NewSubmarinerConfigCondition(name, status, reason, message string, lastTransition *metav1.Time) metav1.Condition {
+	ret := metav1.Condition{
+		Type:    name,
+		Status:  metav1.ConditionStatus(status),
+		Reason:  reason,
+		Message: message,
+	}
+	if lastTransition != nil {
+		ret.LastTransitionTime = *lastTransition
+	}
+	return ret
 }

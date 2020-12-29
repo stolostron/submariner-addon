@@ -146,6 +146,23 @@ spec:
           - infrastructures/status
           verbs:
           - get
+        - apiGroups:
+          - submarineraddon.open-cluster-management.io
+          resources:
+          - submarinerconfigs
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+          - patch
+        - apiGroups:
+          - submarineraddon.open-cluster-management.io
+          resources:
+          - submarinerconfigs/status
+          verbs:
+          - update
+          - patch
         serviceAccountName: submariner-addon
       deployments:
       - name: submariner-addon

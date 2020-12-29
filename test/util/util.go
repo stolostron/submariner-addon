@@ -11,6 +11,7 @@ import (
 	workclientset "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
+	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 
@@ -139,6 +140,16 @@ func NewManagedClusterSet(name string) *clusterv1alpha1.ManagedClusterSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
+	}
+}
+
+func NewSubmarinerConifg(namespace, name string) *configv1alpha1.SubmarinerConfig {
+	return &configv1alpha1.SubmarinerConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: configv1alpha1.SubmarinerConfigSpec{},
 	}
 }
 

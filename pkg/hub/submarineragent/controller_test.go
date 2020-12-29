@@ -7,17 +7,22 @@ import (
 	"time"
 
 	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
+	fakeclusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
+	fakeworkclient "github.com/open-cluster-management/api/client/work/clientset/versioned/fake"
 	workfake "github.com/open-cluster-management/api/client/work/clientset/versioned/fake"
 	workinformers "github.com/open-cluster-management/api/client/work/informers/externalversions"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	workv1 "github.com/open-cluster-management/api/work/v1"
+	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
@@ -25,7 +30,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 )
 
-func TestSync(t *testing.T) {
+func TestSyncManagedCluster(t *testing.T) {
 	if err := os.Setenv("BROKER_API_SERVER", "127.0.0.1"); err != nil {
 		t.Fatalf("cannot set env BROKER_API_SERVER")
 	}
@@ -200,6 +205,7 @@ func TestSync(t *testing.T) {
 				clusterLister:      clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
 				clusterSetLister:   clusterInformerFactory.Cluster().V1alpha1().ManagedClusterSets().Lister(),
 				manifestWorkLister: workInformerFactory.Work().V1().ManifestWorks().Lister(),
+				configClient:       fakeconfigclient.NewSimpleClientset(),
 				eventRecorder:      eventstesting.NewTestingEventRecorder(t),
 			}
 
@@ -209,6 +215,261 @@ func TestSync(t *testing.T) {
 			}
 
 			c.validateActions(t, fakeKubeClient.Actions(), fakeClusterClient.Actions(), fakeWorkClient.Actions())
+		})
+	}
+}
+
+func TestSyncSubmarinerConfig(t *testing.T) {
+	now := metav1.Now()
+	cases := []struct {
+		name            string
+		queueKey        string
+		configs         []runtime.Object
+		clusters        []runtime.Object
+		expectedErr     bool
+		validateActions func(t *testing.T, workActions []clienttesting.Action)
+	}{
+		{
+			name:     "no submariner config",
+			queueKey: "cluster1",
+			configs:  []runtime.Object{},
+			clusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster1",
+					},
+				},
+			},
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "list")
+			},
+		},
+		{
+			name:     "too many configs",
+			queueKey: "cluster1",
+			configs: []runtime.Object{
+				&configv1alpha1.SubmarinerConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "submariner-config-1",
+						Namespace: "cluster1",
+					},
+				},
+				&configv1alpha1.SubmarinerConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "submariner-config-2",
+						Namespace: "cluster1",
+					},
+				},
+			},
+			clusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster1",
+					},
+				},
+			},
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "list")
+			},
+		},
+		{
+			name:     "create a submariner config",
+			queueKey: "cluster1",
+			configs: []runtime.Object{
+				&configv1alpha1.SubmarinerConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "submariner-config",
+						Namespace: "cluster1",
+					},
+				},
+			},
+			clusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster1",
+					},
+				},
+			},
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "list", "update")
+				updatedObj := workActions[1].(clienttesting.UpdateActionImpl).Object
+				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
+				if len(config.Finalizers) != 1 {
+					t.Errorf("unexpect size of finalizers")
+				}
+				if config.Finalizers[0] != "submarineraddon.open-cluster-management.io/config-cleanup" {
+					t.Errorf("unexpect finalizers")
+				}
+			},
+		},
+		{
+			name:     "create a submariner config",
+			queueKey: "cluster1/submariner-config",
+			configs: []runtime.Object{
+				&configv1alpha1.SubmarinerConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "submariner-config",
+						Namespace: "cluster1",
+					},
+				},
+			},
+			clusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster1",
+					},
+				},
+			},
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "get", "update")
+				updatedObj := workActions[1].(clienttesting.UpdateActionImpl).Object
+				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
+				if len(config.Finalizers) != 1 {
+					t.Errorf("unexpect size of finalizers")
+				}
+				if config.Finalizers[0] != "submarineraddon.open-cluster-management.io/config-cleanup" {
+					t.Errorf("unexpect finalizers")
+				}
+			},
+		},
+		{
+			name:     "no managed cluster",
+			queueKey: "cluster1/submariner-config",
+			configs: []runtime.Object{
+				&configv1alpha1.SubmarinerConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       "submariner-config",
+						Namespace:  "cluster1",
+						Finalizers: []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
+					},
+					Spec: configv1alpha1.SubmarinerConfigSpec{
+						CredentialsSecret: &v1.LocalObjectReference{
+							Name: "test",
+						},
+					},
+				},
+			},
+			clusters: []runtime.Object{},
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "get")
+			},
+		},
+		{
+			name:     "unspported cluster vendor",
+			queueKey: "cluster1/submariner-config",
+			configs: []runtime.Object{
+				&configv1alpha1.SubmarinerConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       "submariner-config",
+						Namespace:  "cluster1",
+						Finalizers: []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
+					},
+					Spec: configv1alpha1.SubmarinerConfigSpec{
+						CredentialsSecret: &v1.LocalObjectReference{
+							Name: "test",
+						},
+					},
+				},
+			},
+			clusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "cluster1",
+						Labels: map[string]string{"vendor": "unspported"},
+					},
+				},
+			},
+			expectedErr: true,
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "get", "get", "update")
+			},
+		},
+		{
+			name:     "delete a submariner config without credentials secret",
+			queueKey: "cluster1/submariner-config",
+			configs: []runtime.Object{
+				&configv1alpha1.SubmarinerConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "submariner-config",
+						Namespace:         "cluster1",
+						DeletionTimestamp: &now,
+						Finalizers:        []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
+					},
+				},
+			},
+			clusters: []runtime.Object{},
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "get", "update")
+				updatedObj := workActions[1].(clienttesting.UpdateActionImpl).Object
+				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
+				if len(config.Finalizers) != 0 {
+					t.Errorf("unexpect size of finalizers")
+				}
+			},
+		},
+		{
+			name:     "delete a submariner config",
+			queueKey: "cluster1/submariner-config",
+			configs: []runtime.Object{
+				&configv1alpha1.SubmarinerConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "submariner-config",
+						Namespace:         "cluster1",
+						DeletionTimestamp: &now,
+						Finalizers:        []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
+					},
+					Spec: configv1alpha1.SubmarinerConfigSpec{
+						CredentialsSecret: &v1.LocalObjectReference{
+							Name: "aws-credentials-secret",
+						},
+					},
+				},
+			},
+			clusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       "cluster1",
+						Labels:     map[string]string{"vendor": "unspported"},
+						Finalizers: []string{"cluster.open-cluster-management.io/submariner-config-cleanup"},
+					},
+				},
+			},
+			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, workActions, "get", "update")
+				workUpdatedObj := workActions[1].(clienttesting.UpdateActionImpl).Object
+				config := workUpdatedObj.(*configv1alpha1.SubmarinerConfig)
+				if len(config.Finalizers) != 0 {
+					t.Errorf("unexpect size of finalizers")
+				}
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			clusterClient := fakeclusterclient.NewSimpleClientset(c.clusters...)
+			configClient := fakeconfigclient.NewSimpleClientset(c.configs...)
+			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 5*time.Minute)
+			for _, cluster := range c.clusters {
+				clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore().Add(cluster)
+			}
+			ctrl := &submarinerAgentController{
+				kubeClient:         kubefake.NewSimpleClientset(),
+				clusterClient:      clusterClient,
+				clusterLister:      clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
+				clusterSetLister:   clusterInformerFactory.Cluster().V1alpha1().ManagedClusterSets().Lister(),
+				manifestWorkClient: fakeworkclient.NewSimpleClientset(),
+				configClient:       configClient,
+				eventRecorder:      eventstesting.NewTestingEventRecorder(t),
+			}
+			err := ctrl.sync(context.TODO(), testinghelpers.NewFakeSyncContext(t, c.queueKey))
+			if c.expectedErr && err == nil {
+				t.Errorf("expect err, but no error")
+			}
+			if !c.expectedErr && err != nil {
+				t.Errorf("unexpect err: %v", err)
+			}
+			c.validateActions(t, configClient.Actions())
 		})
 	}
 }

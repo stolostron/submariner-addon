@@ -165,9 +165,10 @@ spec:
   brokerK8sApiServerToken: {{ .BrokerToken }}
   brokerK8sCA: {{ .BrokerCA }}
   brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
+  cableDriver: {{ .CableDriver }}
   ceIPSecDebug: false
-  ceIPSecIKEPort: 500
-  ceIPSecNATTPort: 4500
+  ceIPSecIKEPort: {{ .IPSecIKEPort }}
+  ceIPSecNATTPort: {{ .IPSecNATTPort }}
   ceIPSecPSK: {{ .IPSecPSK }}
   clusterCIDR: ""
   clusterID: {{ .ClusterName }}
