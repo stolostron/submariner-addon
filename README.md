@@ -17,7 +17,7 @@ The steps below can be used for testing on a local environment:
     - Create three clusters: `cluster1`, `cluster2` and `cluster3`. `cluster1` is going to be used as the Hub, and the other two as the managed clusters.
     - Load the local Docker images to the kind cluster `cluster1`.
     - Deploy the `ClusterManager` on `cluster1`. This includes the required Hub cluster components.
-    - Deploy the `Klusterlet` on `cluster2` and `cluster3`. This includes the required managed cluster agents.
+    - Deploy the `Klusterlet` on `cluster2` and `cluster3`. This includes the required the managed cluster agents.
     - Join `cluster2` and `cluster3` to the Hub cluster `cluster1`.
 
 4. Run the demo by issuing `make demo`. This will:
@@ -33,7 +33,7 @@ To delete the kind environment, use `make clean`.
 
 ## Test with OCP
 
-> Note: minimum supported version is OpenShift 4.4/Kuberenets 1.17
+> Note: minimum supported version is OpenShift 4.4/Kubernetes 1.17
 
 The steps below can be used to test with OpenShift Container Platform (OCP) clusters on AWS:
 
@@ -59,7 +59,7 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
    $ oc patch managedclusters <managedcluster name> --type merge --patch '{"spec":{"hubAcceptsClient":true}}'
    ```
 
-### Setup the Add-on on the Hub cluster
+### Install the Submariner-addon on the Hub cluster
 
 1. Apply the manifests of submariner-addon.
 
@@ -97,6 +97,7 @@ The add-on has been integrated into ACM 2.2 as a default component:
 1. Install ACM following the [`deploy`](https://github.com/open-cluster-management/deploy) repo.
 
 2. Import or create OCP clusters as managed cluster through the ACM console UI.
-    >Note: The manged clusters must meet the [`prerequisites`](https://submariner.io/getting_started/#prerequisites) for Submariner.
+   
+   > Note: The manged clusters must meet the [`Prerequisites`](/doc/prerequisites.md) for Submariner.
 
 3. Start deploying Submariner to managed clusters following the [Setup of Submariner on the Hub cluster](#setup-of-submariner-on-the-hub-cluster) above.
