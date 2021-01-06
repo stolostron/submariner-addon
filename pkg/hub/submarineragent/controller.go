@@ -5,21 +5,25 @@ import (
 	"fmt"
 	"path/filepath"
 
-	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
+	"github.com/ghodss/yaml"
+
+	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterinformerv1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1"
 	clusterinformerv1alpha1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
 	clusterlisterv1 "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1"
 	clusterlisterv1alpha1 "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1"
-	workv1client "github.com/open-cluster-management/api/client/work/clientset/versioned"
+	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	workinformer "github.com/open-cluster-management/api/client/work/informers/externalversions/work/v1"
 	worklister "github.com/open-cluster-management/api/client/work/listers/work/v1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	workv1 "github.com/open-cluster-management/api/work/v1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent/bindata"
+	brokerinfo "github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbrokerinfo"
 
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
@@ -40,15 +44,30 @@ import (
 
 const (
 	agentFinalizer            = "cluster.open-cluster-management.io/submariner-agent-cleanup"
-	submarinerConfigFinalizer = "submarineraddon.open-cluster-management.io/config-cleanup"
-	serviceAccountLabel       = "cluster.open-cluster-management.io/submariner-cluster-sa"
-	submarinerLabel           = "cluster.open-cluster-management.io/submariner-agent"
 	clusterSetLabel           = "cluster.open-cluster-management.io/clusterset"
+	manifestWorkName          = "submariner-operator"
+	serviceAccountLabel       = "cluster.open-cluster-management.io/submariner-cluster-sa"
+	submarinerConfigFinalizer = "submarineraddon.open-cluster-management.io/config-cleanup"
+	submarinerLabel           = "cluster.open-cluster-management.io/submariner-agent"
 )
 
 var clusterRBACFiles = []string{
-	"manifests/agent/rbac/submariner-cluster-serviceaccount.yaml",
-	"manifests/agent/rbac/submariner-cluster-rolebinding.yaml",
+	"manifests/agent/rbac/broker-cluster-serviceaccount.yaml",
+	"manifests/agent/rbac/broker-cluster-rolebinding.yaml",
+}
+
+const agentRBACFile = "manifests/agent/rbac/operatorgroup-aggregate-clusterrole.yaml"
+
+var sccFiles = []string{
+	"manifests/agent/rbac/scc-aggregate-clusterrole.yaml",
+	"manifests/agent/rbac/submariner-agent-scc.yaml",
+}
+
+var operatorFiles = []string{
+	"manifests/agent/operator/submariner-operator-namespace.yaml",
+	"manifests/agent/operator/submariner-operator-group.yaml",
+	"manifests/agent/operator/submariner-operator-subscription.yaml",
+	"manifests/agent/operator/submariner.io-submariners-cr.yaml",
 }
 
 type clusterRBACConfig struct {
@@ -61,8 +80,8 @@ type clusterRBACConfig struct {
 type submarinerAgentController struct {
 	kubeClient         kubernetes.Interface
 	dynamicClient      dynamic.Interface
-	clusterClient      clientset.Interface
-	manifestWorkClient workv1client.Interface
+	clusterClient      clusterclient.Interface
+	manifestWorkClient workclient.Interface
 	configClient       configclient.Interface
 	clusterLister      clusterlisterv1.ManagedClusterLister
 	clusterSetLister   clusterlisterv1alpha1.ManagedClusterSetLister
@@ -74,8 +93,8 @@ type submarinerAgentController struct {
 func NewSubmarinerAgentController(
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
-	clusterClient clientset.Interface,
-	manifestWorkClient workv1client.Interface,
+	clusterClient clusterclient.Interface,
+	manifestWorkClient workclient.Interface,
 	configClient configclient.Interface,
 	clusterInformer clusterinformerv1.ManagedClusterInformer,
 	clusterSetInformer clusterinformerv1alpha1.ManagedClusterSetInformer,
@@ -156,7 +175,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		}
 
 		// handle creating submariner config before creating managed cluster
-		return c.syncConfig(ctx, managedCluster, config)
+		return c.syncSubmarinerConfig(ctx, managedCluster, config)
 	}
 
 	// if the sync is triggered by change of SubmarinerConfig, reconcile the submariner config
@@ -172,7 +191,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 	managedCluster, err := c.clusterLister.Get(namespace)
 	if errors.IsNotFound(err) {
 		// handle deleting submariner config after managed cluster was deleted.
-		return c.syncConfig(ctx, nil, config)
+		return c.syncSubmarinerConfig(ctx, nil, config)
 	}
 	if err != nil {
 		return err
@@ -183,7 +202,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		return err
 	}
 
-	return c.syncConfig(ctx, managedCluster, config)
+	return c.syncSubmarinerConfig(ctx, managedCluster, config)
 }
 
 // syncAllManagedClusters syncs all managed clusters
@@ -254,10 +273,11 @@ func (c *submarinerAgentController) syncManagedCluster(
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
 	}
 
-	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster.Name, config)
+	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster, config)
 }
 
-func (c *submarinerAgentController) syncConfig(ctx context.Context,
+// syncSubmarinerConfig syncs submariner configuration
+func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	managedCluster *clusterv1.ManagedCluster,
 	config *configv1alpha1.SubmarinerConfig) error {
 	if config.DeletionTimestamp.IsZero() {
@@ -357,36 +377,52 @@ func (c *submarinerAgentController) removeAgentFinalizer(ctx context.Context, ma
 	return nil
 }
 
-func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, clusterSetName, clusterName string, config *configv1alpha1.SubmarinerConfig) error {
+func (c *submarinerAgentController) deploySubmarinerAgent(
+	ctx context.Context,
+	clusterSetName string,
+	managedCluster *clusterv1.ManagedCluster,
+	submarinerConfig *configv1alpha1.SubmarinerConfig) error {
 	// generate service account and bind it to `submariner-k8s-broker-cluster` role
 	brokerNamespace := fmt.Sprintf("submariner-clusterset-%s-broker", clusterSetName)
-	if err := c.applyClusterRBACFiles(brokerNamespace, clusterName); err != nil {
+	if err := c.applyClusterRBACFiles(brokerNamespace, managedCluster.Name); err != nil {
 		return err
 	}
 
-	if err := ApplySubmarinerManifestWorks(
-		ctx,
+	// create submariner broker info with submariner config
+	brokerInfo, err := brokerinfo.NewSubmarinerBrokerInfo(
 		c.kubeClient,
 		c.dynamicClient,
-		c.manifestWorkClient,
-		c.clusterClient,
 		c.configClient,
 		c.eventRecorder,
-		clusterName, brokerNamespace,
-		config); err != nil {
+		managedCluster,
+		brokerNamespace,
+		submarinerConfig,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create submariner brokerInfo of cluster %v : %v", managedCluster.Name, err)
+	}
+
+	// apply submariner operator manifest work
+	operatorManifestWork, err := getManifestWork(managedCluster, brokerInfo)
+	if err != nil {
+		return err
+	}
+	if err := helpers.ApplyManifestWork(ctx, c.manifestWorkClient, operatorManifestWork); err != nil {
 		return err
 	}
 
-	c.eventRecorder.Event("SubmarinerAgentDeployed", fmt.Sprintf("submariner agent was deployed on managed cluster %q", clusterName))
+	c.eventRecorder.Event("SubmarinerAgentDeployed", fmt.Sprintf("submariner agent was deployed on managed cluster %q", managedCluster.Name))
 	return nil
 }
 
 func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, clusterName string) error {
 	errs := []error{}
 	// remove submariner manifestworks
-	if err := RemoveSubmarinerManifestWorks(ctx, c.clusterClient, c.manifestWorkClient, c.eventRecorder, clusterName); err != nil {
+	err := c.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Delete(ctx, manifestWorkName, metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
 		errs = append(errs, fmt.Errorf("failed to remove submariner agent from managed cluster %v: %v", clusterName, err))
 	}
+	c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q", fmt.Sprintf("%s/%s", clusterName, manifestWorkName))
 
 	// remove service account and its rolebinding from broker namespace
 	if err := c.removeClusterRBACFiles(ctx, clusterName); err != nil {
@@ -507,4 +543,35 @@ func (c *submarinerAgentController) removeConfigFinalizer(ctx context.Context, c
 	}
 
 	return nil
+}
+
+func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
+	files := []string{agentRBACFile}
+	if helpers.GetClusterType(managedCluster) == helpers.ClusterTypeOCP {
+		files = append(files, sccFiles...)
+	}
+	files = append(files, operatorFiles...)
+
+	manifests := []workv1.Manifest{}
+	for _, file := range files {
+		yamlData := assets.MustCreateAssetFromTemplate(file, bindata.MustAsset(filepath.Join("", file)), config).Data
+		jsonData, err := yaml.YAMLToJSON(yamlData)
+		if err != nil {
+			return nil, err
+		}
+		manifest := workv1.Manifest{RawExtension: runtime.RawExtension{Raw: jsonData}}
+		manifests = append(manifests, manifest)
+	}
+	return &workv1.ManifestWork{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      manifestWorkName,
+			Namespace: managedCluster.Name,
+		},
+		Spec: workv1.ManifestWorkSpec{
+			Workload: workv1.ManifestsTemplate{
+				Manifests: manifests,
+			},
+		},
+	}, nil
 }

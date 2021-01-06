@@ -93,6 +93,25 @@ spec:
                 - type
                 type: object
               type: array
+            managedClusterInfo:
+              description: ManagedClusterInfo represents the information of a managed cluster.
+              properties:
+                clusterName:
+                  description: ClusterName represents the name of the managed cluster.
+                  type: string
+                infraId:
+                  description: InfraId represents the infrastructure id of the managed cluster.
+                  type: string
+                platform:
+                  description: Platform represents the cloud provider of the managed cluster.
+                  type: string
+                region:
+                  description: Region represents the cloud region of the managed cluster.
+                  type: string
+                vendor:
+                  description: Vendor represents the kubernetes vendor of the managed cluster.
+                  type: string
+              type: object
           type: object
       type: object
   version: v1alpha1

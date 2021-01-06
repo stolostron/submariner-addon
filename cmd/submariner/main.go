@@ -17,8 +17,7 @@ import (
 	"github.com/open-cluster-management/submariner-addon/pkg/version"
 )
 
-// The registration binary contains both the hub-side controllers for the
-// registration API and the spoke agent.
+// The submariner binary is used to integrate between ACM and Submariner.
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -38,8 +37,8 @@ func main() {
 
 func newSubmarinerControllerCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "registration",
-		Short: "Spoke Cluster Registration",
+		Use:   "submariner",
+		Short: "submariner-addon",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 			os.Exit(1)

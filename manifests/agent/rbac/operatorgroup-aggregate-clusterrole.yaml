@@ -1,0 +1,10 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: open-cluster-management:submariner-addon-operatorgroups-aggregate-clusterrole
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+  - apiGroups: ["operators.coreos.com"]
+    resources: ["operatorgroups"]
+    verbs: ["get", "create", "delete"]

@@ -67,8 +67,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			kubeObjs:    []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list")
-				testinghelpers.AssertActions(t, clusterActions, "get")
-				testinghelpers.AssertActions(t, workActions, "delete", "delete", "delete")
+				testinghelpers.AssertNoActions(t, clusterActions)
+				testinghelpers.AssertActions(t, workActions, "delete")
 			},
 		},
 		{
@@ -81,8 +81,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			clustersets: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list")
-				testinghelpers.AssertActions(t, clusterActions, "get")
-				testinghelpers.AssertActions(t, workActions, "delete", "delete", "delete")
+				testinghelpers.AssertNoActions(t, clusterActions)
+				testinghelpers.AssertActions(t, workActions, "delete")
 			},
 		},
 		{
@@ -95,8 +95,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			clustersets: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list")
-				testinghelpers.AssertActions(t, clusterActions, "get", "get")
-				testinghelpers.AssertActions(t, workActions, "delete", "delete", "delete")
+				testinghelpers.AssertActions(t, clusterActions, "get")
+				testinghelpers.AssertActions(t, workActions, "delete")
 			},
 		},
 		{
@@ -128,19 +128,10 @@ func TestSyncManagedCluster(t *testing.T) {
 				newServiceAccount("submariner-clusterset-set1-broker", "cluster1", "cluster1-token-5pw5c", map[string]string{}),
 			},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "get", "create", "get", "create", "get", "create")
-				work1 := (workActions[1].(clienttesting.CreateActionImpl).Object).(*workv1.ManifestWork)
-				if work1.Name != "submariner-agent-crds" {
-					t.Errorf("expected work submariner-agent-crds, but got %v", work1)
-				}
-				work2 := (workActions[3].(clienttesting.CreateActionImpl).Object).(*workv1.ManifestWork)
-				if work2.Name != "submariner-agent-rbac" {
-					t.Errorf("expected work submariner-agent-rbac, but got %v", work2)
-
-				}
-				work3 := (workActions[5].(clienttesting.CreateActionImpl).Object).(*workv1.ManifestWork)
-				if work3.Name != "submariner-agent-operator" {
-					t.Errorf("expected work submariner-agent-operator, but got %v", work3)
+				testinghelpers.AssertActions(t, workActions, "get", "create")
+				work := (workActions[1].(clienttesting.CreateActionImpl).Object).(*workv1.ManifestWork)
+				if work.Name != "submariner-operator" {
+					t.Errorf("expected work submariner-agent-crds, but got %+v", work)
 				}
 			},
 		},
@@ -156,8 +147,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list", "delete", "delete")
-				testinghelpers.AssertActions(t, clusterActions, "get", "get", "update")
-				managedCluster := clusterActions[2].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertActions(t, clusterActions, "get", "update")
+				managedCluster := clusterActions[1].(clienttesting.UpdateActionImpl).Object
 				testinghelpers.AssertFinalizers(t, managedCluster, []string{"test"})
 			},
 		},

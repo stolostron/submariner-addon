@@ -1,6 +1,7 @@
 resources:
-  - lighthouse.submariner.io_multiclusterservices_crd.yaml
-  - lighthouse.submariner.io_serviceimports_crd.yaml
+  - open-cluster-management.io_submarinerconfigs_crd.yaml
   - submariner.io_clusters_crd.yaml
   - submariner.io_endpoints_crd.yaml
-  - submarineraddon.open-cluster-management.io_submarinerconfigs_crd.yaml
+  - submariner.io_gateways_crd.yaml
+  - submariner.io_lighthouse.serviceimports_crd.yaml
+  - x-k8s.io_multicluster.serviceimports_crd.yaml

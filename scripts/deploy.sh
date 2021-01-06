@@ -3,7 +3,6 @@
 source scripts/clusters.sh
 k8s_version="v1.18.0"
 
-### functions ###
 if [ "$1"x = "cleanup"x ]; then
     for cluster in "${clusters[@]}"; do
         kind delete cluster --name=$cluster
@@ -11,6 +10,7 @@ if [ "$1"x = "cleanup"x ]; then
     exit 0
 fi
 
+### functions ###
 function create_kind_cluster() {
     local idx=$1
     local cluster=$2
@@ -28,7 +28,6 @@ function create_kind_cluster() {
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
-  disableDefaultCNI: true
   podSubnet: ${pod_cidr}
   serviceSubnet: ${service_cidr}
 kubeadmConfigPatches:
@@ -56,13 +55,17 @@ EOF
     chmod a+r $KUBECONFIG
     echo "The Kubeconfig of cluster ${cluster} locates at: ${KUBECONFIG}"
 
-    # apply weave network
-    echo "Applying weave network for ${cluster} ..."
-    kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=${k8s_version}&env.IPALLOC_RANGE=${pod_cidr}"
-    echo "Waiting for weave-net pods to be ready for ${cluster} ..."
-    kubectl wait --for=condition=Ready pods -l name=weave-net -n kube-system --timeout="5m"
-    echo "Waiting for core-dns deployment to be ready for ${cluster} ..."
-    kubectl -n kube-system rollout status deploy/coredns --timeout="5m"
+    kubectl taint nodes --all node-role.kubernetes.io/master-
+}
+
+function deploy_olm() {
+    local cluster=$1
+    local kubeconfig_dir="${work_dir}/kubeconfigs/kind-config-${cluster}"
+
+    export KUBECONFIG=${kubeconfig_dir}/kubeconfig
+
+    kubectl apply -f https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.17.0/crds.yaml
+    kubectl apply -f https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.17.0/olm.yaml
 }
 
 function deploy_hub() {
@@ -78,15 +81,10 @@ function deploy_hub() {
     export KUBECONFIG=${kubeconfig_dir}/kubeconfig
     echo "Deploy hub on cluster ${cluster} ..."
     # delploy operator
-    kubectl create namespace open-cluster-management
-    kubectl apply -f ${deploy_dir}/crds/0000_01_operator.open-cluster-management.io_clustermanagers.crd.yaml
-    kubectl apply -f ${deploy_dir}/cluster_role.yaml
-    kubectl apply -f ${deploy_dir}/cluster_role_binding.yaml
-    kubectl apply -f ${deploy_dir}/service_account.yaml
-    kubectl apply -f ${deploy_dir}/operator.yaml
+    kubectl apply -k ${deploy_dir}/config/manifests
 
     # delploy cluster managers
-    kubectl apply -f ${deploy_dir}/crds/operator_open-cluster-management_clustermanagers.cr.yaml
+    kubectl apply -k ${deploy_dir}/config/samples
 
     # deploy the acm_submariner
     echo "Deploy ACM submariner-addon on cluster ${cluster} ..."
@@ -102,6 +100,10 @@ function deploy_hub() {
         env:
         - name: BROKER_API_SERVER
           value: "${master_ip}:6443"
+        - name: SUBMARINER_CATALOG_SOURCE
+          value: operatorhubio-catalog
+        - name: SUBMARINER_CATALOG_SOURCE_NAMESPACE
+          value: olm
 EOF
     kubectl apply -k ${submariner_deploy_dir}/config/manifests
 }
@@ -121,12 +123,7 @@ function deploy_klusterlet() {
     export KUBECONFIG=${kubeconfig_dir}/kubeconfig
     echo "Deploy klusterlet on cluster ${cluster} ..."
     # delploy operator
-    kubectl create namespace open-cluster-management
-    kubectl apply -f ${deploy_dir}/crds/0000_00_operator.open-cluster-management.io_klusterlets.crd.yaml
-    kubectl apply -f ${deploy_dir}/cluster_role.yaml
-    kubectl apply -f ${deploy_dir}/cluster_role_binding.yaml
-    kubectl apply -f ${deploy_dir}/service_account.yaml
-    kubectl apply -f ${deploy_dir}/operator.yaml
+    kubectl apply -k ${deploy_dir}/config/manifests
 
     # delploy klusterlet
     kubectl create namespace open-cluster-management-agent
@@ -208,11 +205,16 @@ do
     create_kind_cluster "$i" "$cluster"
     i=$(($i+1))
 done
-wait
+
+# deploy the olm
+for cluster in "${clusters[@]}";
+do
+    deploy_olm "$cluster"
+done
 
 # downlaod registration-operator
 registration_operator_dir="${work_dir}/registration-operator"
-git clone --depth 1 --branch release-2.1 https://github.com/open-cluster-management/registration-operator.git ${registration_operator_dir}
+git clone --depth 1 --branch release-2.2 https://github.com/open-cluster-management/registration-operator.git ${registration_operator_dir}
 
 # the first cluster is hub cluster
 hub="${clusters[0]}"
@@ -224,14 +226,14 @@ kind load --name="${hub}" docker-image quay.io/open-cluster-management/submarine
 deploy_hub ${hub}
 
 # deploy klusterlet on managed cluters
-for ((i=1;i<${#clusters[*]};i++));
+for ((i=0;i<${#clusters[*]};i++));
 do
     (deploy_klusterlet ${clusters[$i]}) &
 done
 wait
 
 # accept managed clusters
-for ((i=1;i<${#clusters[*]};i++));
+for ((i=0;i<${#clusters[*]};i++));
 do
     (accept_managed_cluster ${clusters[$i]}) &
 done

@@ -1,3 +1,7 @@
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: submariner-agent-scc
 allowHostDirVolumePlugin: true
 allowHostIPC: true
 allowHostNetwork: true
@@ -9,7 +13,6 @@ allowedCapabilities:
 - '*'
 allowedUnsafeSysctls:
 - '*'
-apiVersion: security.openshift.io/v1
 defaultAddCapabilities: null
 fsGroup:
   type: RunAsAny
@@ -17,11 +20,6 @@ groups:
 - system:cluster-admins
 - system:nodes
 - system:masters
-kind: SecurityContextConstraints
-metadata:
-  labels:
-    app: submariner
-  name: submariner-scc
 priority: 1
 readOnlyRootFilesystem: false
 requiredDropCapabilities: []

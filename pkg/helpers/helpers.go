@@ -38,14 +38,10 @@ import (
 )
 
 const (
-	ClusterTypeOCP              = "OCP"
-	IPSecPSKSecretLength        = 48
-	IPSecPSKSecretName          = "submariner-ipsec-psk"
-	BrokerAPIServer             = "BROKER_API_SERVER"
-	SubmarinerVersion           = "SUBMARINER_VERSION"
-	SubmarinerDefaultVersion    = "0.7.0"
-	SubmarinerRepository        = "SUBMARINER_REPOSITORY"
-	SubmarinerDefaultRepository = "quay.io/submariner"
+	ClusterTypeOCP       = "OCP"
+	IPSecPSKSecretLength = 48
+	IPSecPSKSecretName   = "submariner-ipsec-psk"
+	BrokerAPIServer      = "BROKER_API_SERVER"
 )
 
 const (
@@ -54,6 +50,14 @@ const (
 	SubmarinerRoutePort   = 4800
 	SubmarinerMetricsPort = 8080
 )
+
+const ocpInfrastructureName = "cluster"
+
+var infrastructureGVR schema.GroupVersionResource = schema.GroupVersionResource{
+	Group:    "config.openshift.io",
+	Version:  "v1",
+	Resource: "infrastructures",
+}
 
 var (
 	genericScheme = runtime.NewScheme()
@@ -198,17 +202,8 @@ func GetIPSecPSK(client kubernetes.Interface, brokerNamespace string) (string, e
 	return base64.StdEncoding.EncodeToString(secret.Data["psk"]), nil
 }
 
-var (
-	InfrastructureConfigName                             = "cluster"
-	infrastructureGVR        schema.GroupVersionResource = schema.GroupVersionResource{
-		Group:    "config.openshift.io",
-		Version:  "v1",
-		Resource: "infrastructures",
-	}
-)
-
 func GetBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
-	infrastructureConfig, err := dynamicClient.Resource(infrastructureGVR).Get(context.TODO(), InfrastructureConfigName, metav1.GetOptions{})
+	infrastructureConfig, err := dynamicClient.Resource(infrastructureGVR).Get(context.TODO(), ocpInfrastructureName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			apiServer := os.Getenv(BrokerAPIServer)
@@ -269,20 +264,12 @@ func GetClusterType(managedCluster *clusterv1.ManagedCluster) string {
 	return ""
 }
 
-func GetSubmarinerRepository() string {
-	repository := os.Getenv(SubmarinerRepository)
-	if repository == "" {
-		return SubmarinerDefaultRepository
+func GetEnv(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
 	}
-	return repository
-}
-
-func GetSubmarinerVersion() string {
-	version := os.Getenv(SubmarinerVersion)
-	if version == "" {
-		return SubmarinerDefaultVersion
-	}
-	return version
+	return value
 }
 
 func ApplyManifestWork(ctx context.Context, client workclient.Interface, required *workv1.ManifestWork) error {
@@ -305,37 +292,6 @@ func ApplyManifestWork(ctx context.Context, client workclient.Interface, require
 	return err
 }
 
-func GetClusterClaims(clusterClaims []clusterv1.ManagedClusterClaim) (platform, region, infraId string) {
-	for _, claim := range clusterClaims {
-		if claim.Name == "platform.open-cluster-management.io" {
-			platform = claim.Value
-		}
-		if claim.Name == "region.open-cluster-management.io" {
-			region = claim.Value
-		}
-		if claim.Name == "infrastructure.openshift.io" {
-			var infraInfo map[string]interface{}
-			if err := json.Unmarshal([]byte(claim.Value), &infraInfo); err == nil {
-				infraId = fmt.Sprintf("%v", infraInfo["infraName"])
-			}
-		}
-	}
-	return platform, region, infraId
-}
-
-func manifestsEqual(new, old []workv1.Manifest) bool {
-	if len(new) != len(old) {
-		return false
-	}
-
-	for i := range new {
-		if !equality.Semantic.DeepEqual(new[i].Raw, old[i].Raw) {
-			return false
-		}
-	}
-	return true
-}
-
 func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alpha1.ManagedClusterInfo {
 	clusterInfo := configv1alpha1.ManagedClusterInfo{
 		ClusterName: managedCluster.Name,
@@ -356,4 +312,17 @@ func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 		}
 	}
 	return clusterInfo
+}
+
+func manifestsEqual(new, old []workv1.Manifest) bool {
+	if len(new) != len(old) {
+		return false
+	}
+
+	for i := range new {
+		if !equality.Semantic.DeepEqual(new[i].Raw, old[i].Raw) {
+			return false
+		}
+	}
+	return true
 }
