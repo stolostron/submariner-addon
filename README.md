@@ -14,20 +14,20 @@ The steps below can be used for testing on a local environment:
 2. Build the `submariner-addon` image locally by running `make images`.
 
 3. Prepare clusters by running `make clusters`. This will:
-    - Create three clusters: `cluster1`, `cluster2` and `cluster3`. `cluster1` is going to be used as the Hub, and the other two as the managed clusters.
+    - Create two clusters: `cluster1` and `cluster2`. `cluster1` is going to be used as the Hub.
     - Load the local Docker images to the kind cluster `cluster1`.
+    - Deploy the [operator-lifecycle-manager](https://github.com/operator-framework/operator-lifecycle-manager)
     - Deploy the `ClusterManager` on `cluster1`. This includes the required Hub cluster components.
-    - Deploy the `Klusterlet` on `cluster2` and `cluster3`. This includes the required the managed cluster agents.
-    - Join `cluster2` and `cluster3` to the Hub cluster `cluster1`.
+    - Deploy the `Klusterlet` on `cluster1` and `cluster2`. This includes the required the managed cluster agents.
+    - Join `cluster1` and `cluster2` to the Hub cluster `cluster1`, the `cluster1` and `cluster2` are the managed clusters.
 
 4. Run the demo by issuing `make demo`. This will:
     - Label the managed clusters with `cluster.open-cluster-management.io/submariner-agent`.
     - Label the managed clusters with `cluster.open-cluster-management.io/clusterset: clusterset1`.
     - Create a `ClusterSet`.
     - Deploy the Submariner Broker on the Hub cluster and the required Submariner components on the managed clusters.
-    - Interconnect `cluster2` and `cluster3` using Submariner.
-    - Create a Kubernetes Service `nginx` of type ClusterIP on managed cluster `cluster3` and export it. Submariner will import this Service to the managed clusters.
-    - Access the exported Service from managed cluster `cluster2`.
+    - Interconnect `cluster1` and `cluster2` using Submariner.
+    - Download the `subctl` from [Submariner releases page](https://github.com/submariner-io/submariner-operator/releases) and use `subctl show all` to show information about submariner.
 
 To delete the kind environment, use `make clean`.
 
