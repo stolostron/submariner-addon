@@ -12,21 +12,6 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - kind: Cluster
-      name: clusters.submariner.io
-      version: v1
-    - kind: Endpoint
-      name: endpoints.submariner.io
-      version: v1
-    - kind: Gateway
-      name: gateways.submariner.io
-      version: v1
-    - kind: ServiceImport
-      name: serviceimports.lighthouse.submariner.io
-      version: v2alpha1
-    - kind: ServiceImport
-      name: serviceimports.multicluster.x-k8s.io
-      version: v1alpha1
     - kind: SubmarinerConfig
       name: submarinerconfigs.submarineraddon.open-cluster-management.io
       version: v1alpha1

@@ -2,6 +2,13 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: serviceimports.multicluster.x-k8s.io
+  ownerReferences:
+  - apiVersion: apiextensions.k8s.io/v1beta1
+    controller: true
+    blockOwnerDeletion: true
+    kind: CustomResourceDefinition
+    name: submarinerconfigs.submarineraddon.open-cluster-management.io
+    uid: {{ .ConfigCRDUID }}
 spec:
   group: multicluster.x-k8s.io
   scope: Namespaced

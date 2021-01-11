@@ -6,6 +6,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"os"
 	"strings"
 
@@ -67,6 +70,8 @@ var (
 
 func init() {
 	utilruntime.Must(api.InstallKube(genericScheme))
+	utilruntime.Must(apiextensionsv1beta1.AddToScheme(genericScheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(genericScheme))
 }
 
 type UpdateSubmarinerConfigStatusFunc func(status *configv1alpha1.SubmarinerConfigStatus) error
@@ -123,6 +128,65 @@ func UpdateSubmarinerConfigStatusFn(cond metav1.Condition, managedClusterInfo co
 		meta.SetStatusCondition(&oldStatus.Conditions, cond)
 		return nil
 	}
+}
+
+type CRDClientHolder struct {
+	apiExtensionsClient apiextensionsclient.Interface
+}
+
+func NewCRDClientHolder() *CRDClientHolder {
+	return &CRDClientHolder{}
+}
+func (c *CRDClientHolder) WithAPIExtensionsClient(client apiextensionsclient.Interface) *CRDClientHolder {
+	c.apiExtensionsClient = client
+	return c
+}
+
+// ApplyCRDDirectly is used to apply CRD v1 and v1beta1 since resourceapply in library-go cannot apply CRD v1 with error
+func ApplyCRDDirectly(
+	clients *CRDClientHolder,
+	recorder events.Recorder,
+	manifests resourceapply.AssetFunc,
+	files ...string) []resourceapply.ApplyResult {
+	ret := []resourceapply.ApplyResult{}
+
+	for _, file := range files {
+		result := resourceapply.ApplyResult{File: file}
+		objBytes, err := manifests(file)
+		if err != nil {
+			result.Error = fmt.Errorf("missing %q: %v", file, err)
+			ret = append(ret, result)
+			continue
+		}
+		requiredObj, _, err := genericCodec.Decode(objBytes, nil, nil)
+		if err != nil {
+			result.Error = fmt.Errorf("cannot decode %q: %v", file, err)
+			ret = append(ret, result)
+			continue
+		}
+		result.Type = fmt.Sprintf("%T", requiredObj)
+
+		// NOTE: Do not add CR resources into this switch otherwise the protobuf client can cause problems.
+		switch t := requiredObj.(type) {
+		case *apiextensionsv1beta1.CustomResourceDefinition:
+			if clients.apiExtensionsClient == nil {
+				result.Error = fmt.Errorf("missing apiExtensionsClient")
+			}
+			result.Result, result.Changed, result.Error = resourceapply.ApplyCustomResourceDefinitionV1Beta1(clients.apiExtensionsClient.ApiextensionsV1beta1(), recorder, t)
+		case *apiextensionsv1.CustomResourceDefinition:
+			if clients.apiExtensionsClient == nil {
+				result.Error = fmt.Errorf("missing apiExtensionsClient")
+			}
+			result.Result, result.Changed, result.Error = resourceapply.ApplyCustomResourceDefinitionV1(clients.apiExtensionsClient.ApiextensionsV1(), recorder, t)
+
+		default:
+			result.Error = fmt.Errorf("unhandled type %T", requiredObj)
+		}
+
+		ret = append(ret, result)
+	}
+
+	return ret
 }
 
 // CleanUpSubmarinerManifests clean up submariner resources from its manifest files
