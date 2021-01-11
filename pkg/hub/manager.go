@@ -16,7 +16,8 @@ import (
 	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker"
-
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 )
@@ -48,10 +49,22 @@ func RunControllerManager(ctx context.Context, controllerContext *controllercmd.
 		return err
 	}
 
+	apiExtensionClient, err := apiextensionsclientset.NewForConfig(controllerContext.KubeConfig)
+	if err != nil {
+		return err
+	}
+
 	clusterInformers := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
 	workInformers := workinformers.NewSharedInformerFactory(workClient, 10*time.Minute)
 	kubeInformers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
 	configInformers := configinformers.NewSharedInformerFactory(configClient, 10*time.Minute)
+	apiExtensionsInformers := apiextensionsinformers.NewSharedInformerFactory(apiExtensionClient, 10*time.Minute)
+
+	submarinerBrokerCRDsController := submarinerbroker.NewSubmarinerBrokerCRDsController(
+		apiExtensionClient,
+		apiExtensionsInformers.Apiextensions().V1beta1().CustomResourceDefinitions(),
+		controllerContext.EventRecorder,
+	)
 
 	submarinerBrokerController := submarinerbroker.NewSubmarinerBrokerController(
 		clusterClient.ClusterV1alpha1().ManagedClusterSets(),
@@ -77,6 +90,8 @@ func RunControllerManager(ctx context.Context, controllerContext *controllercmd.
 	go workInformers.Start(ctx.Done())
 	go kubeInformers.Start(ctx.Done())
 	go configInformers.Start(ctx.Done())
+	go apiExtensionsInformers.Start(ctx.Done())
+	go submarinerBrokerCRDsController.Run(ctx, 1)
 	go submarinerBrokerController.Run(ctx, 1)
 	go submarinerAgentController.Run(ctx, 1)
 
