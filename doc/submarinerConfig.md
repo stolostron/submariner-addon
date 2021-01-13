@@ -38,7 +38,7 @@ SubmarinerConfig can only support OCP an AWS at the current stage. The other Clo
             name: <cloud-provider-credential-secret-name>
     ```
 
-The format of credentials Secret is the same as the one used to provision the cluster by ACM.
+    The format of credentials Secret is the same as the one used to provision the cluster by ACM.
 
     ```yaml 
     apiVersion: v1
