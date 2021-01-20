@@ -100,10 +100,6 @@ function deploy_hub() {
         env:
         - name: BROKER_API_SERVER
           value: "${master_ip}:6443"
-        - name: SUBMARINER_CATALOG_SOURCE
-          value: operatorhubio-catalog
-        - name: SUBMARINER_CATALOG_SOURCE_NAMESPACE
-          value: olm
 EOF
     kubectl apply -k ${submariner_deploy_dir}/config/manifests
 }
@@ -191,6 +187,20 @@ function accept_managed_cluster() {
         fi
         sleep 1
     done
+
+    # apply SubmarinerConfig to customize subscription
+    echo "apply SubmarinerConfig to cluster ${cluster}"
+    cat << EOF | kubectl apply -f -
+apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
+kind: SubmarinerConfig
+metadata:
+  name: subconfig
+  namespace: ${cluster}
+spec:
+  subscriptionConfig:
+    source: operatorhubio-catalog
+    sourceNamespace: olm
+EOF
 }
 
 ### main ###

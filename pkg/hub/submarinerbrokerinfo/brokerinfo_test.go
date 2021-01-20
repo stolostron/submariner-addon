@@ -20,7 +20,6 @@ import (
 func TestNewSubmarinerBrokerInfo(t *testing.T) {
 	cases := []struct {
 		name             string
-		isDownStream     bool
 		clusterName      string
 		brokerName       string
 		secrets          []runtime.Object
@@ -84,13 +83,24 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 					},
 				},
 			},
-			expectedSource: "community-operators",
+			submarinerConfig: &configv1alpha1.SubmarinerConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "cluster1",
+				},
+				Spec: configv1alpha1.SubmarinerConfigSpec{
+					SubscriptionConfig: configv1alpha1.SubscriptionConfig{
+						Source:          "operatorhubio-catalog",
+						SourceNamespace: "olm",
+					},
+				},
+			},
+			expectedSource: "operatorhubio-catalog",
 		},
 		{
-			name:         "downstream build",
-			isDownStream: true,
-			clusterName:  "cluster1",
-			brokerName:   "broker1",
+			name:        "default build",
+			clusterName: "cluster1",
+			brokerName:  "broker1",
 			secrets: []runtime.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
@@ -145,10 +155,9 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 			expectedSource: "redhat-operators",
 		},
 		{
-			name:         "with submariner conifg",
-			isDownStream: true,
-			clusterName:  "cluster1",
-			brokerName:   "broker1",
+			name:        "with submariner conifg",
+			clusterName: "cluster1",
+			brokerName:  "broker1",
 			secrets: []runtime.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
@@ -217,9 +226,6 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if c.isDownStream {
-				catalogSource = "redhat-operators"
-			}
 			fakeConfigClient := fakeconfigclient.NewSimpleClientset()
 			if c.submarinerConfig != nil {
 				fakeConfigClient = fakeconfigclient.NewSimpleClientset(c.submarinerConfig)
