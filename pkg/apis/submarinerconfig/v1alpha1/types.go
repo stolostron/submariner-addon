@@ -46,12 +46,41 @@ type SubmarinerConfigSpec struct {
 	// preparation, this field should be specified.
 	// +optional
 	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret,omitempty"`
+
+	// SubscriptionConfig represents a Submariner subscription. SubscriptionConfig
+	// can be used to customize the Submariner subscription.
+	// +optional
+	SubscriptionConfig `json:"subscriptionConfig,omitempty"`
+}
+
+// SubscriptionConfig contains configuration specified for a submariner subscription.
+type SubscriptionConfig struct {
+	// Source represents the catalog source of a submariner subscription.
+	// The default value is redhat-operators
+	// +optional
+	Source string `json:"source,omitempty"`
+
+	// SourceNamespace represents the catalog source namespace of a submariner subscription.
+	// The default value is openshift-marketplace
+	// +optional
+	SourceNamespace string `json:"sourceNamespace,omitempty"`
+
+	// Channel represents the channel of a submariner subscription.
+	// The default value is alpha
+	// +optional
+	Channel string `json:"channel,omitempty"`
+
+	// StartingCSV represents the startingCSV of a submariner subscription.
+	// The default value is submariner.v0.8.0
+	// +optional
+	StartingCSV string `json:"startingCSV,omitempty"`
 }
 
 const (
 	// SubmarinerConfigConditionApplied means the configuration has successfully
 	// applied.
 	SubmarinerConfigConditionApplied string = "SubmarinerConfigApplied"
+
 	// SubmarinerConfigConditionEnvPrepared means the submariner cluster environment
 	// is prepared on a specfied cloud platform with the given cloud platform credentials.
 	SubmarinerConfigConditionEnvPrepared string = "SubmarinerClusterEnvironmentPrepared"

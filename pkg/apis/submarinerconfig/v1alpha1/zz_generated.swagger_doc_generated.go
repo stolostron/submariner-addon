@@ -44,11 +44,12 @@ func (SubmarinerConfigList) SwaggerDoc() map[string]string {
 }
 
 var map_SubmarinerConfigSpec = map[string]string{
-	"":                  "SubmarinerConfigSpec describes the configuration of the Submariner",
-	"cableDriver":       "CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, and wireguard.",
-	"IPSecIKEPort":      "IPSecIKEPort represents IPsec IKE port (default 500).",
-	"IPSecNATTPort":     "IPSecNATTPort represents IPsec NAT-T port (default 4500).",
-	"credentialsSecret": "CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.",
+	"":                   "SubmarinerConfigSpec describes the configuration of the Submariner",
+	"cableDriver":        "CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, and wireguard.",
+	"IPSecIKEPort":       "IPSecIKEPort represents IPsec IKE port (default 500).",
+	"IPSecNATTPort":      "IPSecNATTPort represents IPsec NAT-T port (default 4500).",
+	"credentialsSecret":  "CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.",
+	"subscriptionConfig": "SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.",
 }
 
 func (SubmarinerConfigSpec) SwaggerDoc() map[string]string {
@@ -63,6 +64,18 @@ var map_SubmarinerConfigStatus = map[string]string{
 
 func (SubmarinerConfigStatus) SwaggerDoc() map[string]string {
 	return map_SubmarinerConfigStatus
+}
+
+var map_SubscriptionConfig = map[string]string{
+	"":                "SubscriptionConfig contains configuration specified for a submariner subscription.",
+	"source":          "Source represents the catalog source of a submariner subscription. The default value is redhat-operators",
+	"sourceNamespace": "SourceNamespace represents the catalog source namespace of a submariner subscription. The default value is openshift-marketplace",
+	"channel":         "Channel represents the channel of a submariner subscription. The default value is alpha",
+	"startingCSV":     "StartingCSV represents the startingCSV of a submariner subscription. The default value is submariner.v0.8.0",
+}
+
+func (SubscriptionConfig) SwaggerDoc() map[string]string {
+	return map_SubscriptionConfig
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

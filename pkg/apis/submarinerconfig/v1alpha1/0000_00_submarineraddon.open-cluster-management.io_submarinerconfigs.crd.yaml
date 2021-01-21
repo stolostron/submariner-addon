@@ -58,6 +58,27 @@ spec:
                   description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     TODO: Add other useful fields. apiVersion, kind, uid?'
                   type: string
+            subscriptionConfig:
+              description: SubscriptionConfig represents a Submariner subscription.
+                SubscriptionConfig can be used to customize the Submariner subscription.
+              type: object
+              properties:
+                channel:
+                  description: Channel represents the channel of a submariner subscription.
+                    The default value is alpha
+                  type: string
+                source:
+                  description: Source represents the catalog source of a submariner
+                    subscription. The default value is redhat-operators
+                  type: string
+                sourceNamespace:
+                  description: SourceNamespace represents the catalog source namespace
+                    of a submariner subscription. The default value is openshift-marketplace
+                  type: string
+                startingCSV:
+                  description: StartingCSV represents the startingCSV of a submariner
+                    subscription. The default value is submariner.v0.8.0
+                  type: string
         status:
           description: Status represents the current status of submariner configuration
           type: object

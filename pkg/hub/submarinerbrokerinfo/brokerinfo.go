@@ -1,8 +1,6 @@
 package submarinerbrokerinfo
 
 import (
-	"fmt"
-
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
@@ -16,17 +14,12 @@ import (
 )
 
 const (
-	SubmarinerVersion                       = "SUBMARINER_VERSION"
-	SubmarinerDefaultVersion                = "0.8.0"
-	SubmarinerCatalogName                   = "SUBMARINER_CATALOG_NAME"
-	SubmarinerDefaultCatalogName            = "submariner"
-	SubmarinerCatalogChannel                = "SUBMARINER_CATALOG_CHANNEL"
-	SubmarinerDefaultCatalogChannel         = "alpha"
-	SubmarinerCatalogSource                 = "SUBMARINER_CATALOG_SOURCE"
-	SubmarinerDefaultCatalogSource          = "community-operators"
-	SubmarinerCatalogSourceNamespace        = "SUBMARINER_CATALOG_SOURCE_NAMESPACE"
-	SubmarinerDefaultCatalogSourceNamespace = "openshift-marketplace"
-	SubmarinerCableDriver                   = "libreswan"
+	catalogName                   = "submariner"
+	defaultCatalogChannel         = "alpha"
+	defaultCatalogSource          = "redhat-operators"
+	defaultCatalogSourceNamespace = "openshift-marketplace"
+	defaultCatalogStartingCSV     = "submariner.v0.8.0"
+	defaultCableDriver            = "libreswan"
 )
 
 var (
@@ -64,16 +57,16 @@ func NewSubmarinerBrokerInfo(
 	brokeNamespace string,
 	submarinerConfig *configv1alpha1.SubmarinerConfig) (*SubmarinerBrokerInfo, error) {
 	brokerInfo := &SubmarinerBrokerInfo{
-		CableDriver:            SubmarinerCableDriver,
+		CableDriver:            defaultCableDriver,
 		IPSecIKEPort:           helpers.SubmarinerIKEPort,
 		IPSecNATTPort:          helpers.SubmarinerNatTPort,
 		BrokerNamespace:        brokeNamespace,
 		ClusterName:            managedCluster.Name,
-		CatalogName:            helpers.GetEnv(SubmarinerCatalogName, SubmarinerDefaultCatalogName),
-		CatalogChannel:         helpers.GetEnv(SubmarinerCatalogChannel, SubmarinerDefaultCatalogChannel),
-		CatalogSource:          helpers.GetEnv(SubmarinerCatalogSource, SubmarinerDefaultCatalogSource),
-		CatalogSourceNamespace: helpers.GetEnv(SubmarinerCatalogSourceNamespace, SubmarinerDefaultCatalogSourceNamespace),
-		CatalogStartingCSV:     fmt.Sprintf("submariner.v%s", helpers.GetEnv(SubmarinerVersion, SubmarinerDefaultVersion)),
+		CatalogName:            catalogName,
+		CatalogChannel:         defaultCatalogChannel,
+		CatalogSource:          defaultCatalogSource,
+		CatalogSourceNamespace: defaultCatalogSourceNamespace,
+		CatalogStartingCSV:     defaultCatalogStartingCSV,
 	}
 
 	apiServer, err := helpers.GetBrokerAPIServer(dynamicClient)
@@ -102,9 +95,6 @@ func NewSubmarinerBrokerInfo(
 	switch helpers.GetClusterType(managedCluster) {
 	case helpers.ClusterTypeOCP:
 		brokerInfo.NATEnabled = true
-		if catalogSource != "" {
-			brokerInfo.CatalogSource = catalogSource
-		}
 	}
 
 	return brokerInfo, nil
@@ -121,11 +111,29 @@ func applySubmarinerConfig(
 	if submarinerConfig.Spec.CableDriver != "" {
 		brokerInfo.CableDriver = submarinerConfig.Spec.CableDriver
 	}
+
 	if submarinerConfig.Spec.IPSecIKEPort != 0 {
 		brokerInfo.IPSecIKEPort = submarinerConfig.Spec.IPSecIKEPort
 	}
+
 	if submarinerConfig.Spec.IPSecNATTPort != 0 {
 		brokerInfo.IPSecNATTPort = submarinerConfig.Spec.IPSecNATTPort
+	}
+
+	if submarinerConfig.Spec.SubscriptionConfig.Channel != "" {
+		brokerInfo.CatalogChannel = submarinerConfig.Spec.SubscriptionConfig.Channel
+	}
+
+	if submarinerConfig.Spec.SubscriptionConfig.Source != "" {
+		brokerInfo.CatalogSource = submarinerConfig.Spec.SubscriptionConfig.Source
+	}
+
+	if submarinerConfig.Spec.SubscriptionConfig.SourceNamespace != "" {
+		brokerInfo.CatalogSourceNamespace = submarinerConfig.Spec.SubscriptionConfig.SourceNamespace
+	}
+
+	if submarinerConfig.Spec.SubscriptionConfig.StartingCSV != "" {
+		brokerInfo.CatalogStartingCSV = submarinerConfig.Spec.SubscriptionConfig.StartingCSV
 	}
 
 	condition := metav1.Condition{
