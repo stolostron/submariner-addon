@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -152,10 +153,31 @@ func TestPrepareSubmarinerClusterEnv(t *testing.T) {
 						},
 					},
 				}).Return(&ec2.DescribeSubnetsOutput{Subnets: []*ec2.Subnet{{SubnetId: aws.String("sub-1"), AvailabilityZone: aws.String("z1")}}}, nil)
+				mock.EXPECT().DescribeInstanceTypeOfferings(&ec2.DescribeInstanceTypeOfferingsInput{
+					LocationType: aws.String("availability-zone"),
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("location"),
+							Values: []*string{aws.String("z1")},
+						},
+						{
+							Name:   aws.String("instance-type"),
+							Values: []*string{aws.String("m5n.large")},
+						},
+					},
+				}).Return(&ec2.DescribeInstanceTypeOfferingsOutput{InstanceTypeOfferings: []*ec2.InstanceTypeOffering{
+					{
+						InstanceType: aws.String("instance-type"),
+					},
+				}}, nil)
 				mock.EXPECT().CreateTags(&ec2.CreateTagsInput{
 					Tags: []*ec2.Tag{
 						{
 							Key:   aws.String(internalELBLabel),
+							Value: aws.String(""),
+						},
+						{
+							Key:   aws.String(internalGatewayLabel),
 							Value: aws.String(""),
 						},
 					},
@@ -292,6 +314,23 @@ func TestPrepareSubmarinerClusterEnv(t *testing.T) {
 						},
 					},
 				}}, nil)
+				mock.EXPECT().DescribeInstanceTypeOfferings(&ec2.DescribeInstanceTypeOfferingsInput{
+					LocationType: aws.String("availability-zone"),
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("location"),
+							Values: []*string{aws.String("z1")},
+						},
+						{
+							Name:   aws.String("instance-type"),
+							Values: []*string{aws.String("m5n.large")},
+						},
+					},
+				}).Return(&ec2.DescribeInstanceTypeOfferingsOutput{InstanceTypeOfferings: []*ec2.InstanceTypeOffering{
+					{
+						InstanceType: aws.String("instance-type"),
+					},
+				}}, nil)
 			},
 			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, workActions, "get", "update")
@@ -373,12 +412,24 @@ func TestCleanUpSubmarinerClusterEnv(t *testing.T) {
 							Name:   aws.String("tag:kubernetes.io/cluster/testcluster-a1b1"),
 							Values: []*string{aws.String("owned")},
 						},
+						{
+							Name:   aws.String(fmt.Sprintf("tag:kubernetes.io/role/internal-elb")),
+							Values: []*string{aws.String("")},
+						},
+						{
+							Name:   aws.String("tag:open-cluster-management.io/submariner-addon/gateway"),
+							Values: []*string{aws.String("")},
+						},
 					},
 				}).Return(&ec2.DescribeSubnetsOutput{Subnets: []*ec2.Subnet{{SubnetId: aws.String("sub-1"), AvailabilityZone: aws.String("z1")}}}, nil)
 				mock.EXPECT().DeleteTags(&ec2.DeleteTagsInput{
 					Tags: []*ec2.Tag{
 						{
 							Key:   aws.String(internalELBLabel),
+							Value: aws.String(""),
+						},
+						{
+							Key:   aws.String(internalGatewayLabel),
 							Value: aws.String(""),
 						},
 					},

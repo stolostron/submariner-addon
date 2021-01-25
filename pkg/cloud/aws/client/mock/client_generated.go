@@ -138,6 +138,21 @@ func (mr *MockInterfaceMockRecorder) DescribeSubnets(input interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSubnets", reflect.TypeOf((*MockInterface)(nil).DescribeSubnets), input)
 }
 
+// DescribeInstanceTypeOfferings mocks base method
+func (m *MockInterface) DescribeInstanceTypeOfferings(input *ec2.DescribeInstanceTypeOfferingsInput) (*ec2.DescribeInstanceTypeOfferingsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeInstanceTypeOfferings", input)
+	ret0, _ := ret[0].(*ec2.DescribeInstanceTypeOfferingsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeInstanceTypeOfferings indicates an expected call of DescribeInstanceTypeOfferings
+func (mr *MockInterfaceMockRecorder) DescribeInstanceTypeOfferings(input interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstanceTypeOfferings", reflect.TypeOf((*MockInterface)(nil).DescribeInstanceTypeOfferings), input)
+}
+
 // DeleteTags mocks base method
 func (m *MockInterface) DeleteTags(input *ec2.DeleteTagsInput) (*ec2.DeleteTagsOutput, error) {
 	m.ctrl.T.Helper()

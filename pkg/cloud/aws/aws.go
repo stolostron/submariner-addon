@@ -33,6 +33,7 @@ const (
 	accessKeyIDSecretKey      = "aws_access_key_id"
 	accessKeySecretKey        = "aws_secret_access_key"
 	internalELBLabel          = "kubernetes.io/role/internal-elb"
+	internalGatewayLabel      = "open-cluster-management.io/submariner-addon/gateway"
 	workName                  = "aws-submariner-gateway-machineset"
 	manifestFile              = "pkg/cloud/aws/manifests/machineset.yaml"
 	aggeragateClusterroleFile = "pkg/cloud/aws/manifests/machineset-aggeragate-clusterrole.yaml"
@@ -97,6 +98,15 @@ func NewAWSProvider(
 	}, nil
 }
 
+// PrepareSubmarinerClusterEnv prepares submariner cluster environment on AWS
+// The below tasks will be executed
+// 1. open submariner route port (4800/UDP) between all master and worker nodes
+// 2. open submariner metrics port (8080/TCP) between all master and worker nodes
+// 3. open IPsec ports (by default, 4500/UDP and 500/UDP) for submariner gateway instances
+// 4. find one pulic subnet and tag it with label AWS internal elb label for automatic
+//    subnet discovery by aws load balancers or ingress controllers
+// 5. apply a manifest work to create a MachineSet on managed cluster to create a new AWS
+//    instance for submariner gateway
 func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	vpc, err := a.findVPC()
 	if err != nil {
@@ -153,8 +163,16 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	return nil
 }
 
+// CleanUpSubmarinerClusterEnv clean up submariner cluster environment on AWS after the SubmarinerConfig was deleted
+// The below tasks will be executed
+// 1. delete the applied machineset manifest work to delete the gateway instance from managed cluster
+// 2. untag the subnet that was tagged on preparation phase
+// 3. revoke Submariner IPsec ports
+// 4. revoke Submariner metrics ports
+// 5. revoke Submariner route ports
 func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 	var errs []error
+	// delete the applied machineset manifest work to delete the gateway instance from managed cluster
 	if err := a.deleteGatewayNode(); err != nil {
 		errs = append(errs, fmt.Errorf("failed to delete gateway node for %s: %v \n", a.infraId, err))
 	} else {
@@ -168,6 +186,7 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 		return operatorhelpers.NewMultiLineAggregate(errs)
 	}
 
+	// untag the subnet that was tagged on preparation phase
 	if err := a.untagSubnet(vpc); err != nil {
 		errs = append(errs, fmt.Errorf("failed to untag subnet for %s: %v \n", a.infraId, err))
 	} else {
@@ -195,12 +214,14 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 		return operatorhelpers.NewMultiLineAggregate(errs)
 	}
 
+	// revoke Submariner metrics ports
 	if err := a.revokePort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerMetricsPort, "tcp"); err != nil {
 		errs = append(errs, fmt.Errorf("failed to revoke metrics port for %s: %v \n", a.infraId, err))
 	} else {
 		a.eventRecorder.Eventf("SubmarinerMetricsPortClosed", "the submariner metrics port is closed on aws")
 	}
 
+	// revoke Submariner route ports
 	if err := a.revokePort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerRoutePort, "udp"); err != nil {
 		errs = append(errs, fmt.Errorf("failed to revoke route port for %s: %v \n", a.infraId, err))
 	} else {
@@ -323,6 +344,7 @@ func (a *awsProvider) findSubnet(vpcId string) (*ec2.Subnet, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(subnets.Subnets) == 0 {
 		return nil, &errors.StatusError{
 			ErrStatus: metav1.Status{
@@ -331,7 +353,34 @@ func (a *awsProvider) findSubnet(vpcId string) (*ec2.Subnet, error) {
 			},
 		}
 	}
-	return subnets.Subnets[0], nil
+
+	for _, subnet := range subnets.Subnets {
+		// list the offered instance types and filters them by subnet availability zone and gateway instance type (m5n.large)
+		output, err := a.awsClinet.DescribeInstanceTypeOfferings(&ec2.DescribeInstanceTypeOfferingsInput{
+			LocationType: aws.String("availability-zone"),
+			Filters: []*ec2.Filter{
+				{
+					Name:   aws.String("location"),
+					Values: []*string{subnet.AvailabilityZone},
+				},
+				{
+					Name:   aws.String("instance-type"),
+					Values: []*string{aws.String(instanceType)},
+				},
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// the length of offered instance type list is not zero, it includes the gateway instance type,
+		// so we are able to create gateway instance in this subnet availability zone
+		if len(output.InstanceTypeOfferings) != 0 {
+			return subnet, nil
+		}
+	}
+
+	return nil, fmt.Errorf("the instance type %s cannot be supported in vpc %s", instanceType, vpcId)
 }
 
 func (a *awsProvider) openPort(masterSecurityGroup, workerSecurityGroup *ec2.SecurityGroup, port int64, protocol string) error {
@@ -482,7 +531,7 @@ func (a *awsProvider) tagSubnet(vpc *ec2.Vpc) (*ec2.Subnet, error) {
 		return nil, err
 	}
 
-	// the tag has been labeled
+	// the subnet has been labeled with internal ELB label (e.g. the submarinerconfig is reconciled again), just return it
 	for _, tag := range subnet.Tags {
 		if *tag.Key == internalELBLabel {
 			klog.V(4).Infof("subnet %s has been tagged with internal ELB label on aws", *subnet.SubnetId)
@@ -494,6 +543,10 @@ func (a *awsProvider) tagSubnet(vpc *ec2.Vpc) (*ec2.Subnet, error) {
 		Tags: []*ec2.Tag{
 			{
 				Key:   aws.String(internalELBLabel),
+				Value: aws.String(""),
+			},
+			{
+				Key:   aws.String(internalGatewayLabel),
 				Value: aws.String(""),
 			},
 		},
@@ -508,26 +561,58 @@ func (a *awsProvider) tagSubnet(vpc *ec2.Vpc) (*ec2.Subnet, error) {
 }
 
 func (a *awsProvider) untagSubnet(vpc *ec2.Vpc) error {
-	subnet, err := a.findSubnet(*vpc.VpcId)
-	if errors.IsNotFound(err) {
-		return nil
-	}
+	// find subnets and filter them with internal ELB label and internal gateway label, then we will untag
+	// the subnet that has these labels
+	subnets, err := a.awsClinet.DescribeSubnets(&ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{vpc.VpcId},
+			},
+			{
+				Name:   aws.String("tag:Name"),
+				Values: []*string{aws.String(fmt.Sprintf("%s-public-%s*", a.infraId, a.region))},
+			},
+			{
+				Name:   aws.String(fmt.Sprintf("tag:kubernetes.io/cluster/%s", a.infraId)),
+				Values: []*string{aws.String("owned")},
+			},
+			{
+				Name:   aws.String(fmt.Sprintf("tag:%s", internalELBLabel)),
+				Values: []*string{aws.String("")},
+			},
+			{
+				Name:   aws.String(fmt.Sprintf("tag:%s", internalGatewayLabel)),
+				Values: []*string{aws.String("")},
+			},
+		},
+	})
 	if err != nil {
 		return err
 	}
 
-	_, err = a.awsClinet.DeleteTags(&ec2.DeleteTagsInput{
-		Tags: []*ec2.Tag{
-			{
-				Key:   aws.String(internalELBLabel),
-				Value: aws.String(""),
+	var errs []error
+	for _, subnet := range subnets.Subnets {
+		if _, err = a.awsClinet.DeleteTags(&ec2.DeleteTagsInput{
+			Tags: []*ec2.Tag{
+				{
+					Key:   aws.String(internalELBLabel),
+					Value: aws.String(""),
+				},
+				{
+					Key:   aws.String(internalGatewayLabel),
+					Value: aws.String(""),
+				},
 			},
-		},
-		Resources: []*string{
-			subnet.SubnetId,
-		},
-	})
-	return err
+			Resources: []*string{
+				subnet.SubnetId,
+			},
+		}); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
 func (a *awsProvider) deployGatewayNode(az, amiId string) error {
