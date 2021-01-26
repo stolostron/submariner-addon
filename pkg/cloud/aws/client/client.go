@@ -34,6 +34,7 @@ type Interface interface {
 	DescribeVpcs(input *ec2.DescribeVpcsInput) (*ec2.DescribeVpcsOutput, error)
 	DescribeSecurityGroups(input *ec2.DescribeSecurityGroupsInput) (*ec2.DescribeSecurityGroupsOutput, error)
 	DescribeSubnets(input *ec2.DescribeSubnetsInput) (*ec2.DescribeSubnetsOutput, error)
+	DescribeInstanceTypeOfferings(input *ec2.DescribeInstanceTypeOfferingsInput) (*ec2.DescribeInstanceTypeOfferingsOutput, error)
 
 	DeleteTags(input *ec2.DeleteTagsInput) (*ec2.DeleteTagsOutput, error)
 
@@ -77,6 +78,10 @@ func (ac *awsClient) DeleteTags(input *ec2.DeleteTagsInput) (*ec2.DeleteTagsOutp
 
 func (ac *awsClient) RevokeSecurityGroupIngress(input *ec2.RevokeSecurityGroupIngressInput) (*ec2.RevokeSecurityGroupIngressOutput, error) {
 	return ac.ec2Client.RevokeSecurityGroupIngress(input)
+}
+
+func (ac *awsClient) DescribeInstanceTypeOfferings(input *ec2.DescribeInstanceTypeOfferingsInput) (*ec2.DescribeInstanceTypeOfferingsOutput, error) {
+	return ac.ec2Client.DescribeInstanceTypeOfferings(input)
 }
 
 func NewClient(kubeClient kubernetes.Interface, secretNamespace, secretName, region string) (Interface, error) {
