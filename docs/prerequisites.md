@@ -12,7 +12,7 @@ Refer to [Prerequisites of Submariner](https://submariner.io/getting-started/#pr
 
 # The  before running Submariner
 
-We have verified the Submariner with ACM on the OCP clusters host on AWS, GCP, Azure, IBM Cloud, VMare vSphere, Bare Metal and OSD.
+We have verified the Submariner with ACM on the OCP clusters host on AWS, GCP, Azure, IBM Cloud, VMware vSphere, Bare Metal and OSD.
 
 In order to meet the prerequisites, we need to complete the following configurations for each Cloud Platform.
 
@@ -181,15 +181,15 @@ OSD (RedHat OpenShift Dedicated) supports 2 provisioners AWS and Google Cloud Pl
 
 ### AWS cluster:
 
-1. The default group `dedicated-admin` has no permission to create `MachineSet`, please grant `kube-admin` group for OSD cluster from OpenShift Hosted SRE Support by [ticket](https://issues.redhat.com/secure/CreateIssue!default.jspa).
-2. Please refer to the [steps](https://docs.openshift.com/dedicated/4/administering_a_cluster/cluster-admin-role.html) to join the user into the 'kube-admin' group.
+1. The default group `dedicated-admin` has no permission to create `MachineSet`, please grant `cluster-admin` group for OSD cluster from OpenShift Hosted SRE Support by [ticket](https://issues.redhat.com/secure/CreateIssue!default.jspa).
+2. Please refer to the [steps](https://docs.openshift.com/dedicated/4/administering_a_cluster/cluster-admin-role.html) to join the user into the `cluster-admin` group.
 3. Please refer to the [AWS section](#aws) for the prerequisites configurations using the credentials of the user `osdCcsAdmin`.
 
 ### GCP cluster:
 
 1. Please refer to the [GCP section](#gcp) for the prerequisites configurations using the credentials of the Service Account `osd-ccs-admin`.
 
-## VMare vSphere and Bare Metal
+## VMware vSphere and Bare Metal
 
 1. At least one of the clusters should have a publicly routable IP address designated to the Gateway node.
 2. The default ports used by IPsec are 4500/UDP and 500/UDP. If firewalls that block the default ports, should set custom non-standard ports like 4501/UDP and 501/UDP.
