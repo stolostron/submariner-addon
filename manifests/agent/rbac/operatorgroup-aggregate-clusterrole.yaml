@@ -7,4 +7,4 @@ metadata:
 rules:
   - apiGroups: ["operators.coreos.com"]
     resources: ["operatorgroups"]
-    verbs: ["get", "create", "delete"]
+    verbs: ["get", "create", "delete", "update"]

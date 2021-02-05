@@ -218,6 +218,12 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 					CableDriver:   "test",
 					IPSecIKEPort:  501,
 					IPSecNATTPort: 4501,
+					ImagePullSpecs: configv1alpha1.SubmarinerImagePullSpecs{
+						SubmarinerImagePullSpec:           "test-submariner",
+						LighthouseCoreDNSImagePullSpec:    "test-lighthouse-coredns",
+						LighthouseAgentImagePullSpec:      "test-lighthosse-agent",
+						SubmarinerRouteAgentImagePullSpec: "test-route-agent",
+					},
 				},
 			},
 			expectedSource: "redhat-operators",

@@ -45,6 +45,22 @@ spec:
                   description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
                   type: string
               type: object
+            imagePullSpecs:
+              description: ImagePullSpecs represents the desired images of submariner components installed on the managed cluster. If not specified, the default submariner images that was defined by submariner operator will be used.
+              properties:
+                lighthouseAgentImagePullSpec:
+                  description: LighthouseAgentImagePullSpec represents the desired image of the lighthouse agent.
+                  type: string
+                lighthouseCoreDNSImagePullSpec:
+                  description: LighthouseCoreDNSImagePullSpec represents the desired image of lighthouse coredns.
+                  type: string
+                submarinerImagePullSpec:
+                  description: SubmarinerImagePullSpec represents the desired image of submariner.
+                  type: string
+                submarinerRouteAgentImagePullSpec:
+                  description: SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.
+                  type: string
+              type: object
             subscriptionConfig:
               description: SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.
               properties:

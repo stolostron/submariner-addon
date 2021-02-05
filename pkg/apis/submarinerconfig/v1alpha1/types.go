@@ -51,6 +51,11 @@ type SubmarinerConfigSpec struct {
 	// can be used to customize the Submariner subscription.
 	// +optional
 	SubscriptionConfig `json:"subscriptionConfig,omitempty"`
+
+	// ImagePullSpecs represents the desired images of submariner components installed on the managed cluster.
+	// If not specified, the default submariner images that was defined by submariner operator will be used.
+	// +optional
+	ImagePullSpecs SubmarinerImagePullSpecs `json:"imagePullSpecs,omitempty"`
 }
 
 // SubscriptionConfig contains configuration specified for a submariner subscription.
@@ -74,6 +79,24 @@ type SubscriptionConfig struct {
 	// The default value is submariner.v0.8.0
 	// +optional
 	StartingCSV string `json:"startingCSV,omitempty"`
+}
+
+type SubmarinerImagePullSpecs struct {
+	// SubmarinerImagePullSpec represents the desired image of submariner.
+	// +optional
+	SubmarinerImagePullSpec string `json:"submarinerImagePullSpec"`
+
+	// LighthouseAgentImagePullSpec represents the desired image of the lighthouse agent.
+	// +optional
+	LighthouseAgentImagePullSpec string `json:"lighthouseAgentImagePullSpec"`
+
+	// LighthouseCoreDNSImagePullSpec represents the desired image of lighthouse coredns.
+	// +optional
+	LighthouseCoreDNSImagePullSpec string `json:"lighthouseCoreDNSImagePullSpec"`
+
+	// SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.
+	// +optional
+	SubmarinerRouteAgentImagePullSpec string `json:"submarinerRouteAgentImagePullSpec"`
 }
 
 const (

@@ -50,6 +50,7 @@ var map_SubmarinerConfigSpec = map[string]string{
 	"IPSecNATTPort":      "IPSecNATTPort represents IPsec NAT-T port (default 4500).",
 	"credentialsSecret":  "CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.",
 	"subscriptionConfig": "SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.",
+	"imagePullSpecs":     "ImagePullSpecs represents the desired images of submariner components installed on the managed cluster. If not specified, the default submariner images that was defined by submariner operator will be used.",
 }
 
 func (SubmarinerConfigSpec) SwaggerDoc() map[string]string {
@@ -64,6 +65,17 @@ var map_SubmarinerConfigStatus = map[string]string{
 
 func (SubmarinerConfigStatus) SwaggerDoc() map[string]string {
 	return map_SubmarinerConfigStatus
+}
+
+var map_SubmarinerImagePullSpecs = map[string]string{
+	"submarinerImagePullSpec":           "SubmarinerImagePullSpec represents the desired image of submariner.",
+	"lighthouseAgentImagePullSpec":      "LighthouseAgentImagePullSpec represents the desired image of the lighthouse agent.",
+	"lighthouseCoreDNSImagePullSpec":    "LighthouseCoreDNSImagePullSpec represents the desired image of lighthouse coredns.",
+	"submarinerRouteAgentImagePullSpec": "SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.",
+}
+
+func (SubmarinerImagePullSpecs) SwaggerDoc() map[string]string {
+	return map_SubmarinerImagePullSpecs
 }
 
 var map_SubscriptionConfig = map[string]string{

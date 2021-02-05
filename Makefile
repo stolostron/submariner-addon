@@ -72,7 +72,9 @@ update-scripts:
 	hack/update-swagger-docs.sh
 	hack/update-codegen.sh
 .PHONY: update-scripts
+
 update: update-scripts update-codegen-crds
+	cp pkg/apis/submarinerconfig/v1alpha1/0000_00_submarineraddon.open-cluster-management.io_submarinerconfigs.crd.yaml deploy/config/crds/open-cluster-management.io_submarinerconfigs_crd.yaml
 
 verify-scripts:
 	bash -x hack/verify-deepcopy.sh

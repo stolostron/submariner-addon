@@ -6,11 +6,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
+
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"os"
-	"strings"
 
 	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
@@ -347,7 +348,9 @@ func ApplyManifestWork(ctx context.Context, client workclient.Interface, require
 		}
 
 		if !manifestsEqual(existing.Spec.Workload.Manifests, required.Spec.Workload.Manifests) {
-			_, err = client.WorkV1().ManifestWorks(required.Namespace).Update(ctx, required, metav1.UpdateOptions{})
+			existingCopy := existing.DeepCopy()
+			existingCopy.Spec = required.Spec
+			_, err = client.WorkV1().ManifestWorks(required.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
 		}
 
 		return err
