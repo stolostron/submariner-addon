@@ -28,23 +28,27 @@ var (
 )
 
 type SubmarinerBrokerInfo struct {
-	NATEnabled             bool
-	BrokerAPIServer        string
-	BrokerNamespace        string
-	BrokerToken            string
-	BrokerCA               string
-	IPSecPSK               string
-	CableDriver            string
-	IPSecIKEPort           int
-	IPSecNATTPort          int
-	ClusterName            string
-	ClusterCIDR            string
-	ServiceCIDR            string
-	CatalogChannel         string
-	CatalogName            string
-	CatalogSource          string
-	CatalogSourceNamespace string
-	CatalogStartingCSV     string
+	NATEnabled                bool
+	IPSecIKEPort              int
+	IPSecNATTPort             int
+	BrokerAPIServer           string
+	BrokerNamespace           string
+	BrokerToken               string
+	BrokerCA                  string
+	IPSecPSK                  string
+	CableDriver               string
+	ClusterName               string
+	ClusterCIDR               string
+	ServiceCIDR               string
+	CatalogChannel            string
+	CatalogName               string
+	CatalogSource             string
+	CatalogSourceNamespace    string
+	CatalogStartingCSV        string
+	SubmarinerGatewayImage    string
+	SubmarinerRouteAgentImage string
+	LighthouseAgentImage      string
+	LighthouseCoreDNSImage    string
 }
 
 // NewSubmarinerBrokerInfo creates submariner broker information with hub information
@@ -134,6 +138,22 @@ func applySubmarinerConfig(
 
 	if submarinerConfig.Spec.SubscriptionConfig.StartingCSV != "" {
 		brokerInfo.CatalogStartingCSV = submarinerConfig.Spec.SubscriptionConfig.StartingCSV
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec != "" {
+		brokerInfo.SubmarinerGatewayImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec != "" {
+		brokerInfo.SubmarinerRouteAgentImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec != "" {
+		brokerInfo.LighthouseCoreDNSImage = submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec != "" {
+		brokerInfo.LighthouseAgentImage = submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec
 	}
 
 	condition := metav1.Condition{

@@ -161,6 +161,21 @@ spec:
   natEnabled: {{ .NATEnabled }}
   serviceCIDR: ""
   serviceDiscoveryEnabled: true
+{{- if or .SubmarinerGatewayImage .SubmarinerRouteAgentImage .LighthouseAgentImage .LighthouseCoreDNSImage }}
+  imageOverrides:
+    {{- if .SubmarinerGatewayImage }}
+    submariner: {{ .SubmarinerGatewayImage }}
+    {{- end}}
+    {{- if .SubmarinerRouteAgentImage }}
+    submariner-route-agent: {{ .SubmarinerRouteAgentImage }}
+    {{- end}}
+    {{- if .LighthouseAgentImage }}
+    lighthouse-agent: {{ .LighthouseAgentImage }}
+    {{- end}}
+    {{- if .LighthouseCoreDNSImage }}
+    lighthouse-coredns: {{ .LighthouseCoreDNSImage }}
+    {{- end}}
+{{- end}}
 `)
 
 func manifestsAgentOperatorSubmarinerIoSubmarinersCrYamlBytes() ([]byte, error) {
@@ -241,7 +256,7 @@ metadata:
 rules:
   - apiGroups: ["operators.coreos.com"]
     resources: ["operatorgroups"]
-    verbs: ["get", "create", "delete"]
+    verbs: ["get", "create", "delete", "update"]
 `)
 
 func manifestsAgentRbacOperatorgroupAggregateClusterroleYamlBytes() ([]byte, error) {
