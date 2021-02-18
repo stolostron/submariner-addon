@@ -1,10 +1,13 @@
 # submariner-addon
+
 An integration between ACM and [Submariner](https://submariner.io/). Submariner enables direct networking between Pods and Services in different Kubernetes clusters.
 
 ## Community, discussion, contribution, and support
+
 Check the [CONTRIBUTING Doc](CONTRIBUTING.md) for how to contribute to the repo.
 
 ## Test Locally with kind
+
 The steps below can be used for testing on a local environment:
 
 > Note: [`kind`](https://kind.sigs.k8s.io/), [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/), and [`imagebuilder`](https://github.com/openshift/imagebuilder) are required.
