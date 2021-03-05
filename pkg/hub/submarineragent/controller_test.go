@@ -346,7 +346,7 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 			},
 		},
 		{
-			name:     "unspported cluster vendor",
+			name:     "unsupported cluster vendor",
 			queueKey: "cluster1/submariner-config",
 			configs: []runtime.Object{
 				&configv1alpha1.SubmarinerConfig{
@@ -366,7 +366,7 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   "cluster1",
-						Labels: map[string]string{"vendor": "unspported"},
+						Labels: map[string]string{"vendor": "unsupported"},
 					},
 				},
 			},
@@ -420,7 +420,7 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:       "cluster1",
-						Labels:     map[string]string{"vendor": "unspported"},
+						Labels:     map[string]string{"vendor": "unsupported"},
 						Finalizers: []string{"cluster.open-cluster-management.io/submariner-config-cleanup"},
 					},
 				},
