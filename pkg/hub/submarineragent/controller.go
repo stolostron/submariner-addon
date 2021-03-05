@@ -304,7 +304,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	}
 
 	if config.Spec.CredentialsSecret == nil {
-		// no platform credentials, the submariner cluster environment neet not to be prepared
+		// no platform credentials, the submariner cluster environment need not to be prepared
 		return nil
 	}
 
@@ -499,7 +499,7 @@ func (c *submarinerAgentController) getSubmarinerConfig(ctx context.Context, nam
 	case 1:
 		return &configs.Items[0], nil
 	default:
-		//TODO we need ensure only one config for one managed cluster in the futrue
+		//TODO we need ensure only one config for one managed cluster in the future
 		c.eventRecorder.Warningf("one more than submariner configs are found from %q", namespace)
 		return nil, nil
 	}
