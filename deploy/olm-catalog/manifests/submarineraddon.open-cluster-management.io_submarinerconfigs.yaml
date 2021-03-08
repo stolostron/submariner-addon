@@ -74,7 +74,7 @@ spec:
                   description: SourceNamespace represents the catalog source namespace of a submariner subscription. The default value is openshift-marketplace
                   type: string
                 startingCSV:
-                  description: StartingCSV represents the startingCSV of a submariner subscription. The default value is submariner.v0.8.0
+                  description: StartingCSV represents the startingCSV of a submariner subscription. The default value is submariner.v0.8
                   type: string
               type: object
           type: object

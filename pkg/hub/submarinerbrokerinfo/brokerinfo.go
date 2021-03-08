@@ -18,7 +18,7 @@ const (
 	defaultCatalogChannel         = "alpha"
 	defaultCatalogSource          = "redhat-operators"
 	defaultCatalogSourceNamespace = "openshift-marketplace"
-	defaultCatalogStartingCSV     = "submariner.v0.8.0"
+	defaultCatalogStartingCSV     = "submariner.v0.8"
 	defaultCableDriver            = "libreswan"
 )
 
@@ -85,7 +85,7 @@ func NewSubmarinerBrokerInfo(
 	}
 	brokerInfo.IPSecPSK = IPSecPSK
 
-	token, ca, err := helpers.GetBrokerTokenAndCA(kubeClient, brokeNamespace, managedCluster.Name)
+	token, ca, err := helpers.GetBrokerTokenAndCA(kubeClient, dynamicClient, brokeNamespace, managedCluster.Name)
 	if err != nil {
 		return nil, err
 	}
