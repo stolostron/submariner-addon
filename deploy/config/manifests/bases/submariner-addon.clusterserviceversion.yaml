@@ -58,7 +58,8 @@ spec:
   maturity: alpha
   provider:
     name: Red Hat, Inc.
+  replaces: cluster-manager.v0.3.0
   selector:
     matchLabels:
       app: submariner-addon
-  version: 0.3.0
+  version: 0.4.0
