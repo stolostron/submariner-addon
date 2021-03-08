@@ -20,7 +20,7 @@ BASE_DIR := $(shell basename $(PWD))
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 
 # CSV_VERSION is used to generate new CSV manifests
-CSV_VERSION?=0.3.0
+CSV_VERSION?=0.4.0
 
 OPERATOR_SDK?=$(PERMANENT_TMP_GOPATH)/bin/operator-sdk
 OPERATOR_SDK_VERSION?=v1.1.0

@@ -6,7 +6,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.1.0
     operators.operatorframework.io/project_layout: go
-  name: submariner-addon.v0.4.0
+  name: submariner-addon.v0.3.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -170,7 +170,7 @@ spec:
               - args:
                 - /submariner
                 - controller
-                image: quay.io/open-cluster-management/submariner-addon:latest
+                image: quay.io/open-cluster-management/submariner-addon:0.3.0
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -217,8 +217,7 @@ spec:
   maturity: alpha
   provider:
     name: Red Hat, Inc.
-  replaces: cluster-manager.v0.3.0
   selector:
     matchLabels:
       app: submariner-addon
-  version: 0.4.0
+  version: 0.3.0
