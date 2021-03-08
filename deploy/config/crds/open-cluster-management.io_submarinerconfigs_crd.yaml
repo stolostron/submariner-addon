@@ -100,7 +100,7 @@ spec:
                   type: string
                 startingCSV:
                   description: StartingCSV represents the startingCSV of a submariner
-                    subscription. The default value is submariner.v0.8.0
+                    subscription. The default value is submariner.v0.8
                   type: string
         status:
           description: Status represents the current status of submariner configuration

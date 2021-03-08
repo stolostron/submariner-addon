@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -20,6 +21,7 @@ import (
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 
 	"github.com/openshift/api"
+	apicofigv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
@@ -55,13 +57,24 @@ const (
 	SubmarinerMetricsPort = 8080
 )
 
-const ocpInfrastructureName = "cluster"
+const (
+	ocpInfrastructureName = "cluster"
+	ocpAPIServerName      = "cluster"
+	ocpConfigNamespace    = "openshift-config"
+)
 
-var infrastructureGVR schema.GroupVersionResource = schema.GroupVersionResource{
-	Group:    "config.openshift.io",
-	Version:  "v1",
-	Resource: "infrastructures",
-}
+var (
+	infrastructureGVR = schema.GroupVersionResource{
+		Group:    "config.openshift.io",
+		Version:  "v1",
+		Resource: "infrastructures",
+	}
+	apiServerGVR = schema.GroupVersionResource{
+		Group:    "config.openshift.io",
+		Version:  "v1",
+		Resource: "apiservers",
+	}
+)
 
 var (
 	genericScheme = runtime.NewScheme()
@@ -288,8 +301,8 @@ func GetBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
 	return strings.Trim(apiServer, "https://"), nil
 }
 
-func GetBrokerTokenAndCA(client kubernetes.Interface, brokerNS, clusterName string) (token, ca string, err error) {
-	sa, err := client.CoreV1().ServiceAccounts(brokerNS).Get(context.TODO(), clusterName, metav1.GetOptions{})
+func GetBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, brokerNS, clusterName string) (token, ca string, err error) {
+	sa, err := kubeClient.CoreV1().ServiceAccounts(brokerNS).Get(context.TODO(), clusterName, metav1.GetOptions{})
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get agent ServiceAccount %v/%v: %v", brokerNS, clusterName, err)
 	}
@@ -300,14 +313,23 @@ func GetBrokerTokenAndCA(client kubernetes.Interface, brokerNS, clusterName stri
 	brokerTokenPrefix := fmt.Sprintf("%s-token-", clusterName)
 	for _, secret := range sa.Secrets {
 		if strings.HasPrefix(secret.Name, brokerTokenPrefix) {
-			tokenSecret, err := client.CoreV1().Secrets(brokerNS).Get(context.TODO(), secret.Name, metav1.GetOptions{})
+			tokenSecret, err := kubeClient.CoreV1().Secrets(brokerNS).Get(context.TODO(), secret.Name, metav1.GetOptions{})
 			if err != nil {
-				return "", "", fmt.Errorf("failed to get secret %v of aget ServiceAccount %v/%v: %v", secret.Name, brokerNS, clusterName, err)
+				return "", "", fmt.Errorf("failed to get secret %v of agent ServiceAccount %v/%v: %v", secret.Name, brokerNS, clusterName, err)
 			}
 
 			if tokenSecret.Type == corev1.SecretTypeServiceAccountToken {
-				ca := base64.StdEncoding.EncodeToString(tokenSecret.Data["ca.crt"])
-				return string(tokenSecret.Data["token"]), ca, nil
+				// try to get ca from apiserver secret firstly, if the ca cannot be found, get it from sa
+				kubeAPIServerCA, err := getKubeAPIServerCA(kubeClient, dynamicClient)
+				if err != nil {
+					return "", "", err
+				}
+
+				if kubeAPIServerCA == nil {
+					return string(tokenSecret.Data["token"]), base64.StdEncoding.EncodeToString(tokenSecret.Data["ca.crt"]), nil
+				}
+
+				return string(tokenSecret.Data["token"]), base64.StdEncoding.EncodeToString(kubeAPIServerCA), nil
 			}
 		}
 	}
@@ -392,4 +414,53 @@ func manifestsEqual(new, old []workv1.Manifest) bool {
 		}
 	}
 	return true
+}
+
+func getKubeAPIServerCA(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) ([]byte, error) {
+	kubeAPIServer, err := GetBrokerAPIServer(dynamicClient)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeAPIServerURL, err := url.Parse(fmt.Sprintf("https://%s", kubeAPIServer))
+	if err != nil {
+		return nil, err
+	}
+
+	unstructuredAPIServer, err := dynamicClient.Resource(apiServerGVR).Get(context.TODO(), ocpAPIServerName, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	apiServer := &apicofigv1.APIServer{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredAPIServer.UnstructuredContent(), &apiServer); err != nil {
+		return nil, err
+	}
+
+	for _, namedCert := range apiServer.Spec.ServingCerts.NamedCertificates {
+		for _, name := range namedCert.Names {
+			if strings.EqualFold(name, kubeAPIServerURL.Hostname()) {
+				secretName := namedCert.ServingCertificate.Name
+				secret, err := kubeClient.CoreV1().Secrets(ocpConfigNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+				if err != nil {
+					return nil, err
+				}
+
+				if secret.Type != corev1.SecretTypeTLS {
+					return nil, fmt.Errorf("secret %s/%s should have type=kubernetes.io/tls", ocpConfigNamespace, secretName)
+				}
+
+				ca, ok := secret.Data["tls.crt"]
+				if !ok {
+					return nil, fmt.Errorf("failed to find data[tls.crt] in secret %s/%s", ocpConfigNamespace, secretName)
+				}
+				return ca, nil
+			}
+		}
+	}
+
+	return nil, nil
 }
