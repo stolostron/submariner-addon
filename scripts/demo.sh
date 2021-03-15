@@ -30,7 +30,7 @@ kubectl label managedclusters "${managedcluster2}" "cluster.open-cluster-managem
 
 kubectl get managedclusters --show-labels
 
-echo "Apply a clusterset that contains managed cluster cluster2 and cluster3 ..."
+echo "Apply a clusterset that contains managed cluster cluster1 and cluster2 ..."
 cat << EOF | kubectl apply -f -
 apiVersion: cluster.open-cluster-management.io/v1alpha1
 kind: ManagedClusterSet
@@ -49,9 +49,6 @@ do
     sleep 2
 done
 
-echo "The submariner broker namespace on hub"
-kubectl get ns submariner-clusterset-clusterset1-broker
-
 # show submariner status
 echo "Download subctl ${subctl_verion} to ${work_dir}"
 cd "${work_dir}"
@@ -61,6 +58,6 @@ tar -xf subctl-${subctl_verion}-${os}-amd64.tar.xz
 subctl="subctl-${subctl_verion}/subctl-${subctl_verion}-${os}-amd64"
 
 export KUBECONFIG="${kubeconfigs_dir}/kind-config-${hub}/kubeconfig"
-echo "Wait the submariner agent to deploy ..."
-sleep 30
+echo "Wait the submariner agent to deploy in five minutes ..."
+sleep 300
 ${subctl} show all
