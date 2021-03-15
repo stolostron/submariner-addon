@@ -244,25 +244,30 @@ func TestGetBrokerAPIServer(t *testing.T) {
 }
 
 func TestGetBrokerTokenAndCA(t *testing.T) {
+	os.Setenv("BROKER_API_SERVER", "127.0.0.1:6443")
+	defer os.Unsetenv("BROKER_API_SERVER")
+
 	cases := []struct {
 		name            string
 		brokerNamespace string
 		clusterName     string
-		existings       []runtime.Object
+		kubeObjs        []runtime.Object
+		ocpObjs         []runtime.Object
 		expectErr       bool
 	}{
 		{
 			name:            "no sa no secret",
 			brokerNamespace: "cluster1-broker",
 			clusterName:     "cluster1",
-			existings:       []runtime.Object{},
+			kubeObjs:        []runtime.Object{},
+			ocpObjs:         []runtime.Object{},
 			expectErr:       true,
 		},
 		{
 			name:            "exist sa no secret",
 			brokerNamespace: "cluster1-broker",
 			clusterName:     "cluster1",
-			existings: []runtime.Object{
+			kubeObjs: []runtime.Object{
 				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "cluster1",
@@ -270,13 +275,14 @@ func TestGetBrokerTokenAndCA(t *testing.T) {
 					},
 				},
 			},
+			ocpObjs:   []runtime.Object{},
 			expectErr: true,
 		},
 		{
 			name:            "exist sa and secret, but the secret cannot be found",
 			brokerNamespace: "cluster1-broker",
 			clusterName:     "cluster1",
-			existings: []runtime.Object{
+			kubeObjs: []runtime.Object{
 				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "cluster1",
@@ -296,13 +302,14 @@ func TestGetBrokerTokenAndCA(t *testing.T) {
 					Type: corev1.SecretTypeServiceAccountToken,
 				},
 			},
+			ocpObjs:   []runtime.Object{},
 			expectErr: true,
 		},
 		{
 			name:            "exist sa and secret",
 			brokerNamespace: "cluster1-broker",
 			clusterName:     "cluster1",
-			existings: []runtime.Object{
+			kubeObjs: []runtime.Object{
 				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "cluster1",
@@ -322,14 +329,87 @@ func TestGetBrokerTokenAndCA(t *testing.T) {
 					Type: corev1.SecretTypeServiceAccountToken,
 				},
 			},
+			ocpObjs:   []runtime.Object{},
+			expectErr: false,
+		},
+		{
+			name:            "get sa from kubeapi server secret",
+			brokerNamespace: "cluster1-broker",
+			clusterName:     "cluster1",
+			kubeObjs: []runtime.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "cluster1-broker",
+					},
+					Secrets: []corev1.ObjectReference{{Name: "cluster1-token-5pw5c"}},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1-token-5pw5c",
+						Namespace: "cluster1-broker",
+					},
+					Data: map[string][]byte{
+						"ca.crt": []byte("ca"),
+						"token":  []byte("token"),
+					},
+					Type: corev1.SecretTypeServiceAccountToken,
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "openshift-config",
+					},
+					Data: map[string][]byte{
+						"tls.crt": []byte("tls"),
+					},
+					Type: corev1.SecretTypeTLS,
+				},
+			},
+			ocpObjs: []runtime.Object{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "config.openshift.io/v1",
+						"kind":       "Infrastructure",
+						"metadata": map[string]interface{}{
+							"name": "cluster",
+						},
+						"status": map[string]interface{}{
+							"apiServerURL": "https://api.test.dev04.red-chesterfield.com:6443",
+						},
+					},
+				},
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "config.openshift.io/v1",
+						"kind":       "APIServer",
+						"metadata": map[string]interface{}{
+							"name": "cluster",
+						},
+						"spec": map[string]interface{}{
+							"servingCerts": map[string]interface{}{
+								"namedCertificates": []interface{}{
+									map[string]interface{}{
+										"names": []interface{}{"api.test.dev04.red-chesterfield.com"},
+										"servingCertificate": map[string]interface{}{
+											"name": "test",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			expectErr: false,
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			fakeClient := kubefake.NewSimpleClientset(c.existings...)
-			token, ca, err := GetBrokerTokenAndCA(fakeClient, c.brokerNamespace, c.clusterName)
+			fakeKubeClient := kubefake.NewSimpleClientset(c.kubeObjs...)
+			fakeDynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), c.ocpObjs...)
+			token, ca, err := GetBrokerTokenAndCA(fakeKubeClient, fakeDynamicClient, c.brokerNamespace, c.clusterName)
 			if err != nil && !c.expectErr {
 				t.Errorf("expect no err: %+v", err)
 			}
