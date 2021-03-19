@@ -132,19 +132,16 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	if err := a.openPort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerRoutePort, "udp"); err != nil {
 		return fmt.Errorf("failed to open route port in security group: %v \n", err)
 	}
-	a.eventRecorder.Eventf("SubmarinerRoutePortOpened", "the submariner route port is opened on aws")
 
 	// Open submariner metrics port (8080/TCP) between all master and worker nodes
 	if err := a.openPort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerMetricsPort, "tcp"); err != nil {
 		return fmt.Errorf("failed to open route port in security group: %v \n", err)
 	}
-	a.eventRecorder.Eventf("SubmarinerMetricsPortOpened", "the submariner metrics port is opened on aws")
 
 	// Open IPsec ports (by default, 4500/UDP and 500/UDP) for submariner gateway instances
 	if err := a.openIPsecPorts(vpc); err != nil {
 		return fmt.Errorf("failed to create security group with infraID %s and vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
 	}
-	a.eventRecorder.Eventf("SubmarinerIPsecPortsOpened", "the submariner IPsec ports are opened on aws")
 
 	// Tag one subnet with label kubernetes.io/role/internal-elb for automatic subnet discovery by aws load balancers or
 	// ingress controllers
@@ -152,13 +149,13 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	if err != nil {
 		return fmt.Errorf("failed to tag subnet with infraID %s and vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
 	}
-	a.eventRecorder.Eventf("SubmarinerSubnetTagged", "the subnet %s is tagged on aws", *subnet.SubnetId)
 
 	// Apply a manifest work to create a MachineSet on managed cluster to create a new aws instance for submariner gateway
 	if err := a.deployGatewayNode(*subnet.AvailabilityZone, amiId); err != nil {
 		return fmt.Errorf("failed to create MachineSet for %s: %v \n", a.infraId, err)
 	}
-	a.eventRecorder.Eventf("SubmarinerGatewayManifestworkCreated", "the submariner gateway manifestwork %s is created", workName)
+
+	a.eventRecorder.Eventf("SubmarinerClusterEnvBuild", "the submariner cluster env is build on aws")
 
 	return nil
 }
@@ -175,8 +172,6 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 	// delete the applied machineset manifest work to delete the gateway instance from managed cluster
 	if err := a.deleteGatewayNode(); err != nil {
 		errs = append(errs, fmt.Errorf("failed to delete gateway node for %s: %v \n", a.infraId, err))
-	} else {
-		a.eventRecorder.Eventf("SubmarinerGatewayManifestworkDeleted", "the submariner gateway manifestwork %s is deleted", workName)
 	}
 
 	vpc, err := a.findVPC()
@@ -189,15 +184,11 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 	// untag the subnet that was tagged on preparation phase
 	if err := a.untagSubnet(vpc); err != nil {
 		errs = append(errs, fmt.Errorf("failed to untag subnet for %s: %v \n", a.infraId, err))
-	} else {
-		a.eventRecorder.Eventf("SubmarinerSubnetUnTagged", "the subnet is untagged on aws")
 	}
 
 	// the ipsec sg may has references, result in the sg cannot be deleted, so we revoke ports here
 	if err := a.revokeIPsecPorts(vpc); err != nil {
 		errs = append(errs, fmt.Errorf("failed to revoke ipsec ports for %s: %v \n", a.infraId, err))
-	} else {
-		a.eventRecorder.Eventf("SubmarinerIPsecPortsClosed", "the submariner IPsec ports are closed on aws")
 	}
 
 	// cannot find the worker security group, the below tasks will not continue, return directly
@@ -217,15 +208,15 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 	// revoke Submariner metrics ports
 	if err := a.revokePort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerMetricsPort, "tcp"); err != nil {
 		errs = append(errs, fmt.Errorf("failed to revoke metrics port for %s: %v \n", a.infraId, err))
-	} else {
-		a.eventRecorder.Eventf("SubmarinerMetricsPortClosed", "the submariner metrics port is closed on aws")
 	}
 
 	// revoke Submariner route ports
 	if err := a.revokePort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerRoutePort, "udp"); err != nil {
 		errs = append(errs, fmt.Errorf("failed to revoke route port for %s: %v \n", a.infraId, err))
-	} else {
-		a.eventRecorder.Eventf("SubmarinerRoutePortClosed", "the submariner route port is closed on aws")
+	}
+
+	if len(errs) == 0 {
+		a.eventRecorder.Eventf("SubmarinerClusterEnvCleanedUp", "the submariner cluster env is cleaned up on aws")
 	}
 
 	return operatorhelpers.NewMultiLineAggregate(errs)

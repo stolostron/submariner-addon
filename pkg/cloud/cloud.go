@@ -6,6 +6,7 @@ import (
 	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws"
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -44,6 +45,13 @@ func GetCloudProvider(
 			kubeClient, workClient,
 			eventsRecorder,
 			region, infraId, clusterName, config.Spec.CredentialsSecret.Name,
+			config.Spec.IPSecIKEPort, config.Spec.IPSecNATTPort,
+		)
+	case "GCP":
+		return gcp.NewGCPProvider(
+			kubeClient,
+			eventsRecorder,
+			infraId, clusterName, config.Spec.CredentialsSecret.Name,
 			config.Spec.IPSecIKEPort, config.Spec.IPSecNATTPort,
 		)
 	}
