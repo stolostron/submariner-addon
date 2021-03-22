@@ -62,6 +62,18 @@ func (s *scheduledJob) Run() {
 	s.queue.Add(DefaultQueueKey)
 }
 
+func waitForNamedCacheSync(controllerName string, stopCh <-chan struct{}, cacheSyncs ...cache.InformerSynced) error {
+	klog.Infof("Waiting for caches to sync for %s", controllerName)
+
+	if !cache.WaitForCacheSync(stopCh, cacheSyncs...) {
+		return fmt.Errorf("unable to sync caches for %s", controllerName)
+	}
+
+	klog.Infof("Caches are synced for %s ", controllerName)
+
+	return nil
+}
+
 func (c *baseController) Run(ctx context.Context, workers int) {
 	// HandleCrash recovers panics
 	defer utilruntime.HandleCrash()
@@ -69,12 +81,19 @@ func (c *baseController) Run(ctx context.Context, workers int) {
 	// give caches 10 minutes to sync
 	cacheSyncCtx, cacheSyncCancel := context.WithTimeout(ctx, c.cacheSyncTimeout)
 	defer cacheSyncCancel()
-	if !cache.WaitForNamedCacheSync(c.name, cacheSyncCtx.Done(), c.cachesToSync...) {
-		// the parent context is closed, it means we are shutting down, do not call panic()
-		if ctx.Err() != nil {
+	err := waitForNamedCacheSync(c.name, cacheSyncCtx.Done(), c.cachesToSync...)
+	if err != nil {
+		select {
+		case <-ctx.Done():
+			// Exit gracefully because the controller was requested to stop.
 			return
+		default:
+			// If caches did not sync after 10 minutes, it has taken oddly long and
+			// we should provide feedback. Since the control loops will never start,
+			// it is safer to exit with a good message than to continue with a dead loop.
+			// TODO: Consider making this behavior configurable.
+			klog.Exit(err)
 		}
-		panic("failed to wait for cache to sync")
 	}
 
 	var workerWg sync.WaitGroup
@@ -228,7 +247,11 @@ func (c *baseController) processNextWorkItem(queueCtx context.Context) {
 			// logging this helps detecting wedged controllers with missing pre-requirements
 			klog.V(5).Infof("%q controller requested synthetic requeue with key %q", c.name, key)
 		} else {
-			utilruntime.HandleError(fmt.Errorf("%q controller failed to sync %q, err: %w", c.name, key, err))
+			if klog.V(4).Enabled() || key != "key" {
+				utilruntime.HandleError(fmt.Errorf("%q controller failed to sync %q, err: %w", c.name, key, err))
+			} else {
+				utilruntime.HandleError(fmt.Errorf("%s reconciliation failed: %w", c.name, err))
+			}
 		}
 		c.syncContext.Queue().AddRateLimited(key)
 		return
