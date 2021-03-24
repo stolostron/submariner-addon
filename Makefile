@@ -7,7 +7,6 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	targets/openshift/deps.mk \
 	targets/openshift/images.mk \
 	targets/openshift/bindata.mk \
-	targets/openshift/crd-schema-gen.mk \
 	lib/tmp.mk \
 )
 
@@ -73,8 +72,9 @@ update-scripts:
 	hack/update-codegen.sh
 .PHONY: update-scripts
 
-update: update-scripts update-codegen-crds
-	cp pkg/apis/submarinerconfig/v1alpha1/0000_00_submarineraddon.open-cluster-management.io_submarinerconfigs.crd.yaml deploy/config/crds/open-cluster-management.io_submarinerconfigs_crd.yaml
+update-crds: ensure-controller-gen
+	$(CONTROLLER_GEN) crd paths=./pkg/apis/submarinerconfig/v1alpha1 output:crd:artifacts:config=deploy/config/crds
+	cp deploy/config/crds/submarineraddon.open-cluster-management.io_submarinerconfigs.yaml pkg/apis/submarinerconfig/v1alpha1/0000_00_submarineraddon.open-cluster-management.io_submarinerconfigs.crd.yaml
 
 verify-scripts:
 	bash -x hack/verify-deepcopy.sh
@@ -82,7 +82,8 @@ verify-scripts:
 	bash -x hack/verify-crds.sh
 	bash -x hack/verify-codegen.sh
 .PHONY: verify-scripts
-verify: verify-scripts verify-codegen-crds
+
+verify: verify-scripts
 
 deploy-addon: ensure-operator-sdk
 	$(OPERATOR_SDK) run packagemanifests deploy/olm-catalog/ --namespace open-cluster-management --version $(CSV_VERSION) --install-mode OwnNamespace --timeout=10m
@@ -101,3 +102,19 @@ else
 endif
 
 include ./test/integration-test.mk
+
+# Ensure controller-gen
+ensure-controller-gen:
+ifeq (, $(shell which controller-gen))
+	@{ \
+	set -e ;\
+	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$CONTROLLER_GEN_TMP_DIR ;\
+	go mod init tmp ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.5.0 ;\
+	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	}
+CONTROLLER_GEN=$(GOBIN)/controller-gen
+else
+CONTROLLER_GEN=$(shell which controller-gen)
+endif

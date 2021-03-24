@@ -6,21 +6,16 @@ if [ ! -f ./_output/tools/bin/yq ]; then
     chmod +x ./_output/tools/bin/yq
 fi
 
-FILES="pkg/apis/submarinerconfig/v1alpha1/*.crd.yaml
-"
+FILES=(deploy/config/crds/submarineraddon.open-cluster-management.io_submarinerconfigs.yaml)
 
 FAILS=false
 for f in $FILES
 do
-    if [[ $(./_output/tools/bin/yq r $f spec.validation.openAPIV3Schema.properties.metadata.description) != "null" ]]; then
+    if [[ $(./_output/tools/bin/yq r $f spec.versions[0].schema.openAPIV3Schema.properties.metadata.description) != "null" ]]; then
         echo "Error: cannot have a metadata description in $f"
         FAILS=true
     fi
 
-    if [[ $(./_output/tools/bin/yq r $f spec.preserveUnknownFields) != "false" ]]; then
-        echo "Error: pruning not enabled (spec.preserveUnknownFields != false) in $f"
-        FAILS=true
-    fi
 done
 
 if [ "$FAILS" = true ] ; then
