@@ -15,6 +15,8 @@ require (
 	github.com/openshift/library-go v0.0.0-20200902171820-35f48b6ef30c
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
+	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6
+	google.golang.org/api v0.15.0
 	k8s.io/api v0.19.0
 	k8s.io/apiextensions-apiserver v0.19.0
 	k8s.io/apimachinery v0.19.0
