@@ -6,7 +6,7 @@ The SubmarinerConfig should be created in the managed cluster namespace.
 
 ## Limitation
 
-SubmarinerConfig can only support OCP an AWS at the current stage. The other Cloud Platforms will be supported in the future.
+SubmarinerConfig can support OCP on AWS or GCP at the current stage. The other Cloud Platforms will be supported in the future.
 
 ## Use Cases
 
@@ -23,6 +23,7 @@ SubmarinerConfig can only support OCP an AWS at the current stage. The other Clo
         IPSecNATTPort: <IPSec NAT-T Port>
         ...
     ```
+
 2. As a user, I have not prepared my submariner cluster environment, I want submariner-addon to help me prepare the environment, so I need create a SubmarinerConfig with my configurations and cloud provider credentials.
 
     ```yaml
@@ -38,7 +39,7 @@ SubmarinerConfig can only support OCP an AWS at the current stage. The other Clo
             name: <cloud-provider-credential-secret-name>
     ```
 
-    The format of credentials Secret is the same as the one used to provision the cluster by ACM.
+    For ACM, the format of credentials Secret is
 
     ```yaml 
     apiVersion: v1
@@ -51,3 +52,20 @@ SubmarinerConfig can only support OCP an AWS at the current stage. The other Clo
         aws_access_key_id: <aws-access-key-id>
         aws_secret_access_key:    <aws-secret-access-key>
     ```
+
+    It is the same as the one used to provision the cluster by ACM.
+
+    For GCP, the format of credentials Secret is
+
+    ```yaml
+    apiVersion: v1
+    kind: Secret
+    metadata:
+        name: <cloud-provider-credential-secret-name>
+        namespace: <managed-cluster-namespace>
+    type: Opaque
+    data:
+        osServiceAccount.json: <gcp-service-account-json-file>
+    ```
+
+    It is the same as the one used to provision the cluster by GCP.
