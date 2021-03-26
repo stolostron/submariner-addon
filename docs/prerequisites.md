@@ -1,6 +1,7 @@
 # Prerequisites
 
 Submariner with ACM has a few requirements to get started:
+
 1. ACM only supports Submariner running on the OCP clusters.
 2. The minimum supported version is OpenShift 4.4/Kubernetes 1.17.
 3. ACM only supports non-overlapping Pod and Service CIDRs between managed clusters using Submariner to connect workloads across each other at the current stage.
@@ -18,45 +19,17 @@ In order to meet the prerequisites, we need to complete the following configurat
 
 ## AWS
 
-There are 2 options to configure the OCP cluster on AWS for Submariner deployments.
-   * Option 1
-
-      You can use SubmarinerConfig API to build the cluster environment. See [SubmarinerConfig](submarinerConfig.md) for more details.
-   
-   * Option 2
-   
-     You can use the script `prep_for_subm.sh` to update your OpenShift installer provisioned AWS infrastructure for Submariner deployments.
-     See [Prepare AWS Clusters for Submariner](https://submariner.io/getting-started/quickstart/openshift/aws/#prepare-aws-clusters-for-submariner) for more details.
+Use `SubmarinerConfig` API to build the cluster environment. See [SubmarinerConfig](submarinerConfig.md) for more details.
 
 ## GCP
 
-1. Create the inbound and outbound firewall rules on your GCP to open IPsec IKE (by default 500/UDP) and NAT traversal ports (by default 4500/UDP) for Submariner.
-
-    ```bash
-   $ gcloud compute firewall-rules create <name> --network=<network-name> --allow=udp:<ipsec-port> --direction=IN
-   $ gcloud compute firewall-rules create <rule-name> --network=<network-name> --allow=udp:<ipsec-port>  --direction=OUT
+1. Label your worker node with the `submariner.io/gateway=true` firstly 
    ```
-   > Replace <name> with your rule name.  
-   > Replace <network-name> with your GCP cluster network name.  
-   > Replace <ipsec-port> with your IPsec port.
+   kubectl label nodes <worker-node-name> "submariner.io/gateway=true" --overwrite
+   ```
+   > Replace <worker-node-name> with your worker node name.
 
-2. Create the inbound and outbound firewall rules on your GCP to open 4800/UDP port to encapsulate Pod traffic from the worker and master nodes to the Submariner Gateway nodes.
-
-    ```bash
-    $ gcloud compute firewall-rules create <name> --network=<network-name> --allow=udp:4800 --direction=IN
-    $ gcloud compute firewall-rules create <name> --network=<network-name> --allow=udp:4800 --direction=OUT
-    ```
-   > Replace <name> with your rule name.  
-   > Replace <network-name> with your GCP cluster network name.
-
-3. Create the inbound and outbound firewall rules on your GCP to open 8080/TCP port to export metrics service from the Submariner gateway.
-
-    ```bash
-    $ gcloud compute firewall-rules create <name> --network=<network-name> --allow=tcp:8080 --direction=IN
-    $ gcloud compute firewall-rules create <name> --network=<network-name> --allow=tcp:8080 --direction=OUT
-    ```
-   > Replace <name> with your rule name.  
-   > Replace <network-name> with your GCP cluster network name.
+2. Use `SubmarinerConfig` API to build the cluster environment. See [SubmarinerConfig](submarinerConfig.md) for more details.
 
 ## Azure
 
