@@ -45,14 +45,17 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 		ginkgo.It("Should deploy the submariner agent manifestworks on managed cluster namespace successfully", func() {
 			ginkgo.By("Create a ManagedCluster")
 			managedCluster := util.NewManagedCluster(managedClusterName, map[string]string{
-				"cluster.open-cluster-management.io/submariner-agent": "true",
-				"cluster.open-cluster-management.io/clusterset":       managedClusterSetName,
+				"cluster.open-cluster-management.io/clusterset": managedClusterSetName,
 			})
 			_, err := clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), managedCluster, metav1.CreateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			ginkgo.By("Setup the managed cluster namespace")
 			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName), metav1.CreateOptions{})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			ginkgo.By("Create a submariner-addon")
+			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(), util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			ginkgo.By("Setup the serviceaccount")
@@ -80,14 +83,17 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 
 			ginkgo.By("Create a ManagedCluster")
 			managedCluster := util.NewManagedCluster(managedClusterName, map[string]string{
-				"cluster.open-cluster-management.io/submariner-agent": "true",
-				"cluster.open-cluster-management.io/clusterset":       managedClusterSetName,
+				"cluster.open-cluster-management.io/clusterset": managedClusterSetName,
 			})
 			_, err = clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), managedCluster, metav1.CreateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			ginkgo.By("Setup the managed cluster namespace")
 			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName), metav1.CreateOptions{})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+			ginkgo.By("Create a submariner-addon")
+			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(), util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			ginkgo.By("Setup the serviceaccount")
@@ -99,10 +105,9 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 		})
 
-		ginkgo.It("Should remove the submariner agent manifestworks after the submariner label is removed from the managed cluster", func() {
-			ginkgo.By("Remove the submariner label from the managed cluster")
-			newLabels := map[string]string{"cluster.open-cluster-management.io/clusterset": managedClusterSetName}
-			err := util.UpdateManagedClusterLabels(clusterClient, managedClusterName, newLabels)
+		ginkgo.It("Should remove the submariner agent manifestworks after the submariner-addon is removed from the managed cluster", func() {
+			ginkgo.By("Remove the submariner-addon from the managed cluster")
+			err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Delete(context.TODO(), "submariner-addon", metav1.DeleteOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			ginkgo.By("Check if the submariner agent manifestworks are removed")
@@ -111,13 +116,18 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 				if err != nil {
 					return false
 				}
-				return len(works.Items) == 0
+				for _, work := range works.Items {
+					if work.Name == expectedOperatorWork {
+						return false
+					}
+				}
+				return true
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 		})
 
 		ginkgo.It("Should remove the submariner agent manifestworks after the managedclusterset label is removed from the managed cluster", func() {
 			ginkgo.By("Remove the managedclusterset label from the managed cluster")
-			newLabels := map[string]string{"cluster.open-cluster-management.io/submariner-agent": "true"}
+			newLabels := map[string]string{}
 			err := util.UpdateManagedClusterLabels(clusterClient, managedClusterName, newLabels)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -127,7 +137,12 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 				if err != nil {
 					return false
 				}
-				return len(works.Items) == 0
+				for _, work := range works.Items {
+					if work.Name == expectedOperatorWork {
+						return false
+					}
+				}
+				return true
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 		})
 
@@ -142,10 +157,14 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 				if err != nil {
 					return false
 				}
-				return len(works.Items) == 0
+				for _, work := range works.Items {
+					if work.Name == expectedOperatorWork {
+						return false
+					}
+				}
+				return true
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 		})
-
 	})
 
 	ginkgo.Context("Remove submariner broker", func() {

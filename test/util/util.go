@@ -3,10 +3,12 @@ package util
 import (
 	"context"
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/onsi/ginkgo"
 
+	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
 	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	workclientset "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
@@ -18,9 +20,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/retry"
 )
 
@@ -28,6 +34,21 @@ const (
 	expectedBrokerRole  = "submariner-k8s-broker-cluster"
 	expectedIPSECSecret = "submariner-ipsec-psk"
 )
+
+var HubKubeConfigPath = path.Join("/tmp", "submaddon-integration-test", "kubeconfig")
+
+func CreateHubKubeConfig(cfg *rest.Config) error {
+	config := clientcmdapi.NewConfig()
+	config.Clusters["hub"] = &clientcmdapi.Cluster{
+		Server: cfg.Host,
+	}
+	config.Contexts["hub"] = &clientcmdapi.Context{
+		Cluster: "hub",
+	}
+	config.CurrentContext = "hub"
+
+	return clientcmd.WriteToFile(*config, HubKubeConfigPath)
+}
 
 func FindExpectedFinalizer(finalizers []string, expected string) bool {
 	for _, finalizer := range finalizers {
@@ -150,6 +171,70 @@ func NewSubmarinerConifg(namespace, name string) *configv1alpha1.SubmarinerConfi
 			Namespace: namespace,
 		},
 		Spec: configv1alpha1.SubmarinerConfigSpec{},
+	}
+}
+
+func NewManagedClusterAddOn(namespace string) *addonv1alpha1.ManagedClusterAddOn {
+	return &addonv1alpha1.ManagedClusterAddOn{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "submariner-addon",
+			Namespace: namespace,
+		},
+		Spec: addonv1alpha1.ManagedClusterAddOnSpec{},
+	}
+}
+
+func NewSubmariner() *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "submariner.io/v1alpha1",
+			"kind":       "Submariner",
+			"metadata": map[string]interface{}{
+				"namespace": "submariner-operator",
+				"name":      "submariner",
+			},
+			"spec": map[string]interface{}{
+				"broker":                   "k8s",
+				"brokerK8sApiServer":       "api:6443",
+				"brokerK8sApiServerToken":  "token",
+				"brokerK8sCA":              "ca",
+				"brokerK8sRemoteNamespace": "submariner-clusterset-subm-broker",
+				"cableDriver":              "libreswan",
+				"ceIPSecDebug":             false,
+				"ceIPSecPSK":               "psk",
+				"clusterCIDR":              "",
+				"clusterID":                "test",
+				"debug":                    false,
+				"namespace":                "submariner-operator",
+				"natEnabled":               true,
+				"serviceCIDR":              "",
+			},
+		},
+	}
+}
+
+func SetSubmarinerDeployedStatus(submariner *unstructured.Unstructured) {
+	submariner.Object["status"] = map[string]interface{}{
+		"clusterID":  "test",
+		"natEnabled": true,
+		"engineDaemonSetStatus": map[string]interface{}{
+			"mismatchedContainerImages": false,
+			"status": map[string]interface{}{
+				"currentNumberScheduled": int64(1),
+				"desiredNumberScheduled": int64(1),
+				"numberMisscheduled":     int64(0),
+				"numberReady":            int64(1),
+			},
+		},
+		"routeAgentDaemonSetStatus": map[string]interface{}{
+			"mismatchedContainerImages": false,
+			"status": map[string]interface{}{
+				"currentNumberScheduled": int64(6),
+				"desiredNumberScheduled": int64(6),
+				"numberMisscheduled":     int64(0),
+				"numberReady":            int64(6),
+			},
+		},
 	}
 }
 

@@ -1,0 +1,34 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: submariner-addon
+  namespace: {{ .AddonInstallNamespace }}
+  labels:
+    app: submariner-addon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: submariner-addon
+  template:
+    metadata:
+      labels:
+        app: submariner-addon
+    spec:
+      serviceAccountName: submariner-addon-sa
+      containers:
+      - name: submariner-addon
+        image: quay.io/open-cluster-management/submariner-addon:latest
+        imagePullPolicy: IfNotPresent
+        args:
+          - "/submariner"
+          - "agent"
+          - "--hub-kubeconfig=/var/run/hub/kubeconfig"
+          - "--cluster-name={{ .ClusterName }}"
+        volumeMounts:
+          - name: hub-config
+            mountPath: /var/run/hub
+      volumes:
+      - name: hub-config
+        secret:
+          secretName: {{ .KubeConfigSecret }}

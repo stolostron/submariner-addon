@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -o pipefail
-set -o errexit
 set -o nounset
 
 source scripts/clusters.sh
@@ -16,13 +14,8 @@ managedcluster2="${clusters[1]}"
 work_dir="$(pwd)/_output"
 kubeconfigs_dir="${work_dir}/kubeconfigs"
 
-# create a clusterset on hub
 echo "Switch to hub cluster ${hub}"
 export KUBECONFIG="${kubeconfigs_dir}/kind-config-${hub}/kubeconfig"
-
-echo "Label the managed clusters with cluster.open-cluster-management.io/submariner-agent"
-kubectl label managedclusters "${managedcluster1}" "cluster.open-cluster-management.io/submariner-agent=true" --overwrite
-kubectl label managedclusters "${managedcluster2}" "cluster.open-cluster-management.io/submariner-agent=true" --overwrite
 
 echo "Label the managed clusters with cluster.open-cluster-management.io/clusterset"
 kubectl label managedclusters "${managedcluster1}" "cluster.open-cluster-management.io/clusterset=clusterset1" --overwrite
@@ -38,26 +31,53 @@ metadata:
   name: clusterset1
 EOF
 
+echo "Apply managedclusteraddon submariner-addon on managed cluster cluster1 namespace ..."
+cat << EOF | kubectl apply -f -
+apiVersion: addon.open-cluster-management.io/v1alpha1
+kind: ManagedClusterAddOn
+metadata:
+  name: submariner-addon
+  namespace: cluster1
+spec: {}
+EOF
+
+echo "Apply managedclusteraddon submariner-addon on managed cluster cluster2 namespace ..."
+cat << EOF | kubectl apply -f -
+apiVersion: addon.open-cluster-management.io/v1alpha1
+kind: ManagedClusterAddOn
+metadata:
+  name: submariner-addon
+  namespace: cluster2
+spec: {}
+EOF
+
 echo "Wait the submariner manifestworks to be created on hub ..."
 while :
 do
     mcounts=$(kubectl get manifestworks --all-namespaces | wc -l)
-    if [ ${mcounts} -ge 3 ]; then
+    if [ ${mcounts} -ge 5 ]; then
         kubectl get manifestworks --all-namespaces
         break
     fi
     sleep 2
 done
 
-# show submariner status
-echo "Download subctl ${subctl_verion} to ${work_dir}"
-cd "${work_dir}"
-rm -rf subctl-${subctl_verion}
-curl -LO "https://github.com/submariner-io/submariner-operator/releases/download/${subctl_verion}/subctl-${subctl_verion}-${os}-amd64.tar.xz"
-tar -xf subctl-${subctl_verion}-${os}-amd64.tar.xz
-subctl="subctl-${subctl_verion}/subctl-${subctl_verion}-${os}-amd64"
+# check submariner-addon status
+for((i=1;i<=24;i++));
+do
+  echo "Checking clusters connections ..."
+  connected=$(kubectl -n cluster1 get managedclusteraddons submariner-addon -o=jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\n"}{end}' | grep SubmarinerConnectionDegraded | grep False)
+  if [ -n "$connected" ]; then
+    echo "Clusters are connected"
+    echo "Use following command to check submariner-addon status"
+    echo "kubectl --context $KUBECONFIG -n cluster1 get managedclusteraddons submariner-addon -o=yaml"
+    echo "kubectl --context $KUBECONFIG -n cluster2 get managedclusteraddons submariner-addon -o=yaml"
+    exit 0
+  fi
+  sleep 5
+done
 
-export KUBECONFIG="${kubeconfigs_dir}/kind-config-${hub}/kubeconfig"
-echo "Wait the submariner agent to deploy in five minutes ..."
-sleep 300
-${subctl} show all
+echo "Clusters are not connected"
+echo "Use following command to check submariner-addon status"
+echo "kubectl --context $KUBECONFIG -n cluster1 get managedclusteraddons submariner-addon -o=yaml"
+echo "kubectl --context $KUBECONFIG -n cluster2 get managedclusteraddons submariner-addon -o=yaml"

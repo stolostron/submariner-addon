@@ -11,14 +11,18 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 
+	addonclientset "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	workclientset "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	configclientset "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub"
 	"github.com/open-cluster-management/submariner-addon/test/util"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
+	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -35,12 +39,22 @@ const (
 	eventuallyInterval = 1  // seconds
 )
 
+const (
+	// fixed a specified crd to avoid conflict error when set up test env
+	clustersetCRD = "0000_00_clusters.open-cluster-management.io_managedclustersets.crd.yaml"
+	workCRD       = "0000_00_work.open-cluster-management.io_manifestworks.crd.yaml"
+)
+
 var testEnv *envtest.Environment
+
+var cfg *rest.Config
 
 var kubeClient kubernetes.Interface
 var clusterClient clusterclientset.Interface
 var workClient workclientset.Interface
 var configClinet configclientset.Interface
+var addOnClient addonclientset.Interface
+var dynamicClient dynamic.Interface
 
 var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 	logf.SetLogger(zap.New(zap.WriteTo(ginkgo.GinkgoWriter), zap.UseDevMode(true)))
@@ -58,13 +72,15 @@ var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 		ErrorIfCRDPathMissing: true,
 		CRDDirectoryPaths: []string{
 			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "cluster", "v1"),
-			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "cluster", "v1alpha1"),
-			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "work", "v1"),
+			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "cluster", "v1alpha1", clustersetCRD),
+			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "work", "v1", workCRD),
+			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "addon", "v1alpha1"),
 			filepath.Join(".", "pkg", "apis", "submarinerconfig", "v1alpha1"),
+			filepath.Join(".", "test", "integration", "crds", "submariner", "0.8.1"),
 		},
 	}
 
-	cfg, err := testEnv.Start()
+	cfg, err = testEnv.Start()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(cfg).ToNot(gomega.BeNil())
 
@@ -84,6 +100,18 @@ var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 	configClinet, err = configclientset.NewForConfig(cfg)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(configClinet).ToNot(gomega.BeNil())
+
+	addOnClient, err = addonclientset.NewForConfig(cfg)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.Expect(addOnClient).ToNot(gomega.BeNil())
+
+	dynamicClient, err = dynamic.NewForConfig(cfg)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.Expect(dynamicClient).ToNot(gomega.BeNil())
+
+	// prepare open-cluster-management namespaces
+	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace("open-cluster-management"), metav1.CreateOptions{})
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	// start submariner broker and agent controller
 	go func() {
