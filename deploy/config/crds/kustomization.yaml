@@ -1,2 +1,2 @@
 resources:
-  - open-cluster-management.io_submarinerconfigs_crd.yaml
+  - submarineraddon.open-cluster-management.io_submarinerconfigs.yaml
