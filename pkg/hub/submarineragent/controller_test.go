@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
+	addonfake "github.com/open-cluster-management/api/client/addon/clientset/versioned/fake"
+	addoninformers "github.com/open-cluster-management/api/client/addon/informers/externalversions"
 	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	fakeclusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
@@ -17,6 +20,7 @@ import (
 	workv1 "github.com/open-cluster-management/api/work/v1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
+	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
@@ -29,6 +33,8 @@ import (
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 )
+
+var now = metav1.Now()
 
 func TestSyncManagedCluster(t *testing.T) {
 	if err := os.Setenv("BROKER_API_SERVER", "127.0.0.1"); err != nil {
@@ -44,127 +50,247 @@ func TestSyncManagedCluster(t *testing.T) {
 		clusterName     string
 		clusters        []runtime.Object
 		clustersets     []runtime.Object
+		addOns          []runtime.Object
 		kubeObjs        []runtime.Object
-		validateActions func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action)
+		validateActions func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action)
 	}{
 		{
 			name:        "No managed cluster",
 			clusterName: "cluster1",
 			clusters:    []runtime.Object{},
 			clustersets: []runtime.Object{},
+			addOns:      []runtime.Object{},
 			kubeObjs:    []runtime.Object{},
-			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
+			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertNoActions(t, clusterActions)
 				testinghelpers.AssertNoActions(t, workActions)
-			},
-		},
-		{
-			name:        "No submariner label on managed cluster",
-			clusterName: "cluster1",
-			clusters:    []runtime.Object{newManagedCluster("cluster1", map[string]string{}, []string{}, false)},
-			clustersets: []runtime.Object{},
-			kubeObjs:    []runtime.Object{},
-			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, kubeActions, "list")
-				testinghelpers.AssertNoActions(t, clusterActions)
-				testinghelpers.AssertActions(t, workActions, "delete")
+				testinghelpers.AssertNoActions(t, addonActions)
 			},
 		},
 		{
 			name:        "No clusterset label on managed cluster",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{submarinerLabel: ""}, []string{}, false),
+				newManagedCluster("cluster1", map[string]string{}, []string{}, false),
 			},
-			kubeObjs:    []runtime.Object{},
 			clustersets: []runtime.Object{},
-			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
+			addOns: []runtime.Object{
+				&addonv1alpha1.ManagedClusterAddOn{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "submariner-addon",
+						Namespace: "cluster1",
+					},
+				},
+			},
+			kubeObjs: []runtime.Object{},
+			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list")
 				testinghelpers.AssertNoActions(t, clusterActions)
 				testinghelpers.AssertActions(t, workActions, "delete")
+				testinghelpers.AssertNoActions(t, addonActions)
+			},
+		},
+		{
+			name:        "No submariner-addon on managed cluster namesapce",
+			clusterName: "cluster1",
+			clusters:    []runtime.Object{newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{}, false)},
+			clustersets: []runtime.Object{
+				newManagedClusterSet("set1"),
+			},
+			addOns:   []runtime.Object{},
+			kubeObjs: []runtime.Object{},
+			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, kubeActions, "list")
+				testinghelpers.AssertNoActions(t, clusterActions)
+				testinghelpers.AssertActions(t, workActions, "delete")
+				testinghelpers.AssertNoActions(t, addonActions)
 			},
 		},
 		{
 			name:        "Clusterset is not found by clusterset label",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{submarinerLabel: "", clusterSetLabel: "set1"}, []string{}, false),
+				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{}, false),
 			},
-			kubeObjs:    []runtime.Object{},
 			clustersets: []runtime.Object{},
-			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
+			addOns: []runtime.Object{
+				&addonv1alpha1.ManagedClusterAddOn{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "submariner-addon",
+						Namespace: "cluster1",
+					},
+				},
+			},
+			kubeObjs: []runtime.Object{},
+			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list")
-				testinghelpers.AssertActions(t, clusterActions, "get")
+				testinghelpers.AssertNoActions(t, clusterActions)
 				testinghelpers.AssertActions(t, workActions, "delete")
+				testinghelpers.AssertNoActions(t, addonActions)
 			},
 		},
 		{
 			name:        "Sync a labeled managed cluster",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{submarinerLabel: "", clusterSetLabel: "set1"}, []string{}, false),
+				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{}, false),
 			},
 			clustersets: []runtime.Object{newManagedClusterSet("set1")},
-			kubeObjs:    []runtime.Object{},
-			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
+			addOns: []runtime.Object{
+				&addonv1alpha1.ManagedClusterAddOn{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "submariner-addon",
+						Namespace: "cluster1",
+					},
+				},
+			},
+			kubeObjs: []runtime.Object{},
+			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, kubeActions)
-				testinghelpers.AssertNoActions(t, workActions)
-				testinghelpers.AssertActions(t, clusterActions, "get", "update")
-				managedCluster := clusterActions[1].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertActions(t, clusterActions, "update")
+				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
 				testinghelpers.AssertFinalizers(t, managedCluster, []string{agentFinalizer})
+				testinghelpers.AssertNoActions(t, workActions)
+				testinghelpers.AssertNoActions(t, addonActions)
+			},
+		},
+		{
+			name:        "Sync submarienr-addon is created",
+			clusterName: "cluster1",
+			clusters: []runtime.Object{
+				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{agentFinalizer}, false),
+			},
+			clustersets: []runtime.Object{newManagedClusterSet("set1")},
+			addOns: []runtime.Object{
+				&addonv1alpha1.ManagedClusterAddOn{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "submariner-addon",
+						Namespace: "cluster1",
+					},
+				},
+			},
+			kubeObjs: []runtime.Object{},
+			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				testinghelpers.AssertNoActions(t, kubeActions)
+				testinghelpers.AssertNoActions(t, clusterActions)
+				testinghelpers.AssertNoActions(t, workActions)
+				testinghelpers.AssertActions(t, addonActions, "update")
+				addOn := addonActions[0].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertFinalizers(t, addOn, []string{addOnFinalizer})
 			},
 		},
 		{
 			name:        "Deploy submariner agent",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{submarinerLabel: "", clusterSetLabel: "set1"}, []string{agentFinalizer}, false),
+				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{agentFinalizer}, false),
 			},
 			clustersets: []runtime.Object{newManagedClusterSet("set1")},
+			addOns: []runtime.Object{
+				&addonv1alpha1.ManagedClusterAddOn{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       "submariner-addon",
+						Namespace:  "cluster1",
+						Finalizers: []string{addOnFinalizer},
+					},
+				},
+			},
 			kubeObjs: []runtime.Object{
 				newSecret("submariner-clusterset-set1-broker", "submariner-ipsec-psk", map[string][]byte{"psk": []byte("psk")}),
 				newSecret("submariner-clusterset-set1-broker", "cluster1-token-5pw5c", map[string][]byte{"ca.crt": []byte("ca"), "token": []byte("token")}),
 				newServiceAccount("submariner-clusterset-set1-broker", "cluster1", "cluster1-token-5pw5c", map[string]string{}),
 			},
-			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
+			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				testinghelpers.AssertNoActions(t, clusterActions)
 				testinghelpers.AssertActions(t, workActions, "get", "create")
 				work := (workActions[1].(clienttesting.CreateActionImpl).Object).(*workv1.ManifestWork)
 				if work.Name != "submariner-operator" {
 					t.Errorf("expected work submariner-agent-crds, but got %+v", work)
 				}
+				testinghelpers.AssertNoActions(t, addonActions)
 			},
 		},
 		{
 			name:        "Delete a mangaged cluster",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{submarinerLabel: "", clusterSetLabel: "set1"}, []string{"test", agentFinalizer}, true),
+				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{"test", agentFinalizer}, true),
 			},
 			clustersets: []runtime.Object{newManagedClusterSet("set1")},
+			addOns: []runtime.Object{
+				&addonv1alpha1.ManagedClusterAddOn{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       "submariner-addon",
+						Namespace:  "cluster1",
+						Finalizers: []string{addOnFinalizer},
+					},
+				},
+			},
 			kubeObjs: []runtime.Object{
 				newServiceAccount("cluster1", "cluster1", "cluster1", map[string]string{serviceAccountLabel: "cluster1"}),
 			},
-			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
+			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list", "delete", "delete")
-				testinghelpers.AssertActions(t, clusterActions, "get", "update")
-				managedCluster := clusterActions[1].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertActions(t, clusterActions, "update")
+				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
 				testinghelpers.AssertFinalizers(t, managedCluster, []string{"test"})
+				testinghelpers.AssertActions(t, workActions, "delete")
+				testinghelpers.AssertNoActions(t, addonActions)
+			},
+		},
+		{
+			name:        "Delete the submariner-addon",
+			clusterName: "cluster1",
+			clusters: []runtime.Object{
+				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{"test", agentFinalizer}, false),
+			},
+			clustersets: []runtime.Object{newManagedClusterSet("set1")},
+			addOns: []runtime.Object{
+				&addonv1alpha1.ManagedClusterAddOn{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "submariner-addon",
+						Namespace:         "cluster1",
+						Finalizers:        []string{addOnFinalizer},
+						DeletionTimestamp: &now,
+					},
+				},
+			},
+			kubeObjs: []runtime.Object{
+				newServiceAccount("cluster1", "cluster1", "cluster1", map[string]string{serviceAccountLabel: "cluster1"}),
+			},
+			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, kubeActions, "list", "delete", "delete")
+				testinghelpers.AssertActions(t, clusterActions, "update")
+				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertFinalizers(t, managedCluster, []string{"test"})
+				testinghelpers.AssertActions(t, workActions, "delete")
+				testinghelpers.AssertActions(t, addonActions, "update")
+				addOn := addonActions[0].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertFinalizers(t, addOn, []string{})
 			},
 		},
 		{
 			name:        "Sync all managed clusters",
 			clusterName: "key",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{submarinerLabel: "", clusterSetLabel: "set1"}, []string{}, false),
+				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{}, false),
 			},
 			clustersets: []runtime.Object{newManagedClusterSet("set1")},
-			kubeObjs:    []runtime.Object{},
-			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions []clienttesting.Action) {
+			addOns: []runtime.Object{
+				&addonv1alpha1.ManagedClusterAddOn{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "submariner-addon",
+						Namespace: "cluster1",
+					},
+				},
+			},
+			kubeObjs: []runtime.Object{},
+			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertNoActions(t, workActions)
-				testinghelpers.AssertActions(t, clusterActions, "get", "update")
-				managedCluster := clusterActions[1].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertActions(t, clusterActions, "update")
+				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
 				testinghelpers.AssertFinalizers(t, managedCluster, []string{agentFinalizer})
 			},
 		},
@@ -173,7 +299,6 @@ func TestSyncManagedCluster(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			fakeKubeClient := kubefake.NewSimpleClientset(c.kubeObjs...)
-
 			fakeDynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
 
 			objects := []runtime.Object{}
@@ -184,19 +309,35 @@ func TestSyncManagedCluster(t *testing.T) {
 			for _, cluster := range c.clusters {
 				clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore().Add(cluster)
 			}
+			for _, clusterset := range c.clustersets {
+				clusterInformerFactory.Cluster().V1alpha1().ManagedClusterSets().Informer().GetStore().Add(clusterset)
+			}
 
 			fakeWorkClient := workfake.NewSimpleClientset()
 			workInformerFactory := workinformers.NewSharedInformerFactory(fakeWorkClient, 5*time.Minute)
+
+			configClient := fakeconfigclient.NewSimpleClientset()
+			configInformerFactory := configinformers.NewSharedInformerFactory(configClient, 5*time.Minute)
+
+			addOnClient := addonfake.NewSimpleClientset(c.addOns...)
+			addOnInformerFactory := addoninformers.NewSharedInformerFactory(addOnClient, time.Minute*10)
+			addOnStroe := addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().GetStore()
+			for _, addOn := range c.addOns {
+				addOnStroe.Add(addOn)
+			}
 
 			ctrl := &submarinerAgentController{
 				kubeClient:         fakeKubeClient,
 				dynamicClient:      fakeDynamicClient,
 				clusterClient:      fakeClusterClient,
 				manifestWorkClient: fakeWorkClient,
+				configClient:       configClient,
+				addOnClient:        addOnClient,
 				clusterLister:      clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
 				clusterSetLister:   clusterInformerFactory.Cluster().V1alpha1().ManagedClusterSets().Lister(),
 				manifestWorkLister: workInformerFactory.Work().V1().ManifestWorks().Lister(),
-				configClient:       fakeconfigclient.NewSimpleClientset(),
+				configLister:       configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Lister(),
+				addOnLister:        addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
 				eventRecorder:      eventstesting.NewTestingEventRecorder(t),
 			}
 
@@ -205,7 +346,7 @@ func TestSyncManagedCluster(t *testing.T) {
 				t.Errorf("unexpected err: %v", err)
 			}
 
-			c.validateActions(t, fakeKubeClient.Actions(), fakeClusterClient.Actions(), fakeWorkClient.Actions())
+			c.validateActions(t, fakeKubeClient.Actions(), fakeClusterClient.Actions(), fakeWorkClient.Actions(), addOnClient.Actions())
 		})
 	}
 }
@@ -218,7 +359,7 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 		configs         []runtime.Object
 		clusters        []runtime.Object
 		expectedErr     bool
-		validateActions func(t *testing.T, workActions []clienttesting.Action)
+		validateActions func(t *testing.T, configActions []clienttesting.Action)
 	}{
 		{
 			name:     "no submariner config",
@@ -231,8 +372,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 					},
 				},
 			},
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "list")
+			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				testinghelpers.AssertNoActions(t, configActions)
 			},
 		},
 		{
@@ -259,8 +400,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 					},
 				},
 			},
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "list")
+			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				testinghelpers.AssertNoActions(t, configActions)
 			},
 		},
 		{
@@ -281,9 +422,9 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 					},
 				},
 			},
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "list", "update")
-				updatedObj := workActions[1].(clienttesting.UpdateActionImpl).Object
+			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, configActions, "update")
+				updatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
 				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
 				if len(config.Finalizers) != 1 {
 					t.Errorf("unexpect size of finalizers")
@@ -311,9 +452,9 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 					},
 				},
 			},
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "get", "update")
-				updatedObj := workActions[1].(clienttesting.UpdateActionImpl).Object
+			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, configActions, "update")
+				updatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
 				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
 				if len(config.Finalizers) != 1 {
 					t.Errorf("unexpect size of finalizers")
@@ -341,8 +482,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			clusters: []runtime.Object{},
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "get")
+			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				testinghelpers.AssertNoActions(t, configActions)
 			},
 		},
 		{
@@ -371,8 +512,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			expectedErr: true,
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "get", "get", "update")
+			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, configActions, "get", "update")
 			},
 		},
 		{
@@ -389,9 +530,9 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			clusters: []runtime.Object{},
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "get", "update")
-				updatedObj := workActions[1].(clienttesting.UpdateActionImpl).Object
+			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, configActions, "update")
+				updatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
 				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
 				if len(config.Finalizers) != 0 {
 					t.Errorf("unexpect size of finalizers")
@@ -425,9 +566,9 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 					},
 				},
 			},
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "get", "update")
-				workUpdatedObj := workActions[1].(clienttesting.UpdateActionImpl).Object
+			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				testinghelpers.AssertActions(t, configActions, "update")
+				workUpdatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
 				config := workUpdatedObj.(*configv1alpha1.SubmarinerConfig)
 				if len(config.Finalizers) != 0 {
 					t.Errorf("unexpect size of finalizers")
@@ -438,19 +579,26 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			clusterClient := fakeclusterclient.NewSimpleClientset(c.clusters...)
 			configClient := fakeconfigclient.NewSimpleClientset(c.configs...)
+			configInformerFactory := configinformers.NewSharedInformerFactory(configClient, 5*time.Minute)
+			for _, config := range c.configs {
+				configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer().GetStore().Add(config)
+			}
+
+			clusterClient := fakeclusterclient.NewSimpleClientset(c.clusters...)
 			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 5*time.Minute)
 			for _, cluster := range c.clusters {
 				clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore().Add(cluster)
 			}
+
 			ctrl := &submarinerAgentController{
 				kubeClient:         kubefake.NewSimpleClientset(),
 				clusterClient:      clusterClient,
+				configClient:       configClient,
 				clusterLister:      clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
 				clusterSetLister:   clusterInformerFactory.Cluster().V1alpha1().ManagedClusterSets().Lister(),
 				manifestWorkClient: fakeworkclient.NewSimpleClientset(),
-				configClient:       configClient,
+				configLister:       configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Lister(),
 				eventRecorder:      eventstesting.NewTestingEventRecorder(t),
 			}
 			err := ctrl.sync(context.TODO(), testinghelpers.NewFakeSyncContext(t, c.queueKey))

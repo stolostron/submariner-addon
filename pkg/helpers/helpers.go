@@ -14,11 +14,16 @@ import (
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 
+	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
+	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	workv1 "github.com/open-cluster-management/api/work/v1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
+	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 
 	"github.com/openshift/api"
 	apicofigv1 "github.com/openshift/api/config/v1"
@@ -61,6 +66,11 @@ const (
 	ocpInfrastructureName = "cluster"
 	ocpAPIServerName      = "cluster"
 	ocpConfigNamespace    = "openshift-config"
+)
+
+const (
+	submarinerAgentDegraded      = "SubmarinerAgentDegraded"
+	submarinerConnectionDegraded = "SubmarinerConnectionDegraded"
 )
 
 var (
@@ -139,6 +149,55 @@ func UpdateSubmarinerConfigConditionFn(cond metav1.Condition) UpdateSubmarinerCo
 func UpdateSubmarinerConfigStatusFn(cond metav1.Condition, managedClusterInfo configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
 	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
 		oldStatus.ManagedClusterInfo = managedClusterInfo
+		meta.SetStatusCondition(&oldStatus.Conditions, cond)
+		return nil
+	}
+}
+
+type UpdateManagedClusterAddOnStatusFunc func(status *addonv1alpha1.ManagedClusterAddOnStatus) error
+
+func UpdateManagedClusterAddOnStatus(
+	ctx context.Context,
+	client addonclient.Interface,
+	addOnNamespace, addOnName string,
+	updateFuncs ...UpdateManagedClusterAddOnStatusFunc) (*addonv1alpha1.ManagedClusterAddOnStatus, bool, error) {
+	updated := false
+	var updatedAddOnStatus *addonv1alpha1.ManagedClusterAddOnStatus
+
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		addOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).Get(ctx, addOnName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		oldStatus := &addOn.Status
+
+		newStatus := oldStatus.DeepCopy()
+		for _, update := range updateFuncs {
+			if err := update(newStatus); err != nil {
+				return err
+			}
+		}
+		if equality.Semantic.DeepEqual(oldStatus, newStatus) {
+			// We return the newStatus which is a deep copy of oldStatus but with all update funcs applied.
+			updatedAddOnStatus = newStatus
+			return nil
+		}
+
+		addOn.Status = *newStatus
+		updatedAddOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).UpdateStatus(ctx, addOn, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+		updatedAddOnStatus = &updatedAddOn.Status
+		updated = err == nil
+		return err
+	})
+
+	return updatedAddOnStatus, updated, err
+}
+
+func UpdateManagedClusterAddOnStatusFn(cond metav1.Condition) UpdateManagedClusterAddOnStatusFunc {
+	return func(oldStatus *addonv1alpha1.ManagedClusterAddOnStatus) error {
 		meta.SetStatusCondition(&oldStatus.Conditions, cond)
 		return nil
 	}
@@ -463,4 +522,95 @@ func getKubeAPIServerCA(kubeClient kubernetes.Interface, dynamicClient dynamic.I
 	}
 
 	return nil, nil
+}
+
+func CheckSubmarinerDaemonSetsStatus(submariner *submarinerv1alpha1.Submariner) metav1.Condition {
+	degradedConditionReasons := []string{}
+	degradedConditionMessages := []string{}
+
+	// check gateway daemonset status
+	if submariner.Status.EngineDaemonSetStatus.Status == nil ||
+		submariner.Status.EngineDaemonSetStatus.Status.DesiredNumberScheduled == 0 {
+		degradedConditionReasons = append(degradedConditionReasons, "GatewaysNotDeployed")
+		degradedConditionMessages = append(degradedConditionMessages, "The gateways are not deployed")
+	}
+
+	if submariner.Status.EngineDaemonSetStatus.Status != nil &&
+		submariner.Status.EngineDaemonSetStatus.Status.NumberUnavailable != 0 {
+		degradedConditionReasons = append(degradedConditionReasons, "GatewaysDegraded")
+		degradedConditionMessages = append(degradedConditionMessages,
+			fmt.Sprintf("There are %d unavailable gateways", submariner.Status.EngineDaemonSetStatus.Status.NumberUnavailable))
+	}
+
+	// check route agent daemonset status
+	if submariner.Status.RouteAgentDaemonSetStatus.Status == nil ||
+		submariner.Status.RouteAgentDaemonSetStatus.Status.DesiredNumberScheduled == 0 {
+		degradedConditionReasons = append(degradedConditionReasons, "RouteAgentsNotDeployed")
+		degradedConditionMessages = append(degradedConditionMessages, "The route agents are not deployed")
+	}
+
+	if submariner.Status.RouteAgentDaemonSetStatus.Status != nil &&
+		submariner.Status.RouteAgentDaemonSetStatus.Status.NumberUnavailable != 0 {
+		degradedConditionReasons = append(degradedConditionReasons, "RouteAgentsDegraded")
+		degradedConditionMessages = append(degradedConditionMessages,
+			fmt.Sprintf("There are %d unavailable route agents", submariner.Status.RouteAgentDaemonSetStatus.Status.NumberUnavailable))
+	}
+
+	//TODO check globalnet daemonset status, if global is enabled
+
+	if len(degradedConditionReasons) != 0 {
+		return metav1.Condition{
+			Type:    submarinerAgentDegraded,
+			Status:  metav1.ConditionTrue,
+			Reason:  strings.Join(degradedConditionReasons, ","),
+			Message: strings.Join(degradedConditionMessages, "\n"),
+		}
+	}
+
+	return metav1.Condition{
+		Type:    submarinerAgentDegraded,
+		Status:  metav1.ConditionFalse,
+		Reason:  "SubmarinerAgentDeployed",
+		Message: "Submariner agent is deployed on managed cluster.",
+	}
+}
+
+func CheckSubmarinerConnections(clusterName string, submariner *submarinerv1alpha1.Submariner) metav1.Condition {
+	condition := metav1.Condition{
+		Type: submarinerConnectionDegraded,
+	}
+	if submariner.Status.Gateways == nil || len(*submariner.Status.Gateways) == 0 {
+		condition.Status = metav1.ConditionTrue
+		condition.Reason = "ConnectionsNotEstablished"
+		condition.Message = "There are no connections on gateways"
+		return condition
+	}
+
+	connectedMessages := []string{}
+	unconnectedMessages := []string{}
+	for _, gateway := range *submariner.Status.Gateways {
+		for _, connection := range gateway.Connections {
+			if connection.Status != submarinermv1.Connected {
+				unconnectedMessages = append(unconnectedMessages, fmt.Sprintf("The connection between clusters %q and %q is not established (status=%s)",
+					clusterName, connection.Endpoint.ClusterID, connection.Status))
+				continue
+			}
+
+			connectedMessages = append(connectedMessages, fmt.Sprintf("The connection between clusters %q and %q is established",
+				clusterName, connection.Endpoint.ClusterID))
+		}
+	}
+
+	if len(unconnectedMessages) != 0 {
+		condition.Status = metav1.ConditionTrue
+		condition.Reason = "ConnectionsDegraded"
+		connectedMessages = append(connectedMessages, unconnectedMessages...)
+		condition.Message = strings.Join(connectedMessages, "\n")
+		return condition
+	}
+
+	condition.Status = metav1.ConditionFalse
+	condition.Reason = "ConnectionsEstablished"
+	condition.Message = strings.Join(connectedMessages, "\n")
+	return condition
 }

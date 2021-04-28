@@ -7,9 +7,11 @@ import (
 	"os"
 	"time"
 
-	submarinercmd "github.com/open-cluster-management/submariner-addon/pkg/cmd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.com/open-cluster-management/submariner-addon/pkg/cmd/hub"
+	"github.com/open-cluster-management/submariner-addon/pkg/cmd/spoke"
 
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -51,7 +53,8 @@ func newSubmarinerControllerCommand() *cobra.Command {
 		cmd.Version = v
 	}
 
-	cmd.AddCommand(submarinercmd.NewController())
+	cmd.AddCommand(hub.NewController())
+	cmd.AddCommand(spoke.NewAgent())
 
 	return cmd
 }

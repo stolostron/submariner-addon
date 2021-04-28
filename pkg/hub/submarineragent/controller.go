@@ -7,6 +7,10 @@ import (
 
 	"github.com/ghodss/yaml"
 
+	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
+	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
+	addoninformerv1alpha1 "github.com/open-cluster-management/api/client/addon/informers/externalversions/addon/v1alpha1"
+	addonlisterv1alpha1 "github.com/open-cluster-management/api/client/addon/listers/addon/v1alpha1"
 	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterinformerv1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1"
 	clusterinformerv1alpha1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
@@ -20,6 +24,7 @@ import (
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
+	configinlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent/bindata"
@@ -43,12 +48,13 @@ import (
 )
 
 const (
+	submarinerAddOnName       = "submariner-addon"
 	agentFinalizer            = "cluster.open-cluster-management.io/submariner-agent-cleanup"
 	clusterSetLabel           = "cluster.open-cluster-management.io/clusterset"
 	manifestWorkName          = "submariner-operator"
 	serviceAccountLabel       = "cluster.open-cluster-management.io/submariner-cluster-sa"
 	submarinerConfigFinalizer = "submarineraddon.open-cluster-management.io/config-cleanup"
-	submarinerLabel           = "cluster.open-cluster-management.io/submariner-agent"
+	addOnFinalizer            = "submarineraddon.open-cluster-management.io/submariner-addon-cleanup"
 )
 
 var clusterRBACFiles = []string{
@@ -83,9 +89,12 @@ type submarinerAgentController struct {
 	clusterClient      clusterclient.Interface
 	manifestWorkClient workclient.Interface
 	configClient       configclient.Interface
+	addOnClient        addonclient.Interface
 	clusterLister      clusterlisterv1.ManagedClusterLister
 	clusterSetLister   clusterlisterv1alpha1.ManagedClusterSetLister
 	manifestWorkLister worklister.ManifestWorkLister
+	configLister       configinlister.SubmarinerConfigLister
+	addOnLister        addonlisterv1alpha1.ManagedClusterAddOnLister
 	eventRecorder      events.Recorder
 }
 
@@ -96,10 +105,12 @@ func NewSubmarinerAgentController(
 	clusterClient clusterclient.Interface,
 	manifestWorkClient workclient.Interface,
 	configClient configclient.Interface,
+	addOnClient addonclient.Interface,
 	clusterInformer clusterinformerv1.ManagedClusterInformer,
 	clusterSetInformer clusterinformerv1alpha1.ManagedClusterSetInformer,
 	manifestWorkInformer workinformer.ManifestWorkInformer,
 	configInformer configinformer.SubmarinerConfigInformer,
+	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerAgentController{
 		kubeClient:         kubeClient,
@@ -107,9 +118,12 @@ func NewSubmarinerAgentController(
 		clusterClient:      clusterClient,
 		manifestWorkClient: manifestWorkClient,
 		configClient:       configClient,
+		addOnClient:        addOnClient,
 		clusterLister:      clusterInformer.Lister(),
 		clusterSetLister:   clusterSetInformer.Lister(),
 		manifestWorkLister: manifestWorkInformer.Lister(),
+		configLister:       configInformer.Lister(),
+		addOnLister:        addOnInformer.Lister(),
 		eventRecorder:      recorder.WithComponentSuffix("submariner-agent-controller"),
 	}
 	return factory.New().
@@ -125,6 +139,13 @@ func NewSubmarinerAgentController(
 			key, _ := cache.MetaNamespaceKeyFunc(obj)
 			return key
 		}, configInformer.Informer()).
+		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			accessor, _ := meta.Accessor(obj)
+			if accessor.GetName() != submarinerAddOnName {
+				return ""
+			}
+			return accessor.GetNamespace()
+		}, addOnInformer.Informer()).
 		WithInformers(clusterSetInformer.Informer()).
 		WithSync(c.sync).
 		ToController("SubmarinerAgentController", recorder)
@@ -136,7 +157,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 	klog.V(4).Infof("Submariner agent controller is reconciling, queue key: %s", key)
 
 	// if the sync is triggered by change of ManagedClusterSet, reconcile all managed clusters
-	if key == "key" {
+	if key == factory.DefaultQueueKey {
 		if err := c.syncAllManagedClusters(ctx); err != nil {
 			return err
 		}
@@ -149,7 +170,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		return nil
 	}
 
-	// if the sync is triggered by change of ManagedCluster or ManifestWork, reconcile the managed cluster
+	// if the sync is triggered by change of ManagedCluster, ManifestWork or ManagedClusterAddOn, reconcile the managed cluster
 	if namespace == "" {
 		managedCluster, err := c.clusterLister.Get(name)
 		if errors.IsNotFound(err) {
@@ -179,7 +200,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 	}
 
 	// if the sync is triggered by change of SubmarinerConfig, reconcile the submariner config
-	config, err := c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).Get(ctx, name, metav1.GetOptions{})
+	config, err := c.configLister.SubmarinerConfigs(namespace).Get(name)
 	if errors.IsNotFound(err) {
 		// config is not found, could have been deleted, do nothing.
 		return nil
@@ -231,22 +252,27 @@ func (c *submarinerAgentController) syncManagedCluster(
 	ctx context.Context,
 	managedCluster *clusterv1.ManagedCluster,
 	config *configv1alpha1.SubmarinerConfig) error {
-	// the cluster does not have the submariner label, try to clean up the submariner agent
-	if _, existed := managedCluster.Labels[submarinerLabel]; !existed {
-		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
-	}
-
-	// the cluster does not have the clusterset label, try to clean up the submariner agent
 	clusterSetName, existed := managedCluster.Labels[clusterSetLabel]
 	if !existed {
+		// the cluster does not have the clusterset label, try to clean up the submariner agent
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
 	}
 
 	// find the clustersets that contains this managed cluster
-	// if the clusterset is not found, try to clean up the submariner agent
-	_, err := c.clusterClient.ClusterV1alpha1().ManagedClusterSets().Get(ctx, clusterSetName, metav1.GetOptions{})
+	_, err := c.clusterSetLister.Get(clusterSetName)
 	switch {
 	case errors.IsNotFound(err):
+		// if the clusterset is not found, try to clean up the submariner agent
+		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
+	case err != nil:
+		return err
+	}
+
+	// find the submariner-addon on the managed cluster namespace
+	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(submarinerAddOnName)
+	switch {
+	case errors.IsNotFound(err):
+		// if the submariner-addon is not found, try to clean up the submariner agent
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
 	case err != nil:
 		return err
@@ -271,6 +297,30 @@ func (c *submarinerAgentController) syncManagedCluster(
 	// managed cluster is deleting, we remove its related resources
 	if !managedCluster.DeletionTimestamp.IsZero() {
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
+	}
+
+	// add a submariner agent finalizer to the submariner-addon
+	if addOn.DeletionTimestamp.IsZero() {
+		hasFinalizer := false
+		for i := range addOn.Finalizers {
+			if addOn.Finalizers[i] == addOnFinalizer {
+				hasFinalizer = true
+				break
+			}
+		}
+		if !hasFinalizer {
+			addOn.Finalizers = append(addOn.Finalizers, addOnFinalizer)
+			_, err := c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name).Update(ctx, addOn, metav1.UpdateOptions{})
+			return err
+		}
+	}
+
+	// submariner-addon is deleting, we remove its related resources
+	if !addOn.DeletionTimestamp.IsZero() {
+		if err := c.cleanUpSubmarinerAgent(ctx, managedCluster); err != nil {
+			return err
+		}
+		return c.remvoeAddOnFinalizer(ctx, addOn)
 	}
 
 	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster, config)
@@ -371,6 +421,25 @@ func (c *submarinerAgentController) removeAgentFinalizer(ctx context.Context, ma
 	if len(managedCluster.Finalizers) != len(copiedFinalizers) {
 		managedCluster.Finalizers = copiedFinalizers
 		_, err := c.clusterClient.ClusterV1().ManagedClusters().Update(ctx, managedCluster, metav1.UpdateOptions{})
+		return err
+	}
+
+	return nil
+}
+
+// remvoeAddOnFinalizer removes the addon finalizer from a submariner-addon
+func (c *submarinerAgentController) remvoeAddOnFinalizer(ctx context.Context, addOn *addonv1alpha1.ManagedClusterAddOn) error {
+	copiedFinalizers := []string{}
+	for i := range addOn.Finalizers {
+		if addOn.Finalizers[i] == addOnFinalizer {
+			continue
+		}
+		copiedFinalizers = append(copiedFinalizers, addOn.Finalizers[i])
+	}
+
+	if len(addOn.Finalizers) != len(copiedFinalizers) {
+		addOn.Finalizers = copiedFinalizers
+		_, err := c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(addOn.Namespace).Update(ctx, addOn, metav1.UpdateOptions{})
 		return err
 	}
 
@@ -489,15 +558,15 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 }
 
 func (c *submarinerAgentController) getSubmarinerConfig(ctx context.Context, namespace string) (*configv1alpha1.SubmarinerConfig, error) {
-	configs, err := c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).List(ctx, metav1.ListOptions{})
+	configs, err := c.configLister.SubmarinerConfigs(namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
-	switch len(configs.Items) {
+	switch len(configs) {
 	case 0:
 		return nil, nil
 	case 1:
-		return &configs.Items[0], nil
+		return configs[0], nil
 	default:
 		//TODO we need ensure only one config for one managed cluster in the future
 		c.eventRecorder.Warningf("one more than submariner configs are found from %q", namespace)

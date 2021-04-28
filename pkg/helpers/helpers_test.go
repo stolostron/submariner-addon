@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
+	addonfake "github.com/open-cluster-management/api/client/addon/clientset/versioned/fake"
 	fakeworkclient "github.com/open-cluster-management/api/client/work/clientset/versioned/fake"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	workv1 "github.com/open-cluster-management/api/work/v1"
@@ -16,8 +18,12 @@ import (
 	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
+	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
+
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -104,6 +110,100 @@ func TestUpdateStatusCondition(t *testing.T) {
 				fakeClusterClient,
 				"cluster1", "testconfig",
 				UpdateSubmarinerConfigConditionFn(c.newCondition),
+			)
+			if err != nil {
+				t.Errorf("unexpected err: %v", err)
+			}
+			if updated != c.expextedUpdated {
+				t.Errorf("expected %t, but %t", c.expextedUpdated, updated)
+			}
+			for i := range c.expectedConditions {
+				expected := c.expectedConditions[i]
+				actual := status.Conditions[i]
+				if expected.LastTransitionTime == (metav1.Time{}) {
+					actual.LastTransitionTime = metav1.Time{}
+				}
+				if !equality.Semantic.DeepEqual(expected, actual) {
+					t.Errorf(diff.ObjectDiff(expected, actual))
+				}
+			}
+		})
+	}
+}
+
+func TestUpdateManagedClusterAddOnStatus(t *testing.T) {
+	nowish := metav1.Now()
+	beforeish := metav1.Time{Time: nowish.Add(-10 * time.Second)}
+	afterish := metav1.Time{Time: nowish.Add(10 * time.Second)}
+
+	cases := []struct {
+		name               string
+		startingConditions []metav1.Condition
+		newCondition       metav1.Condition
+		expextedUpdated    bool
+		expectedConditions []metav1.Condition
+	}{
+		{
+			name:               "add to empty",
+			startingConditions: []metav1.Condition{},
+			newCondition:       testinghelpers.NewSubmarinerConfigCondition("test", "True", "my-reason", "my-message", nil),
+			expextedUpdated:    true,
+			expectedConditions: []metav1.Condition{testinghelpers.NewSubmarinerConfigCondition("test", "True", "my-reason", "my-message", nil)},
+		},
+		{
+			name: "add to non-conflicting",
+			startingConditions: []metav1.Condition{
+				testinghelpers.NewSubmarinerConfigCondition("two", "True", "my-reason", "my-message", nil),
+			},
+			newCondition:    testinghelpers.NewSubmarinerConfigCondition("one", "True", "my-reason", "my-message", nil),
+			expextedUpdated: true,
+			expectedConditions: []metav1.Condition{
+				testinghelpers.NewSubmarinerConfigCondition("two", "True", "my-reason", "my-message", nil),
+				testinghelpers.NewSubmarinerConfigCondition("one", "True", "my-reason", "my-message", nil),
+			},
+		},
+		{
+			name: "change existing status",
+			startingConditions: []metav1.Condition{
+				testinghelpers.NewSubmarinerConfigCondition("two", "True", "my-reason", "my-message", nil),
+				testinghelpers.NewSubmarinerConfigCondition("one", "True", "my-reason", "my-message", nil),
+			},
+			newCondition:    testinghelpers.NewSubmarinerConfigCondition("one", "False", "my-different-reason", "my-othermessage", nil),
+			expextedUpdated: true,
+			expectedConditions: []metav1.Condition{
+				testinghelpers.NewSubmarinerConfigCondition("two", "True", "my-reason", "my-message", nil),
+				testinghelpers.NewSubmarinerConfigCondition("one", "False", "my-different-reason", "my-othermessage", nil),
+			},
+		},
+		{
+			name: "leave existing transition time",
+			startingConditions: []metav1.Condition{
+				testinghelpers.NewSubmarinerConfigCondition("two", "True", "my-reason", "my-message", nil),
+				testinghelpers.NewSubmarinerConfigCondition("one", "True", "my-reason", "my-message", &beforeish),
+			},
+			newCondition:    testinghelpers.NewSubmarinerConfigCondition("one", "True", "my-reason", "my-message", &afterish),
+			expextedUpdated: false,
+			expectedConditions: []metav1.Condition{
+				testinghelpers.NewSubmarinerConfigCondition("two", "True", "my-reason", "my-message", nil),
+				testinghelpers.NewSubmarinerConfigCondition("one", "True", "my-reason", "my-message", &beforeish),
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			fakeAddOnClient := addonfake.NewSimpleClientset(&addonv1alpha1.ManagedClusterAddOn{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test"},
+				Status: addonv1alpha1.ManagedClusterAddOnStatus{
+					Conditions: c.startingConditions,
+				},
+			})
+
+			status, updated, err := UpdateManagedClusterAddOnStatus(
+				context.TODO(),
+				fakeAddOnClient,
+				"test", "test",
+				UpdateManagedClusterAddOnStatusFn(c.newCondition),
 			)
 			if err != nil {
 				t.Errorf("unexpected err: %v", err)
@@ -762,6 +862,175 @@ func TestGetEnv(t *testing.T) {
 			if value != c.expectedValue {
 				t.Errorf("expect %v, but got: %v", c.expectedValue, value)
 			}
+		})
+	}
+}
+
+func TestCheckSubmarinerDaemonSetStatus(t *testing.T) {
+	cases := []struct {
+		name              string
+		submariner        *submarinerv1alpha1.Submariner
+		validateCondation func(t *testing.T, actual metav1.Condition)
+	}{
+		{
+			name:       "no status",
+			submariner: &submarinerv1alpha1.Submariner{},
+			validateCondation: func(t *testing.T, actual metav1.Condition) {
+				if actual.Status != metav1.ConditionTrue {
+					t.Errorf("expected degraded, but failed")
+				}
+				if actual.Reason != "GatewaysNotDeployed,RouteAgentsNotDeployed" {
+					t.Errorf("unexpected reason, %v", actual)
+				}
+			},
+		},
+		{
+			name: "unavailable components",
+			submariner: &submarinerv1alpha1.Submariner{
+				Status: submarinerv1alpha1.SubmarinerStatus{
+					EngineDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
+						Status: &v1.DaemonSetStatus{
+							DesiredNumberScheduled: 2,
+							NumberUnavailable:      1,
+						},
+					},
+					RouteAgentDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
+						Status: &v1.DaemonSetStatus{
+							DesiredNumberScheduled: 6,
+							NumberUnavailable:      2,
+						},
+					},
+				},
+			},
+			validateCondation: func(t *testing.T, actual metav1.Condition) {
+				if actual.Status != metav1.ConditionTrue {
+					t.Errorf("expected degraded, but failed")
+				}
+				if actual.Reason != "GatewaysDegraded,RouteAgentsDegraded" {
+					t.Errorf("unexpected reason, %v", actual)
+				}
+			},
+		},
+		{
+			name: "submariner agend deployed",
+			submariner: &submarinerv1alpha1.Submariner{
+				Status: submarinerv1alpha1.SubmarinerStatus{
+					EngineDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
+						Status: &v1.DaemonSetStatus{
+							DesiredNumberScheduled: 2,
+						},
+					},
+					RouteAgentDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
+						Status: &v1.DaemonSetStatus{
+							DesiredNumberScheduled: 6,
+						},
+					},
+				},
+			},
+			validateCondation: func(t *testing.T, actual metav1.Condition) {
+				if actual.Status != metav1.ConditionFalse {
+					t.Errorf("expected undegraded, but failed")
+				}
+				if actual.Reason != "SubmarinerAgentDeployed" {
+					t.Errorf("unexpected reason, %v", actual)
+				}
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			c.validateCondation(t, CheckSubmarinerDaemonSetsStatus(c.submariner))
+		})
+	}
+}
+
+func TestCheckSubmarinerConnections(t *testing.T) {
+	cases := []struct {
+		name              string
+		submariner        *submarinerv1alpha1.Submariner
+		validateCondation func(t *testing.T, actual metav1.Condition)
+	}{
+		{
+			name:       "no status",
+			submariner: &submarinerv1alpha1.Submariner{},
+			validateCondation: func(t *testing.T, actual metav1.Condition) {
+				if actual.Status != metav1.ConditionTrue {
+					t.Errorf("expected degraded, but failed")
+				}
+				if actual.Reason != "ConnectionsNotEstablished" {
+					t.Errorf("unexpected reason, %v", actual)
+				}
+			},
+		},
+		{
+			name: "connections are not established",
+			submariner: &submarinerv1alpha1.Submariner{
+				Status: submarinerv1alpha1.SubmarinerStatus{
+					Gateways: &[]submarinermv1.GatewayStatus{
+						{
+							Connections: []submarinermv1.Connection{
+								{
+									Status: "connected",
+									Endpoint: submarinermv1.EndpointSpec{
+										ClusterID: "test1",
+										Hostname:  "test2",
+									},
+								},
+								{
+									Status: "error",
+									Endpoint: submarinermv1.EndpointSpec{
+										ClusterID: "test2",
+										Hostname:  "test2",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			validateCondation: func(t *testing.T, actual metav1.Condition) {
+				if actual.Status != metav1.ConditionTrue {
+					t.Errorf("expected degraded, but failed")
+				}
+				if actual.Reason != "ConnectionsDegraded" {
+					t.Errorf("unexpected reason, %v", actual)
+				}
+			},
+		},
+		{
+			name: "connections are established",
+			submariner: &submarinerv1alpha1.Submariner{
+				Status: submarinerv1alpha1.SubmarinerStatus{
+					Gateways: &[]submarinermv1.GatewayStatus{
+						{
+							Connections: []submarinermv1.Connection{
+								{
+									Status: "connected",
+									Endpoint: submarinermv1.EndpointSpec{
+										ClusterID: "test",
+										Hostname:  "test",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			validateCondation: func(t *testing.T, actual metav1.Condition) {
+				if actual.Status != metav1.ConditionFalse {
+					t.Errorf("expected undegraded, but failed")
+				}
+				if actual.Reason != "ConnectionsEstablished" {
+					t.Errorf("unexpected reason, %v", actual)
+				}
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			c.validateCondation(t, CheckSubmarinerConnections("test", c.submariner))
 		})
 	}
 }

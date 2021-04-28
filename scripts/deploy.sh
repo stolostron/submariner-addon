@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source scripts/clusters.sh
-k8s_version="v1.18.0"
+k8s_version="v1.20.2"
 
 if [ "$1"x = "cleanup"x ]; then
     for cluster in "${clusters[@]}"; do
@@ -123,6 +123,7 @@ function deploy_klusterlet() {
 
     # delploy klusterlet
     kubectl create namespace open-cluster-management-agent
+    kubectl create namespace open-cluster-management-agent-addon
     kubectl -n open-cluster-management-agent create secret generic bootstrap-hub-kubeconfig --from-file=${hub_kubeconfig}
     cat << EOF | kubectl apply -f -
 apiVersion: operator.open-cluster-management.io/v1

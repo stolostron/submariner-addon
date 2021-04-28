@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: submariner-addon
+  namespace: {{ .AddonInstallNamespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: submariner-addon
+subjects:
+  - kind: ServiceAccount
+    name: submariner-addon-sa

@@ -1,0 +1,11 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: open-cluster-management:submariner-addon:agent
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["submariner.io"]
+  resources: ["submariners"]
+  verbs: ["get", "list", "watch"]

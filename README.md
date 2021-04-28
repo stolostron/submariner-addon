@@ -20,14 +20,14 @@ The steps below can be used for testing on a local environment:
     - Create two clusters: `cluster1` and `cluster2`. `cluster1` is going to be used as the Hub.
     - Load the local Docker images to the kind cluster `cluster1`.
     - Deploy the [operator-lifecycle-manager](https://github.com/operator-framework/operator-lifecycle-manager)
-    - Deploy the `ClusterManager` on `cluster1`. This includes the required Hub cluster components.
+    - Deploy the `ClusterManager` and `submariner-addon` on `cluster1`. This includes the required Hub cluster components.
     - Deploy the `Klusterlet` on `cluster1` and `cluster2`. This includes the required the managed cluster agents.
     - Join `cluster1` and `cluster2` to the Hub cluster `cluster1`, the `cluster1` and `cluster2` are the managed clusters.
 
 4. Run the demo by issuing `make demo`. This will:
-    - Label the managed clusters with `cluster.open-cluster-management.io/submariner-agent`.
     - Label the managed clusters with `cluster.open-cluster-management.io/clusterset: clusterset1`.
     - Create a `ClusterSet`.
+    - Create `ManagedClusterAddon` on each managed cluster namespaces.
     - Deploy the Submariner Broker on the Hub cluster and the required Submariner components on the managed clusters.
     - Interconnect `cluster1` and `cluster2` using Submariner.
     - Download the `subctl` from [Submariner releases page](https://github.com/submariner-io/submariner-operator/releases) and use `subctl show all` to show information about submariner.
