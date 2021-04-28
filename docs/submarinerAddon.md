@@ -26,6 +26,12 @@ There are some prerequisites for the managed clusters which are going to run `Su
      name: <mangedClusterSet-name>
    ```
 
+   After the `ManagedClusterSet` was created, the `submariner-addon` creates a namespace called `<mangedClusterSet-name>-broker`
+   and deploys the Submariner Broker to it.
+
+   > Note: The max length of Kubernetes namespace is 63, so the max length of `<mangedClusterSet-name>` should be 56, if the
+   > length of `<mangedClusterSet-name>` exceeds 56, the `<mangedClusterSet-name>` will be truncated from the head.
+
 2. Join the `ManagedClusters` into the `ManagedClusterSet`.
 
    ```

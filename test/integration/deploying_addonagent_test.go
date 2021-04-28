@@ -40,7 +40,7 @@ var _ = ginkgo.Describe("Deploy a submariner-addon agent", func() {
 			_, err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			brokerNamespace := fmt.Sprintf("submariner-clusterset-%s-broker", managedClusterSetName)
+			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
 			gomega.Eventually(func() bool {
 				return util.FindSubmarinerBrokerResources(kubeClient, brokerNamespace)
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())

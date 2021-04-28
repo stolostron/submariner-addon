@@ -74,6 +74,12 @@ const (
 	submarinerConnectionDegraded = "SubmarinerConnectionDegraded"
 )
 
+const (
+	brokerSuffix            = "broker"
+	namespaceMaxLength      = 63
+	clusterSetNameMaxLength = namespaceMaxLength - len(brokerSuffix) - 1
+)
+
 var (
 	infrastructureGVR = schema.GroupVersionResource{
 		Group:    "config.openshift.io",
@@ -624,4 +630,13 @@ func GetCurrentNamespace(defaultNamespace string) string {
 		return defaultNamespace
 	}
 	return string(nsBytes)
+}
+
+func GernerateBrokerName(clusterSetName string) string {
+	name := fmt.Sprintf("%s-%s", clusterSetName, brokerSuffix)
+	if len(name) > namespaceMaxLength {
+		truncatedClusterSetName := clusterSetName[(len(brokerSuffix) - 1):]
+		return fmt.Sprintf("%s-%s", truncatedClusterSetName, brokerSuffix)
+	}
+	return name
 }

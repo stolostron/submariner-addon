@@ -36,7 +36,7 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			ginkgo.By("Check if the submariner broker is deployed")
-			expectedBrokerNamespace = fmt.Sprintf("submariner-clusterset-%s-broker", managedClusterSetName)
+			expectedBrokerNamespace = fmt.Sprintf("%s-broker", managedClusterSetName)
 			gomega.Eventually(func() bool {
 				return util.FindSubmarinerBrokerResources(kubeClient, expectedBrokerNamespace)
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
@@ -76,7 +76,7 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 			_, err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			brokerNamespace := fmt.Sprintf("submariner-clusterset-%s-broker", managedClusterSetName)
+			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
 			gomega.Eventually(func() bool {
 				return util.FindSubmarinerBrokerResources(kubeClient, brokerNamespace)
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
@@ -175,7 +175,7 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			ginkgo.By("Check if the submariner broker is deployed")
-			brokerNamespace := fmt.Sprintf("submariner-clusterset-%s-broker", managedClusterSetName)
+			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
 			gomega.Eventually(func() bool {
 				return util.FindSubmarinerBrokerResources(kubeClient, brokerNamespace)
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())

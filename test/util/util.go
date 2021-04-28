@@ -200,7 +200,7 @@ func NewSubmariner() *unstructured.Unstructured {
 				"brokerK8sApiServer":       "api:6443",
 				"brokerK8sApiServerToken":  "token",
 				"brokerK8sCA":              "ca",
-				"brokerK8sRemoteNamespace": "submariner-clusterset-subm-broker",
+				"brokerK8sRemoteNamespace": "subm-broker",
 				"cableDriver":              "libreswan",
 				"ceIPSecDebug":             false,
 				"ceIPSecPSK":               "psk",

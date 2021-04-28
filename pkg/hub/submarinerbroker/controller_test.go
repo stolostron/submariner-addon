@@ -54,8 +54,8 @@ func TestSync(t *testing.T) {
 				testinghelpers.AssertNoActions(t, clusterSetActions)
 				testinghelpers.AssertActions(t, kubeActions, "get", "create", "get", "create", "get", "create")
 				namespace := (kubeActions[1].(clienttesting.CreateActionImpl).Object).(*corev1.Namespace)
-				if namespace.Name != "submariner-clusterset-set1-broker" {
-					t.Errorf("expected submariner-clusterset-set1-broker, but got %v", namespace)
+				if namespace.Name != "set1-broker" {
+					t.Errorf("expected set1-broker, but got %v", namespace)
 				}
 				testinghelpers.AssertActionResource(t, kubeActions[3], "roles")
 				testinghelpers.AssertActionResource(t, kubeActions[5], "secrets")
