@@ -36,9 +36,10 @@ cat << EOF | kubectl apply -f -
 apiVersion: addon.open-cluster-management.io/v1alpha1
 kind: ManagedClusterAddOn
 metadata:
-  name: submariner-addon
+  name: submariner
   namespace: cluster1
-spec: {}
+spec:
+  installNamespace: submariner-operator
 EOF
 
 echo "Apply managedclusteraddon submariner-addon on managed cluster cluster2 namespace ..."
@@ -46,7 +47,7 @@ cat << EOF | kubectl apply -f -
 apiVersion: addon.open-cluster-management.io/v1alpha1
 kind: ManagedClusterAddOn
 metadata:
-  name: submariner-addon
+  name: submariner
   namespace: cluster2
 spec: {}
 EOF
@@ -66,12 +67,12 @@ done
 for((i=1;i<=24;i++));
 do
   echo "Checking clusters connections ..."
-  connected=$(kubectl -n cluster1 get managedclusteraddons submariner-addon -o=jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\n"}{end}' | grep SubmarinerConnectionDegraded | grep False)
+  connected=$(kubectl -n cluster1 get managedclusteraddons submariner -o=jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\n"}{end}' | grep SubmarinerConnectionDegraded | grep False)
   if [ -n "$connected" ]; then
     echo "Clusters are connected"
     echo "Use following command to check submariner-addon status"
-    echo "kubectl --context $KUBECONFIG -n cluster1 get managedclusteraddons submariner-addon -o=yaml"
-    echo "kubectl --context $KUBECONFIG -n cluster2 get managedclusteraddons submariner-addon -o=yaml"
+    echo "kubectl --kubeconfig $KUBECONFIG -n cluster1 get managedclusteraddons submariner -o=yaml"
+    echo "kubectl --kubeconfig $KUBECONFIG -n cluster2 get managedclusteraddons submariner -o=yaml"
     exit 0
   fi
   sleep 5
@@ -79,5 +80,5 @@ done
 
 echo "Clusters are not connected"
 echo "Use following command to check submariner-addon status"
-echo "kubectl --context $KUBECONFIG -n cluster1 get managedclusteraddons submariner-addon -o=yaml"
-echo "kubectl --context $KUBECONFIG -n cluster2 get managedclusteraddons submariner-addon -o=yaml"
+echo "kubectl --kubeconfig $KUBECONFIG -n cluster1 get managedclusteraddons submariner -o=yaml"
+echo "kubectl --kubeconfig $KUBECONFIG -n cluster2 get managedclusteraddons submariner -o=yaml"

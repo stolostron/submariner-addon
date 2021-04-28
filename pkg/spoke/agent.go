@@ -3,7 +3,6 @@ package spoke
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"time"
 
 	"github.com/open-cluster-management/addon-framework/pkg/lease"
@@ -11,6 +10,7 @@ import (
 
 	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	addoninformers "github.com/open-cluster-management/api/client/addon/informers/externalversions"
+	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const defaultInstallationNamespace = "open-cluster-management-agent-addon"
+const defaultInstallationNamespace = "submariner-operator"
 
 type AgentOptions struct {
 	InstallationNamespace string
@@ -42,13 +42,7 @@ func (o *AgentOptions) AddFlags(cmd *cobra.Command) {
 }
 
 func (o *AgentOptions) Complete() {
-	// get component namespace of spoke agent
-	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		o.InstallationNamespace = defaultInstallationNamespace
-	} else {
-		o.InstallationNamespace = string(nsBytes)
-	}
+	o.InstallationNamespace = helpers.GetCurrentNamespace(defaultInstallationNamespace)
 }
 
 func (o *AgentOptions) Validate() error {

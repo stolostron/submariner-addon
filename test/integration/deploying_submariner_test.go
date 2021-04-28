@@ -107,7 +107,7 @@ var _ = ginkgo.Describe("Deploy a submariner on hub", func() {
 
 		ginkgo.It("Should remove the submariner agent manifestworks after the submariner-addon is removed from the managed cluster", func() {
 			ginkgo.By("Remove the submariner-addon from the managed cluster")
-			err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Delete(context.TODO(), "submariner-addon", metav1.DeleteOptions{})
+			err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Delete(context.TODO(), "submariner", metav1.DeleteOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			ginkgo.By("Check if the submariner agent manifestworks are removed")

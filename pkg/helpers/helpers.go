@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"strings"
@@ -613,4 +614,14 @@ func CheckSubmarinerConnections(clusterName string, submariner *submarinerv1alph
 	condition.Reason = "ConnectionsEstablished"
 	condition.Message = strings.Join(connectedMessages, "\n")
 	return condition
+}
+
+// GetCurrentNamespace returns the current namesapce from file system,
+// if the namespace is not found, it returns the defaultNamespace
+func GetCurrentNamespace(defaultNamespace string) string {
+	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return defaultNamespace
+	}
+	return string(nsBytes)
 }

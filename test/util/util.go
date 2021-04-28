@@ -177,10 +177,12 @@ func NewSubmarinerConifg(namespace, name string) *configv1alpha1.SubmarinerConfi
 func NewManagedClusterAddOn(namespace string) *addonv1alpha1.ManagedClusterAddOn {
 	return &addonv1alpha1.ManagedClusterAddOn{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "submariner-addon",
+			Name:      "submariner",
 			Namespace: namespace,
 		},
-		Spec: addonv1alpha1.ManagedClusterAddOnSpec{},
+		Spec: addonv1alpha1.ManagedClusterAddOnSpec{
+			InstallNamespace: "submariner-operator",
+		},
 	}
 }
 

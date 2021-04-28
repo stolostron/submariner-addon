@@ -166,6 +166,12 @@ spec:
         - apiGroups:
           - addon.open-cluster-management.io
           resources:
+          - managedclusteraddons/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - addon.open-cluster-management.io
+          resources:
           - managedclusteraddons/status
           verbs:
           - patch
@@ -211,6 +217,11 @@ spec:
               - args:
                 - /submariner
                 - controller
+                env:
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
                 image: quay.io/open-cluster-management/submariner-addon:latest
                 imagePullPolicy: IfNotPresent
                 livenessProbe:

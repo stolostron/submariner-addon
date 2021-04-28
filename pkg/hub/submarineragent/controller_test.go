@@ -78,7 +78,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "submariner-addon",
+						Name:      "submariner",
 						Namespace: "cluster1",
 					},
 				},
@@ -92,7 +92,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			},
 		},
 		{
-			name:        "No submariner-addon on managed cluster namesapce",
+			name:        "No submariner on managed cluster namesapce",
 			clusterName: "cluster1",
 			clusters:    []runtime.Object{newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{}, false)},
 			clustersets: []runtime.Object{
@@ -117,7 +117,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "submariner-addon",
+						Name:      "submariner",
 						Namespace: "cluster1",
 					},
 				},
@@ -140,7 +140,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "submariner-addon",
+						Name:      "submariner",
 						Namespace: "cluster1",
 					},
 				},
@@ -165,7 +165,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "submariner-addon",
+						Name:      "submariner",
 						Namespace: "cluster1",
 					},
 				},
@@ -190,7 +190,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "submariner-addon",
+						Name:       "submariner",
 						Namespace:  "cluster1",
 						Finalizers: []string{addOnFinalizer},
 					},
@@ -221,7 +221,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "submariner-addon",
+						Name:       "submariner",
 						Namespace:  "cluster1",
 						Finalizers: []string{addOnFinalizer},
 					},
@@ -249,7 +249,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:              "submariner-addon",
+						Name:              "submariner",
 						Namespace:         "cluster1",
 						Finalizers:        []string{addOnFinalizer},
 						DeletionTimestamp: &now,
@@ -280,7 +280,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "submariner-addon",
+						Name:      "submariner",
 						Namespace: "cluster1",
 					},
 				},

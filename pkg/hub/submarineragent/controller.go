@@ -48,7 +48,7 @@ import (
 )
 
 const (
-	submarinerAddOnName       = "submariner-addon"
+	submarinerAddOnName       = "submariner"
 	agentFinalizer            = "cluster.open-cluster-management.io/submariner-agent-cleanup"
 	clusterSetLabel           = "cluster.open-cluster-management.io/clusterset"
 	manifestWorkName          = "submariner-operator"
@@ -70,7 +70,6 @@ var sccFiles = []string{
 }
 
 var operatorFiles = []string{
-	"manifests/agent/operator/submariner-operator-namespace.yaml",
 	"manifests/agent/operator/submariner-operator-group.yaml",
 	"manifests/agent/operator/submariner-operator-subscription.yaml",
 	"manifests/agent/operator/submariner.io-submariners-cr.yaml",
@@ -323,7 +322,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		return c.remvoeAddOnFinalizer(ctx, addOn)
 	}
 
-	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster, config)
+	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster, addOn, config)
 }
 
 // syncSubmarinerConfig syncs submariner configuration
@@ -450,6 +449,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	ctx context.Context,
 	clusterSetName string,
 	managedCluster *clusterv1.ManagedCluster,
+	managedClusterAddOn *addonv1alpha1.ManagedClusterAddOn,
 	submarinerConfig *configv1alpha1.SubmarinerConfig) error {
 	// generate service account and bind it to `submariner-k8s-broker-cluster` role
 	brokerNamespace := fmt.Sprintf("submariner-clusterset-%s-broker", clusterSetName)
@@ -466,6 +466,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		managedCluster,
 		brokerNamespace,
 		submarinerConfig,
+		managedClusterAddOn,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create submariner brokerInfo of cluster %v : %v", managedCluster.Name, err)

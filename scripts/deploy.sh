@@ -97,9 +97,8 @@ function deploy_hub() {
 
     # add master apiserver to submariner-addon deployment
     cat <<EOF >> ${submariner_deployment}
-        env:
-        - name: BROKER_API_SERVER
-          value: "${master_ip}:6443"
+          - name: BROKER_API_SERVER
+            value: "${master_ip}:6443"
 EOF
     kubectl apply -k ${submariner_deploy_dir}/config/manifests
 }
@@ -123,7 +122,6 @@ function deploy_klusterlet() {
 
     # delploy klusterlet
     kubectl create namespace open-cluster-management-agent
-    kubectl create namespace open-cluster-management-agent-addon
     kubectl -n open-cluster-management-agent create secret generic bootstrap-hub-kubeconfig --from-file=${hub_kubeconfig}
     cat << EOF | kubectl apply -f -
 apiVersion: operator.open-cluster-management.io/v1

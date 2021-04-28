@@ -5,6 +5,7 @@
 // pkg/hub/submarineraddonagent/manifests/deployment.yaml
 // pkg/hub/submarineraddonagent/manifests/hub_role.yaml
 // pkg/hub/submarineraddonagent/manifests/hub_rolebinding.yaml
+// pkg/hub/submarineraddonagent/manifests/namespace.yaml
 // pkg/hub/submarineraddonagent/manifests/role.yaml
 // pkg/hub/submarineraddonagent/manifests/rolebinding.yaml
 // pkg/hub/submarineraddonagent/manifests/serviceaccount.yaml
@@ -138,7 +139,7 @@ spec:
       serviceAccountName: submariner-addon-sa
       containers:
       - name: submariner-addon
-        image: quay.io/open-cluster-management/submariner-addon:latest
+        image: {{ .Image }}
         imagePullPolicy: IfNotPresent
         args:
           - "/submariner"
@@ -224,6 +225,27 @@ func pkgHubSubmarineraddonagentManifestsHub_rolebindingYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "pkg/hub/submarineraddonagent/manifests/hub_rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _pkgHubSubmarineraddonagentManifestsNamespaceYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .AddonInstallNamespace }}
+`)
+
+func pkgHubSubmarineraddonagentManifestsNamespaceYamlBytes() ([]byte, error) {
+	return _pkgHubSubmarineraddonagentManifestsNamespaceYaml, nil
+}
+
+func pkgHubSubmarineraddonagentManifestsNamespaceYaml() (*asset, error) {
+	bytes, err := pkgHubSubmarineraddonagentManifestsNamespaceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "pkg/hub/submarineraddonagent/manifests/namespace.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -368,6 +390,7 @@ var _bindata = map[string]func() (*asset, error){
 	"pkg/hub/submarineraddonagent/manifests/deployment.yaml":         pkgHubSubmarineraddonagentManifestsDeploymentYaml,
 	"pkg/hub/submarineraddonagent/manifests/hub_role.yaml":           pkgHubSubmarineraddonagentManifestsHub_roleYaml,
 	"pkg/hub/submarineraddonagent/manifests/hub_rolebinding.yaml":    pkgHubSubmarineraddonagentManifestsHub_rolebindingYaml,
+	"pkg/hub/submarineraddonagent/manifests/namespace.yaml":          pkgHubSubmarineraddonagentManifestsNamespaceYaml,
 	"pkg/hub/submarineraddonagent/manifests/role.yaml":               pkgHubSubmarineraddonagentManifestsRoleYaml,
 	"pkg/hub/submarineraddonagent/manifests/rolebinding.yaml":        pkgHubSubmarineraddonagentManifestsRolebindingYaml,
 	"pkg/hub/submarineraddonagent/manifests/serviceaccount.yaml":     pkgHubSubmarineraddonagentManifestsServiceaccountYaml,
@@ -423,6 +446,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"deployment.yaml":         {pkgHubSubmarineraddonagentManifestsDeploymentYaml, map[string]*bintree{}},
 					"hub_role.yaml":           {pkgHubSubmarineraddonagentManifestsHub_roleYaml, map[string]*bintree{}},
 					"hub_rolebinding.yaml":    {pkgHubSubmarineraddonagentManifestsHub_rolebindingYaml, map[string]*bintree{}},
+					"namespace.yaml":          {pkgHubSubmarineraddonagentManifestsNamespaceYaml, map[string]*bintree{}},
 					"role.yaml":               {pkgHubSubmarineraddonagentManifestsRoleYaml, map[string]*bintree{}},
 					"rolebinding.yaml":        {pkgHubSubmarineraddonagentManifestsRolebindingYaml, map[string]*bintree{}},
 					"serviceaccount.yaml":     {pkgHubSubmarineraddonagentManifestsServiceaccountYaml, map[string]*bintree{}},

@@ -22,20 +22,44 @@ import (
 )
 
 func TestManifests(t *testing.T) {
-	agent := &addOnAgent{}
-	expectedFiles := 6
-	actualFiles, err := agent.Manifests(&clusterv1.ManagedCluster{}, &addonapiv1alpha1.ManagedClusterAddOn{})
-	if err != nil {
-		t.Errorf("unexpected error %v", err)
+	cases := []struct {
+		name              string
+		addOn             *addonapiv1alpha1.ManagedClusterAddOn
+		expectedFileCount int
+	}{
+		{
+			name:              "using default installation namespace",
+			addOn:             &addonapiv1alpha1.ManagedClusterAddOn{},
+			expectedFileCount: 6,
+		},
+		{
+			name: "using customized installation namespace",
+			addOn: &addonapiv1alpha1.ManagedClusterAddOn{
+				Spec: addonapiv1alpha1.ManagedClusterAddOnSpec{
+					InstallNamespace: "test",
+				},
+			},
+			expectedFileCount: 7,
+		},
 	}
-	if len(actualFiles) != expectedFiles {
-		t.Errorf("expected %d files, but get %d, %v", expectedFiles, len(actualFiles), actualFiles)
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			agent := &addOnAgent{agentImage: "test"}
+			actualFiles, err := agent.Manifests(&clusterv1.ManagedCluster{}, c.addOn)
+			if err != nil {
+				t.Errorf("unexpected error %v", err)
+			}
+			if len(actualFiles) != c.expectedFileCount {
+				t.Errorf("expected %d files, but get %d, %v", c.expectedFileCount, len(actualFiles), actualFiles)
+			}
+		})
 	}
 }
 
 func TestPermissionConfig(t *testing.T) {
 	kubeClient := kubefake.NewSimpleClientset()
-	agent := NewAddOnAgent(kubeClient, eventstesting.NewTestingEventRecorder(t))
+	agent := NewAddOnAgent(kubeClient, eventstesting.NewTestingEventRecorder(t), "test")
 	err := agent.permissionConfig(&clusterv1.ManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
@@ -87,10 +111,10 @@ func TestCSRApproveCheck(t *testing.T) {
 				ReqBlockType: "CERTIFICATE REQUEST",
 				Orgs: []string{
 					"system:authenticated",
-					"system:open-cluster-management:addon:submariner-addon",
-					"system:open-cluster-management:cluster:test:addon:submariner-addon",
+					"system:open-cluster-management:addon:submariner",
+					"system:open-cluster-management:cluster:test:addon:submariner",
 				},
-				CN: "system:open-cluster-management:cluster:test:addon:submariner-addon:agent:invalid",
+				CN: "system:open-cluster-management:cluster:test:addon:submariner:agent:invalid",
 			},
 			checked: false,
 		},
@@ -101,10 +125,10 @@ func TestCSRApproveCheck(t *testing.T) {
 				ReqBlockType: "CERTIFICATE REQUEST",
 				Orgs: []string{
 					"system:authenticated",
-					"system:open-cluster-management:addon:submariner-addon",
-					"system:open-cluster-management:cluster:test:addon:submariner-addon",
+					"system:open-cluster-management:addon:submariner",
+					"system:open-cluster-management:cluster:test:addon:submariner",
 				},
-				CN: "system:open-cluster-management:cluster:test:addon:submariner-addon:agent:submariner-addon-agent",
+				CN: "system:open-cluster-management:cluster:test:addon:submariner:agent:submariner-addon-agent",
 			},
 			checked: true,
 		},
