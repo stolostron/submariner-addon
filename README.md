@@ -30,7 +30,6 @@ The steps below can be used for testing on a local environment:
     - Create `ManagedClusterAddon` on each managed cluster namespaces.
     - Deploy the Submariner Broker on the Hub cluster and the required Submariner components on the managed clusters.
     - Interconnect `cluster1` and `cluster2` using Submariner.
-    - Download the `subctl` from [Submariner releases page](https://github.com/submariner-io/submariner-operator/releases) and use `subctl show all` to show information about submariner.
 
 To delete the kind environment, use `make clean`.
 
@@ -81,17 +80,25 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
      name: pro
    ```
 
-2. Enable the `Submariner` for the `ManagedClusters`.
-
-   ```
-   $ oc label managedclusters <managedcluster name> "cluster.open-cluster-management.io/submariner-agent=true" --overwrite
-   ```
-
-3. Join the `ManagedClusters` into the `ManagedClusterSet`.
+2. Join the `ManagedClusters` into the `ManagedClusterSet`.
 
    ```
    $ oc label managedclusters <managedcluster name> "cluster.open-cluster-management.io/clusterset=pro" --overwrite
    ```
+
+3. Create a `ManagedClusterAddon` in the managed cluster namespace to deploy the Submariner on the managed cluster.
+
+   ```
+   apiVersion: addon.open-cluster-management.io/v1alpha1
+   kind: ManagedClusterAddOn
+   metadata:
+     name: submariner
+     namespace: <managedcluster name>
+   spec:
+     installNamespace: submariner-operator
+   ```
+
+   > Note: the name of `ManagedClusterAddOn` must be `submariner`
 
 ## Test with ACM
 

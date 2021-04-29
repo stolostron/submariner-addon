@@ -26,19 +26,30 @@ There are some prerequisites for the managed clusters which are going to run `Su
      name: <mangedClusterSet-name>
    ```
 
-2. Enable the `Submariner` for the `ManagedClusters`.
+2. Join the `ManagedClusters` into the `ManagedClusterSet`.
 
-   ```
-   $ oc label managedclusters <managedcluster-name> "cluster.open-cluster-management.io/submariner-agent=true" --overwrite
-   ```
-
-3. Join the `ManagedClusters` into the `ManagedClusterSet`.
-    
    ```
    $ oc label managedclusters <managedcluster-name> "cluster.open-cluster-management.io/clusterset=<mangedClusterSet-name>" --overwrite
    ```
 
-### Verify the Submariner with Service Discovery 
+3. Create a `ManagedClusterAddon` in the managed cluster namespace to deploy the Submariner on the managed cluster.
+
+   ```
+   apiVersion: addon.open-cluster-management.io/v1alpha1
+   kind: ManagedClusterAddOn
+   metadata:
+     name: submariner
+     namespace: <managedcluster name>
+   spec:
+      installNamespace: submariner-operator
+   ```
+
+   > Note: the name of `ManagedClusterAddOn` must be `submariner`
+
+   > Note: The `installNamespace` field in the spec of `ManagedClusterAddOn` is the namespace on the managed cluster to install the
+   Submariner and `submariner-addon` agent. Currently Submariner only support the installation namespace is `submariner-operator`
+
+### Verify the Submariner with Service Discovery
 
 We use `nginx` service as example to verify the Submariner with service discovery.
 See [Install Submariner with Service Discovery](https://submariner.io/getting-started/quickstart/openshift/aws/#install-submariner-with-service-discovery) for more examples.
