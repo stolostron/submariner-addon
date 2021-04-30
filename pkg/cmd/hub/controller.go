@@ -10,11 +10,13 @@ import (
 )
 
 func NewController() *cobra.Command {
+	addOnOptions := hub.NewAddOnOptions()
 	cmd := controllercmd.
-		NewControllerCommandConfig("submariner-controller", version.Get(), hub.RunControllerManager).
+		NewControllerCommandConfig("submariner-controller", version.Get(), addOnOptions.RunControllerManager).
 		NewCommand()
 	cmd.Use = "controller"
 	cmd.Short = "Start the ACM Submariner Controller"
 
+	addOnOptions.AddFlags(cmd)
 	return cmd
 }

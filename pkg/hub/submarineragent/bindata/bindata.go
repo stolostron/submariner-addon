@@ -1,7 +1,6 @@
 // Code generated for package bindata by go-bindata DO NOT EDIT. (@generated)
 // sources:
 // manifests/agent/operator/submariner-operator-group.yaml
-// manifests/agent/operator/submariner-operator-namespace.yaml
 // manifests/agent/operator/submariner-operator-subscription.yaml
 // manifests/agent/operator/submariner.io-submariners-cr.yaml
 // manifests/agent/rbac/broker-cluster-rolebinding.yaml
@@ -66,7 +65,7 @@ var _manifestsAgentOperatorSubmarinerOperatorGroupYaml = []byte(`apiVersion: ope
 kind: OperatorGroup
 metadata:
   name: submariner-operator
-  namespace: submariner-operator
+  namespace: {{ .InstallationNamespace }}
 spec:
   targetNamespaces:
   - submariner-operator
@@ -87,32 +86,11 @@ func manifestsAgentOperatorSubmarinerOperatorGroupYaml() (*asset, error) {
 	return a, nil
 }
 
-var _manifestsAgentOperatorSubmarinerOperatorNamespaceYaml = []byte(`apiVersion: v1
-kind: Namespace
-metadata:
-  name: submariner-operator
-`)
-
-func manifestsAgentOperatorSubmarinerOperatorNamespaceYamlBytes() ([]byte, error) {
-	return _manifestsAgentOperatorSubmarinerOperatorNamespaceYaml, nil
-}
-
-func manifestsAgentOperatorSubmarinerOperatorNamespaceYaml() (*asset, error) {
-	bytes, err := manifestsAgentOperatorSubmarinerOperatorNamespaceYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "manifests/agent/operator/submariner-operator-namespace.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _manifestsAgentOperatorSubmarinerOperatorSubscriptionYaml = []byte(`apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: submariner
-  namespace: submariner-operator
+  namespace: {{ .InstallationNamespace }}
 spec:
   channel: {{ .CatalogChannel }}
   installPlanApproval: Automatic
@@ -141,7 +119,7 @@ var _manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml = []byte(`apiVersion: s
 kind: Submariner
 metadata:
   name: submariner
-  namespace: submariner-operator
+  namespace: {{ .InstallationNamespace }}
 spec:
   broker: k8s
   brokerK8sApiServer: {{ .BrokerAPIServer }}
@@ -157,7 +135,7 @@ spec:
   clusterID: {{ .ClusterName }}
   colorCodes: blue
   debug: false
-  namespace: submariner-operator
+  namespace: {{ .InstallationNamespace }}
   natEnabled: {{ .NATEnabled }}
   serviceCIDR: ""
   serviceDiscoveryEnabled: true
@@ -408,7 +386,6 @@ func AssetNames() []string {
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
 	"manifests/agent/operator/submariner-operator-group.yaml":        manifestsAgentOperatorSubmarinerOperatorGroupYaml,
-	"manifests/agent/operator/submariner-operator-namespace.yaml":    manifestsAgentOperatorSubmarinerOperatorNamespaceYaml,
 	"manifests/agent/operator/submariner-operator-subscription.yaml": manifestsAgentOperatorSubmarinerOperatorSubscriptionYaml,
 	"manifests/agent/operator/submariner.io-submariners-cr.yaml":     manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml,
 	"manifests/agent/rbac/broker-cluster-rolebinding.yaml":           manifestsAgentRbacBrokerClusterRolebindingYaml,
@@ -463,7 +440,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"agent": {nil, map[string]*bintree{
 			"operator": {nil, map[string]*bintree{
 				"submariner-operator-group.yaml":        {manifestsAgentOperatorSubmarinerOperatorGroupYaml, map[string]*bintree{}},
-				"submariner-operator-namespace.yaml":    {manifestsAgentOperatorSubmarinerOperatorNamespaceYaml, map[string]*bintree{}},
 				"submariner-operator-subscription.yaml": {manifestsAgentOperatorSubmarinerOperatorSubscriptionYaml, map[string]*bintree{}},
 				"submariner.io-submariners-cr.yaml":     {manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml, map[string]*bintree{}},
 			}},

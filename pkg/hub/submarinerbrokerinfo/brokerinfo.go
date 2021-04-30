@@ -1,6 +1,7 @@
 package submarinerbrokerinfo
 
 import (
+	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
@@ -20,6 +21,7 @@ const (
 	defaultCatalogSourceNamespace = "openshift-marketplace"
 	defaultCatalogStartingCSV     = "submariner.v0.8"
 	defaultCableDriver            = "libreswan"
+	defaultInstallationNamespace  = "open-cluster-management-agent-addon"
 )
 
 var (
@@ -31,6 +33,7 @@ type SubmarinerBrokerInfo struct {
 	NATEnabled                bool
 	IPSecIKEPort              int
 	IPSecNATTPort             int
+	InstallationNamespace     string
 	BrokerAPIServer           string
 	BrokerNamespace           string
 	BrokerToken               string
@@ -59,7 +62,8 @@ func NewSubmarinerBrokerInfo(
 	recorder events.Recorder,
 	managedCluster *clusterv1.ManagedCluster,
 	brokeNamespace string,
-	submarinerConfig *configv1alpha1.SubmarinerConfig) (*SubmarinerBrokerInfo, error) {
+	submarinerConfig *configv1alpha1.SubmarinerConfig,
+	managedClusterAddOn *addonv1alpha1.ManagedClusterAddOn) (*SubmarinerBrokerInfo, error) {
 	brokerInfo := &SubmarinerBrokerInfo{
 		CableDriver:            defaultCableDriver,
 		IPSecIKEPort:           helpers.SubmarinerIKEPort,
@@ -71,6 +75,11 @@ func NewSubmarinerBrokerInfo(
 		CatalogSource:          defaultCatalogSource,
 		CatalogSourceNamespace: defaultCatalogSourceNamespace,
 		CatalogStartingCSV:     defaultCatalogStartingCSV,
+		InstallationNamespace:  defaultInstallationNamespace,
+	}
+
+	if len(managedClusterAddOn.Spec.InstallNamespace) != 0 {
+		brokerInfo.InstallationNamespace = managedClusterAddOn.Spec.InstallNamespace
 	}
 
 	apiServer, err := helpers.GetBrokerAPIServer(dynamicClient)

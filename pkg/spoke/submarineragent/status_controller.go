@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	SubmarinerAddOnName         = "submariner-addon"
+	SubmarinerAddOnName         = "submariner"
 	SubmarinerOperatorNamespace = "submariner-operator"
 )
 

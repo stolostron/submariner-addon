@@ -2,7 +2,7 @@ apiVersion: submariner.io/v1alpha1
 kind: Submariner
 metadata:
   name: submariner
-  namespace: submariner-operator
+  namespace: {{ .InstallationNamespace }}
 spec:
   broker: k8s
   brokerK8sApiServer: {{ .BrokerAPIServer }}
@@ -18,7 +18,7 @@ spec:
   clusterID: {{ .ClusterName }}
   colorCodes: blue
   debug: false
-  namespace: submariner-operator
+  namespace: {{ .InstallationNamespace }}
   natEnabled: {{ .NATEnabled }}
   serviceCIDR: ""
   serviceDiscoveryEnabled: true

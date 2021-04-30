@@ -115,7 +115,8 @@ var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 
 	// start submariner broker and agent controller
 	go func() {
-		err := hub.RunControllerManager(context.Background(), &controllercmd.ControllerContext{
+		addOnOptions := hub.AddOnOptions{AgentImage: "test"}
+		err := addOnOptions.RunControllerManager(context.Background(), &controllercmd.ControllerContext{
 			KubeConfig:    cfg,
 			EventRecorder: util.NewIntegrationTestEventRecorder("submariner-addon"),
 		})

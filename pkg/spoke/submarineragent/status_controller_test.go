@@ -37,7 +37,7 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
-						Name:      "submariner-addon",
+						Name:      "submariner",
 					},
 				},
 			},
@@ -97,7 +97,7 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
-						Name:      "submariner-addon",
+						Name:      "submariner",
 					},
 				},
 			},

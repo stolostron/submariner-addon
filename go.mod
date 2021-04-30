@@ -1,6 +1,6 @@
 module github.com/open-cluster-management/submariner-addon
 
-go 1.15
+go 1.16
 
 require (
 	github.com/aws/aws-sdk-go v1.38.1

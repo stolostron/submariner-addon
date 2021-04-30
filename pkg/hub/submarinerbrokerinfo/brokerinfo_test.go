@@ -3,6 +3,7 @@ package submarinerbrokerinfo
 import (
 	"testing"
 
+	addonapiv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
@@ -244,6 +245,12 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 				c.cluster,
 				c.brokerName,
 				c.submarinerConfig,
+				&addonapiv1alpha1.ManagedClusterAddOn{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "submariner",
+						Namespace: "cluster1",
+					},
+				},
 			)
 			if err != nil {
 				t.Errorf("expect no err, but got: %v", err)

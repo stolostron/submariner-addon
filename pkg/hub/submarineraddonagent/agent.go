@@ -36,17 +36,20 @@ func init() {
 }
 
 const (
-	addOnName                    = "submariner-addon"
+	addOnName                    = "submariner"
 	agentName                    = "submariner-addon-agent"
+	defaultAgentImage            = "quay.io/open-cluster-management/submariner-addon:latest"
 	defaultInstallationNamespace = "open-cluster-management-agent-addon"
 )
 
 const (
-	addOnGroup         = "system:open-cluster-management:addon:submariner-addon"
-	agentUserName      = "system:open-cluster-management:cluster:%s:addon:submariner-addon:agent:submariner-addon-agent"
-	clusterAddOnGroup  = "system:open-cluster-management:cluster:%s:addon:submariner-addon"
+	addOnGroup         = "system:open-cluster-management:addon:submariner"
+	agentUserName      = "system:open-cluster-management:cluster:%s:addon:submariner:agent:submariner-addon-agent"
+	clusterAddOnGroup  = "system:open-cluster-management:cluster:%s:addon:submariner"
 	authenticatedGroup = "system:authenticated"
 )
+
+const agentInstallationNamespaceFile = "pkg/hub/submarineraddonagent/manifests/namespace.yaml"
 
 var agentDeploymentFiles = []string{
 	"pkg/hub/submarineraddonagent/manifests/clusterrole.yaml",
@@ -66,13 +69,15 @@ var agentHubPermissionFiles = []string{
 type addOnAgent struct {
 	kubeClient kubernetes.Interface
 	recorder   events.Recorder
+	agentImage string
 }
 
 // NewAddOnAgent returns an instance of addOnAgent
-func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder) *addOnAgent {
+func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, agentImage string) *addOnAgent {
 	return &addOnAgent{
 		kubeClient: kubeClient,
 		recorder:   recorder,
+		agentImage: agentImage,
 	}
 }
 
@@ -80,19 +85,29 @@ func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder) *a
 func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) ([]runtime.Object, error) {
 	objects := []runtime.Object{}
 
+	// if the installation namespace is not set, to keep consistent with addon-framework,
+	// using open-cluster-management-agent-addon namespace as default namespace.
 	installNamespace := addon.Spec.InstallNamespace
 	if len(installNamespace) == 0 {
 		installNamespace = defaultInstallationNamespace
+	}
+
+	// if the installation namesapce is default namespace (open-cluster-management-agent-addon),
+	// we will not maintain (create/delete) it, because other ACM addons will be installed this namespace.
+	if installNamespace != defaultInstallationNamespace {
+		agentDeploymentFiles = append(agentDeploymentFiles, agentInstallationNamespaceFile)
 	}
 
 	manifestConfig := struct {
 		KubeConfigSecret      string
 		ClusterName           string
 		AddonInstallNamespace string
+		Image                 string
 	}{
 		KubeConfigSecret:      fmt.Sprintf("%s-hub-kubeconfig", a.GetAgentAddonOptions().AddonName),
 		AddonInstallNamespace: installNamespace,
 		ClusterName:           cluster.Name,
+		Image:                 a.agentImage,
 	}
 
 	for _, file := range agentDeploymentFiles {
