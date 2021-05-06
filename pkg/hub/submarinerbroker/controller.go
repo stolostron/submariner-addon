@@ -83,7 +83,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	}
 	clusterSet = clusterSet.DeepCopy()
 	config := &brokerConfig{
-		SubmarinerNamespace: fmt.Sprintf("submariner-clusterset-%s-broker", clusterSet.Name),
+		SubmarinerNamespace: helpers.GernerateBrokerName(clusterSet.Name),
 	}
 
 	// Update finalizer at first

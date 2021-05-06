@@ -197,9 +197,9 @@ func TestSyncManagedCluster(t *testing.T) {
 				},
 			},
 			kubeObjs: []runtime.Object{
-				newSecret("submariner-clusterset-set1-broker", "submariner-ipsec-psk", map[string][]byte{"psk": []byte("psk")}),
-				newSecret("submariner-clusterset-set1-broker", "cluster1-token-5pw5c", map[string][]byte{"ca.crt": []byte("ca"), "token": []byte("token")}),
-				newServiceAccount("submariner-clusterset-set1-broker", "cluster1", "cluster1-token-5pw5c", map[string]string{}),
+				newSecret("set1-broker", "submariner-ipsec-psk", map[string][]byte{"psk": []byte("psk")}),
+				newSecret("set1-broker", "cluster1-token-5pw5c", map[string][]byte{"ca.crt": []byte("ca"), "token": []byte("token")}),
+				newServiceAccount("set1-broker", "cluster1", "cluster1-token-5pw5c", map[string]string{}),
 			},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, clusterActions)
