@@ -4,9 +4,20 @@ metadata:
   name: open-cluster-management:submariner-addon:agent
   namespace: {{ .ClusterName }}
 rules:
+# Allow submariner-addon agent to operator managedclusteraddons on the hub cluster
 - apiGroups: ["addon.open-cluster-management.io"]
   resources: ["managedclusteraddons"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["addon.open-cluster-management.io"]
   resources: ["managedclusteraddons/status"]
+  verbs: ["patch", "update"]
+# Allow submariner-addon agent to operator submarinerconfigs on the hub cluster
+- apiGroups: ["submarineraddon.open-cluster-management.io"]
+  resources: ["submarinerconfigs"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["submarineraddon.open-cluster-management.io"]
+  resources: ["submarinerconfigs/finalizers"]
+  verbs: ["update"]
+- apiGroups: ["submarineraddon.open-cluster-management.io"]
+  resources: ["submarinerconfigs/status"]
   verbs: ["patch", "update"]

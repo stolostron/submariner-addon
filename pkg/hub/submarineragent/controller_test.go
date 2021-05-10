@@ -378,7 +378,7 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 		},
 		{
 			name:     "too many configs",
-			queueKey: "cluster1",
+			queueKey: "",
 			configs: []runtime.Object{
 				&configv1alpha1.SubmarinerConfig{
 					ObjectMeta: metav1.ObjectMeta{
@@ -410,7 +410,7 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 			configs: []runtime.Object{
 				&configv1alpha1.SubmarinerConfig{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "submariner-config",
+						Name:      "submariner",
 						Namespace: "cluster1",
 					},
 				},
@@ -436,11 +436,11 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 		},
 		{
 			name:     "create a submariner config",
-			queueKey: "cluster1/submariner-config",
+			queueKey: "cluster1/submariner",
 			configs: []runtime.Object{
 				&configv1alpha1.SubmarinerConfig{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "submariner-config",
+						Name:      "submariner",
 						Namespace: "cluster1",
 					},
 				},
@@ -466,11 +466,11 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 		},
 		{
 			name:     "no managed cluster",
-			queueKey: "cluster1/submariner-config",
+			queueKey: "cluster1/submariner",
 			configs: []runtime.Object{
 				&configv1alpha1.SubmarinerConfig{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "submariner-config",
+						Name:       "submariner",
 						Namespace:  "cluster1",
 						Finalizers: []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
 					},
@@ -488,11 +488,11 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 		},
 		{
 			name:     "unsupported cluster vendor",
-			queueKey: "cluster1/submariner-config",
+			queueKey: "cluster1/submariner",
 			configs: []runtime.Object{
 				&configv1alpha1.SubmarinerConfig{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "submariner-config",
+						Name:       "submariner",
 						Namespace:  "cluster1",
 						Finalizers: []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
 					},
@@ -518,11 +518,11 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 		},
 		{
 			name:     "delete a submariner config without credentials secret",
-			queueKey: "cluster1/submariner-config",
+			queueKey: "cluster1/submariner",
 			configs: []runtime.Object{
 				&configv1alpha1.SubmarinerConfig{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:              "submariner-config",
+						Name:              "submariner",
 						Namespace:         "cluster1",
 						DeletionTimestamp: &now,
 						Finalizers:        []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
@@ -541,11 +541,11 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 		},
 		{
 			name:     "delete a submariner config",
-			queueKey: "cluster1/submariner-config",
+			queueKey: "cluster1/submariner",
 			configs: []runtime.Object{
 				&configv1alpha1.SubmarinerConfig{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:              "submariner-config",
+						Name:              "submariner",
 						Namespace:         "cluster1",
 						DeletionTimestamp: &now,
 						Finalizers:        []string{"submarineraddon.open-cluster-management.io/config-cleanup"},

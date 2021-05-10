@@ -67,12 +67,14 @@ kind: ClusterRole
 metadata:
   name: open-cluster-management:submariner-addon:agent
 rules:
+# Allow submariner-addon agent to run with openshift library-go
 - apiGroups: [""]
-  resources: ["configmaps", "nodes"]
+  resources: ["configmaps"]
   verbs: ["get", "list", "watch"]
-- apiGroups: ["submariner.io"]
-  resources: ["submariners"]
-  verbs: ["get", "list", "watch"]
+# Allow submariner-addon agent to get/update nodes
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch", "update", "patch"]
 `)
 
 func pkgHubSubmarineraddonagentManifestsClusterroleYamlBytes() ([]byte, error) {
@@ -175,11 +177,22 @@ metadata:
   name: open-cluster-management:submariner-addon:agent
   namespace: {{ .ClusterName }}
 rules:
+# Allow submariner-addon agent to operator managedclusteraddons on the hub cluster
 - apiGroups: ["addon.open-cluster-management.io"]
   resources: ["managedclusteraddons"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["addon.open-cluster-management.io"]
   resources: ["managedclusteraddons/status"]
+  verbs: ["patch", "update"]
+# Allow submariner-addon agent to operator submarinerconfigs on the hub cluster
+- apiGroups: ["submarineraddon.open-cluster-management.io"]
+  resources: ["submarinerconfigs"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["submarineraddon.open-cluster-management.io"]
+  resources: ["submarinerconfigs/finalizers"]
+  verbs: ["update"]
+- apiGroups: ["submarineraddon.open-cluster-management.io"]
+  resources: ["submarinerconfigs/status"]
   verbs: ["patch", "update"]
 `)
 
@@ -255,15 +268,27 @@ metadata:
   name: submariner-addon
   namespace: {{ .AddonInstallNamespace }}
 rules:
+# Allow submariner-addon agent to run with openshift library-go
 - apiGroups: [""]
   resources: ["configmaps"]
   verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: ["replicasets"]
+  verbs: ["get"]
 - apiGroups: ["", "events.k8s.io"]
   resources: ["events"]
   verbs: ["create", "patch", "update"]
+# Allow submariner-addon agent to run with addon-framwork
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]
   verbs: ["get", "list", "watch", "create", "update", "delete"]
+# Allow submariner-addon agent to get submariners
+- apiGroups: ["submariner.io"]
+  resources: ["submariners"]
+  verbs: ["get", "list", "watch"]
 `)
 
 func pkgHubSubmarineraddonagentManifestsRoleYamlBytes() ([]byte, error) {
