@@ -608,6 +608,13 @@ func CheckSubmarinerConnections(clusterName string, submariner *submarinerv1alph
 		}
 	}
 
+	if len(connectedMessages) == 0 && len(unconnectedMessages) == 0 {
+		condition.Status = metav1.ConditionTrue
+		condition.Reason = "ConnectionsNotEstablished"
+		condition.Message = "There are no connections on gateways"
+		return condition
+	}
+
 	if len(unconnectedMessages) != 0 {
 		condition.Status = metav1.ConditionTrue
 		condition.Reason = "ConnectionsDegraded"
