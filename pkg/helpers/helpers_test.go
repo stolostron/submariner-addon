@@ -964,6 +964,22 @@ func TestCheckSubmarinerConnections(t *testing.T) {
 			},
 		},
 		{
+			name: "no connections",
+			submariner: &submarinerv1alpha1.Submariner{
+				Status: submarinerv1alpha1.SubmarinerStatus{
+					Gateways: &[]submarinermv1.GatewayStatus{{Connections: []submarinermv1.Connection{}}},
+				},
+			},
+			validateCondation: func(t *testing.T, actual metav1.Condition) {
+				if actual.Status != metav1.ConditionTrue {
+					t.Errorf("expected degraded, but failed")
+				}
+				if actual.Reason != "ConnectionsNotEstablished" {
+					t.Errorf("unexpected reason, %v", actual)
+				}
+			},
+		},
+		{
 			name: "connections are not established",
 			submariner: &submarinerv1alpha1.Submariner{
 				Status: submarinerv1alpha1.SubmarinerStatus{
