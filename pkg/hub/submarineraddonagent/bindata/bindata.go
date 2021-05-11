@@ -140,7 +140,6 @@ spec:
       containers:
       - name: submariner-addon
         image: {{ .Image }}
-        imagePullPolicy: IfNotPresent
         args:
           - "/submariner"
           - "agent"
