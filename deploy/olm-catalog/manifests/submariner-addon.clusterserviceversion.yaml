@@ -82,6 +82,7 @@ spec:
           - patch
           - delete
           - bind
+          - escalate
         - apiGroups:
           - rbac.authorization.k8s.io
           resources:
@@ -112,6 +113,7 @@ spec:
           resources:
           - secrets
           verbs:
+          - create
           - get
           - list
           - watch
@@ -233,7 +235,6 @@ spec:
                     fieldRef:
                       fieldPath: metadata.name
                 image: quay.io/open-cluster-management/submariner-addon:latest
-                imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
                     path: /healthz

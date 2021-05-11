@@ -19,7 +19,6 @@ spec:
       containers:
       - name: submariner-addon
         image: quay.io/open-cluster-management/submariner-addon:latest
-        imagePullPolicy: IfNotPresent
         args:
           - "/submariner"
           - "controller"
