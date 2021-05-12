@@ -1,7 +1,6 @@
 // Code generated for package bindata by go-bindata DO NOT EDIT. (@generated)
 // sources:
 // pkg/cloud/aws/manifests/machineset-aggeragate-clusterrole.yaml
-// pkg/cloud/aws/manifests/machineset.yaml
 package bindata
 
 import (
@@ -82,84 +81,6 @@ func pkgCloudAwsManifestsMachinesetAggeragateClusterroleYaml() (*asset, error) {
 	return a, nil
 }
 
-var _pkgCloudAwsManifestsMachinesetYaml = []byte(`apiVersion: machine.openshift.io/v1beta1
-kind: MachineSet
-metadata:
-  labels:
-    machine.openshift.io/cluster-api-cluster: {{ .InfraId }}
-  name: {{ .InfraId }}-submariner-gw-{{ .AZ }}
-  namespace: openshift-machine-api
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      machine.openshift.io/cluster-api-cluster: {{ .InfraId }}
-      machine.openshift.io/cluster-api-machineset: {{ .InfraId }}-submariner-gw-{{ .AZ }}
-  template:
-    metadata:
-      labels:
-        machine.openshift.io/cluster-api-cluster: {{ .InfraId }}
-        machine.openshift.io/cluster-api-machine-role: worker
-        machine.openshift.io/cluster-api-machine-type: worker
-        machine.openshift.io/cluster-api-machineset: {{ .InfraId }}-submariner-gw-{{ .AZ }}
-    spec:
-      metadata:
-        labels:
-          submariner.io/gateway: "true"
-      taints:
-        - effect: NoSchedule
-          key: node-role.submariner.io/gateway
-      providerSpec:
-        value:
-          ami:
-            id: {{ .AMIId }}
-          apiVersion: awsproviderconfig.openshift.io/v1beta1
-          credentialsSecret:
-            name: aws-cloud-credentials
-          deviceIndex: 0
-          iamInstanceProfile:
-            id: {{ .InfraId }}-worker-profile
-          instanceType: {{ .InstanceType }}
-          kind: AWSMachineProviderConfig
-          placement:
-            availabilityZone: {{ .AZ }}
-            region: {{ .Region }}
-          securityGroups:
-            - filters:
-                - name: tag:Name
-                  values:
-                    - {{ .InfraId }}-worker-sg
-                    - {{ .SecurityGroupName }}
-          subnet:
-            filters:
-              - name: tag:Name
-                values:
-                  - {{ .SubnetName }}
-          tags:
-            - name: kubernetes.io/cluster/{{ .InfraId }}
-              value: owned
-            - name: submariner.io
-              value: gateway
-          userDataSecret:
-            name: worker-user-data
-          publicIp: true
-`)
-
-func pkgCloudAwsManifestsMachinesetYamlBytes() ([]byte, error) {
-	return _pkgCloudAwsManifestsMachinesetYaml, nil
-}
-
-func pkgCloudAwsManifestsMachinesetYaml() (*asset, error) {
-	bytes, err := pkgCloudAwsManifestsMachinesetYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "pkg/cloud/aws/manifests/machineset.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -213,7 +134,6 @@ func AssetNames() []string {
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
 	"pkg/cloud/aws/manifests/machineset-aggeragate-clusterrole.yaml": pkgCloudAwsManifestsMachinesetAggeragateClusterroleYaml,
-	"pkg/cloud/aws/manifests/machineset.yaml":                        pkgCloudAwsManifestsMachinesetYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -262,7 +182,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"aws": {nil, map[string]*bintree{
 				"manifests": {nil, map[string]*bintree{
 					"machineset-aggeragate-clusterrole.yaml": {pkgCloudAwsManifestsMachinesetAggeragateClusterroleYaml, map[string]*bintree{}},
-					"machineset.yaml":                        {pkgCloudAwsManifestsMachinesetYaml, map[string]*bintree{}},
 				}},
 			}},
 		}},
