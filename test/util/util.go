@@ -164,10 +164,10 @@ func NewManagedClusterSet(name string) *clusterv1alpha1.ManagedClusterSet {
 	}
 }
 
-func NewSubmarinerConifg(namespace, name string) *configv1alpha1.SubmarinerConfig {
+func NewSubmarinerConifg(namespace string) *configv1alpha1.SubmarinerConfig {
 	return &configv1alpha1.SubmarinerConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      "submariner",
 			Namespace: namespace,
 		},
 		Spec: configv1alpha1.SubmarinerConfigSpec{},

@@ -3,9 +3,11 @@ kind: ClusterRole
 metadata:
   name: open-cluster-management:submariner-addon:agent
 rules:
+# Allow submariner-addon agent to run with openshift library-go
 - apiGroups: [""]
-  resources: ["configmaps", "nodes"]
+  resources: ["configmaps"]
   verbs: ["get", "list", "watch"]
-- apiGroups: ["submariner.io"]
-  resources: ["submariners"]
-  verbs: ["get", "list", "watch"]
+# Allow submariner-addon agent to get/update nodes
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch", "update", "patch"]

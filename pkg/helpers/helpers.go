@@ -50,6 +50,10 @@ import (
 )
 
 const (
+	SubmarinerConfigName = "submariner"
+)
+
+const (
 	ClusterTypeOCP       = "OCP"
 	IPSecPSKSecretLength = 48
 	IPSecPSKSecretName   = "submariner-ipsec-psk"

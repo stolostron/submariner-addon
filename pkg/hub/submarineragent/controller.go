@@ -24,7 +24,7 @@ import (
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
-	configinlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
+	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent/bindata"
@@ -92,7 +92,7 @@ type submarinerAgentController struct {
 	clusterLister      clusterlisterv1.ManagedClusterLister
 	clusterSetLister   clusterlisterv1alpha1.ManagedClusterSetLister
 	manifestWorkLister worklister.ManifestWorkLister
-	configLister       configinlister.SubmarinerConfigLister
+	configLister       configlister.SubmarinerConfigLister
 	addOnLister        addonlisterv1alpha1.ManagedClusterAddOnLister
 	eventRecorder      events.Recorder
 }
@@ -135,8 +135,11 @@ func NewSubmarinerAgentController(
 			return accessor.GetNamespace()
 		}, manifestWorkInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
-			key, _ := cache.MetaNamespaceKeyFunc(obj)
-			return key
+			accessor, _ := meta.Accessor(obj)
+			if accessor.GetName() != helpers.SubmarinerConfigName {
+				return ""
+			}
+			return accessor.GetNamespace() + "/" + accessor.GetName()
 		}, configInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
@@ -180,22 +183,21 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 			return err
 		}
 
-		config, err := c.getSubmarinerConfig(ctx, name)
+		config, err := c.configLister.SubmarinerConfigs(name).Get(helpers.SubmarinerConfigName)
+		if errors.IsNotFound(err) {
+			// only sync the managed cluster
+			return c.syncManagedCluster(ctx, managedCluster.DeepCopy(), nil)
+		}
 		if err != nil {
 			return err
 		}
 
-		if err := c.syncManagedCluster(ctx, managedCluster, config); err != nil {
+		if err := c.syncManagedCluster(ctx, managedCluster.DeepCopy(), config.DeepCopy()); err != nil {
 			return err
 		}
 
-		if config == nil {
-			// there is no submariner configuration, do nothing.
-			return nil
-		}
-
 		// handle creating submariner config before creating managed cluster
-		return c.syncSubmarinerConfig(ctx, managedCluster, config)
+		return c.syncSubmarinerConfig(ctx, managedCluster.DeepCopy(), config.DeepCopy())
 	}
 
 	// if the sync is triggered by change of SubmarinerConfig, reconcile the submariner config
@@ -211,18 +213,18 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 	managedCluster, err := c.clusterLister.Get(namespace)
 	if errors.IsNotFound(err) {
 		// handle deleting submariner config after managed cluster was deleted.
-		return c.syncSubmarinerConfig(ctx, nil, config)
+		return c.syncSubmarinerConfig(ctx, nil, config.DeepCopy())
 	}
 	if err != nil {
 		return err
 	}
 
 	// the submariner agent config maybe need to update.
-	if err := c.syncManagedCluster(ctx, managedCluster, config); err != nil {
+	if err := c.syncManagedCluster(ctx, managedCluster.DeepCopy(), config.DeepCopy()); err != nil {
 		return err
 	}
 
-	return c.syncSubmarinerConfig(ctx, managedCluster, config)
+	return c.syncSubmarinerConfig(ctx, managedCluster.DeepCopy(), config.DeepCopy())
 }
 
 // syncAllManagedClusters syncs all managed clusters
@@ -234,13 +236,18 @@ func (c *submarinerAgentController) syncAllManagedClusters(ctx context.Context) 
 
 	errs := []error{}
 	for _, managedCluster := range managedClusters {
-		config, err := c.getSubmarinerConfig(ctx, managedCluster.ClusterName)
+		config, err := c.configLister.SubmarinerConfigs(managedCluster.ClusterName).Get(helpers.SubmarinerConfigName)
+		if errors.IsNotFound(err) {
+			// only sync managed clsuter
+			errs = append(errs, c.syncManagedCluster(ctx, managedCluster.DeepCopy(), nil))
+			continue
+		}
 		if err != nil {
 			errs = append(errs, err)
+			continue
 		}
-		if err = c.syncManagedCluster(ctx, managedCluster, config); err != nil {
-			errs = append(errs, err)
-		}
+
+		errs = append(errs, c.syncManagedCluster(ctx, managedCluster.DeepCopy(), config.DeepCopy()))
 	}
 
 	return operatorhelpers.NewMultiLineAggregate(errs)
@@ -556,23 +563,6 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 		},
 		clusterRBACFiles...,
 	)
-}
-
-func (c *submarinerAgentController) getSubmarinerConfig(ctx context.Context, namespace string) (*configv1alpha1.SubmarinerConfig, error) {
-	configs, err := c.configLister.SubmarinerConfigs(namespace).List(labels.Everything())
-	if err != nil {
-		return nil, err
-	}
-	switch len(configs) {
-	case 0:
-		return nil, nil
-	case 1:
-		return configs[0], nil
-	default:
-		//TODO we need ensure only one config for one managed cluster in the future
-		c.eventRecorder.Warningf("one more than submariner configs are found from %q", namespace)
-		return nil, nil
-	}
 }
 
 func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {

@@ -10,6 +10,8 @@ import (
 
 	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	addoninformers "github.com/open-cluster-management/api/client/addon/informers/externalversions"
+	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 
@@ -74,6 +76,11 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		return err
 	}
 
+	configHubKubeClient, err := configclient.NewForConfig(hubRestConfig)
+	if err != nil {
+		return err
+	}
+
 	spokeKubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
 		return err
@@ -85,6 +92,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	}
 
 	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnHubKubeClient, 10*time.Minute, addoninformers.WithNamespace(o.ClusterName))
+	configInformers := configinformers.NewSharedInformerFactoryWithOptions(configHubKubeClient, 10*time.Minute, configinformers.WithNamespace(o.ClusterName))
 
 	spokeKubeInformers := informers.NewSharedInformerFactory(spokeKubeClient, 10*time.Minute)
 	// TODO if submariner provides the informer in future, we will use it instead of dynamic informer
@@ -100,10 +108,21 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		controllerContext.EventRecorder,
 	)
 
+	submarinerAgentConfigController := submarineragent.NewSubmarinerAgentConfigController(
+		o.ClusterName,
+		spokeKubeClient,
+		configHubKubeClient,
+		spokeKubeInformers.Core().V1().Nodes(),
+		configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
+		controllerContext.EventRecorder,
+	)
+
 	go addOnInformers.Start(ctx.Done())
+	go configInformers.Start(ctx.Done())
 	go spokeKubeInformers.Start(ctx.Done())
 	go dynamicInformers.Start(ctx.Done())
 	go submarinerAgentStatusController.Run(ctx, 1)
+	go submarinerAgentConfigController.Run(ctx, 1)
 
 	// start lease updater
 	leaseUpdater := lease.NewLeaseUpdater(

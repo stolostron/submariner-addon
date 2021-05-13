@@ -4,12 +4,24 @@ metadata:
   name: submariner-addon
   namespace: {{ .AddonInstallNamespace }}
 rules:
+# Allow submariner-addon agent to run with openshift library-go
 - apiGroups: [""]
   resources: ["configmaps"]
   verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: ["replicasets"]
+  verbs: ["get"]
 - apiGroups: ["", "events.k8s.io"]
   resources: ["events"]
   verbs: ["create", "patch", "update"]
+# Allow submariner-addon agent to run with addon-framwork
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]
   verbs: ["get", "list", "watch", "create", "update", "delete"]
+# Allow submariner-addon agent to get submariners
+- apiGroups: ["submariner.io"]
+  resources: ["submariners"]
+  verbs: ["get", "list", "watch"]
