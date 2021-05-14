@@ -888,7 +888,7 @@ func TestCheckSubmarinerDaemonSetStatus(t *testing.T) {
 			name: "unavailable components",
 			submariner: &submarinerv1alpha1.Submariner{
 				Status: submarinerv1alpha1.SubmarinerStatus{
-					EngineDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
+					GatewayDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
 						Status: &v1.DaemonSetStatus{
 							DesiredNumberScheduled: 2,
 							NumberUnavailable:      1,
@@ -915,7 +915,7 @@ func TestCheckSubmarinerDaemonSetStatus(t *testing.T) {
 			name: "submariner agend deployed",
 			submariner: &submarinerv1alpha1.Submariner{
 				Status: submarinerv1alpha1.SubmarinerStatus{
-					EngineDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
+					GatewayDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
 						Status: &v1.DaemonSetStatus{
 							DesiredNumberScheduled: 2,
 						},

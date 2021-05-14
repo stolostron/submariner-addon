@@ -1,5 +1,5 @@
 /*
-© 2020 Red Hat, Inc. and others.
+© 2021 Red Hat, Inc. and others.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	"github.com/submariner-io/submariner-operator/pkg/versions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,22 +29,28 @@ import (
 // ServiceDiscoverySpec defines the desired state of ServiceDiscovery
 // +k8s:openapi-gen=true
 type ServiceDiscoverySpec struct {
-	BrokerK8sApiServer       string `json:"brokerK8sApiServer"`
-	BrokerK8sApiServerToken  string `json:"brokerK8sApiServerToken"`
-	BrokerK8sCA              string `json:"brokerK8sCA"`
-	BrokerK8sRemoteNamespace string `json:"brokerK8sRemoteNamespace"`
-	ClusterID                string `json:"clusterID"`
-	Namespace                string `json:"namespace"`
-	Repository               string `json:"repository,omitempty"`
-	Version                  string `json:"version,omitempty"`
-	Debug                    bool   `json:"debug"`
-	GlobalnetEnabled         bool   `json:"globalnetEnabled,omitempty"`
+	BrokerK8sApiServer       string               `json:"brokerK8sApiServer"`
+	BrokerK8sApiServerToken  string               `json:"brokerK8sApiServerToken"`
+	BrokerK8sCA              string               `json:"brokerK8sCA"`
+	BrokerK8sRemoteNamespace string               `json:"brokerK8sRemoteNamespace"`
+	ClusterID                string               `json:"clusterID"`
+	Namespace                string               `json:"namespace"`
+	Repository               string               `json:"repository,omitempty"`
+	Version                  string               `json:"version,omitempty"`
+	Debug                    bool                 `json:"debug"`
+	GlobalnetEnabled         bool                 `json:"globalnetEnabled,omitempty"`
+	CoreDNSCustomConfig      *CoreDNSCustomConfig `json:"coreDNSCustomConfig,omitempty"`
 	// +listType=set
 	CustomDomains  []string          `json:"customDomains,omitempty"`
 	ImageOverrides map[string]string `json:"imageOverrides,omitempty"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make manifests" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+}
+
+type CoreDNSCustomConfig struct {
+	ConfigMapName string `json:"configMapName,omitempty"`
+	Namespace     string `json:"namespace,omitempty"`
 }
 
 // ServiceDiscoveryStatus defines the observed state of ServiceDiscovery
@@ -81,8 +89,17 @@ func init() {
 	SchemeBuilder.Register(&ServiceDiscovery{}, &ServiceDiscoveryList{})
 }
 
-func (serviceDiscovery *ServiceDiscovery) SetDefaults() {
-	if serviceDiscovery.Spec.Version == "" {
-		serviceDiscovery.Spec.Version = versions.DefaultLighthouseVersion
+func (sd *ServiceDiscovery) UnmarshalJSON(data []byte) error {
+	type serviceDiscoveryAlias ServiceDiscovery
+	serviceDiscovery := &serviceDiscoveryAlias{
+		Spec: ServiceDiscoverySpec{
+			Version:    versions.DefaultLighthouseVersion,
+			Repository: versions.DefaultRepo,
+		},
 	}
+
+	_ = json.Unmarshal(data, serviceDiscovery)
+
+	*sd = ServiceDiscovery(*serviceDiscovery)
+	return nil
 }

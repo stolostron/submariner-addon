@@ -219,7 +219,7 @@ func SetSubmarinerDeployedStatus(submariner *unstructured.Unstructured) {
 	submariner.Object["status"] = map[string]interface{}{
 		"clusterID":  "test",
 		"natEnabled": true,
-		"engineDaemonSetStatus": map[string]interface{}{
+		"gatewayDaemonSetStatus": map[string]interface{}{
 			"mismatchedContainerImages": false,
 			"status": map[string]interface{}{
 				"currentNumberScheduled": int64(1),

@@ -142,7 +142,7 @@ spec:
 {{- if or .SubmarinerGatewayImage .SubmarinerRouteAgentImage .LighthouseAgentImage .LighthouseCoreDNSImage }}
   imageOverrides:
     {{- if .SubmarinerGatewayImage }}
-    submariner: {{ .SubmarinerGatewayImage }}
+    submariner-gateway: {{ .SubmarinerGatewayImage }}
     {{- end}}
     {{- if .SubmarinerRouteAgentImage }}
     submariner-route-agent: {{ .SubmarinerRouteAgentImage }}

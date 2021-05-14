@@ -1,3 +1,18 @@
+/*
+© 2021 Red Hat, Inc. and others
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package v1
 
 import (
@@ -65,6 +80,23 @@ type EndpointSpec struct {
 	BackendConfig map[string]string `json:"backend_config,omitempty"`
 }
 
+const (
+	GatewayConfigLabelPrefix = "gateway.submariner.io/"
+	UDPPortConfig            = "udp-port"
+	NATTDiscoveryPortConfig  = "natt-discovery-port"
+)
+
+// BackendConfig entries which aren't configured via labels, but exposed from the endpoints
+const (
+	PreferredServerConfig = "preferred-server"
+)
+
+// ValidGatewayNodeConfig list should contain only keys that configure node specific settings via labels
+var ValidGatewayNodeConfig = []string{
+	UDPPortConfig,
+	NATTDiscoveryPortConfig,
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type EndpointList struct {
@@ -121,6 +153,8 @@ type Connection struct {
 	Status        ConnectionStatus `json:"status"`
 	StatusMessage string           `json:"statusMessage"`
 	Endpoint      EndpointSpec     `json:"endpoint"`
+	UsingIP       string           `json:"usingIP,omitempty"`
+	UsingNAT      bool             `json:"usingNAT,omitempty"`
 	// +optional
 	LatencyRTT *LatencyRTTSpec `json:"latencyRTT,omitempty"`
 }
@@ -133,8 +167,8 @@ const (
 	ConnectionError ConnectionStatus = "error"
 )
 
-func NewConnection(endpointSpec EndpointSpec) *Connection {
-	return &Connection{Endpoint: endpointSpec}
+func NewConnection(endpointSpec EndpointSpec, usedIP string, nat bool) *Connection {
+	return &Connection{Endpoint: endpointSpec, UsingIP: usedIP, UsingNAT: nat}
 }
 
 func (c *Connection) SetStatus(status ConnectionStatus, messageFormat string, a ...interface{}) {

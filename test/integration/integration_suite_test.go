@@ -76,7 +76,7 @@ var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "work", "v1", workCRD),
 			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "addon", "v1alpha1"),
 			filepath.Join(".", "pkg", "apis", "submarinerconfig", "v1alpha1"),
-			filepath.Join(".", "test", "integration", "crds", "submariner", "0.8.1"),
+			filepath.Join(".", "test", "integration", "crds", "submariner"),
 		},
 	}
 
