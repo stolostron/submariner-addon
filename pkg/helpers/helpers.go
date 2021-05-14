@@ -540,17 +540,17 @@ func CheckSubmarinerDaemonSetsStatus(submariner *submarinerv1alpha1.Submariner) 
 	degradedConditionMessages := []string{}
 
 	// check gateway daemonset status
-	if submariner.Status.EngineDaemonSetStatus.Status == nil ||
-		submariner.Status.EngineDaemonSetStatus.Status.DesiredNumberScheduled == 0 {
+	if submariner.Status.GatewayDaemonSetStatus.Status == nil ||
+		submariner.Status.GatewayDaemonSetStatus.Status.DesiredNumberScheduled == 0 {
 		degradedConditionReasons = append(degradedConditionReasons, "GatewaysNotDeployed")
 		degradedConditionMessages = append(degradedConditionMessages, "The gateways are not deployed")
 	}
 
-	if submariner.Status.EngineDaemonSetStatus.Status != nil &&
-		submariner.Status.EngineDaemonSetStatus.Status.NumberUnavailable != 0 {
+	if submariner.Status.GatewayDaemonSetStatus.Status != nil &&
+		submariner.Status.GatewayDaemonSetStatus.Status.NumberUnavailable != 0 {
 		degradedConditionReasons = append(degradedConditionReasons, "GatewaysDegraded")
 		degradedConditionMessages = append(degradedConditionMessages,
-			fmt.Sprintf("There are %d unavailable gateways", submariner.Status.EngineDaemonSetStatus.Status.NumberUnavailable))
+			fmt.Sprintf("There are %d unavailable gateways", submariner.Status.GatewayDaemonSetStatus.Status.NumberUnavailable))
 	}
 
 	// check route agent daemonset status

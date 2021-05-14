@@ -62,7 +62,7 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 						},
 						"spec": map[string]interface{}{},
 						"status": map[string]interface{}{
-							"engineDaemonSetStatus": map[string]interface{}{
+							"gatewayDaemonSetStatus": map[string]interface{}{
 								"status": map[string]interface{}{
 									"desiredNumberScheduled": int64(1),
 								},
@@ -119,7 +119,7 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 						},
 						"spec": map[string]interface{}{},
 						"status": map[string]interface{}{
-							"engineDaemonSetStatus": map[string]interface{}{
+							"gatewayDaemonSetStatus": map[string]interface{}{
 								"status": map[string]interface{}{
 									"desiredNumberScheduled": int64(0),
 								},
