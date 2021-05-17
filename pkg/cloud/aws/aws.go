@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	instanceType              = "m5n.large"
+	defaultInstanceType       = "m5n.large"
 	accessKeyIDSecretKey      = "aws_access_key_id"
 	accessKeySecretKey        = "aws_secret_access_key"
 	internalELBLabel          = "kubernetes.io/role/internal-elb"
@@ -58,12 +58,14 @@ type awsProvider struct {
 	ikePort       int64
 	nattPort      int64
 	clusterName   string
+	instanceType  string
 }
 
 func NewAWSProvider(
 	kubeClient kubernetes.Interface, workClient workclient.Interface,
 	eventRecorder events.Recorder,
 	region, infraId, clusterName, credentialsSecretName string,
+	instanceType string,
 	ikePort, nattPort int) (*awsProvider, error) {
 	if region == "" {
 		return nil, fmt.Errorf("cluster region is empty")
@@ -81,6 +83,10 @@ func NewAWSProvider(
 		nattPort = helpers.SubmarinerNatTPort
 	}
 
+	if instanceType == "" {
+		instanceType = defaultInstanceType
+	}
+
 	awsClient, err := client.NewClient(kubeClient, clusterName, credentialsSecretName, region)
 	if err != nil {
 		return nil, err
@@ -95,6 +101,7 @@ func NewAWSProvider(
 		ikePort:       int64(ikePort),
 		nattPort:      int64(nattPort),
 		clusterName:   clusterName,
+		instanceType:  instanceType,
 	}, nil
 }
 
@@ -356,7 +363,7 @@ func (a *awsProvider) findSubnet(vpcId string) (*ec2.Subnet, error) {
 				},
 				{
 					Name:   aws.String("instance-type"),
-					Values: []*string{aws.String(instanceType)},
+					Values: []*string{aws.String(a.instanceType)},
 				},
 			},
 		})
@@ -371,7 +378,7 @@ func (a *awsProvider) findSubnet(vpcId string) (*ec2.Subnet, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("the instance type %s cannot be supported in vpc %s", instanceType, vpcId)
+	return nil, fmt.Errorf("the instance type %s cannot be supported in vpc %s", a.instanceType, vpcId)
 }
 
 func (a *awsProvider) openPort(masterSecurityGroup, workerSecurityGroup *ec2.SecurityGroup, port int64, protocol string) error {
@@ -624,7 +631,7 @@ func (a *awsProvider) deployGatewayNode(az, amiId string) error {
 			AMIId:             amiId,
 			Region:            a.region,
 			SecurityGroupName: fmt.Sprintf("%s-submariner-gw-sg", a.infraId),
-			InstanceType:      instanceType,
+			InstanceType:      a.instanceType,
 			SubnetName:        fmt.Sprintf("%s-public-%s", a.infraId, az),
 		}).Data
 	msJsonData, err := yaml.YAMLToJSON(msYamlData)

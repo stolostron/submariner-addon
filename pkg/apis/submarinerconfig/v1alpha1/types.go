@@ -29,14 +29,17 @@ type SubmarinerConfigSpec struct {
 	// CableDriver represents the submariner cable driver implementation.
 	// Available options are libreswan (default) strongswan, and wireguard.
 	// +optional
+	// +kubebuilder:default=libreswan
 	CableDriver string `json:"cableDriver,omitempty"`
 
 	// IPSecIKEPort represents IPsec IKE port (default 500).
 	// +optional
+	// +kubebuilder:default=500
 	IPSecIKEPort int `json:"IPSecIKEPort,omitempty"`
 
 	// IPSecNATTPort represents IPsec NAT-T port (default 4500).
 	// +optional
+	// +kubebuilder:default=4500
 	IPSecNATTPort int `json:"IPSecNATTPort,omitempty"`
 
 	// CredentialsSecret is a reference to the secret with a certain cloud platform
@@ -56,6 +59,10 @@ type SubmarinerConfigSpec struct {
 	// If not specified, the default submariner images that was defined by submariner operator will be used.
 	// +optional
 	ImagePullSpecs SubmarinerImagePullSpecs `json:"imagePullSpecs,omitempty"`
+
+	// GatewayConfig represents the gateways configuration of the Submariner.
+	// +optional
+	GatewayConfig `json:"gatewayConfig,omitempty"`
 }
 
 // SubscriptionConfig contains configuration specified for a submariner subscription.
@@ -63,40 +70,72 @@ type SubscriptionConfig struct {
 	// Source represents the catalog source of a submariner subscription.
 	// The default value is redhat-operators
 	// +optional
+	// +kubebuilder:default=redhat-operators
 	Source string `json:"source,omitempty"`
 
 	// SourceNamespace represents the catalog source namespace of a submariner subscription.
 	// The default value is openshift-marketplace
 	// +optional
+	// +kubebuilder:default=openshift-marketplace
 	SourceNamespace string `json:"sourceNamespace,omitempty"`
 
 	// Channel represents the channel of a submariner subscription.
 	// The default value is alpha
 	// +optional
+	// +kubebuilder:default=alpha
 	Channel string `json:"channel,omitempty"`
 
 	// StartingCSV represents the startingCSV of a submariner subscription.
 	// The default value is submariner.v0.8
 	// +optional
+	// +kubebuilder:default=submariner.v0.8
 	StartingCSV string `json:"startingCSV,omitempty"`
 }
 
 type SubmarinerImagePullSpecs struct {
 	// SubmarinerImagePullSpec represents the desired image of submariner.
 	// +optional
-	SubmarinerImagePullSpec string `json:"submarinerImagePullSpec"`
+	SubmarinerImagePullSpec string `json:"submarinerImagePullSpec,omitempty"`
 
 	// LighthouseAgentImagePullSpec represents the desired image of the lighthouse agent.
 	// +optional
-	LighthouseAgentImagePullSpec string `json:"lighthouseAgentImagePullSpec"`
+	LighthouseAgentImagePullSpec string `json:"lighthouseAgentImagePullSpec,omitempty"`
 
 	// LighthouseCoreDNSImagePullSpec represents the desired image of lighthouse coredns.
 	// +optional
-	LighthouseCoreDNSImagePullSpec string `json:"lighthouseCoreDNSImagePullSpec"`
+	LighthouseCoreDNSImagePullSpec string `json:"lighthouseCoreDNSImagePullSpec,omitempty"`
 
 	// SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.
 	// +optional
-	SubmarinerRouteAgentImagePullSpec string `json:"submarinerRouteAgentImagePullSpec"`
+	SubmarinerRouteAgentImagePullSpec string `json:"submarinerRouteAgentImagePullSpec,omitempty"`
+}
+
+type GatewayConfig struct {
+	// AWS represents the configuration for Amazon Web Services.
+	// If the platform of managed cluster is not Amazon Web Services, this field will be ignored.
+	// +optional
+	AWS `json:"aws,omitempty"`
+
+	// Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway
+	// component on the managed cluster.
+	// If the platform of managed cluster is Amazon Web Services, the submariner-addon will create the
+	// specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster,
+	// for other platforms, the submariner-addon will select the specified number of worker nodes and label
+	// them with `submariner.io/gateway` on the managed cluster.
+	// The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled
+	// automatically.
+	// +optional
+	// +kubebuilder:default=1
+	Gateways int `json:"gateways,omitempty"`
+}
+
+type AWS struct {
+	// InstanceType represents the Amazon Web Services EC2 instance type of the gateway node that will be
+	// created on the managed cluster.
+	// The default value is `m5n.large`.
+	// +optional
+	// +kubebuilder:default=m5n.large
+	InstanceType string `json:"instanceType,omitempty"`
 }
 
 const (
