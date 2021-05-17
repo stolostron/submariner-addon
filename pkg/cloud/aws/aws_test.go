@@ -355,6 +355,7 @@ func TestPrepareSubmarinerClusterEnv(t *testing.T) {
 				ikePort:       int64(500),
 				nattPort:      int64(4500),
 				clusterName:   "testcluster",
+				instanceType:  "m5n.large",
 				eventRecorder: eventstesting.NewTestingEventRecorder(t),
 			}
 

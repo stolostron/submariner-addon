@@ -31,12 +31,15 @@ spec:
             description: Spec defines the configuration of the Submariner
             properties:
               IPSecIKEPort:
+                default: 500
                 description: IPSecIKEPort represents IPsec IKE port (default 500).
                 type: integer
               IPSecNATTPort:
+                default: 4500
                 description: IPSecNATTPort represents IPsec NAT-T port (default 4500).
                 type: integer
               cableDriver:
+                default: libreswan
                 description: CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, and wireguard.
                 type: string
               credentialsSecret:
@@ -45,6 +48,22 @@ spec:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
+                type: object
+              gatewayConfig:
+                description: GatewayConfig represents the gateways configuration of the Submariner.
+                properties:
+                  aws:
+                    description: AWS represents the configuration for Amazon Web Services. If the platform of managed cluster is not Amazon Web Services, this field will be ignored.
+                    properties:
+                      instanceType:
+                        default: m5n.large
+                        description: InstanceType represents the Amazon Web Services EC2 instance type of the gateway node that will be created on the managed cluster. The default value is `m5n.large`.
+                        type: string
+                    type: object
+                  gateways:
+                    default: 1
+                    description: Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway component on the managed cluster. If the platform of managed cluster is Amazon Web Services, the submariner-addon will create the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster, for other platforms, the submariner-addon will select the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster. The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled automatically.
+                    type: integer
                 type: object
               imagePullSpecs:
                 description: ImagePullSpecs represents the desired images of submariner components installed on the managed cluster. If not specified, the default submariner images that was defined by submariner operator will be used.
@@ -66,15 +85,19 @@ spec:
                 description: SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.
                 properties:
                   channel:
+                    default: alpha
                     description: Channel represents the channel of a submariner subscription. The default value is alpha
                     type: string
                   source:
+                    default: redhat-operators
                     description: Source represents the catalog source of a submariner subscription. The default value is redhat-operators
                     type: string
                   sourceNamespace:
+                    default: openshift-marketplace
                     description: SourceNamespace represents the catalog source namespace of a submariner subscription. The default value is openshift-marketplace
                     type: string
                   startingCSV:
+                    default: submariner.v0.8
                     description: StartingCSV represents the startingCSV of a submariner subscription. The default value is submariner.v0.8
                     type: string
                 type: object

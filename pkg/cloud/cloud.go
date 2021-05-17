@@ -45,6 +45,7 @@ func GetCloudProvider(
 			kubeClient, workClient,
 			eventsRecorder,
 			region, infraId, clusterName, config.Spec.CredentialsSecret.Name,
+			config.Spec.GatewayConfig.AWS.InstanceType,
 			config.Spec.IPSecIKEPort, config.Spec.IPSecNATTPort,
 		)
 	case "GCP":
