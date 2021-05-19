@@ -656,7 +656,7 @@ func (a *awsProvider) deployGatewayNode(az, amiId string) error {
 				},
 			},
 		},
-	})
+	}, a.eventRecorder)
 }
 
 func (a *awsProvider) deleteGatewayNode() error {

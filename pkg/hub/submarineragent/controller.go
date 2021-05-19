@@ -484,11 +484,10 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	if err != nil {
 		return err
 	}
-	if err := helpers.ApplyManifestWork(ctx, c.manifestWorkClient, operatorManifestWork); err != nil {
+	if err := helpers.ApplyManifestWork(ctx, c.manifestWorkClient, operatorManifestWork, c.eventRecorder); err != nil {
 		return err
 	}
 
-	c.eventRecorder.Event("SubmarinerAgentDeployed", fmt.Sprintf("submariner agent was deployed on managed cluster %q", managedCluster.Name))
 	return nil
 }
 
@@ -496,10 +495,17 @@ func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, c
 	errs := []error{}
 	// remove submariner manifestworks
 	err := c.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Delete(ctx, manifestWorkName, metav1.DeleteOptions{})
+	switch {
+	case errors.IsNotFound(err):
+		//there is no submariner manifestworks, do noting
+	case err == nil:
+		c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q", fmt.Sprintf("%s/%s", clusterName, manifestWorkName))
+	case err != nil:
+		errs = append(errs, fmt.Errorf("failed to remove submariner agent from managed cluster %v: %v", clusterName, err))
+	}
 	if err != nil && !errors.IsNotFound(err) {
 		errs = append(errs, fmt.Errorf("failed to remove submariner agent from managed cluster %v: %v", clusterName, err))
 	}
-	c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q", fmt.Sprintf("%s/%s", clusterName, manifestWorkName))
 
 	// remove service account and its rolebinding from broker namespace
 	if err := c.removeClusterRBACFiles(ctx, clusterName); err != nil {
