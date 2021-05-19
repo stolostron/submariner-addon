@@ -311,6 +311,7 @@ func CleanUpSubmarinerManifests(
 			errs = append(errs, err)
 			continue
 		}
+
 		gvk := resourcehelper.GuessObjectGroupVersionKind(object)
 		recorder.Eventf(fmt.Sprintf("Submariner%sDeleted", gvk.Kind), "Deleted %s", resourcehelper.FormatResourceForCLIWithNamespace(object))
 	}
@@ -429,26 +430,36 @@ func GetEnv(key, defaultValue string) string {
 	return value
 }
 
-func ApplyManifestWork(ctx context.Context, client workclient.Interface, required *workv1.ManifestWork) error {
-	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+func ApplyManifestWork(ctx context.Context, client workclient.Interface, required *workv1.ManifestWork, recorder events.Recorder) error {
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		existing, err := client.WorkV1().ManifestWorks(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				_, err = client.WorkV1().ManifestWorks(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
+		switch {
+		case errors.IsNotFound(err):
+			_, err := client.WorkV1().ManifestWorks(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
+			if err != nil {
+				return err
 			}
+
+			recorder.Event("ManifestWorkApplied", fmt.Sprintf("manifestwork %s/%s was created", required.Namespace, required.Name))
+			return nil
+		case err != nil:
 			return err
 		}
 
-		if !manifestsEqual(existing.Spec.Workload.Manifests, required.Spec.Workload.Manifests) {
-			existingCopy := existing.DeepCopy()
-			existingCopy.Spec = required.Spec
-			_, err = client.WorkV1().ManifestWorks(required.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
+		if manifestsEqual(existing.Spec.Workload.Manifests, required.Spec.Workload.Manifests) {
+			return nil
 		}
 
-		return err
-	})
+		existingCopy := existing.DeepCopy()
+		existingCopy.Spec = required.Spec
+		_, err = client.WorkV1().ManifestWorks(required.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
 
-	return err
+		recorder.Event("ManifestWorkApplied", fmt.Sprintf("manifestwork %s/%s was updated", required.Namespace, required.Name))
+		return nil
+	})
 }
 
 func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alpha1.ManagedClusterInfo {

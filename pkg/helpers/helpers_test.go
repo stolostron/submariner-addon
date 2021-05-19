@@ -824,7 +824,7 @@ func TestApplyManifestWork(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			workClient := fakeworkclient.NewSimpleClientset(c.existingWorks...)
-			err := ApplyManifestWork(context.TODO(), workClient, c.work)
+			err := ApplyManifestWork(context.TODO(), workClient, c.work, eventstesting.NewTestingEventRecorder(t))
 			if err != nil {
 				t.Errorf("expect no err, but got: %v", err)
 			}
