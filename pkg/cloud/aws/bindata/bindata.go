@@ -106,6 +106,7 @@ spec:
       metadata:
         labels:
           submariner.io/gateway: "true"
+          gateway.submariner.io/udp-port: "{{ .NATTPort }}"
       taints:
         - effect: NoSchedule
           key: node-role.submariner.io/gateway

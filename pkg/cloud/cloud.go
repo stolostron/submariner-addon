@@ -47,6 +47,7 @@ func GetCloudProvider(
 			region, infraId, clusterName, config.Spec.CredentialsSecret.Name,
 			config.Spec.GatewayConfig.AWS.InstanceType,
 			config.Spec.IPSecIKEPort, config.Spec.IPSecNATTPort,
+			config.Spec.Gateways,
 		)
 	case "GCP":
 		return gcp.NewGCPProvider(

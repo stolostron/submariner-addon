@@ -180,7 +180,10 @@ rules:
 # Allow submariner-addon agent to operator managedclusteraddons on the hub cluster
 - apiGroups: ["addon.open-cluster-management.io"]
   resources: ["managedclusteraddons"]
-  verbs: ["get", "list", "watch"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["addon.open-cluster-management.io"]
+  resources: ["managedclusteraddons/finalizers"]
+  verbs: ["update"]
 - apiGroups: ["addon.open-cluster-management.io"]
   resources: ["managedclusteraddons/status"]
   verbs: ["patch", "update"]

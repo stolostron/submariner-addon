@@ -47,6 +47,7 @@ type machineSetConfig struct {
 	Region            string
 	SecurityGroupName string
 	SubnetName        string
+	NATTPort          int64
 }
 
 type awsProvider struct {
@@ -59,6 +60,7 @@ type awsProvider struct {
 	nattPort      int64
 	clusterName   string
 	instanceType  string
+	gateways      int
 }
 
 func NewAWSProvider(
@@ -66,13 +68,18 @@ func NewAWSProvider(
 	eventRecorder events.Recorder,
 	region, infraId, clusterName, credentialsSecretName string,
 	instanceType string,
-	ikePort, nattPort int) (*awsProvider, error) {
+	ikePort, nattPort int,
+	gateways int) (*awsProvider, error) {
 	if region == "" {
 		return nil, fmt.Errorf("cluster region is empty")
 	}
 
 	if infraId == "" {
 		return nil, fmt.Errorf("cluster infraId is empty")
+	}
+
+	if gateways < 1 {
+		return nil, fmt.Errorf("the count of gateways is less than 1")
 	}
 
 	if ikePort == 0 {
@@ -102,6 +109,7 @@ func NewAWSProvider(
 		nattPort:      int64(nattPort),
 		clusterName:   clusterName,
 		instanceType:  instanceType,
+		gateways:      gateways,
 	}, nil
 }
 
@@ -152,13 +160,13 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 
 	// Tag one subnet with label kubernetes.io/role/internal-elb for automatic subnet discovery by aws load balancers or
 	// ingress controllers
-	subnet, err := a.tagSubnet(vpc)
+	subnets, err := a.tagSubnets(vpc)
 	if err != nil {
 		return fmt.Errorf("failed to tag subnet with infraID %s and vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
 	}
 
 	// Apply a manifest work to create a MachineSet on managed cluster to create a new aws instance for submariner gateway
-	if err := a.deployGatewayNode(*subnet.AvailabilityZone, amiId); err != nil {
+	if err := a.deployGatewayNode(amiId, subnets); err != nil {
 		return fmt.Errorf("failed to create MachineSet for %s: %v \n", a.infraId, err)
 	}
 
@@ -322,7 +330,7 @@ func (a *awsProvider) findSecurityGroup(vpcId, nameTag string) (*ec2.SecurityGro
 	return securityGroups.SecurityGroups[0], nil
 }
 
-func (a *awsProvider) findSubnet(vpcId string) (*ec2.Subnet, error) {
+func (a *awsProvider) findSubnets(vpcId string) ([]*ec2.Subnet, error) {
 	subnets, err := a.awsClinet.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -343,17 +351,18 @@ func (a *awsProvider) findSubnet(vpcId string) (*ec2.Subnet, error) {
 		return nil, err
 	}
 
-	if len(subnets.Subnets) == 0 {
+	if len(subnets.Subnets) < a.gateways {
 		return nil, &errors.StatusError{
 			ErrStatus: metav1.Status{
 				Reason:  metav1.StatusReasonNotFound,
-				Message: "there are no subnets",
+				Message: fmt.Sprintf("there are no sufficient subnets (%d) for expected gateways (%d)", len(subnets.Subnets), a.gateways),
 			},
 		}
 	}
 
+	found := []*ec2.Subnet{}
 	for _, subnet := range subnets.Subnets {
-		// list the offered instance types and filters them by subnet availability zone and gateway instance type (m5n.large)
+		// list the offered instance types and filters them by subnet availability zone and gateway instance type
 		output, err := a.awsClinet.DescribeInstanceTypeOfferings(&ec2.DescribeInstanceTypeOfferingsInput{
 			LocationType: aws.String("availability-zone"),
 			Filters: []*ec2.Filter{
@@ -374,7 +383,10 @@ func (a *awsProvider) findSubnet(vpcId string) (*ec2.Subnet, error) {
 		// the length of offered instance type list is not zero, it includes the gateway instance type,
 		// so we are able to create gateway instance in this subnet availability zone
 		if len(output.InstanceTypeOfferings) != 0 {
-			return subnet, nil
+			found = append(found, subnet)
+			if len(found) == a.gateways {
+				return found, nil
+			}
 		}
 	}
 
@@ -523,39 +535,46 @@ func (a *awsProvider) revokeIPsecPorts(vpc *ec2.Vpc) error {
 	return err
 }
 
-func (a *awsProvider) tagSubnet(vpc *ec2.Vpc) (*ec2.Subnet, error) {
-	subnet, err := a.findSubnet(*vpc.VpcId)
+func (a *awsProvider) tagSubnets(vpc *ec2.Vpc) ([]*ec2.Subnet, error) {
+	subnets, err := a.findSubnets(*vpc.VpcId)
 	if err != nil {
 		return nil, err
 	}
 
-	// the subnet has been labeled with internal ELB label (e.g. the submarinerconfig is reconciled again), just return it
-	for _, tag := range subnet.Tags {
-		if *tag.Key == internalELBLabel {
-			klog.V(4).Infof("subnet %s has been tagged with internal ELB label on aws", *subnet.SubnetId)
-			return subnet, nil
+	for _, subnet := range subnets {
+		// the subnet has been labeled with internal ELB label (e.g. the submarinerconfig is reconciled again), just return it
+		tagged := false
+		for _, tag := range subnet.Tags {
+			if *tag.Key == internalELBLabel {
+				klog.V(4).Infof("subnet %s has been tagged with internal ELB label on aws", *subnet.SubnetId)
+				tagged = true
+				break
+			}
+		}
+		if tagged {
+			continue
+		}
+
+		if _, err := a.awsClinet.CreateTags(&ec2.CreateTagsInput{
+			Tags: []*ec2.Tag{
+				{
+					Key:   aws.String(internalELBLabel),
+					Value: aws.String(""),
+				},
+				{
+					Key:   aws.String(internalGatewayLabel),
+					Value: aws.String(""),
+				},
+			},
+			Resources: []*string{
+				subnet.SubnetId,
+			},
+		}); err != nil {
+			return nil, err
 		}
 	}
 
-	if _, err := a.awsClinet.CreateTags(&ec2.CreateTagsInput{
-		Tags: []*ec2.Tag{
-			{
-				Key:   aws.String(internalELBLabel),
-				Value: aws.String(""),
-			},
-			{
-				Key:   aws.String(internalGatewayLabel),
-				Value: aws.String(""),
-			},
-		},
-		Resources: []*string{
-			subnet.SubnetId,
-		},
-	}); err != nil {
-		return nil, err
-	}
-
-	return subnet, nil
+	return subnets, nil
 }
 
 func (a *awsProvider) untagSubnet(vpc *ec2.Vpc) error {
@@ -613,7 +632,9 @@ func (a *awsProvider) untagSubnet(vpc *ec2.Vpc) error {
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (a *awsProvider) deployGatewayNode(az, amiId string) error {
+func (a *awsProvider) deployGatewayNode(amiId string, subnets []*ec2.Subnet) error {
+	manifests := []workv1.Manifest{}
+
 	clusterRoleYamlData := assets.MustCreateAssetFromTemplate(
 		aggeragateClusterroleFile,
 		bindata.MustAsset(filepath.Join("", aggeragateClusterroleFile)),
@@ -622,22 +643,30 @@ func (a *awsProvider) deployGatewayNode(az, amiId string) error {
 	if err != nil {
 		return err
 	}
-	msYamlData := assets.MustCreateAssetFromTemplate(
-		manifestFile,
-		bindata.MustAsset(filepath.Join("", manifestFile)),
-		&machineSetConfig{
-			InfraId:           a.infraId,
-			AZ:                az,
-			AMIId:             amiId,
-			Region:            a.region,
-			SecurityGroupName: fmt.Sprintf("%s-submariner-gw-sg", a.infraId),
-			InstanceType:      a.instanceType,
-			SubnetName:        fmt.Sprintf("%s-public-%s", a.infraId, az),
-		}).Data
-	msJsonData, err := yaml.YAMLToJSON(msYamlData)
-	if err != nil {
-		return err
+	manifests = append(manifests, workv1.Manifest{RawExtension: runtime.RawExtension{Raw: clusterRoleJsonData}})
+
+	for _, subnet := range subnets {
+		az := *subnet.AvailabilityZone
+		msYamlData := assets.MustCreateAssetFromTemplate(
+			manifestFile,
+			bindata.MustAsset(filepath.Join("", manifestFile)),
+			&machineSetConfig{
+				InfraId:           a.infraId,
+				AZ:                az,
+				AMIId:             amiId,
+				Region:            a.region,
+				SecurityGroupName: fmt.Sprintf("%s-submariner-gw-sg", a.infraId),
+				InstanceType:      a.instanceType,
+				SubnetName:        fmt.Sprintf("%s-public-%s", a.infraId, az),
+				NATTPort:          a.nattPort,
+			}).Data
+		msJsonData, err := yaml.YAMLToJSON(msYamlData)
+		if err != nil {
+			return err
+		}
+		manifests = append(manifests, workv1.Manifest{RawExtension: runtime.RawExtension{Raw: msJsonData}})
 	}
+
 	return helpers.ApplyManifestWork(context.TODO(), a.workClinet, &workv1.ManifestWork{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -645,16 +674,7 @@ func (a *awsProvider) deployGatewayNode(az, amiId string) error {
 			Namespace: a.clusterName,
 		},
 		Spec: workv1.ManifestWorkSpec{
-			Workload: workv1.ManifestsTemplate{
-				Manifests: []workv1.Manifest{
-					{
-						RawExtension: runtime.RawExtension{Raw: clusterRoleJsonData},
-					},
-					{
-						RawExtension: runtime.RawExtension{Raw: msJsonData},
-					},
-				},
-			},
+			Workload: workv1.ManifestsTemplate{Manifests: manifests},
 		},
 	}, a.eventRecorder)
 }

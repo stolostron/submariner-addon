@@ -111,8 +111,10 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	submarinerAgentConfigController := submarineragent.NewSubmarinerAgentConfigController(
 		o.ClusterName,
 		spokeKubeClient,
+		addOnHubKubeClient,
 		configHubKubeClient,
 		spokeKubeInformers.Core().V1().Nodes(),
+		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 		configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 		controllerContext.EventRecorder,
 	)
