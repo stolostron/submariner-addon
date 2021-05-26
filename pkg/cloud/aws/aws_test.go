@@ -356,6 +356,7 @@ func TestPrepareSubmarinerClusterEnv(t *testing.T) {
 				nattPort:      int64(4500),
 				clusterName:   "testcluster",
 				instanceType:  "m5n.large",
+				gateways:      1,
 				eventRecorder: eventstesting.NewTestingEventRecorder(t),
 			}
 

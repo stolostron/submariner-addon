@@ -326,7 +326,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		if err := c.cleanUpSubmarinerAgent(ctx, managedCluster); err != nil {
 			return err
 		}
-		return c.remvoeAddOnFinalizer(ctx, addOn)
+		return helpers.RemoveAddOnFinalizer(ctx, c.addOnClient, addOn, addOnFinalizer)
 	}
 
 	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster, addOn, config)
@@ -356,7 +356,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 		if err := c.cleanUpSubmarinerClusterEnv(ctx, config); err != nil {
 			return err
 		}
-		return c.removeConfigFinalizer(ctx, config)
+		return helpers.RemoveConfigFinalizer(ctx, c.configClient, config, submarinerConfigFinalizer)
 	}
 
 	if config.Spec.CredentialsSecret == nil {
@@ -427,25 +427,6 @@ func (c *submarinerAgentController) removeAgentFinalizer(ctx context.Context, ma
 	if len(managedCluster.Finalizers) != len(copiedFinalizers) {
 		managedCluster.Finalizers = copiedFinalizers
 		_, err := c.clusterClient.ClusterV1().ManagedClusters().Update(ctx, managedCluster, metav1.UpdateOptions{})
-		return err
-	}
-
-	return nil
-}
-
-// remvoeAddOnFinalizer removes the addon finalizer from a submariner-addon
-func (c *submarinerAgentController) remvoeAddOnFinalizer(ctx context.Context, addOn *addonv1alpha1.ManagedClusterAddOn) error {
-	copiedFinalizers := []string{}
-	for i := range addOn.Finalizers {
-		if addOn.Finalizers[i] == addOnFinalizer {
-			continue
-		}
-		copiedFinalizers = append(copiedFinalizers, addOn.Finalizers[i])
-	}
-
-	if len(addOn.Finalizers) != len(copiedFinalizers) {
-		addOn.Finalizers = copiedFinalizers
-		_, err := c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(addOn.Namespace).Update(ctx, addOn, metav1.UpdateOptions{})
 		return err
 	}
 
@@ -590,24 +571,6 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Cont
 		return nil
 	}
 	c.eventRecorder.Eventf("SubmarinerClusterEnvDeleted", "the managed cluster %s submariner cluster environment is deleted", managedClusterInfo.ClusterName)
-	return nil
-}
-
-func (c *submarinerAgentController) removeConfigFinalizer(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
-	copiedFinalizers := []string{}
-	for i := range config.Finalizers {
-		if config.Finalizers[i] == submarinerConfigFinalizer {
-			continue
-		}
-		copiedFinalizers = append(copiedFinalizers, config.Finalizers[i])
-	}
-
-	if len(config.Finalizers) != len(copiedFinalizers) {
-		config.Finalizers = copiedFinalizers
-		_, err := c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace).Update(ctx, config, metav1.UpdateOptions{})
-		return err
-	}
-
 	return nil
 }
 
