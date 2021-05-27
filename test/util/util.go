@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"path"
 	"time"
 
@@ -36,6 +37,32 @@ const (
 )
 
 var HubKubeConfigPath = path.Join("/tmp", "submaddon-integration-test", "kubeconfig")
+
+// on prow env, the /var/run/secrets/kubernetes.io/serviceaccount/namespace can be found
+func GetCurrentNamespace(kubeClient kubernetes.Interface, defaultNamespace string) (string, error) {
+	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: defaultNamespace,
+			},
+		}, metav1.CreateOptions{}); err != nil {
+			return "", err
+		}
+
+		return defaultNamespace, nil
+	}
+
+	namespace := string(nsBytes)
+	if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}, metav1.CreateOptions{}); err != nil && !errors.IsAlreadyExists(err) {
+		return "", err
+	}
+	return namespace, nil
+}
 
 func CreateHubKubeConfig(cfg *rest.Config) error {
 	config := clientcmdapi.NewConfig()
@@ -192,8 +219,7 @@ func NewSubmariner() *unstructured.Unstructured {
 			"apiVersion": "submariner.io/v1alpha1",
 			"kind":       "Submariner",
 			"metadata": map[string]interface{}{
-				"namespace": "submariner-operator",
-				"name":      "submariner",
+				"name": "submariner",
 			},
 			"spec": map[string]interface{}{
 				"broker":                   "k8s",

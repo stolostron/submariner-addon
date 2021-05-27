@@ -604,12 +604,17 @@ func TestGetClusterType(t *testing.T) {
 			managedCluster: &clusterv1.ManagedCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster1",
-					Labels: map[string]string{
-						"vendor": "OpenShift",
+				},
+				Status: clusterv1.ManagedClusterStatus{
+					ClusterClaims: []clusterv1.ManagedClusterClaim{
+						{
+							Name:  "product.open-cluster-management.io",
+							Value: "OpenShift",
+						},
 					},
 				},
 			},
-			expectType: ClusterTypeOCP,
+			expectType: "OpenShift",
 		},
 		{
 			name:        "cluster is not OCP",
@@ -617,8 +622,13 @@ func TestGetClusterType(t *testing.T) {
 			managedCluster: &clusterv1.ManagedCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster1",
-					Labels: map[string]string{
-						"vendor": "others",
+				},
+				Status: clusterv1.ManagedClusterStatus{
+					ClusterClaims: []clusterv1.ManagedClusterClaim{
+						{
+							Name:  "product.open-cluster-management.io",
+							Value: "others",
+						},
 					},
 				},
 			},
@@ -638,7 +648,7 @@ func TestGetClusterType(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			clusterType := GetClusterType(c.managedCluster)
+			clusterType := GetClusterProduct(c.managedCluster)
 			if clusterType != c.expectType {
 				t.Errorf("expect %s, but %s", c.expectType, clusterType)
 			}
@@ -667,11 +677,14 @@ func TestGetManagedClusterInfo(t *testing.T) {
 			name: "has claims",
 			managedCluster: &clusterv1.ManagedCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   "test",
-					Labels: map[string]string{"vendor": "OCP"},
+					Name: "test",
 				},
 				Status: clusterv1.ManagedClusterStatus{
 					ClusterClaims: []clusterv1.ManagedClusterClaim{
+						{
+							Name:  "product.open-cluster-management.io",
+							Value: "OpenShift",
+						},
 						{
 							Name:  "platform.open-cluster-management.io",
 							Value: "AWS",
@@ -689,7 +702,7 @@ func TestGetManagedClusterInfo(t *testing.T) {
 			},
 			expected: configv1alpha1.ManagedClusterInfo{
 				ClusterName: "test",
-				Vendor:      "OCP",
+				Vendor:      "OpenShift",
 				Platform:    "AWS",
 				Region:      "us-east-1",
 				InfraId:     "cluster-1234",

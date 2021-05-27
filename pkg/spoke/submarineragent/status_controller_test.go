@@ -176,11 +176,12 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 			}
 
 			ctrl := &submarinerAgentStatusController{
-				addOnClient:      addOnClient,
-				addOnLister:      addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
-				nodeLister:       kubeInformerFactory.Core().V1().Nodes().Lister(),
-				submarinerLister: submarinerInformer.Lister(),
-				clusterName:      "test",
+				addOnClient:           addOnClient,
+				addOnLister:           addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
+				nodeLister:            kubeInformerFactory.Core().V1().Nodes().Lister(),
+				submarinerLister:      submarinerInformer.Lister(),
+				clusterName:           "test",
+				installationNamespace: "submariner-operator",
 			}
 
 			err := ctrl.sync(context.TODO(), testinghelpers.NewFakeSyncContext(t, "submariner"))

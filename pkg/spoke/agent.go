@@ -96,11 +96,12 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 
 	spokeKubeInformers := informers.NewSharedInformerFactory(spokeKubeClient, 10*time.Minute)
 	// TODO if submariner provides the informer in future, we will use it instead of dynamic informer
-	dynamicInformers := dynamicinformer.NewFilteredDynamicSharedInformerFactory(spokeDynamicClient, 10*time.Minute, submarineragent.SubmarinerOperatorNamespace, nil)
+	dynamicInformers := dynamicinformer.NewFilteredDynamicSharedInformerFactory(spokeDynamicClient, 10*time.Minute, o.InstallationNamespace, nil)
 
 	submarinerGVR, _ := schema.ParseResourceArg("submariners.v1alpha1.submariner.io")
 	submarinerAgentStatusController := submarineragent.NewSubmarinerAgentStatusController(
 		o.ClusterName,
+		o.InstallationNamespace,
 		addOnHubKubeClient,
 		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 		spokeKubeInformers.Core().V1().Nodes(),
@@ -129,7 +130,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	// start lease updater
 	leaseUpdater := lease.NewLeaseUpdater(
 		spokeKubeClient,
-		submarineragent.SubmarinerAddOnName,
+		helpers.SubmarinerAddOnName,
 		o.InstallationNamespace,
 	)
 	go leaseUpdater.Start(ctx)

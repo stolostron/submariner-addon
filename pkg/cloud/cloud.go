@@ -29,7 +29,7 @@ func GetCloudProvider(
 	managedClusterInfo configv1alpha1.ManagedClusterInfo, config *configv1alpha1.SubmarinerConfig) (CloudProvider, error) {
 	clusterName := managedClusterInfo.ClusterName
 	vendor := managedClusterInfo.Vendor
-	if vendor != helpers.ClusterTypeOCP {
+	if vendor != helpers.ProductOCP {
 		return nil, fmt.Errorf("unsupported vendor %q of cluster %q", vendor, clusterName)
 	}
 

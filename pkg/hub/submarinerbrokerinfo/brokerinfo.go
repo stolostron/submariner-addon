@@ -105,8 +105,7 @@ func NewSubmarinerBrokerInfo(
 		return nil, err
 	}
 
-	switch helpers.GetClusterType(managedCluster) {
-	case helpers.ClusterTypeOCP:
+	if helpers.GetClusterProduct(managedCluster) == helpers.ProductOCP {
 		brokerInfo.NATEnabled = true
 	}
 
