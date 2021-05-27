@@ -193,13 +193,13 @@ function accept_managed_cluster() {
 apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
 kind: SubmarinerConfig
 metadata:
-  name: subconfig
+  name: submariner
   namespace: ${cluster}
 spec:
   subscriptionConfig:
     source: operatorhubio-catalog
     sourceNamespace: olm
-    startingCSV: submariner.v0.8.1
+    startingCSV: submariner.v0.9.0
 EOF
 }
 
