@@ -4,9 +4,6 @@ set -o nounset
 
 source scripts/clusters.sh
 
-subctl_verion="v0.8.0"
-os=$(uname | awk '{print tolower($0)}')
-
 hub="${clusters[0]}"
 managedcluster1="${clusters[0]}"
 managedcluster2="${clusters[1]}"
@@ -49,7 +46,8 @@ kind: ManagedClusterAddOn
 metadata:
   name: submariner
   namespace: cluster2
-spec: {}
+spec:
+  installNamespace: submariner-operator
 EOF
 
 echo "Wait the submariner manifestworks to be created on hub ..."
