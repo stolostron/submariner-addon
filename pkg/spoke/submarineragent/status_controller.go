@@ -26,11 +26,6 @@ import (
 )
 
 const (
-	SubmarinerAddOnName         = "submariner"
-	SubmarinerOperatorNamespace = "submariner-operator"
-)
-
-const (
 	submarinerGatewayNodesLabeled = "SubmarinerGatewayNodesLabeled"
 	submarinerGatewayLabel        = "submariner.io/gateway"
 	submarinerCRName              = "submariner"
@@ -39,27 +34,30 @@ const (
 // submarinerAgentStatusController watches the status of submariner CR and reflect the status
 // to submariner-addon on the hub cluster
 type submarinerAgentStatusController struct {
-	addOnClient      addonclient.Interface
-	addOnLister      addonlisterv1alpha1.ManagedClusterAddOnLister
-	nodeLister       corev1lister.NodeLister
-	submarinerLister cache.GenericLister
-	clusterName      string
+	addOnClient           addonclient.Interface
+	addOnLister           addonlisterv1alpha1.ManagedClusterAddOnLister
+	nodeLister            corev1lister.NodeLister
+	submarinerLister      cache.GenericLister
+	clusterName           string
+	installationNamespace string
 }
 
 // NewSubmarinerAgentStatusController returns an instance of submarinerAgentStatusController
 func NewSubmarinerAgentStatusController(
 	clusterName string,
+	installationNamespace string,
 	addOnClient addonclient.Interface,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
 	nodeInformer corev1informers.NodeInformer,
 	submarinerInformer informers.GenericInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerAgentStatusController{
-		addOnClient:      addOnClient,
-		addOnLister:      addOnInformer.Lister(),
-		nodeLister:       nodeInformer.Lister(),
-		submarinerLister: submarinerInformer.Lister(),
-		clusterName:      clusterName,
+		addOnClient:           addOnClient,
+		addOnLister:           addOnInformer.Lister(),
+		nodeLister:            nodeInformer.Lister(),
+		submarinerLister:      submarinerInformer.Lister(),
+		clusterName:           clusterName,
+		installationNamespace: installationNamespace,
 	}
 
 	return factory.New().
@@ -69,13 +67,13 @@ func NewSubmarinerAgentStatusController(
 }
 
 func (c *submarinerAgentStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
-	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(SubmarinerAddOnName)
+	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(helpers.SubmarinerAddOnName)
 	if errors.IsNotFound(err) {
 		// addon is not found, could be deleted, ignore it.
 		return nil
 	}
 
-	runtimeSubmariner, err := c.submarinerLister.ByNamespace(SubmarinerOperatorNamespace).Get(submarinerCRName)
+	runtimeSubmariner, err := c.submarinerLister.ByNamespace(c.installationNamespace).Get(submarinerCRName)
 	if errors.IsNotFound(err) {
 		// submariner cr is not found, could be deleted, ignore it.
 		return nil

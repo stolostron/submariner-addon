@@ -19,9 +19,8 @@ import (
 )
 
 const (
-	expectedAgentWork           = "addon-submariner-deploy"
-	submarinerOperatorNamespace = "submariner-operator"
-	submarinerCRName            = "submariner"
+	expectedAgentWork = "addon-submariner-deploy"
+	submarinerCRName  = "submariner"
 )
 
 var _ = ginkgo.Describe("Deploy a submariner-addon agent", func() {
@@ -73,7 +72,6 @@ var _ = ginkgo.Describe("Deploy a submariner-addon agent", func() {
 	})
 
 	ginkgo.Context("Run submariner-addon agent on the managed cluster", func() {
-		var installationNamespace string
 		var submarinerGVR, _ = schema.ParseResourceArg("submariners.v1alpha1.submariner.io")
 
 		ginkgo.BeforeEach(func() {
@@ -84,28 +82,16 @@ var _ = ginkgo.Describe("Deploy a submariner-addon agent", func() {
 			ginkgo.By("Create submariner-addon on managed cluster namespace")
 			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(), util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-			ginkgo.By("Create submariner-addon installation namespace on managed cluster namespace")
-			installationNamespace = fmt.Sprintf("submariner-addon-%s", managedClusterName)
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(installationNamespace), metav1.CreateOptions{})
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-			ginkgo.By("Create submariner-operator namespace on managed cluster namespace")
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(submarinerOperatorNamespace), metav1.CreateOptions{})
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-			// save the kubeconfig to a file, simulate agent mount hub kubeconfig secret that was created by addon framework
-			err = util.CreateHubKubeConfig(cfg)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-		})
-
-		ginkgo.AfterEach(func() {
-			err := dynamicClient.Resource(*submarinerGVR).Namespace(submarinerOperatorNamespace).Delete(context.TODO(), submarinerCRName, metav1.DeleteOptions{})
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
 
 		ginkgo.It("Should update submariner-addon status on the hub cluster after the submariner agent is deployed", func() {
-			ginkgo.By("Start submariner-addon agent on managed cluster namespace")
+			installationNamespace, err := util.GetCurrentNamespace(kubeClient, "submariner-operator")
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+			// save the kubeconfig to a file, simulate agent mount hub kubeconfig secret that was created by addon framework
+			gomega.Expect(util.CreateHubKubeConfig(cfg)).ToNot(gomega.HaveOccurred())
+
+			ginkgo.By(fmt.Sprintf("Start submariner-addon agent on managed cluster namespace %q", installationNamespace))
 			go func() {
 				agentOptions := spoke.AgentOptions{
 					InstallationNamespace: installationNamespace,
@@ -119,15 +105,15 @@ var _ = ginkgo.Describe("Deploy a submariner-addon agent", func() {
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			}()
 
-			ginkgo.By("Create a submariner on managed cluster namespace")
-			_, err := dynamicClient.Resource(*submarinerGVR).Namespace(submarinerOperatorNamespace).Create(context.TODO(), util.NewSubmariner(), metav1.CreateOptions{})
+			ginkgo.By("Create a submariner on managed cluster")
+			_, err = dynamicClient.Resource(*submarinerGVR).Namespace(installationNamespace).Create(context.TODO(), util.NewSubmariner(), metav1.CreateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			ginkgo.By("Update the submariner status on managed cluster namespace")
-			submariner, err := dynamicClient.Resource(*submarinerGVR).Namespace(submarinerOperatorNamespace).Get(context.TODO(), submarinerCRName, metav1.GetOptions{})
+			submariner, err := dynamicClient.Resource(*submarinerGVR).Namespace(installationNamespace).Get(context.TODO(), submarinerCRName, metav1.GetOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			util.SetSubmarinerDeployedStatus(submariner)
-			_, err = dynamicClient.Resource(*submarinerGVR).Namespace(submarinerOperatorNamespace).UpdateStatus(context.TODO(), submariner, metav1.UpdateOptions{})
+			_, err = dynamicClient.Resource(*submarinerGVR).Namespace(installationNamespace).UpdateStatus(context.TODO(), submariner, metav1.UpdateOptions{})
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			gomega.Eventually(func() bool {

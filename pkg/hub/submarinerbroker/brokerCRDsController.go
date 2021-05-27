@@ -3,9 +3,10 @@ package submarinerbroker
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker/bindata"
@@ -26,23 +27,13 @@ const (
 	configCRDName = "submarinerconfigs.submarineraddon.open-cluster-management.io"
 )
 
-var (
-	staticCRDFiles = []string{
-		"manifests/broker/submariner.io_clusters_crd.yaml",
-		"manifests/broker/submariner.io_endpoints_crd.yaml",
-		"manifests/broker/submariner.io_gateways_crd.yaml",
-		"manifests/broker/submariner.io_lighthouse.serviceimports_crd.yaml",
-		"manifests/broker/x-k8s.io_multicluster.serviceimports_crd.yaml",
-	}
-
-	brokerCRDNames = []string{
-		"clusters.submariner.io",
-		"endpoints.submariner.io",
-		"gateways.submariner.io",
-		"serviceimports.lighthouse.submariner.io",
-		"serviceimports.multicluster.x-k8s.io",
-	}
-)
+var staticCRDFiles = []string{
+	"manifests/broker/submariner.io_clusters_crd.yaml",
+	"manifests/broker/submariner.io_endpoints_crd.yaml",
+	"manifests/broker/submariner.io_gateways_crd.yaml",
+	"manifests/broker/submariner.io_lighthouse.serviceimports_crd.yaml",
+	"manifests/broker/x-k8s.io_multicluster.serviceimports_crd.yaml",
+}
 
 type brokerCRDsConfig struct {
 	ConfigCRDUID types.UID

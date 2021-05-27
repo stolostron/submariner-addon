@@ -48,7 +48,6 @@ import (
 )
 
 const (
-	submarinerAddOnName       = "submariner"
 	agentFinalizer            = "cluster.open-cluster-management.io/submariner-agent-cleanup"
 	clusterSetLabel           = "cluster.open-cluster-management.io/clusterset"
 	manifestWorkName          = "submariner-operator"
@@ -143,7 +142,7 @@ func NewSubmarinerAgentController(
 		}, configInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
-			if accessor.GetName() != submarinerAddOnName {
+			if accessor.GetName() != helpers.SubmarinerAddOnName {
 				return ""
 			}
 			return accessor.GetNamespace()
@@ -275,7 +274,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 	}
 
 	// find the submariner-addon on the managed cluster namespace
-	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(submarinerAddOnName)
+	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(helpers.SubmarinerAddOnName)
 	switch {
 	case errors.IsNotFound(err):
 		// if the submariner-addon is not found, try to clean up the submariner agent
@@ -359,16 +358,25 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 		return helpers.RemoveConfigFinalizer(ctx, c.configClient, config, submarinerConfigFinalizer)
 	}
 
-	if config.Spec.CredentialsSecret == nil {
-		// no platform credentials, the submariner cluster environment need not to be prepared
-		return nil
-	}
-
 	if managedCluster == nil {
 		return nil
 	}
-
 	managedClusterInfo := helpers.GetManagedClusterInfo(managedCluster)
+
+	if config.Spec.CredentialsSecret == nil {
+		// no platform credentials, the cluster env is not requred to prepare, only update the manged cluster info
+		_, _, err := helpers.UpdateSubmarinerConfigStatus(
+			c.configClient,
+			config.Namespace, config.Name,
+			helpers.UpdateSubmarinerConfigStatusFn(metav1.Condition{
+				Type:    configv1alpha1.SubmarinerConfigConditionApplied,
+				Status:  metav1.ConditionTrue,
+				Reason:  "SubmarinerConfigApplied",
+				Message: "SubmarinerConfig was applied",
+			}, managedClusterInfo),
+		)
+		return err
+	}
 
 	// prepare submariner cluster environment
 	errs := []error{}
@@ -576,7 +584,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Cont
 
 func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
 	files := []string{agentRBACFile}
-	if helpers.GetClusterType(managedCluster) == helpers.ClusterTypeOCP {
+	if helpers.GetClusterProduct(managedCluster) == helpers.ProductOCP {
 		files = append(files, sccFiles...)
 	}
 	files = append(files, operatorFiles...)

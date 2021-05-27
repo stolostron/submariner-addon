@@ -65,8 +65,13 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 			cluster: &clusterv1.ManagedCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster1",
-					Labels: map[string]string{
-						"vendor": "OpenShift",
+				},
+				Status: clusterv1.ManagedClusterStatus{
+					ClusterClaims: []clusterv1.ManagedClusterClaim{
+						{
+							Name:  "product.open-cluster-management.io",
+							Value: "OpenShift",
+						},
 					},
 				},
 			},
@@ -134,8 +139,13 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 			cluster: &clusterv1.ManagedCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster1",
-					Labels: map[string]string{
-						"vendor": "OpenShift",
+				},
+				Status: clusterv1.ManagedClusterStatus{
+					ClusterClaims: []clusterv1.ManagedClusterClaim{
+						{
+							Name:  "product.open-cluster-management.io",
+							Value: "OpenShift",
+						},
 					},
 				},
 			},
@@ -191,8 +201,13 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 			cluster: &clusterv1.ManagedCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster1",
-					Labels: map[string]string{
-						"vendor": "OpenShift",
+				},
+				Status: clusterv1.ManagedClusterStatus{
+					ClusterClaims: []clusterv1.ManagedClusterClaim{
+						{
+							Name:  "product.open-cluster-management.io",
+							Value: "OpenShift",
+						},
 					},
 				},
 			},

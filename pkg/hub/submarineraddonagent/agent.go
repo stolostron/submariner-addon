@@ -9,6 +9,7 @@ import (
 	"github.com/open-cluster-management/addon-framework/pkg/agent"
 	addonapiv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineraddonagent/bindata"
 
 	"github.com/openshift/library-go/pkg/assets"
@@ -36,9 +37,7 @@ func init() {
 }
 
 const (
-	addOnName                    = "submariner"
 	agentName                    = "submariner-addon-agent"
-	defaultAgentImage            = "quay.io/open-cluster-management/submariner-addon:latest"
 	defaultInstallationNamespace = "open-cluster-management-agent-addon"
 )
 
@@ -92,10 +91,11 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 		installNamespace = defaultInstallationNamespace
 	}
 
+	deploymentFiles := append([]string{}, agentDeploymentFiles...)
 	// if the installation namesapce is default namespace (open-cluster-management-agent-addon),
 	// we will not maintain (create/delete) it, because other ACM addons will be installed this namespace.
 	if installNamespace != defaultInstallationNamespace {
-		agentDeploymentFiles = append(agentDeploymentFiles, agentInstallationNamespaceFile)
+		deploymentFiles = append(deploymentFiles, agentInstallationNamespaceFile)
 	}
 
 	manifestConfig := struct {
@@ -110,7 +110,7 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 		Image:                 a.agentImage,
 	}
 
-	for _, file := range agentDeploymentFiles {
+	for _, file := range deploymentFiles {
 		raw := assets.MustCreateAssetFromTemplate(file, bindata.MustAsset(filepath.Join("", file)), &manifestConfig).Data
 		object, _, err := genericCodec.Decode(raw, nil, nil)
 		if err != nil {
@@ -124,9 +124,9 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 // GetAgentAddonOptions returns the options of submariner-addon agent
 func (a *addOnAgent) GetAgentAddonOptions() agent.AgentAddonOptions {
 	return agent.AgentAddonOptions{
-		AddonName: addOnName,
+		AddonName: helpers.SubmarinerAddOnName,
 		Registration: &agent.RegistrationOption{
-			CSRConfigurations: agent.KubeClientSignerConfigurations(addOnName, agentName),
+			CSRConfigurations: agent.KubeClientSignerConfigurations(helpers.SubmarinerAddOnName, agentName),
 			CSRApproveCheck:   a.csrApproveCheck,
 			PermissionConfig:  a.permissionConfig,
 		},

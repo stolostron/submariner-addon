@@ -151,8 +151,9 @@ func (c *submarinerAgentConfigController) sync(ctx context.Context, syncCtx fact
 		}
 
 		if config.Status.ManagedClusterInfo.Platform == "AWS" {
-			// for AWS, the gateway configuration will be operated on the hub, do nothing
-			return nil
+			// for AWS, the gateway configuration will be operated on the hub,
+			// count the gateways status on the managed cluster and report it to the hub
+			return c.updateGatewayStatus(ctx, config)
 		}
 
 		if err := helpers.RemoveConfigFinalizer(ctx, c.configClient, config, submarinerConfigFinalizer); err != nil {
@@ -188,8 +189,9 @@ func (c *submarinerAgentConfigController) sync(ctx context.Context, syncCtx fact
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "AWS" {
-		// for AWS, the gateway configuration will be operated on the hub, ignore
-		return nil
+		// for AWS, the gateway configuration will be operated on the hub
+		// count the gateways status on the managed cluster and report it to the hub
+		return c.updateGatewayStatus(ctx, config)
 	}
 
 	// config is creating, add a finalizer to it to clean up the related resources after it is deleted
@@ -464,4 +466,42 @@ func (c *submarinerAgentConfigController) findGatewaysWithZone(expected int, zon
 	}
 
 	return gateways, nil
+}
+
+func (c *submarinerAgentConfigController) updateGatewayStatus(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
+	gateways, err := c.getLabeledNodes(
+		nodeLabelSelector{workerNodeLabel, selection.Exists},
+		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},
+	)
+	if err != nil {
+		return err
+	}
+
+	gatewayNames := []string{}
+	for _, gateway := range gateways {
+		gatewayNames = append(gatewayNames, gateway.Name)
+	}
+
+	condition := metav1.Condition{
+		Type:    submarinerGatewayCondition,
+		Status:  metav1.ConditionTrue,
+		Reason:  "SubmarinerGatewayLabeled",
+		Message: fmt.Sprintf("The nodes (%q) are labeled to gateways", strings.Join(gatewayNames, ",")),
+	}
+
+	if config.Spec.Gateways != len(gateways) {
+		condition.Status = metav1.ConditionFalse
+		condition.Reason = "SubmarinerGatewayNotLabeled"
+		condition.Message = fmt.Sprintf("Expected %d gateways, but got %d gateways (%q)",
+			config.Spec.Gateways, len(gateways), strings.Join(gatewayNames, ","))
+	}
+
+	_, _, err = helpers.UpdateSubmarinerConfigStatus(
+		c.configClient,
+		config.Namespace,
+		config.Name,
+		helpers.UpdateSubmarinerConfigConditionFn(condition),
+	)
+
+	return err
 }

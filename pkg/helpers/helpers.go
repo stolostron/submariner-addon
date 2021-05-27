@@ -55,7 +55,10 @@ const (
 )
 
 const (
-	ClusterTypeOCP       = "OCP"
+	ProductOCP = "OpenShift"
+)
+
+const (
 	IPSecPSKSecretLength = 48
 	IPSecPSKSecretName   = "submariner-ipsec-psk"
 	BrokerAPIServer      = "BROKER_API_SERVER"
@@ -410,13 +413,10 @@ func GetBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.
 
 }
 
-func GetClusterType(managedCluster *clusterv1.ManagedCluster) string {
-	if clusterType, found := managedCluster.GetLabels()["vendor"]; found {
-		switch clusterType {
-		case "OCP", "OpenShift":
-			return ClusterTypeOCP
-		default:
-			return clusterType
+func GetClusterProduct(managedCluster *clusterv1.ManagedCluster) string {
+	for _, claim := range managedCluster.Status.ClusterClaims {
+		if claim.Name == "product.open-cluster-management.io" {
+			return claim.Value
 		}
 	}
 
@@ -466,9 +466,11 @@ func ApplyManifestWork(ctx context.Context, client workclient.Interface, require
 func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alpha1.ManagedClusterInfo {
 	clusterInfo := configv1alpha1.ManagedClusterInfo{
 		ClusterName: managedCluster.Name,
-		Vendor:      GetClusterType(managedCluster),
 	}
 	for _, claim := range managedCluster.Status.ClusterClaims {
+		if claim.Name == "product.open-cluster-management.io" {
+			clusterInfo.Vendor = claim.Value
+		}
 		if claim.Name == "platform.open-cluster-management.io" {
 			clusterInfo.Platform = claim.Value
 		}
