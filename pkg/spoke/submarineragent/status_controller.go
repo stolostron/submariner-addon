@@ -3,6 +3,7 @@ package submarineragent
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
@@ -127,6 +128,9 @@ func (c *submarinerAgentStatusController) checkGatewayNodes() metav1.Condition {
 	for _, node := range nodes {
 		nodeNames = append(nodeNames, node.Name)
 	}
+	// fixed the order of gateway names
+	sort.Strings(nodeNames)
+
 	return metav1.Condition{
 		Type:    submarinerGatewayNodesLabeled,
 		Status:  metav1.ConditionTrue,

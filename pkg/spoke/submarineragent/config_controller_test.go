@@ -137,7 +137,7 @@ func TestConfigControllerSync(t *testing.T) {
 			validateActions: func(t *testing.T, kubeActions, addOnActions, configActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertNoActions(t, addOnActions)
-				testinghelpers.AssertActions(t, configActions, "update")
+				testinghelpers.AssertNoActions(t, configActions)
 			},
 		},
 		{
@@ -165,6 +165,11 @@ func TestConfigControllerSync(t *testing.T) {
 						},
 					},
 					Spec: configv1alpha1.SubmarinerConfigSpec{},
+					Status: configv1alpha1.SubmarinerConfigStatus{
+						ManagedClusterInfo: configv1alpha1.ManagedClusterInfo{
+							Platform: "Others",
+						},
+					},
 				},
 			},
 			nodes: []runtime.Object{},
@@ -216,6 +221,11 @@ func TestConfigControllerSync(t *testing.T) {
 							Gateways: 2,
 						},
 					},
+					Status: configv1alpha1.SubmarinerConfigStatus{
+						ManagedClusterInfo: configv1alpha1.ManagedClusterInfo{
+							Platform: "Others",
+						},
+					},
 				},
 			},
 			validateActions: func(t *testing.T, kubeActions, addOnActions, configActions []clienttesting.Action) {
@@ -226,7 +236,7 @@ func TestConfigControllerSync(t *testing.T) {
 			},
 		},
 		{
-			name: "gateways were labeled ",
+			name: "gateways were labeled",
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
@@ -253,6 +263,11 @@ func TestConfigControllerSync(t *testing.T) {
 						IPSecNATTPort: 4500,
 						GatewayConfig: configv1alpha1.GatewayConfig{
 							Gateways: 1,
+						},
+					},
+					Status: configv1alpha1.SubmarinerConfigStatus{
+						ManagedClusterInfo: configv1alpha1.ManagedClusterInfo{
+							Platform: "Others",
 						},
 					},
 				},
@@ -304,6 +319,11 @@ func TestConfigControllerSync(t *testing.T) {
 						IPSecNATTPort: 4500,
 						GatewayConfig: configv1alpha1.GatewayConfig{
 							Gateways: 1,
+						},
+					},
+					Status: configv1alpha1.SubmarinerConfigStatus{
+						ManagedClusterInfo: configv1alpha1.ManagedClusterInfo{
+							Platform: "Others",
 						},
 					},
 				},
@@ -537,6 +557,11 @@ func TestConfigControllerSync(t *testing.T) {
 						},
 						DeletionTimestamp: &now,
 					},
+					Status: configv1alpha1.SubmarinerConfigStatus{
+						ManagedClusterInfo: configv1alpha1.ManagedClusterInfo{
+							Platform: "Others",
+						},
+					},
 				},
 			},
 			nodes: []runtime.Object{
@@ -605,8 +630,12 @@ func TestConfigControllerSync(t *testing.T) {
 							"submarineraddon.open-cluster-management.io/config-addon-cleanup",
 						},
 					},
-					Spec:   configv1alpha1.SubmarinerConfigSpec{},
-					Status: configv1alpha1.SubmarinerConfigStatus{},
+					Spec: configv1alpha1.SubmarinerConfigSpec{},
+					Status: configv1alpha1.SubmarinerConfigStatus{
+						ManagedClusterInfo: configv1alpha1.ManagedClusterInfo{
+							Platform: "Others",
+						},
+					},
 				},
 			},
 			nodes: []runtime.Object{

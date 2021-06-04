@@ -315,8 +315,13 @@ supplementalGroups:
 users:
 - system:serviceaccount:submariner-operator:submariner-operator
 - system:serviceaccount:submariner-operator:submariner-lighthouse
+- system:serviceaccount:submariner-operator:ssubmariner-lighthouse-coredns
+- system:serviceaccount:submariner-operator:submariner-gateway
+- system:serviceaccount:submariner-operator:submariner-routeagent
+- system:serviceaccount:submariner-operator:submariner-globalnet
 volumes:
-- '*'`)
+- '*'
+`)
 
 func manifestsAgentRbacSubmarinerAgentSccYamlBytes() ([]byte, error) {
 	return _manifestsAgentRbacSubmarinerAgentSccYaml, nil
