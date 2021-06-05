@@ -3,6 +3,7 @@ package submarineragent
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -150,6 +151,11 @@ func (c *submarinerAgentConfigController) sync(ctx context.Context, syncCtx fact
 			return err
 		}
 
+		if config.Status.ManagedClusterInfo.Platform == "" {
+			// no managed cluster info, do nothing
+			return nil
+		}
+
 		if config.Status.ManagedClusterInfo.Platform == "AWS" {
 			// for AWS, the gateway configuration will be operated on the hub,
 			// count the gateways status on the managed cluster and report it to the hub
@@ -188,6 +194,11 @@ func (c *submarinerAgentConfigController) sync(ctx context.Context, syncCtx fact
 		return err
 	}
 
+	if config.Status.ManagedClusterInfo.Platform == "" {
+		// no managed cluster info, do nothing
+		return nil
+	}
+
 	if config.Status.ManagedClusterInfo.Platform == "AWS" {
 		// for AWS, the gateway configuration will be operated on the hub
 		// count the gateways status on the managed cluster and report it to the hub
@@ -221,6 +232,8 @@ func (c *submarinerAgentConfigController) sync(ctx context.Context, syncCtx fact
 
 	// ensure the expected count of gateways
 	gatewayNames, err := c.ensureGateways(ctx, config)
+	// fixed the order of gateway names
+	sort.Strings(gatewayNames)
 
 	// update config status according to current gateways
 	condition := metav1.Condition{
@@ -252,7 +265,6 @@ func (c *submarinerAgentConfigController) ensureGateways(ctx context.Context, co
 	}
 
 	currentGateways, err := c.getLabeledNodes(
-		nodeLabelSelector{workerNodeLabel, selection.Exists},
 		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},
 	)
 	if err != nil {
