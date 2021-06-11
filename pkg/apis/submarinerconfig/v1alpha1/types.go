@@ -86,9 +86,7 @@ type SubscriptionConfig struct {
 	Channel string `json:"channel,omitempty"`
 
 	// StartingCSV represents the startingCSV of a submariner subscription.
-	// The default value is submariner.v0.8
 	// +optional
-	// +kubebuilder:default=submariner.v0.8
 	StartingCSV string `json:"startingCSV,omitempty"`
 }
 

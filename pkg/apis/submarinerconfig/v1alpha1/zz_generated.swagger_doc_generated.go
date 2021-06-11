@@ -101,7 +101,7 @@ var map_SubscriptionConfig = map[string]string{
 	"source":          "Source represents the catalog source of a submariner subscription. The default value is redhat-operators",
 	"sourceNamespace": "SourceNamespace represents the catalog source namespace of a submariner subscription. The default value is openshift-marketplace",
 	"channel":         "Channel represents the channel of a submariner subscription. The default value is alpha",
-	"startingCSV":     "StartingCSV represents the startingCSV of a submariner subscription. The default value is submariner.v0.8",
+	"startingCSV":     "StartingCSV represents the startingCSV of a submariner subscription.",
 }
 
 func (SubscriptionConfig) SwaggerDoc() map[string]string {
