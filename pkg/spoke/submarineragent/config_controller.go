@@ -48,9 +48,9 @@ type nodeLabelSelector struct {
 	op    selection.Operator
 }
 
-// submarinerAgentConfigController watches the SubmarinerConfigs API on the hub cluster and apply
+// submarinerConfigController watches the SubmarinerConfigs API on the hub cluster and apply
 // the related configuration on the manged cluster
-type submarinerAgentConfigController struct {
+type submarinerConfigController struct {
 	kubeClient   kubernetes.Interface
 	addOnClient  addonclient.Interface
 	configClient configclient.Interface
@@ -60,8 +60,8 @@ type submarinerAgentConfigController struct {
 	clusterName  string
 }
 
-// NewSubmarinerAgentConfigController returns an instance of submarinerAgentConfigController
-func NewSubmarinerAgentConfigController(
+// NewSubmarinerConfigController returns an instance of submarinerAgentConfigController
+func NewSubmarinerConfigController(
 	clusterName string,
 	kubeClient kubernetes.Interface,
 	addOnClient addonclient.Interface,
@@ -70,7 +70,7 @@ func NewSubmarinerAgentConfigController(
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
 	configInformer configinformer.SubmarinerConfigInformer,
 	recorder events.Recorder) factory.Controller {
-	c := &submarinerAgentConfigController{
+	c := &submarinerConfigController{
 		kubeClient:   kubeClient,
 		addOnClient:  addOnClient,
 		configClient: configClient,
@@ -107,7 +107,7 @@ func NewSubmarinerAgentConfigController(
 		ToController("SubmarinerAgentConfigController", recorder)
 }
 
-func (c *submarinerAgentConfigController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(helpers.SubmarinerAddOnName)
 	if errors.IsNotFound(err) {
 		// the addon not found, could be deleted, ignore
@@ -259,7 +259,7 @@ func (c *submarinerAgentConfigController) sync(ctx context.Context, syncCtx fact
 	return err
 }
 
-func (c *submarinerAgentConfigController) ensureGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig) ([]string, error) {
+func (c *submarinerConfigController) ensureGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig) ([]string, error) {
 	if config.Spec.Gateways < 1 {
 		return nil, fmt.Errorf("the count of gateways must be equal or greater than 1")
 	}
@@ -326,7 +326,7 @@ func (c *submarinerAgentConfigController) ensureGateways(ctx context.Context, co
 	return remainingGatewaysNames, nil
 }
 
-func (c *submarinerAgentConfigController) getLabeledNodes(nodeLabelSelectors ...nodeLabelSelector) ([]*corev1.Node, error) {
+func (c *submarinerConfigController) getLabeledNodes(nodeLabelSelectors ...nodeLabelSelector) ([]*corev1.Node, error) {
 	requirements := []labels.Requirement{}
 	for _, selector := range nodeLabelSelectors {
 		requirement, err := labels.NewRequirement(selector.label, selector.op, []string{})
@@ -339,7 +339,7 @@ func (c *submarinerAgentConfigController) getLabeledNodes(nodeLabelSelectors ...
 	return c.nodeLister.List(labels.Everything().Add(requirements...))
 }
 
-func (c *submarinerAgentConfigController) labelNode(ctx context.Context, config *configv1alpha1.SubmarinerConfig, node *corev1.Node) error {
+func (c *submarinerConfigController) labelNode(ctx context.Context, config *configv1alpha1.SubmarinerConfig, node *corev1.Node) error {
 	_, hasGatewayLabel := node.Labels[submarinerGatewayLabel]
 	labeledPort, hasPortLabel := node.Labels[submarinerUDOPortLabel]
 	nattPort := strconv.Itoa(config.Spec.IPSecNATTPort)
@@ -358,7 +358,7 @@ func (c *submarinerAgentConfigController) labelNode(ctx context.Context, config 
 	})
 }
 
-func (c *submarinerAgentConfigController) unlabelNode(ctx context.Context, node *corev1.Node) error {
+func (c *submarinerConfigController) unlabelNode(ctx context.Context, node *corev1.Node) error {
 	_, hasGatewayLabel := node.Labels[submarinerGatewayLabel]
 	_, hasPortLabel := node.Labels[submarinerUDOPortLabel]
 	if !hasGatewayLabel && !hasPortLabel {
@@ -377,7 +377,7 @@ func (c *submarinerAgentConfigController) unlabelNode(ctx context.Context, node 
 	})
 }
 
-func (c *submarinerAgentConfigController) addGateways(
+func (c *submarinerConfigController) addGateways(
 	ctx context.Context, config *configv1alpha1.SubmarinerConfig, expectedGateways int) ([]*corev1.Node, error) {
 	var zoneLabel string
 	// currently only gcp is supported
@@ -401,7 +401,7 @@ func (c *submarinerAgentConfigController) addGateways(
 	return gateways, operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (c *submarinerAgentConfigController) removeGateways(
+func (c *submarinerConfigController) removeGateways(
 	ctx context.Context, gateways []*corev1.Node, removedGateways int) ([]*corev1.Node, error) {
 	if len(gateways) < removedGateways {
 		removedGateways = len(gateways)
@@ -417,7 +417,7 @@ func (c *submarinerAgentConfigController) removeGateways(
 	return removed, operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (c *submarinerAgentConfigController) removeAllGateways(ctx context.Context) error {
+func (c *submarinerConfigController) removeAllGateways(ctx context.Context) error {
 	gateways, err := c.getLabeledNodes(nodeLabelSelector{submarinerGatewayLabel, selection.Exists})
 	if err != nil {
 		return err
@@ -426,7 +426,7 @@ func (c *submarinerAgentConfigController) removeAllGateways(ctx context.Context)
 	return err
 }
 
-func (c *submarinerAgentConfigController) findGatewaysWithZone(expected int, zoneLabel string) ([]*corev1.Node, error) {
+func (c *submarinerConfigController) findGatewaysWithZone(expected int, zoneLabel string) ([]*corev1.Node, error) {
 	workers, err := c.getLabeledNodes(
 		nodeLabelSelector{workerNodeLabel, selection.Exists},
 		nodeLabelSelector{submarinerGatewayLabel, selection.DoesNotExist},
@@ -480,7 +480,7 @@ func (c *submarinerAgentConfigController) findGatewaysWithZone(expected int, zon
 	return gateways, nil
 }
 
-func (c *submarinerAgentConfigController) updateGatewayStatus(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
+func (c *submarinerConfigController) updateGatewayStatus(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
 	gateways, err := c.getLabeledNodes(
 		nodeLabelSelector{workerNodeLabel, selection.Exists},
 		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},

@@ -10,7 +10,6 @@ import (
 	addoninformers "github.com/open-cluster-management/api/client/addon/informers/externalversions"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -18,16 +17,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
-	kubeinformers "k8s.io/client-go/informers"
-	kubefake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 )
 
-func TestSubmarinerAgentStatusSync(t *testing.T) {
+func TestConnectionsStatusControllerSync(t *testing.T) {
 	cases := []struct {
 		name            string
 		addOns          []runtime.Object
-		nodes           []runtime.Object
 		submariners     []runtime.Object
 		validateActions func(t *testing.T, addOnActions []clienttesting.Action)
 	}{
@@ -41,16 +37,6 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 					},
 				},
 			},
-			nodes: []runtime.Object{
-				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test",
-						Labels: map[string]string{
-							"submariner.io/gateway": "true",
-						},
-					},
-				},
-			},
 			submariners: []runtime.Object{
 				&unstructured.Unstructured{
 					Object: map[string]interface{}{
@@ -60,19 +46,8 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 							"namespace": "submariner-operator",
 							"name":      "submariner",
 						},
-						"spec": map[string]interface{}{},
-						"status": map[string]interface{}{
-							"gatewayDaemonSetStatus": map[string]interface{}{
-								"status": map[string]interface{}{
-									"desiredNumberScheduled": int64(1),
-								},
-							},
-							"routeAgentDaemonSetStatus": map[string]interface{}{
-								"status": map[string]interface{}{
-									"desiredNumberScheduled": int64(6),
-								},
-							},
-						},
+						"spec":   map[string]interface{}{},
+						"status": map[string]interface{}{},
 					},
 				},
 			},
@@ -80,12 +55,6 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 				testinghelpers.AssertActions(t, addOnActions, "get", "update")
 				actual := addOnActions[1].(clienttesting.UpdateActionImpl).Object
 				addOn := actual.(*addonv1alpha1.ManagedClusterAddOn)
-				if !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerGatewayNodesLabeled") {
-					t.Errorf("expected SubmarinerGatewayNodesLabeled is true, but %v", addOn.Status.Conditions)
-				}
-				if !meta.IsStatusConditionFalse(addOn.Status.Conditions, "SubmarinerAgentDegraded") {
-					t.Errorf("expected SubmarinerAgentDegraded is false, but %v", addOn.Status.Conditions)
-				}
 				if !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded") {
 					t.Errorf("expected SubmarinerConnectionDegraded is true, but %v", addOn.Status.Conditions)
 				}
@@ -101,13 +70,6 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 					},
 				},
 			},
-			nodes: []runtime.Object{
-				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test",
-					},
-				},
-			},
 			submariners: []runtime.Object{
 				&unstructured.Unstructured{
 					Object: map[string]interface{}{
@@ -119,14 +81,17 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 						},
 						"spec": map[string]interface{}{},
 						"status": map[string]interface{}{
-							"gatewayDaemonSetStatus": map[string]interface{}{
-								"status": map[string]interface{}{
-									"desiredNumberScheduled": int64(0),
-								},
-							},
-							"routeAgentDaemonSetStatus": map[string]interface{}{
-								"status": map[string]interface{}{
-									"desiredNumberScheduled": int64(6),
+							"gateways": []map[string]interface{}{
+								{
+									"connections": []map[string]interface{}{
+										{
+											"status": "connected",
+											"endpoint": map[string]interface{}{
+												"cluster_id": "cluster1",
+												"hostname":   "ip-10-0-37-115",
+											},
+										},
+									},
 								},
 							},
 						},
@@ -137,13 +102,7 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 				testinghelpers.AssertActions(t, addOnActions, "get", "update")
 				actual := addOnActions[1].(clienttesting.UpdateActionImpl).Object
 				addOn := actual.(*addonv1alpha1.ManagedClusterAddOn)
-				if meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerGatewayNodesLabeled") {
-					t.Errorf("expected SubmarinerGatewayNodesLabeled is false, but %v", addOn.Status.Conditions)
-				}
-				if meta.IsStatusConditionFalse(addOn.Status.Conditions, "SubmarinerAgentDegraded") {
-					t.Errorf("expected SubmarinerAgentDegraded is true, but %v", addOn.Status.Conditions)
-				}
-				if !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded") {
+				if meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded") {
 					t.Errorf("expected SubmarinerConnectionDegraded is true, but %v", addOn.Status.Conditions)
 				}
 			},
@@ -159,13 +118,6 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 				addOnStroe.Add(addOn)
 			}
 
-			kubeClient := kubefake.NewSimpleClientset(c.nodes...)
-			kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Minute*10)
-			nodeStore := kubeInformerFactory.Core().V1().Nodes().Informer().GetStore()
-			for _, node := range c.nodes {
-				nodeStore.Add(node)
-			}
-
 			submarinerGVR, _ := schema.ParseResourceArg("submariners.v1alpha1.submariner.io")
 			fakeDynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
 			dynamicInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(fakeDynamicClient, time.Minute*10)
@@ -175,10 +127,9 @@ func TestSubmarinerAgentStatusSync(t *testing.T) {
 				submarinerStore.Add(submariner)
 			}
 
-			ctrl := &submarinerAgentStatusController{
+			ctrl := &connectionsStatusController{
 				addOnClient:           addOnClient,
 				addOnLister:           addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
-				nodeLister:            kubeInformerFactory.Core().V1().Nodes().Lister(),
 				submarinerLister:      submarinerInformer.Lister(),
 				clusterName:           "test",
 				installationNamespace: "submariner-operator",

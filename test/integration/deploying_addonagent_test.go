@@ -119,7 +119,7 @@ var _ = ginkgo.Describe("Deploy a submariner-addon agent", func() {
 			gomega.Eventually(func() bool {
 				addOn, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(context.TODO(), "submariner", metav1.GetOptions{})
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				if !meta.IsStatusConditionFalse(addOn.Status.Conditions, "SubmarinerAgentDegraded") {
+				if meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded") {
 					return false
 				}
 				return true

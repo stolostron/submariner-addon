@@ -78,7 +78,6 @@ const (
 )
 
 const (
-	submarinerAgentDegraded      = "SubmarinerAgentDegraded"
 	submarinerConnectionDegraded = "SubmarinerConnectionDegraded"
 )
 
@@ -547,57 +546,6 @@ func getKubeAPIServerCA(kubeClient kubernetes.Interface, dynamicClient dynamic.I
 	}
 
 	return nil, nil
-}
-
-func CheckSubmarinerDaemonSetsStatus(submariner *submarinerv1alpha1.Submariner) metav1.Condition {
-	degradedConditionReasons := []string{}
-	degradedConditionMessages := []string{}
-
-	// check gateway daemonset status
-	if submariner.Status.GatewayDaemonSetStatus.Status == nil ||
-		submariner.Status.GatewayDaemonSetStatus.Status.DesiredNumberScheduled == 0 {
-		degradedConditionReasons = append(degradedConditionReasons, "GatewaysNotDeployed")
-		degradedConditionMessages = append(degradedConditionMessages, "The gateways are not deployed")
-	}
-
-	if submariner.Status.GatewayDaemonSetStatus.Status != nil &&
-		submariner.Status.GatewayDaemonSetStatus.Status.NumberUnavailable != 0 {
-		degradedConditionReasons = append(degradedConditionReasons, "GatewaysDegraded")
-		degradedConditionMessages = append(degradedConditionMessages,
-			fmt.Sprintf("There are %d unavailable gateways", submariner.Status.GatewayDaemonSetStatus.Status.NumberUnavailable))
-	}
-
-	// check route agent daemonset status
-	if submariner.Status.RouteAgentDaemonSetStatus.Status == nil ||
-		submariner.Status.RouteAgentDaemonSetStatus.Status.DesiredNumberScheduled == 0 {
-		degradedConditionReasons = append(degradedConditionReasons, "RouteAgentsNotDeployed")
-		degradedConditionMessages = append(degradedConditionMessages, "The route agents are not deployed")
-	}
-
-	if submariner.Status.RouteAgentDaemonSetStatus.Status != nil &&
-		submariner.Status.RouteAgentDaemonSetStatus.Status.NumberUnavailable != 0 {
-		degradedConditionReasons = append(degradedConditionReasons, "RouteAgentsDegraded")
-		degradedConditionMessages = append(degradedConditionMessages,
-			fmt.Sprintf("There are %d unavailable route agents", submariner.Status.RouteAgentDaemonSetStatus.Status.NumberUnavailable))
-	}
-
-	//TODO check globalnet daemonset status, if global is enabled
-
-	if len(degradedConditionReasons) != 0 {
-		return metav1.Condition{
-			Type:    submarinerAgentDegraded,
-			Status:  metav1.ConditionTrue,
-			Reason:  strings.Join(degradedConditionReasons, ","),
-			Message: strings.Join(degradedConditionMessages, "\n"),
-		}
-	}
-
-	return metav1.Condition{
-		Type:    submarinerAgentDegraded,
-		Status:  metav1.ConditionFalse,
-		Reason:  "SubmarinerAgentDeployed",
-		Message: "Submariner agent is deployed on managed cluster.",
-	}
 }
 
 func CheckSubmarinerConnections(clusterName string, submariner *submarinerv1alpha1.Submariner) metav1.Condition {

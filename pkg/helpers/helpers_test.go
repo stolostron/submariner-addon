@@ -23,7 +23,6 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
-	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -875,85 +874,6 @@ func TestGetEnv(t *testing.T) {
 			if value != c.expectedValue {
 				t.Errorf("expect %v, but got: %v", c.expectedValue, value)
 			}
-		})
-	}
-}
-
-func TestCheckSubmarinerDaemonSetStatus(t *testing.T) {
-	cases := []struct {
-		name              string
-		submariner        *submarinerv1alpha1.Submariner
-		validateCondation func(t *testing.T, actual metav1.Condition)
-	}{
-		{
-			name:       "no status",
-			submariner: &submarinerv1alpha1.Submariner{},
-			validateCondation: func(t *testing.T, actual metav1.Condition) {
-				if actual.Status != metav1.ConditionTrue {
-					t.Errorf("expected degraded, but failed")
-				}
-				if actual.Reason != "GatewaysNotDeployed,RouteAgentsNotDeployed" {
-					t.Errorf("unexpected reason, %v", actual)
-				}
-			},
-		},
-		{
-			name: "unavailable components",
-			submariner: &submarinerv1alpha1.Submariner{
-				Status: submarinerv1alpha1.SubmarinerStatus{
-					GatewayDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
-						Status: &v1.DaemonSetStatus{
-							DesiredNumberScheduled: 2,
-							NumberUnavailable:      1,
-						},
-					},
-					RouteAgentDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
-						Status: &v1.DaemonSetStatus{
-							DesiredNumberScheduled: 6,
-							NumberUnavailable:      2,
-						},
-					},
-				},
-			},
-			validateCondation: func(t *testing.T, actual metav1.Condition) {
-				if actual.Status != metav1.ConditionTrue {
-					t.Errorf("expected degraded, but failed")
-				}
-				if actual.Reason != "GatewaysDegraded,RouteAgentsDegraded" {
-					t.Errorf("unexpected reason, %v", actual)
-				}
-			},
-		},
-		{
-			name: "submariner agend deployed",
-			submariner: &submarinerv1alpha1.Submariner{
-				Status: submarinerv1alpha1.SubmarinerStatus{
-					GatewayDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
-						Status: &v1.DaemonSetStatus{
-							DesiredNumberScheduled: 2,
-						},
-					},
-					RouteAgentDaemonSetStatus: submarinerv1alpha1.DaemonSetStatus{
-						Status: &v1.DaemonSetStatus{
-							DesiredNumberScheduled: 6,
-						},
-					},
-				},
-			},
-			validateCondation: func(t *testing.T, actual metav1.Condition) {
-				if actual.Status != metav1.ConditionFalse {
-					t.Errorf("expected undegraded, but failed")
-				}
-				if actual.Reason != "SubmarinerAgentDeployed" {
-					t.Errorf("unexpected reason, %v", actual)
-				}
-			},
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			c.validateCondation(t, CheckSubmarinerDaemonSetsStatus(c.submariner))
 		})
 	}
 }

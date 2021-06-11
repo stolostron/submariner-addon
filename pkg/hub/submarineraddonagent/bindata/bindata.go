@@ -288,6 +288,10 @@ rules:
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]
   verbs: ["get", "list", "watch", "create", "update", "delete"]
+# Allow submariner-addon agent to monitor submariner status
+- apiGroups: ["apps"]
+  resources: ["daemonsets", "deployments"]
+  verbs: ["get", "list", "watch"]
 # Allow submariner-addon agent to get submariners
 - apiGroups: ["submariner.io"]
   resources: ["submariners"]
