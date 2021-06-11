@@ -97,7 +97,9 @@ spec:
   name: {{ .CatalogName }}
   source: {{ .CatalogSource }}
   sourceNamespace: {{ .CatalogSourceNamespace }}
+{{- if .CatalogStartingCSV }}
   startingCSV: {{ .CatalogStartingCSV }}
+{{- end}}
 `)
 
 func manifestsAgentOperatorSubmarinerOperatorSubscriptionYamlBytes() ([]byte, error) {

@@ -19,7 +19,6 @@ const (
 	defaultCatalogChannel         = "alpha"
 	defaultCatalogSource          = "redhat-operators"
 	defaultCatalogSourceNamespace = "openshift-marketplace"
-	defaultCatalogStartingCSV     = "submariner.v0.8"
 	defaultCableDriver            = "libreswan"
 	defaultInstallationNamespace  = "open-cluster-management-agent-addon"
 )
@@ -74,7 +73,6 @@ func NewSubmarinerBrokerInfo(
 		CatalogChannel:         defaultCatalogChannel,
 		CatalogSource:          defaultCatalogSource,
 		CatalogSourceNamespace: defaultCatalogSourceNamespace,
-		CatalogStartingCSV:     defaultCatalogStartingCSV,
 		InstallationNamespace:  defaultInstallationNamespace,
 	}
 
