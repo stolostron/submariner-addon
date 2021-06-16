@@ -2,9 +2,6 @@ package submarineragent
 
 import (
 	"context"
-	"fmt"
-	"sort"
-	"strings"
 
 	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "github.com/open-cluster-management/api/client/addon/informers/externalversions/addon/v1alpha1"
@@ -17,45 +14,34 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
-	corev1informers "k8s.io/client-go/informers/core/v1"
-	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
-const (
-	submarinerGatewayNodesLabeled = "SubmarinerGatewayNodesLabeled"
-	submarinerGatewayLabel        = "submariner.io/gateway"
-	submarinerCRName              = "submariner"
-)
+const submarinerCRName = "submariner"
 
-// submarinerAgentStatusController watches the status of submariner CR and reflect the status
+// connectionsStatusController watches the status of submariner CR and reflect the status
 // to submariner-addon on the hub cluster
-type submarinerAgentStatusController struct {
+type connectionsStatusController struct {
 	addOnClient           addonclient.Interface
 	addOnLister           addonlisterv1alpha1.ManagedClusterAddOnLister
-	nodeLister            corev1lister.NodeLister
 	submarinerLister      cache.GenericLister
 	clusterName           string
 	installationNamespace string
 }
 
-// NewSubmarinerAgentStatusController returns an instance of submarinerAgentStatusController
-func NewSubmarinerAgentStatusController(
+// NewConnectionsStatusController returns an instance of submarinerAgentStatusController
+func NewConnectionsStatusController(
 	clusterName string,
 	installationNamespace string,
 	addOnClient addonclient.Interface,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
-	nodeInformer corev1informers.NodeInformer,
 	submarinerInformer informers.GenericInformer,
 	recorder events.Recorder) factory.Controller {
-	c := &submarinerAgentStatusController{
+	c := &connectionsStatusController{
 		addOnClient:           addOnClient,
 		addOnLister:           addOnInformer.Lister(),
-		nodeLister:            nodeInformer.Lister(),
 		submarinerLister:      submarinerInformer.Lister(),
 		clusterName:           clusterName,
 		installationNamespace: installationNamespace,
@@ -64,14 +50,17 @@ func NewSubmarinerAgentStatusController(
 	return factory.New().
 		WithInformers(submarinerInformer.Informer()).
 		WithSync(c.sync).
-		ToController("SubmarinerAgentStatusController", recorder)
+		ToController("SubmarinerConnectionsStatusController", recorder)
 }
 
-func (c *submarinerAgentStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(helpers.SubmarinerAddOnName)
 	if errors.IsNotFound(err) {
 		// addon is not found, could be deleted, ignore it.
 		return nil
+	}
+	if err != nil {
+		return err
 	}
 
 	runtimeSubmariner, err := c.submarinerLister.ByNamespace(c.installationNamespace).Get(submarinerCRName)
@@ -99,42 +88,14 @@ func (c *submarinerAgentStatusController) sync(ctx context.Context, syncCtx fact
 		c.addOnClient,
 		c.clusterName,
 		addOn.Name,
-		helpers.UpdateManagedClusterAddOnStatusFn(c.checkGatewayNodes()),
-		helpers.UpdateManagedClusterAddOnStatusFn(helpers.CheckSubmarinerDaemonSetsStatus(submariner)),
 		helpers.UpdateManagedClusterAddOnStatusFn(helpers.CheckSubmarinerConnections(c.clusterName, submariner)),
 	)
 	if err != nil {
 		return err
 	}
 	if updated {
-		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "update managed cluster addon %q status", addOn.Name)
+		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "update managed cluster addon %q status with connections status", addOn.Name)
 	}
 
 	return nil
-}
-
-func (c *submarinerAgentStatusController) checkGatewayNodes() metav1.Condition {
-	nodes, err := c.nodeLister.List(labels.SelectorFromSet(labels.Set{submarinerGatewayLabel: "true"}))
-	if err != nil || len(nodes) == 0 {
-		return metav1.Condition{
-			Type:    submarinerGatewayNodesLabeled,
-			Status:  metav1.ConditionFalse,
-			Reason:  "SubmarinerGatewayNodesUnlabeled",
-			Message: fmt.Sprintf("There are no nodes with label %q", submarinerGatewayLabel),
-		}
-	}
-
-	nodeNames := []string{}
-	for _, node := range nodes {
-		nodeNames = append(nodeNames, node.Name)
-	}
-	// fixed the order of gateway names
-	sort.Strings(nodeNames)
-
-	return metav1.Condition{
-		Type:    submarinerGatewayNodesLabeled,
-		Status:  metav1.ConditionTrue,
-		Reason:  "SubmarinerGatewayNodesLabeled",
-		Message: fmt.Sprintf("The nodes %q are labeled with %q", strings.Join(nodeNames, ","), submarinerGatewayLabel),
-	}
 }

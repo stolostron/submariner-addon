@@ -680,7 +680,7 @@ func TestConfigControllerSync(t *testing.T) {
 				configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer().GetStore().Add(config)
 			}
 
-			ctrl := &submarinerAgentConfigController{
+			ctrl := &submarinerConfigController{
 				kubeClient:   kubeClient,
 				addOnClient:  addOnClient,
 				configClient: configClient,

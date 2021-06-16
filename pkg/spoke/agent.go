@@ -94,22 +94,11 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnHubKubeClient, 10*time.Minute, addoninformers.WithNamespace(o.ClusterName))
 	configInformers := configinformers.NewSharedInformerFactoryWithOptions(configHubKubeClient, 10*time.Minute, configinformers.WithNamespace(o.ClusterName))
 
-	spokeKubeInformers := informers.NewSharedInformerFactory(spokeKubeClient, 10*time.Minute)
+	spokeKubeInformers := informers.NewSharedInformerFactoryWithOptions(spokeKubeClient, 10*time.Minute, informers.WithNamespace(o.InstallationNamespace))
 	// TODO if submariner provides the informer in future, we will use it instead of dynamic informer
 	dynamicInformers := dynamicinformer.NewFilteredDynamicSharedInformerFactory(spokeDynamicClient, 10*time.Minute, o.InstallationNamespace, nil)
 
-	submarinerGVR, _ := schema.ParseResourceArg("submariners.v1alpha1.submariner.io")
-	submarinerAgentStatusController := submarineragent.NewSubmarinerAgentStatusController(
-		o.ClusterName,
-		o.InstallationNamespace,
-		addOnHubKubeClient,
-		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
-		spokeKubeInformers.Core().V1().Nodes(),
-		dynamicInformers.ForResource(*submarinerGVR),
-		controllerContext.EventRecorder,
-	)
-
-	submarinerAgentConfigController := submarineragent.NewSubmarinerAgentConfigController(
+	submarinerConfigController := submarineragent.NewSubmarinerConfigController(
 		o.ClusterName,
 		spokeKubeClient,
 		addOnHubKubeClient,
@@ -120,12 +109,43 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		controllerContext.EventRecorder,
 	)
 
+	gatewaysStatusController := submarineragent.NewGatewaysStatusController(
+		o.ClusterName,
+		addOnHubKubeClient,
+		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		spokeKubeInformers.Core().V1().Nodes(),
+		controllerContext.EventRecorder,
+	)
+
+	deploymentStatusController := submarineragent.NewDeploymentStatusController(
+		o.ClusterName,
+		o.InstallationNamespace,
+		addOnHubKubeClient,
+		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		spokeKubeInformers.Apps().V1().DaemonSets(),
+		spokeKubeInformers.Apps().V1().Deployments(),
+		controllerContext.EventRecorder,
+	)
+
+	submarinerGVR, _ := schema.ParseResourceArg("submariners.v1alpha1.submariner.io")
+	connectionsStatusController := submarineragent.NewConnectionsStatusController(
+		o.ClusterName,
+		o.InstallationNamespace,
+		addOnHubKubeClient,
+		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		dynamicInformers.ForResource(*submarinerGVR),
+		controllerContext.EventRecorder,
+	)
+
 	go addOnInformers.Start(ctx.Done())
 	go configInformers.Start(ctx.Done())
 	go spokeKubeInformers.Start(ctx.Done())
 	go dynamicInformers.Start(ctx.Done())
-	go submarinerAgentStatusController.Run(ctx, 1)
-	go submarinerAgentConfigController.Run(ctx, 1)
+
+	go submarinerConfigController.Run(ctx, 1)
+	go gatewaysStatusController.Run(ctx, 1)
+	go deploymentStatusController.Run(ctx, 1)
+	go connectionsStatusController.Run(ctx, 1)
 
 	// start lease updater
 	leaseUpdater := lease.NewLeaseUpdater(
