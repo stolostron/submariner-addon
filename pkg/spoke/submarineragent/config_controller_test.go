@@ -70,8 +70,6 @@ func TestConfigControllerSync(t *testing.T) {
 			validateActions: func(t *testing.T, kubeActions, addOnActions, configActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertNoActions(t, addOnActions)
-				// add finalizers
-				testinghelpers.AssertNoActions(t, configActions)
 			},
 		},
 		{
@@ -101,12 +99,6 @@ func TestConfigControllerSync(t *testing.T) {
 			validateActions: func(t *testing.T, kubeActions, addOnActions, configActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertNoActions(t, configActions)
-				testinghelpers.AssertActions(t, addOnActions, "update")
-				addOn := addOnActions[0].(clienttesting.UpdateActionImpl).Object
-				testinghelpers.AssertFinalizers(t, addOn, []string{
-					"submarineraddon.open-cluster-management.io/submariner-addon-cleanup",
-					"submarineraddon.open-cluster-management.io/submariner-addon-agent-cleanup",
-				})
 			},
 		},
 		{
@@ -601,8 +593,6 @@ func TestConfigControllerSync(t *testing.T) {
 				testinghelpers.AssertNoActions(t, addOnActions)
 				// remove all gateways
 				testinghelpers.AssertActions(t, kubeActions, "update", "update")
-				// remove finalizer
-				testinghelpers.AssertActions(t, configActions, "update")
 			},
 		},
 		{
@@ -652,8 +642,7 @@ func TestConfigControllerSync(t *testing.T) {
 			},
 			validateActions: func(t *testing.T, kubeActions, addOnActions, configActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "update")
-				testinghelpers.AssertActions(t, addOnActions, "update")
-				testinghelpers.AssertActions(t, configActions, "update", "get", "update")
+				testinghelpers.AssertActions(t, configActions, "get", "update")
 			},
 		},
 	}

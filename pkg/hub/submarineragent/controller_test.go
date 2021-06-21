@@ -72,23 +72,24 @@ func TestSyncManagedCluster(t *testing.T) {
 			name:        "No clusterset label on managed cluster",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{}, []string{}, false),
+				newManagedCluster("cluster1", map[string]string{}, []string{agentFinalizer}, false),
 			},
 			clustersets: []runtime.Object{},
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "submariner",
-						Namespace: "cluster1",
+						Name:       "submariner",
+						Namespace:  "cluster1",
+						Finalizers: []string{addOnFinalizer},
 					},
 				},
 			},
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list")
-				testinghelpers.AssertNoActions(t, clusterActions)
+				testinghelpers.AssertActions(t, clusterActions, "update")
 				testinghelpers.AssertActions(t, workActions, "delete")
-				testinghelpers.AssertNoActions(t, addonActions)
+				testinghelpers.AssertActions(t, addonActions, "update")
 			},
 		},
 		{
@@ -101,9 +102,9 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns:   []runtime.Object{},
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, kubeActions, "list")
+				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertNoActions(t, clusterActions)
-				testinghelpers.AssertActions(t, workActions, "delete")
+				testinghelpers.AssertNoActions(t, workActions)
 				testinghelpers.AssertNoActions(t, addonActions)
 			},
 		},
@@ -111,7 +112,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			name:        "Clusterset is not found by clusterset label",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{}, false),
+				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{agentFinalizer}, false),
 			},
 			clustersets: []runtime.Object{},
 			addOns: []runtime.Object{
@@ -125,7 +126,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list")
-				testinghelpers.AssertNoActions(t, clusterActions)
+				testinghelpers.AssertActions(t, clusterActions, "update")
 				testinghelpers.AssertActions(t, workActions, "delete")
 				testinghelpers.AssertNoActions(t, addonActions)
 			},
@@ -236,7 +237,7 @@ func TestSyncManagedCluster(t *testing.T) {
 				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
 				testinghelpers.AssertFinalizers(t, managedCluster, []string{"test"})
 				testinghelpers.AssertActions(t, workActions, "delete")
-				testinghelpers.AssertNoActions(t, addonActions)
+				testinghelpers.AssertActions(t, addonActions, "update")
 			},
 		},
 		{
@@ -591,8 +592,13 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore().Add(cluster)
 			}
 
+			addOnClient := addonfake.NewSimpleClientset()
+			addOnInformerFactory := addoninformers.NewSharedInformerFactory(addOnClient, time.Minute*10)
+
 			ctrl := &submarinerAgentController{
 				kubeClient:         kubefake.NewSimpleClientset(),
+				addOnClient:        addOnClient,
+				addOnLister:        addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
 				clusterClient:      clusterClient,
 				configClient:       configClient,
 				clusterLister:      clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),

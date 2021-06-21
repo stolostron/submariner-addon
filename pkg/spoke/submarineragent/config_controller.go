@@ -117,30 +117,9 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	// addon is creating on the hub, add an agent finalizer to it to clean up the related resources after it was deleted
-	if addOn.DeletionTimestamp.IsZero() {
-		hasFinalizer := false
-		for i := range addOn.Finalizers {
-			if addOn.Finalizers[i] == submarinerAddOnFinalizer {
-				hasFinalizer = true
-				break
-			}
-		}
-		if !hasFinalizer {
-			copied := addOn.DeepCopy()
-			copied.Finalizers = append(copied.Finalizers, submarinerAddOnFinalizer)
-			_, err := c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(copied.Namespace).Update(ctx, copied, metav1.UpdateOptions{})
-			return err
-		}
-	}
-
-	// addon is deleting on the hub, remove its finalizer and clean up the related resources of the configuration
-	// on the managed cluster
+	// addon is deleting from the hub, remove its related resources on the managed cluster
+	// TODO: add finalizer in next release
 	if !addOn.DeletionTimestamp.IsZero() {
-		if err := helpers.RemoveAddOnFinalizer(ctx, c.addOnClient, addOn, submarinerAddOnFinalizer); err != nil {
-			return err
-		}
-
 		// if the addon is deleted before config, clean up gateways config on the manged cluster
 		config, err := c.configLister.SubmarinerConfigs(c.clusterName).Get(helpers.SubmarinerConfigName)
 		if errors.IsNotFound(err) {
@@ -157,13 +136,8 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		}
 
 		if config.Status.ManagedClusterInfo.Platform == "AWS" {
-			// for AWS, the gateway configuration will be operated on the hub,
-			// count the gateways status on the managed cluster and report it to the hub
-			return c.updateGatewayStatus(ctx, config)
-		}
-
-		if err := helpers.RemoveConfigFinalizer(ctx, c.configClient, config, submarinerConfigFinalizer); err != nil {
-			return err
+			// for AWS, the gateway configuration will be operated on the hub, do nothing
+			return nil
 		}
 
 		msg := "The gatways labels are unlabled from nodes after addon was deleted"
@@ -205,28 +179,9 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return c.updateGatewayStatus(ctx, config)
 	}
 
-	// config is creating, add a finalizer to it to clean up the related resources after it is deleted
-	if config.DeletionTimestamp.IsZero() {
-		hasFinalizer := false
-		for i := range config.Finalizers {
-			if config.Finalizers[i] == submarinerConfigFinalizer {
-				hasFinalizer = true
-				break
-			}
-		}
-		if !hasFinalizer {
-			copied := config.DeepCopy()
-			copied.Finalizers = append(copied.Finalizers, submarinerConfigFinalizer)
-			_, err := c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace).Update(ctx, copied, metav1.UpdateOptions{})
-			return err
-		}
-	}
-
-	// config is deleting, remove its related resources
+	// config is deleting from hub, remove its related resources
+	// TODO: add finalizer in next release
 	if !config.DeletionTimestamp.IsZero() {
-		if err := helpers.RemoveConfigFinalizer(ctx, c.configClient, config, submarinerConfigFinalizer); err != nil {
-			return err
-		}
 		return c.removeAllGateways(ctx)
 	}
 
