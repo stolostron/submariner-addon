@@ -288,7 +288,10 @@ rules:
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]
   verbs: ["get", "list", "watch", "create", "update", "delete"]
-# Allow submariner-addon agent to monitor submariner status
+# Allow submariner-addon agent to monitor submariner deployment status
+- apiGroups: ["operators.coreos.com"]
+  resources: ["subscriptions"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: ["apps"]
   resources: ["daemonsets", "deployments"]
   verbs: ["get", "list", "watch"]

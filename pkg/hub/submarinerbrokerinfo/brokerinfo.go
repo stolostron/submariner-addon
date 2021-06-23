@@ -16,7 +16,6 @@ import (
 
 const (
 	catalogName                   = "submariner"
-	defaultCatalogChannel         = "alpha"
 	defaultCatalogSource          = "redhat-operators"
 	defaultCatalogSourceNamespace = "openshift-marketplace"
 	defaultCableDriver            = "libreswan"
@@ -70,7 +69,6 @@ func NewSubmarinerBrokerInfo(
 		BrokerNamespace:        brokeNamespace,
 		ClusterName:            managedCluster.Name,
 		CatalogName:            catalogName,
-		CatalogChannel:         defaultCatalogChannel,
 		CatalogSource:          defaultCatalogSource,
 		CatalogSourceNamespace: defaultCatalogSourceNamespace,
 		InstallationNamespace:  defaultInstallationNamespace,

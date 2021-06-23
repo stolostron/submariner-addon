@@ -23,13 +23,7 @@ Use `SubmarinerConfig` API to build the cluster environment. See [SubmarinerConf
 
 ## GCP
 
-1. Label your worker node with the `submariner.io/gateway=true` firstly 
-   ```
-   kubectl label nodes <worker-node-name> "submariner.io/gateway=true" --overwrite
-   ```
-   > Replace <worker-node-name> with your worker node name.
-
-2. Use `SubmarinerConfig` API to build the cluster environment. See [SubmarinerConfig](submarinerConfig.md) for more details.
+Use `SubmarinerConfig` API to build the cluster environment. See [SubmarinerConfig](submarinerConfig.md) for more details.
 
 ## Azure
 
@@ -134,6 +128,12 @@ Use `SubmarinerConfig` API to build the cluster environment. See [SubmarinerConf
    > Replace <priority> with your rule priority.  
    > Replace <name> with your rule name.
 
+6. Label your worker node with the `submariner.io/gateway=true` in your cluster 
+   ```
+   kubectl label nodes <worker-node-name> "submariner.io/gateway=true" --overwrite
+   ```
+   > Replace <worker-node-name> with your worker node name.
+
 ## IBM Cloud
 
 There are 2 kinds Red Hat OpenShift on IBM Cloud (ROKS), the Classic Cluster and the second generation of compute infrastructure in a Virtual Private Cloud (VPC).
@@ -162,7 +162,7 @@ OSD (RedHat OpenShift Dedicated) supports 2 provisioners AWS and Google Cloud Pl
 
 1. Please refer to the [GCP section](#gcp) for the prerequisites configurations using the credentials of the Service Account `osd-ccs-admin`.
 
-## VMware vSphere and Bare Metal
+## VMware vSphere
 
 1. At least one of the clusters should have a publicly routable IP address designated to the Gateway node.
-2. The default ports used by IPsec are 4500/UDP and 500/UDP. If firewalls that block the default ports, should set custom non-standard ports like 4501/UDP and 501/UDP.
+2. The default ports used by IPsec are 4500/UDP and 500/UDP. If firewalls that block the default ports, should set custom non-standard ports like 4501/UDP and 501/UDP. See [SubmarinerConfig](submarinerConfig.md) for more details.

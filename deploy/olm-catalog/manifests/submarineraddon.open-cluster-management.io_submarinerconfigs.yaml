@@ -85,8 +85,7 @@ spec:
                 description: SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.
                 properties:
                   channel:
-                    default: alpha
-                    description: Channel represents the channel of a submariner subscription. The default value is alpha
+                    description: Channel represents the channel of a submariner subscription.
                     type: string
                   source:
                     default: redhat-operators

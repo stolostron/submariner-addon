@@ -199,7 +199,6 @@ spec:
   subscriptionConfig:
     source: operatorhubio-catalog
     sourceNamespace: olm
-    startingCSV: submariner.v0.9.0
 EOF
 }
 

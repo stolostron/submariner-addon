@@ -27,6 +27,19 @@ import (
 
 const defaultInstallationNamespace = "submariner-operator"
 
+var (
+	submarinerGVR = schema.GroupVersionResource{
+		Group:    "submariner.io",
+		Version:  "v1alpha1",
+		Resource: "submariners",
+	}
+	subscriptionGVR = schema.GroupVersionResource{
+		Group:    "operators.coreos.com",
+		Version:  "v1alpha1",
+		Resource: "subscriptions",
+	}
+)
+
 type AgentOptions struct {
 	InstallationNamespace string
 	HubKubeconfigFile     string
@@ -124,16 +137,16 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 		spokeKubeInformers.Apps().V1().DaemonSets(),
 		spokeKubeInformers.Apps().V1().Deployments(),
+		dynamicInformers.ForResource(subscriptionGVR),
 		controllerContext.EventRecorder,
 	)
 
-	submarinerGVR, _ := schema.ParseResourceArg("submariners.v1alpha1.submariner.io")
 	connectionsStatusController := submarineragent.NewConnectionsStatusController(
 		o.ClusterName,
 		o.InstallationNamespace,
 		addOnHubKubeClient,
 		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
-		dynamicInformers.ForResource(*submarinerGVR),
+		dynamicInformers.ForResource(submarinerGVR),
 		controllerContext.EventRecorder,
 	)
 
