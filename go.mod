@@ -14,6 +14,7 @@ require (
 	github.com/openshift/api v0.0.0-20210325044225-ef3741adfc31
 	github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359
 	github.com/openshift/library-go v0.0.0-20210330121802-ebbc677c82a5
+	github.com/operator-framework/api v0.5.2
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
 	github.com/submariner-io/submariner v0.9.0

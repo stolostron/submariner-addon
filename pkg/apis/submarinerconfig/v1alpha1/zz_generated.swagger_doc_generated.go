@@ -100,7 +100,7 @@ var map_SubscriptionConfig = map[string]string{
 	"":                "SubscriptionConfig contains configuration specified for a submariner subscription.",
 	"source":          "Source represents the catalog source of a submariner subscription. The default value is redhat-operators",
 	"sourceNamespace": "SourceNamespace represents the catalog source namespace of a submariner subscription. The default value is openshift-marketplace",
-	"channel":         "Channel represents the channel of a submariner subscription. The default value is alpha",
+	"channel":         "Channel represents the channel of a submariner subscription.",
 	"startingCSV":     "StartingCSV represents the startingCSV of a submariner subscription.",
 }
 

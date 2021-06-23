@@ -92,7 +92,9 @@ metadata:
   name: submariner
   namespace: {{ .InstallationNamespace }}
 spec:
+{{- if .CatalogChannel }}
   channel: {{ .CatalogChannel }}
+{{- end}}
   installPlanApproval: Automatic
   name: {{ .CatalogName }}
   source: {{ .CatalogSource }}

@@ -80,9 +80,7 @@ type SubscriptionConfig struct {
 	SourceNamespace string `json:"sourceNamespace,omitempty"`
 
 	// Channel represents the channel of a submariner subscription.
-	// The default value is alpha
 	// +optional
-	// +kubebuilder:default=alpha
 	Channel string `json:"channel,omitempty"`
 
 	// StartingCSV represents the startingCSV of a submariner subscription.

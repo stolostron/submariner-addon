@@ -13,7 +13,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubeinformers "k8s.io/client-go/informers"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
@@ -23,6 +27,7 @@ func TestDeploymentStatusControllerSync(t *testing.T) {
 	cases := []struct {
 		name            string
 		addOns          []runtime.Object
+		subscriptions   []runtime.Object
 		deployemnts     []runtime.Object
 		daemonsets      []runtime.Object
 		validateActions func(t *testing.T, addOnActions []clienttesting.Action)
@@ -34,6 +39,20 @@ func TestDeploymentStatusControllerSync(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "submariner",
+					},
+				},
+			},
+			subscriptions: []runtime.Object{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "operators.coreos.com/v1alpha1",
+						"kind":       "Subscription",
+						"metadata": map[string]interface{}{
+							"namespace": "test",
+							"name":      "submariner",
+						},
+						"spec":   map[string]interface{}{},
+						"status": map[string]interface{}{},
 					},
 				},
 			},
@@ -53,6 +72,22 @@ func TestDeploymentStatusControllerSync(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "submariner",
+					},
+				},
+			},
+			subscriptions: []runtime.Object{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "operators.coreos.com/v1alpha1",
+						"kind":       "Subscription",
+						"metadata": map[string]interface{}{
+							"namespace": "test",
+							"name":      "submariner",
+						},
+						"spec": map[string]interface{}{},
+						"status": map[string]interface{}{
+							"installedCSV": "test",
+						},
 					},
 				},
 			},
@@ -80,6 +115,22 @@ func TestDeploymentStatusControllerSync(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "test",
 						Name:      "submariner",
+					},
+				},
+			},
+			subscriptions: []runtime.Object{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "operators.coreos.com/v1alpha1",
+						"kind":       "Subscription",
+						"metadata": map[string]interface{}{
+							"namespace": "test",
+							"name":      "submariner",
+						},
+						"spec": map[string]interface{}{},
+						"status": map[string]interface{}{
+							"installedCSV": "test",
+						},
 					},
 				},
 			},
@@ -134,6 +185,15 @@ func TestDeploymentStatusControllerSync(t *testing.T) {
 				addOnStroe.Add(addOn)
 			}
 
+			subscriptionGVR, _ := schema.ParseResourceArg("subscriptions.v1alpha1.operators.coreos.com")
+			fakeDynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+			dynamicInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(fakeDynamicClient, time.Minute*10)
+			subscriptionInformer := dynamicInformerFactory.ForResource(*subscriptionGVR)
+			subscriptionStore := subscriptionInformer.Informer().GetStore()
+			for _, subscription := range c.subscriptions {
+				subscriptionStore.Add(subscription)
+			}
+
 			apps := append([]runtime.Object{}, c.daemonsets...)
 			apps = append(apps, c.deployemnts...)
 			kubeClient := kubefake.NewSimpleClientset(apps...)
@@ -148,12 +208,13 @@ func TestDeploymentStatusControllerSync(t *testing.T) {
 			}
 
 			ctrl := &deploymentStatusController{
-				addOnClient:      addOnClient,
-				addOnLister:      addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
-				deploymentLister: kubeInformerFactory.Apps().V1().Deployments().Lister(),
-				daemonSetLister:  kubeInformerFactory.Apps().V1().DaemonSets().Lister(),
-				clusterName:      "test",
-				namespace:        "test",
+				addOnClient:        addOnClient,
+				addOnLister:        addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
+				deploymentLister:   kubeInformerFactory.Apps().V1().Deployments().Lister(),
+				daemonSetLister:    kubeInformerFactory.Apps().V1().DaemonSets().Lister(),
+				subscriptionLister: subscriptionInformer.Lister(),
+				clusterName:        "test",
+				namespace:          "test",
 			}
 
 			err := ctrl.sync(context.TODO(), testinghelpers.NewFakeSyncContext(t, "deployment"))

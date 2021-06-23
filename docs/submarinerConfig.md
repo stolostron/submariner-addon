@@ -6,7 +6,7 @@ The SubmarinerConfig should be created in the managed cluster namespace.
 
 ## Limitation
 
-SubmarinerConfig can support OCP on AWS or GCP at the current stage. The other Cloud Platforms will be supported in the future.
+SubmarinerConfig can support OCP on AWS, GCP or VMware vSphere at the current stage. The other Cloud Platforms will be supported in the future.
 
 ## Use Cases
 
@@ -69,3 +69,65 @@ SubmarinerConfig can support OCP on AWS or GCP at the current stage. The other C
     ```
 
     It is the same as the one used to provision the cluster by GCP.
+
+3. As a user, I want to change the default instance type of gateways on AWS
+
+    ```yaml
+    apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
+    kind: SubmarinerConfig
+    metadata:
+        name: <config-name>
+        namespace: <managed-cluster-namespace>
+    spec:
+        gatewayConfig:
+          instanceType: <aws-instance-type>
+        ...
+    ```
+
+4. As a user, I want to specfiy the number of gateways
+
+    ```yaml
+    apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
+    kind: SubmarinerConfig
+    metadata:
+        name: <config-name>
+        namespace: <managed-cluster-namespace>
+    spec:
+        gatewayConfig:
+          gateways: <gateway-numbers>
+        ...
+    ```
+
+5. As a user, I want to change the default defination of submariner-operator subscription
+
+   ```yaml
+    apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
+    kind: SubmarinerConfig
+    metadata:
+        name: <config-name>
+        namespace: <managed-cluster-namespace>
+    spec:
+        gatewayConfig:
+          source: <submariner-operator-source>
+          sourceNamespace: <submariner-operator-source-namespace>
+          channel: <submariner-operator-channel>
+          startingCSV: <submariner-operator-staring-csv>
+        ...
+    ```
+
+6. As a user, I want to change the default defination of submariner-operator subscription
+
+   ```yaml
+    apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
+    kind: SubmarinerConfig
+    metadata:
+        name: <config-name>
+        namespace: <managed-cluster-namespace>
+    spec:
+        imagePullSpecs:
+          submarinerImagePullSpec: <submariner-image-pull-spec>
+          lighthouseAgentImagePullSpec: <lighthouse-agent-image-pull-spec>
+          lighthouseCoreDNSImagePullSpec: <lighthouse-coredns-image-pull-spec>
+          submarinerRouteAgentImagePullSpec: <submariner-route-image-pull-spec>
+        ...
+    ```
