@@ -164,7 +164,9 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	if err != nil {
 		return err
 	}
-	mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, controllerContext.EventRecorder, o.AgentImage))
+	if err := mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, controllerContext.EventRecorder, o.AgentImage)); err != nil {
+		return err
+	}
 	go mgr.Start(ctx)
 
 	<-ctx.Done()
