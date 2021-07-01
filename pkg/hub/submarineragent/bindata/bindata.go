@@ -158,6 +158,8 @@ spec:
     lighthouse-coredns: {{ .LighthouseCoreDNSImage }}
     {{- end}}
 {{- end}}
+  repository: registry.redhat.io/rhacm2-tech-preview
+  version: v0.9
 `)
 
 func manifestsAgentOperatorSubmarinerIoSubmarinersCrYamlBytes() ([]byte, error) {
