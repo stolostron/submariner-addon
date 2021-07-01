@@ -47,9 +47,10 @@ import (
 	"k8s.io/klog/v2"
 )
 
+const manifestWorkName = "submariner-operator"
+
 const (
 	clusterSetLabel     = "cluster.open-cluster-management.io/clusterset"
-	manifestWorkName    = "submariner-operator"
 	serviceAccountLabel = "cluster.open-cluster-management.io/submariner-cluster-sa"
 )
 
@@ -133,10 +134,17 @@ func NewSubmarinerAgentController(
 			return accessor.GetName()
 		}, clusterInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			// TODO: we may consider to use addon to deploy the submariner on the managed cluster instead of
+			// using manifestwork, one problem should be considered - how to get the IPSECPSK
 			accessor, _ := meta.Accessor(obj)
+			if accessor.GetName() != manifestWorkName {
+				return ""
+			}
 			return accessor.GetNamespace()
 		}, manifestWorkInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			// TODO: we may consider to use addon to set up the submariner env on the managed cluster instead of
+			// using manifestwork, one problem should be considered - how to get the cloud credentials
 			accessor, _ := meta.Accessor(obj)
 			if accessor.GetName() != helpers.SubmarinerConfigName {
 				return ""
