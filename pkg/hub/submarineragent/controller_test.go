@@ -289,10 +289,9 @@ func TestSyncManagedCluster(t *testing.T) {
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, kubeActions)
+				testinghelpers.AssertNoActions(t, clusterActions)
 				testinghelpers.AssertNoActions(t, workActions)
-				testinghelpers.AssertActions(t, clusterActions, "update")
-				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
-				testinghelpers.AssertFinalizers(t, managedCluster, []string{agentFinalizer})
+				testinghelpers.AssertNoActions(t, addonActions)
 			},
 		},
 	}
