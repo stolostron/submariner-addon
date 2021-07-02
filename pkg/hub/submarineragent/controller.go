@@ -166,15 +166,20 @@ func NewSubmarinerAgentController(
 func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	key := syncCtx.QueueKey()
 
-	klog.V(4).Infof("Submariner agent controller is reconciling, queue key: %s", key)
-
 	// if the sync is triggered by change of ManagedClusterSet, reconcile all managed clusters
 	if key == factory.DefaultQueueKey {
-		if err := c.syncAllManagedClusters(ctx); err != nil {
+		managedClusters, err := c.clusterLister.List(labels.Everything())
+		if err != nil {
 			return err
+		}
+		for _, managedCluster := range managedClusters {
+			// enqueue the managed cluster to reconcile
+			syncCtx.Queue().Add(managedCluster.Name)
 		}
 		return nil
 	}
+
+	klog.V(4).Infof("Submariner agent controller is reconciling, queue key: %s", key)
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
@@ -237,32 +242,6 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 	return c.syncSubmarinerConfig(ctx, managedCluster.DeepCopy(), config.DeepCopy())
 }
 
-// syncAllManagedClusters syncs all managed clusters
-func (c *submarinerAgentController) syncAllManagedClusters(ctx context.Context) error {
-	managedClusters, err := c.clusterLister.List(labels.Everything())
-	if err != nil {
-		return err
-	}
-
-	errs := []error{}
-	for _, managedCluster := range managedClusters {
-		config, err := c.configLister.SubmarinerConfigs(managedCluster.ClusterName).Get(helpers.SubmarinerConfigName)
-		if errors.IsNotFound(err) {
-			// only sync managed clsuter
-			errs = append(errs, c.syncManagedCluster(ctx, managedCluster.DeepCopy(), nil))
-			continue
-		}
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		errs = append(errs, c.syncManagedCluster(ctx, managedCluster.DeepCopy(), config.DeepCopy()))
-	}
-
-	return operatorhelpers.NewMultiLineAggregate(errs)
-}
-
 // syncManagedCluster syncs one managed cluster
 func (c *submarinerAgentController) syncManagedCluster(
 	ctx context.Context,
@@ -309,7 +288,8 @@ func (c *submarinerAgentController) syncManagedCluster(
 	_, err = c.clusterSetLister.Get(clusterSetName)
 	switch {
 	case errors.IsNotFound(err):
-		// if the clusterset is not found, try to clean up the submariner agent
+		// if one cluster has clusterset label, but the clusterset is not found, it could have been deleted
+		// try to clean up the submariner agent
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	case err != nil:
 		return err
