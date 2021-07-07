@@ -25,12 +25,13 @@ var now = metav1.Now()
 
 func TestConfigControllerSync(t *testing.T) {
 	cases := []struct {
-		name            string
-		addOns          []runtime.Object
-		configs         []runtime.Object
-		nodes           []runtime.Object
-		expectedErr     string
-		validateActions func(t *testing.T, kubeActions, addOnActions, configActions []clienttesting.Action)
+		name             string
+		addOns           []runtime.Object
+		configs          []runtime.Object
+		nodes            []runtime.Object
+		defaultZoneLabel string
+		expectedErr      string
+		validateActions  func(t *testing.T, kubeActions, addOnActions, configActions []clienttesting.Action)
 	}{
 		{
 			name:    "no resources",
@@ -386,7 +387,7 @@ func TestConfigControllerSync(t *testing.T) {
 					},
 					Status: configv1alpha1.SubmarinerConfigStatus{
 						ManagedClusterInfo: configv1alpha1.ManagedClusterInfo{
-							Platform: "GCP",
+							Platform: "Other",
 						},
 					},
 				},
@@ -438,6 +439,7 @@ func TestConfigControllerSync(t *testing.T) {
 					},
 				},
 			},
+			defaultZoneLabel: "failure-domain.beta.kubernetes.io/zone",
 			validateActions: func(t *testing.T, kubeActions, addOnActions, configActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, addOnActions)
 				// label four nodes
@@ -478,7 +480,7 @@ func TestConfigControllerSync(t *testing.T) {
 					},
 					Status: configv1alpha1.SubmarinerConfigStatus{
 						ManagedClusterInfo: configv1alpha1.ManagedClusterInfo{
-							Platform: "GCP",
+							Platform: "Other",
 						},
 					},
 				},
@@ -516,6 +518,7 @@ func TestConfigControllerSync(t *testing.T) {
 					},
 				},
 			},
+			defaultZoneLabel: "failure-domain.beta.kubernetes.io/zone",
 			validateActions: func(t *testing.T, kubeActions, addOnActions, configActions []clienttesting.Action) {
 				testinghelpers.AssertNoActions(t, addOnActions)
 				// unlabel one node
@@ -668,6 +671,8 @@ func TestConfigControllerSync(t *testing.T) {
 			for _, config := range c.configs {
 				configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer().GetStore().Add(config)
 			}
+
+			defaultZoneLabel = c.defaultZoneLabel
 
 			ctrl := &submarinerConfigController{
 				kubeClient:   kubeClient,

@@ -48,6 +48,34 @@ func (mr *MockInterfaceMockRecorder) DeleteFirewallRule(name interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFirewallRule", reflect.TypeOf((*MockInterface)(nil).DeleteFirewallRule), name)
 }
 
+// DisablePublicIP mocks base method.
+func (m *MockInterface) DisablePublicIP(instance *compute.Instance) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisablePublicIP", instance)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DisablePublicIP indicates an expected call of DisablePublicIP.
+func (mr *MockInterfaceMockRecorder) DisablePublicIP(instance interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisablePublicIP", reflect.TypeOf((*MockInterface)(nil).DisablePublicIP), instance)
+}
+
+// EnablePublicIP mocks base method.
+func (m *MockInterface) EnablePublicIP(instance *compute.Instance) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnablePublicIP", instance)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EnablePublicIP indicates an expected call of EnablePublicIP.
+func (mr *MockInterfaceMockRecorder) EnablePublicIP(instance interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnablePublicIP", reflect.TypeOf((*MockInterface)(nil).EnablePublicIP), instance)
+}
+
 // GetFirewallRule mocks base method.
 func (m *MockInterface) GetFirewallRule(name string) (*compute.Firewall, error) {
 	m.ctrl.T.Helper()
@@ -61,6 +89,21 @@ func (m *MockInterface) GetFirewallRule(name string) (*compute.Firewall, error) 
 func (mr *MockInterfaceMockRecorder) GetFirewallRule(name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirewallRule", reflect.TypeOf((*MockInterface)(nil).GetFirewallRule), name)
+}
+
+// GetInstance mocks base method.
+func (m *MockInterface) GetInstance(zone, instance string) (*compute.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstance", zone, instance)
+	ret0, _ := ret[0].(*compute.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstance indicates an expected call of GetInstance.
+func (mr *MockInterfaceMockRecorder) GetInstance(zone, instance interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstance", reflect.TypeOf((*MockInterface)(nil).GetInstance), zone, instance)
 }
 
 // GetProjectID mocks base method.
