@@ -14,11 +14,14 @@ import (
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
 	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
+	gcpclient "github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp/client"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+
+	compute "google.golang.org/api/compute/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -32,15 +35,24 @@ import (
 )
 
 // TODO expose this as a flag to allow user to specify their zone label
-const defaultZoneLabel = ""
+var defaultZoneLabel = ""
 
 const (
-	submarinerAddOnFinalizer   = "submarineraddon.open-cluster-management.io/submariner-addon-agent-cleanup"
-	submarinerConfigFinalizer  = "submarineraddon.open-cluster-management.io/config-addon-cleanup"
-	submarinerUDOPortLabel     = "gateway.submariner.io/udp-port"
-	submarinerGatewayCondition = "SubmarinerGatewayLabled"
-	workerNodeLabel            = "node-role.kubernetes.io/worker"
-	gcpZoneLabel               = "failure-domain.beta.kubernetes.io/zone"
+	submarinerAddOnFinalizer  = "submarineraddon.open-cluster-management.io/submariner-addon-agent-cleanup"
+	submarinerConfigFinalizer = "submarineraddon.open-cluster-management.io/config-addon-cleanup"
+)
+
+const submarinerGatewayCondition = "SubmarinerGatewayLabled"
+
+const (
+	submarinerUDPPortLabel = "gateway.submariner.io/udp-port"
+	workerNodeLabel        = "node-role.kubernetes.io/worker"
+	gcpZoneLabel           = "failure-domain.beta.kubernetes.io/zone"
+)
+
+const (
+	ocpMachineAPINamespace = "openshift-machine-api"
+	gcpCredentialsSecret   = "gcp-cloud-credentials"
 )
 
 type nodeLabelSelector struct {
@@ -141,7 +153,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		}
 
 		msg := "The gatways labels are unlabled from nodes after addon was deleted"
-		if err := c.removeAllGateways(ctx); err != nil {
+		if err := c.removeAllGateways(ctx, config); err != nil {
 			msg = fmt.Sprintf("Failed to unlable the gatway labels from nodes: %v", err)
 		}
 
@@ -182,7 +194,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	// config is deleting from hub, remove its related resources
 	// TODO: add finalizer in next release
 	if !config.DeletionTimestamp.IsZero() {
-		return c.removeAllGateways(ctx)
+		return c.removeAllGateways(ctx, config)
 	}
 
 	// ensure the expected count of gateways
@@ -257,7 +269,7 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context, config 
 	}
 
 	// require to remove gateways
-	removed, err := c.removeGateways(ctx, currentGateways, -requiredGateways)
+	removed, err := c.removeGateways(ctx, config, currentGateways, -requiredGateways)
 	if err != nil {
 		return nil, err
 	}
@@ -295,8 +307,19 @@ func (c *submarinerConfigController) getLabeledNodes(nodeLabelSelectors ...nodeL
 }
 
 func (c *submarinerConfigController) labelNode(ctx context.Context, config *configv1alpha1.SubmarinerConfig, node *corev1.Node) error {
+	if config.Status.ManagedClusterInfo.Platform == "GCP" {
+		gc, instance, err := c.getGCPInstance(node)
+		if err != nil {
+			return err
+		}
+
+		if err := gc.EnablePublicIP(instance); err != nil {
+			return err
+		}
+	}
+
 	_, hasGatewayLabel := node.Labels[submarinerGatewayLabel]
-	labeledPort, hasPortLabel := node.Labels[submarinerUDOPortLabel]
+	labeledPort, hasPortLabel := node.Labels[submarinerUDPPortLabel]
 	nattPort := strconv.Itoa(config.Spec.IPSecNATTPort)
 	if hasGatewayLabel && (hasPortLabel && labeledPort == nattPort) {
 		// the node has been labeled, do nothing
@@ -305,7 +328,7 @@ func (c *submarinerConfigController) labelNode(ctx context.Context, config *conf
 
 	copied := node.DeepCopy()
 	copied.Labels[submarinerGatewayLabel] = "true"
-	copied.Labels[submarinerUDOPortLabel] = nattPort
+	copied.Labels[submarinerUDPPortLabel] = nattPort
 
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		_, err := c.kubeClient.CoreV1().Nodes().Update(ctx, copied, metav1.UpdateOptions{})
@@ -313,9 +336,20 @@ func (c *submarinerConfigController) labelNode(ctx context.Context, config *conf
 	})
 }
 
-func (c *submarinerConfigController) unlabelNode(ctx context.Context, node *corev1.Node) error {
+func (c *submarinerConfigController) unlabelNode(ctx context.Context, config *configv1alpha1.SubmarinerConfig, node *corev1.Node) error {
+	if config.Status.ManagedClusterInfo.Platform == "GCP" {
+		gc, instance, err := c.getGCPInstance(node)
+		if err != nil {
+			return err
+		}
+
+		if err := gc.DisablePublicIP(instance); err != nil {
+			return err
+		}
+	}
+
 	_, hasGatewayLabel := node.Labels[submarinerGatewayLabel]
-	_, hasPortLabel := node.Labels[submarinerUDOPortLabel]
+	_, hasPortLabel := node.Labels[submarinerUDPPortLabel]
 	if !hasGatewayLabel && !hasPortLabel {
 		// the node dose not have gateway and port labels, do nothing
 		return nil
@@ -324,7 +358,7 @@ func (c *submarinerConfigController) unlabelNode(ctx context.Context, node *core
 	copied := node.DeepCopy()
 	// remove the gateway and port label
 	delete(copied.Labels, submarinerGatewayLabel)
-	delete(copied.Labels, submarinerUDOPortLabel)
+	delete(copied.Labels, submarinerUDPPortLabel)
 
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		_, err := c.kubeClient.CoreV1().Nodes().Update(ctx, copied, metav1.UpdateOptions{})
@@ -357,7 +391,9 @@ func (c *submarinerConfigController) addGateways(
 }
 
 func (c *submarinerConfigController) removeGateways(
-	ctx context.Context, gateways []*corev1.Node, removedGateways int) ([]*corev1.Node, error) {
+	ctx context.Context,
+	config *configv1alpha1.SubmarinerConfig,
+	gateways []*corev1.Node, removedGateways int) ([]*corev1.Node, error) {
 	if len(gateways) < removedGateways {
 		removedGateways = len(gateways)
 	}
@@ -366,18 +402,18 @@ func (c *submarinerConfigController) removeGateways(
 	removed := []*corev1.Node{}
 	for i := 0; i < removedGateways; i++ {
 		removed = append(removed, gateways[i])
-		errs = append(errs, c.unlabelNode(ctx, gateways[i]))
+		errs = append(errs, c.unlabelNode(ctx, config, gateways[i]))
 	}
 
 	return removed, operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (c *submarinerConfigController) removeAllGateways(ctx context.Context) error {
+func (c *submarinerConfigController) removeAllGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
 	gateways, err := c.getLabeledNodes(nodeLabelSelector{submarinerGatewayLabel, selection.Exists})
 	if err != nil {
 		return err
 	}
-	_, err = c.removeGateways(ctx, gateways, len(gateways))
+	_, err = c.removeGateways(ctx, config, gateways, len(gateways))
 	return err
 }
 
@@ -471,4 +507,21 @@ func (c *submarinerConfigController) updateGatewayStatus(ctx context.Context, co
 	)
 
 	return err
+}
+
+//TODO consider to put this into the cloud-library
+func (c *submarinerConfigController) getGCPInstance(node *corev1.Node) (gcpclient.Interface, *compute.Instance, error) {
+	gc, err := gcpclient.NewOauth2Client(c.kubeClient, ocpMachineAPINamespace, gcpCredentialsSecret)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	zone := node.Labels[gcpZoneLabel]
+	instanceName := strings.Split(node.Name, ".")[0]
+	instance, err := gc.GetInstance(zone, instanceName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return gc, instance, nil
 }

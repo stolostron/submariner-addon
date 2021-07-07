@@ -7,6 +7,10 @@ rules:
 - apiGroups: [""]
   resources: ["configmaps"]
   verbs: ["get", "list", "watch"]
+# Allow submariner-addon agent to get cloud credations
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
 # Allow submariner-addon agent to get/update nodes
 - apiGroups: [""]
   resources: ["nodes"]
