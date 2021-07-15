@@ -2,8 +2,8 @@ package submarinerbroker
 
 import (
 	"context"
+	"embed"
 	"fmt"
-	"path/filepath"
 
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1"
 	clusterinformerv1alpha1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
@@ -17,7 +17,6 @@ import (
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker/bindata"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -33,10 +32,13 @@ const (
 
 var (
 	staticResourceFiles = []string{
-		"manifests/broker/broker-namespace.yaml",
-		"manifests/broker/broker-cluster-role.yaml",
+		"manifests/broker-namespace.yaml",
+		"manifests/broker-cluster-role.yaml",
 	}
 )
+
+//go:embed manifests
+var manifestFiles embed.FS
 
 type submarinerBrokerController struct {
 	kubeClient       kubernetes.Interface
@@ -116,7 +118,11 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 		clientHolder,
 		syncCtx.Recorder(),
 		func(name string) ([]byte, error) {
-			return assets.MustCreateAssetFromTemplate(name, bindata.MustAsset(filepath.Join("", name)), config).Data, nil
+			template, err := manifestFiles.ReadFile(name)
+			if err != nil {
+				return nil, err
+			}
+			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
 		},
 		staticResourceFiles...,
 	)
@@ -142,7 +148,11 @@ func (c *submarinerBrokerController) cleanUp(ctx context.Context, controllerCont
 		c.kubeClient,
 		controllerContext.Recorder(),
 		func(name string) ([]byte, error) {
-			return assets.MustCreateAssetFromTemplate(name, bindata.MustAsset(filepath.Join("", name)), config).Data, nil
+			template, err := manifestFiles.ReadFile(name)
+			if err != nil {
+				return nil, err
+			}
+			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
 		},
 		staticResourceFiles...,
 	)

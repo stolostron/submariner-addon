@@ -2,8 +2,8 @@ package submarineragent
 
 import (
 	"context"
+	"embed"
 	"fmt"
-	"path/filepath"
 
 	"github.com/ghodss/yaml"
 
@@ -27,7 +27,6 @@ import (
 	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent/bindata"
 	brokerinfo "github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbrokerinfo"
 
 	"github.com/openshift/library-go/pkg/assets"
@@ -61,22 +60,25 @@ const (
 )
 
 var clusterRBACFiles = []string{
-	"manifests/agent/rbac/broker-cluster-serviceaccount.yaml",
-	"manifests/agent/rbac/broker-cluster-rolebinding.yaml",
+	"manifests/rbac/broker-cluster-serviceaccount.yaml",
+	"manifests/rbac/broker-cluster-rolebinding.yaml",
 }
 
-const agentRBACFile = "manifests/agent/rbac/operatorgroup-aggregate-clusterrole.yaml"
+const agentRBACFile = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
 
 var sccFiles = []string{
-	"manifests/agent/rbac/scc-aggregate-clusterrole.yaml",
-	"manifests/agent/rbac/submariner-agent-scc.yaml",
+	"manifests/rbac/scc-aggregate-clusterrole.yaml",
+	"manifests/rbac/submariner-agent-scc.yaml",
 }
 
 var operatorFiles = []string{
-	"manifests/agent/operator/submariner-operator-group.yaml",
-	"manifests/agent/operator/submariner-operator-subscription.yaml",
-	"manifests/agent/operator/submariner.io-submariners-cr.yaml",
+	"manifests/operator/submariner-operator-group.yaml",
+	"manifests/operator/submariner-operator-subscription.yaml",
+	"manifests/operator/submariner.io-submariners-cr.yaml",
 }
+
+//go:embed manifests
+var manifestFiles embed.FS
 
 type clusterRBACConfig struct {
 	ManagedClusterName        string
@@ -505,7 +507,11 @@ func (c *submarinerAgentController) applyClusterRBACFiles(brokerNamespace, manag
 		clientHolder,
 		c.eventRecorder,
 		func(name string) ([]byte, error) {
-			return assets.MustCreateAssetFromTemplate(name, bindata.MustAsset(filepath.Join("", name)), config).Data, nil
+			template, err := manifestFiles.ReadFile(name)
+			if err != nil {
+				return nil, err
+			}
+			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
 		},
 		clusterRBACFiles...,
 	)
@@ -545,7 +551,11 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 		c.kubeClient,
 		c.eventRecorder,
 		func(name string) ([]byte, error) {
-			return assets.MustCreateAssetFromTemplate(name, bindata.MustAsset(filepath.Join("", name)), config).Data, nil
+			template, err := manifestFiles.ReadFile(name)
+			if err != nil {
+				return nil, err
+			}
+			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
 		},
 		clusterRBACFiles...,
 	)
@@ -582,7 +592,11 @@ func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{
 
 	manifests := []workv1.Manifest{}
 	for _, file := range files {
-		yamlData := assets.MustCreateAssetFromTemplate(file, bindata.MustAsset(filepath.Join("", file)), config).Data
+		template, err := manifestFiles.ReadFile(file)
+		if err != nil {
+			return nil, err
+		}
+		yamlData := assets.MustCreateAssetFromTemplate(file, template, config).Data
 		jsonData, err := yaml.YAMLToJSON(yamlData)
 		if err != nil {
 			return nil, err
