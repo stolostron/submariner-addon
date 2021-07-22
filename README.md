@@ -111,4 +111,3 @@ The add-on has been integrated into ACM 2.2 as a default component:
    > Note: The manged clusters must meet the [`Prerequisites`](/doc/prerequisites.md) for Submariner.
 
 3. Start deploying Submariner to managed clusters following the [Setup of Submariner on the Hub cluster](#setup-of-submariner-on-the-hub-cluster) above.
- 
