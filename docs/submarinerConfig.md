@@ -10,7 +10,7 @@ SubmarinerConfig can support OCP on AWS, GCP or VMware vSphere at the current st
 
 ## Use Cases
 
-1. As a user, I have prepared my Submariner cluster environment, but I used myself configurations, for example, I set the `IPSecIKEPort` to 501 and set the `IPSecNATTPort` to 4501. So I should create a SubmarinerConfig with my configurations.
+1. As a user, I have prepared my Submariner cluster environment, but I used myself configurations, for example, I set the `IPSecNATTPort` to 4501. So I should create a SubmarinerConfig with my configurations.
 
     ```yaml
     apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
@@ -19,7 +19,6 @@ SubmarinerConfig can support OCP on AWS, GCP or VMware vSphere at the current st
         name: <config-name>
         namespace: <managed-cluster-namespace>
     spec:
-        IPSecIKEPort: <IPSec IKE Port>
         IPSecNATTPort: <IPSec NAT-T Port>
         ...
     ```
