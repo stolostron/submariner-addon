@@ -8,7 +8,6 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	golang.mk \
 	targets/openshift/deps.mk \
 	targets/openshift/images.mk \
-	targets/openshift/bindata.mk \
 	lib/tmp.mk \
 )
 
@@ -49,11 +48,6 @@ $(call build-image,$(IMAGE),$(IMAGE_REGISTRY)/$(IMAGE),./Dockerfile,.)
 # $3 - manifests
 # $4 - output
 $(call add-crd-gen,submarinerconfigv1alpha1,./pkg/apis/submarinerconfig/v1alpha1,./pkg/apis/submarinerconfig/v1alpha1,./pkg/apis/submarinerconfig/v1alpha1)
-
-$(call add-bindata,submariner-broker,./manifests/broker/...,bindata,bindata,./pkg/hub/submarinerbroker/bindata/bindata.go)
-$(call add-bindata,submariner-agent,./manifests/agent/...,bindata,bindata,./pkg/hub/submarineragent/bindata/bindata.go)
-$(call add-bindata,submarineraddon-agent,./pkg/hub/submarineraddonagent/manifests/...,bindata,bindata,./pkg/hub/submarineraddonagent/bindata/bindata.go)
-$(call add-bindata,submariner-gw-machineset,./pkg/cloud/aws/manifests/...,bindata,bindata,./pkg/cloud/aws/bindata/bindata.go)
 
 clean:
 	scripts/deploy.sh cleanup

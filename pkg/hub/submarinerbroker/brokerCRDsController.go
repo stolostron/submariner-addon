@@ -3,13 +3,11 @@ package submarinerbroker
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker/bindata"
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -28,11 +26,11 @@ const (
 )
 
 var staticCRDFiles = []string{
-	"manifests/broker/submariner.io_clusters_crd.yaml",
-	"manifests/broker/submariner.io_endpoints_crd.yaml",
-	"manifests/broker/submariner.io_gateways_crd.yaml",
-	"manifests/broker/submariner.io_lighthouse.serviceimports_crd.yaml",
-	"manifests/broker/x-k8s.io_multicluster.serviceimports_crd.yaml",
+	"manifests/submariner.io_clusters_crd.yaml",
+	"manifests/submariner.io_endpoints_crd.yaml",
+	"manifests/submariner.io_gateways_crd.yaml",
+	"manifests/submariner.io_lighthouse.serviceimports_crd.yaml",
+	"manifests/x-k8s.io_multicluster.serviceimports_crd.yaml",
 }
 
 type brokerCRDsConfig struct {
@@ -87,7 +85,11 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 		clientHolder,
 		syncCtx.Recorder(),
 		func(name string) ([]byte, error) {
-			return assets.MustCreateAssetFromTemplate(name, bindata.MustAsset(filepath.Join("", name)), crdsConfig).Data, nil
+			template, err := manifestFiles.ReadFile(name)
+			if err != nil {
+				return nil, err
+			}
+			return assets.MustCreateAssetFromTemplate(name, template, crdsConfig).Data, nil
 		},
 		staticCRDFiles...,
 	)

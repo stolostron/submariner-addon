@@ -2,15 +2,14 @@ package submarineraddonagent
 
 import (
 	"crypto/x509"
+	"embed"
 	"encoding/pem"
 	"fmt"
-	"path/filepath"
 
 	"github.com/open-cluster-management/addon-framework/pkg/agent"
 	addonapiv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineraddonagent/bindata"
 
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -48,21 +47,24 @@ const (
 	authenticatedGroup = "system:authenticated"
 )
 
-const agentInstallationNamespaceFile = "pkg/hub/submarineraddonagent/manifests/namespace.yaml"
+const agentInstallationNamespaceFile = "manifests/namespace.yaml"
 
 var agentDeploymentFiles = []string{
-	"pkg/hub/submarineraddonagent/manifests/clusterrole.yaml",
-	"pkg/hub/submarineraddonagent/manifests/clusterrolebinding.yaml",
-	"pkg/hub/submarineraddonagent/manifests/deployment.yaml",
-	"pkg/hub/submarineraddonagent/manifests/role.yaml",
-	"pkg/hub/submarineraddonagent/manifests/rolebinding.yaml",
-	"pkg/hub/submarineraddonagent/manifests/serviceaccount.yaml",
+	"manifests/clusterrole.yaml",
+	"manifests/clusterrolebinding.yaml",
+	"manifests/deployment.yaml",
+	"manifests/role.yaml",
+	"manifests/rolebinding.yaml",
+	"manifests/serviceaccount.yaml",
 }
 
 var agentHubPermissionFiles = []string{
-	"pkg/hub/submarineraddonagent/manifests/hub_role.yaml",
-	"pkg/hub/submarineraddonagent/manifests/hub_rolebinding.yaml",
+	"manifests/hub_role.yaml",
+	"manifests/hub_rolebinding.yaml",
 }
+
+//go:embed manifests
+var manifestFiles embed.FS
 
 // addOnAgent monitors the Submariner agent status and configure Submariner cluster environment on the managed cluster
 type addOnAgent struct {
@@ -111,7 +113,11 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 	}
 
 	for _, file := range deploymentFiles {
-		raw := assets.MustCreateAssetFromTemplate(file, bindata.MustAsset(filepath.Join("", file)), &manifestConfig).Data
+		template, err := manifestFiles.ReadFile(file)
+		if err != nil {
+			return objects, err
+		}
+		raw := assets.MustCreateAssetFromTemplate(file, template, &manifestConfig).Data
 		object, _, err := genericCodec.Decode(raw, nil, nil)
 		if err != nil {
 			return nil, err
@@ -188,7 +194,11 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, addon *
 		resourceapply.NewKubeClientHolder(a.kubeClient),
 		a.recorder,
 		func(name string) ([]byte, error) {
-			return assets.MustCreateAssetFromTemplate(name, bindata.MustAsset(filepath.Join("", name)), config).Data, nil
+			template, err := manifestFiles.ReadFile(name)
+			if err != nil {
+				return nil, err
+			}
+			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
 		},
 		agentHubPermissionFiles...,
 	)

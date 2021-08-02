@@ -5,7 +5,6 @@ go 1.16
 require (
 	github.com/aws/aws-sdk-go v1.38.28
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
-	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/golang/mock v1.4.3
 	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0

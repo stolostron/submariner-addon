@@ -2,8 +2,8 @@ package aws
 
 import (
 	"context"
+	"embed"
 	"fmt"
-	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -17,7 +17,6 @@ import (
 
 	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	workv1 "github.com/open-cluster-management/api/work/v1"
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws/bindata"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws/client"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 
@@ -35,9 +34,12 @@ const (
 	internalELBLabel          = "kubernetes.io/role/internal-elb"
 	internalGatewayLabel      = "open-cluster-management.io/submariner-addon/gateway"
 	workName                  = "aws-submariner-gateway-machineset"
-	manifestFile              = "pkg/cloud/aws/manifests/machineset.yaml"
-	aggeragateClusterroleFile = "pkg/cloud/aws/manifests/machineset-aggeragate-clusterrole.yaml"
+	manifestFile              = "manifests/machineset.yaml"
+	aggeragateClusterroleFile = "manifests/machineset-aggeragate-clusterrole.yaml"
 )
+
+//go:embed manifests
+var manifestFiles embed.FS
 
 type machineSetConfig struct {
 	InfraId           string
@@ -635,9 +637,13 @@ func (a *awsProvider) untagSubnet(vpc *ec2.Vpc) error {
 func (a *awsProvider) deployGatewayNode(amiId string, subnets []*ec2.Subnet) error {
 	manifests := []workv1.Manifest{}
 
+	aggregateClusterRole, err := manifestFiles.ReadFile(aggeragateClusterroleFile)
+	if err != nil {
+		return err
+	}
 	clusterRoleYamlData := assets.MustCreateAssetFromTemplate(
 		aggeragateClusterroleFile,
-		bindata.MustAsset(filepath.Join("", aggeragateClusterroleFile)),
+		aggregateClusterRole,
 		nil).Data
 	clusterRoleJsonData, err := yaml.YAMLToJSON(clusterRoleYamlData)
 	if err != nil {
@@ -645,11 +651,15 @@ func (a *awsProvider) deployGatewayNode(amiId string, subnets []*ec2.Subnet) err
 	}
 	manifests = append(manifests, workv1.Manifest{RawExtension: runtime.RawExtension{Raw: clusterRoleJsonData}})
 
+	manifest, err := manifestFiles.ReadFile(manifestFile)
+	if err != nil {
+		return err
+	}
 	for _, subnet := range subnets {
 		az := *subnet.AvailabilityZone
 		msYamlData := assets.MustCreateAssetFromTemplate(
 			manifestFile,
-			bindata.MustAsset(filepath.Join("", manifestFile)),
+			[]byte(manifest),
 			&machineSetConfig{
 				InfraId:           a.infraId,
 				AZ:                az,
