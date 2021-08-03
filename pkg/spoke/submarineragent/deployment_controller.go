@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
-	addoninformerv1alpha1 "github.com/open-cluster-management/api/client/addon/informers/externalversions/addon/v1alpha1"
-	addonlisterv1alpha1 "github.com/open-cluster-management/api/client/addon/listers/addon/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
+	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"

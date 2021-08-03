@@ -197,44 +197,6 @@ github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
 # github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f
 ## explicit
-github.com/open-cluster-management/api/addon/v1alpha1
-github.com/open-cluster-management/api/client/addon/clientset/versioned
-github.com/open-cluster-management/api/client/addon/clientset/versioned/fake
-github.com/open-cluster-management/api/client/addon/clientset/versioned/scheme
-github.com/open-cluster-management/api/client/addon/clientset/versioned/typed/addon/v1alpha1
-github.com/open-cluster-management/api/client/addon/clientset/versioned/typed/addon/v1alpha1/fake
-github.com/open-cluster-management/api/client/addon/informers/externalversions
-github.com/open-cluster-management/api/client/addon/informers/externalversions/addon
-github.com/open-cluster-management/api/client/addon/informers/externalversions/addon/v1alpha1
-github.com/open-cluster-management/api/client/addon/informers/externalversions/internalinterfaces
-github.com/open-cluster-management/api/client/addon/listers/addon/v1alpha1
-github.com/open-cluster-management/api/client/cluster/clientset/versioned
-github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake
-github.com/open-cluster-management/api/client/cluster/clientset/versioned/scheme
-github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1
-github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1/fake
-github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1
-github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1/fake
-github.com/open-cluster-management/api/client/cluster/informers/externalversions
-github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster
-github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1
-github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1
-github.com/open-cluster-management/api/client/cluster/informers/externalversions/internalinterfaces
-github.com/open-cluster-management/api/client/cluster/listers/cluster/v1
-github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1
-github.com/open-cluster-management/api/client/work/clientset/versioned
-github.com/open-cluster-management/api/client/work/clientset/versioned/fake
-github.com/open-cluster-management/api/client/work/clientset/versioned/scheme
-github.com/open-cluster-management/api/client/work/clientset/versioned/typed/work/v1
-github.com/open-cluster-management/api/client/work/clientset/versioned/typed/work/v1/fake
-github.com/open-cluster-management/api/client/work/informers/externalversions
-github.com/open-cluster-management/api/client/work/informers/externalversions/internalinterfaces
-github.com/open-cluster-management/api/client/work/informers/externalversions/work
-github.com/open-cluster-management/api/client/work/informers/externalversions/work/v1
-github.com/open-cluster-management/api/client/work/listers/work/v1
-github.com/open-cluster-management/api/cluster/v1
-github.com/open-cluster-management/api/cluster/v1alpha1
-github.com/open-cluster-management/api/work/v1
 # github.com/openshift/api v0.0.0-20210521075222-e273a339932a
 ## explicit
 github.com/openshift/api
@@ -1217,17 +1179,22 @@ open-cluster-management.io/addon-framework/pkg/lease
 ## explicit
 open-cluster-management.io/api/addon/v1alpha1
 open-cluster-management.io/api/client/addon/clientset/versioned
+open-cluster-management.io/api/client/addon/clientset/versioned/fake
 open-cluster-management.io/api/client/addon/clientset/versioned/scheme
 open-cluster-management.io/api/client/addon/clientset/versioned/typed/addon/v1alpha1
+open-cluster-management.io/api/client/addon/clientset/versioned/typed/addon/v1alpha1/fake
 open-cluster-management.io/api/client/addon/informers/externalversions
 open-cluster-management.io/api/client/addon/informers/externalversions/addon
 open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1
 open-cluster-management.io/api/client/addon/informers/externalversions/internalinterfaces
 open-cluster-management.io/api/client/addon/listers/addon/v1alpha1
 open-cluster-management.io/api/client/cluster/clientset/versioned
+open-cluster-management.io/api/client/cluster/clientset/versioned/fake
 open-cluster-management.io/api/client/cluster/clientset/versioned/scheme
 open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1
+open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1/fake
 open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1
+open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1/fake
 open-cluster-management.io/api/client/cluster/informers/externalversions
 open-cluster-management.io/api/client/cluster/informers/externalversions/cluster
 open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1
@@ -1236,8 +1203,10 @@ open-cluster-management.io/api/client/cluster/informers/externalversions/interna
 open-cluster-management.io/api/client/cluster/listers/cluster/v1
 open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1
 open-cluster-management.io/api/client/work/clientset/versioned
+open-cluster-management.io/api/client/work/clientset/versioned/fake
 open-cluster-management.io/api/client/work/clientset/versioned/scheme
 open-cluster-management.io/api/client/work/clientset/versioned/typed/work/v1
+open-cluster-management.io/api/client/work/clientset/versioned/typed/work/v1/fake
 open-cluster-management.io/api/client/work/informers/externalversions
 open-cluster-management.io/api/client/work/informers/externalversions/internalinterfaces
 open-cluster-management.io/api/client/work/informers/externalversions/work

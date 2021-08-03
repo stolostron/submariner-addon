@@ -3,10 +3,10 @@ package submarinerbrokerinfo
 import (
 	"testing"
 
-	addonapiv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 

@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
-	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
+	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 

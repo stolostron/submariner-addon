@@ -1,11 +1,11 @@
 package submarinerbrokerinfo
 
 import (
-	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 

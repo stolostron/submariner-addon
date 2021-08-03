@@ -11,12 +11,12 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 
-	addonclientset "github.com/open-cluster-management/api/client/addon/clientset/versioned"
-	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	workclientset "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	configclientset "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub"
 	"github.com/open-cluster-management/submariner-addon/test/util"
+	addonclientset "open-cluster-management.io/api/client/addon/clientset/versioned"
+	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -71,10 +71,10 @@ var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 	testEnv = &envtest.Environment{
 		ErrorIfCRDPathMissing: true,
 		CRDDirectoryPaths: []string{
-			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "cluster", "v1"),
-			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "cluster", "v1alpha1", clustersetCRD),
-			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "work", "v1", workCRD),
-			filepath.Join(".", "vendor", "github.com", "open-cluster-management", "api", "addon", "v1alpha1"),
+			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "cluster", "v1"),
+			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "cluster", "v1alpha1", clustersetCRD),
+			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "work", "v1", workCRD),
+			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "addon", "v1alpha1"),
 			filepath.Join(".", "pkg", "apis", "submarinerconfig", "v1alpha1"),
 			filepath.Join(".", "test", "integration", "crds", "submariner"),
 		},

@@ -12,10 +12,10 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
-	fakeworkclient "github.com/open-cluster-management/api/client/work/clientset/versioned/fake"
-	workv1 "github.com/open-cluster-management/api/work/v1"
 	mockaws "github.com/open-cluster-management/submariner-addon/pkg/cloud/aws/client/mock"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	fakeworkclient "open-cluster-management.io/api/client/work/clientset/versioned/fake"
+	workv1 "open-cluster-management.io/api/work/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

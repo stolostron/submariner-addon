@@ -3,11 +3,11 @@ package cloud
 import (
 	"fmt"
 
-	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 
