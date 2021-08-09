@@ -1,3 +1,13 @@
+BASE_BRANCH ?= devel
+# Denotes the default operator image version, exposed as a variable for the automated release
+DEFAULT_IMAGE_VERSION ?= $(BASE_BRANCH)
+export BASE_BRANCH
+export DEFAULT_IMAGE_VERSION
+
+ifneq (,$(DAPPER_HOST_ARCH))
+
+# Running in Dapper
+
 all: build
 .PHONY: all
 
@@ -115,3 +125,18 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+else
+
+# Not running in Dapper
+
+Makefile.dapper:
+	@echo Downloading $@
+	@curl -sfLO https://raw.githubusercontent.com/submariner-io/shipyard/$(BASE_BRANCH)/$@
+
+include Makefile.dapper
+
+endif
+
+# Disable rebuilding Makefile
+Makefile Makefile.inc: ;

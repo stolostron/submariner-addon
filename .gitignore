@@ -17,3 +17,8 @@ _output/
 # vendor/
 
 .idea
+
+# Shipyard/Dapper miscellanea
+/.dapper
+/Dockerfile.dapper
+/Makefile.dapper
