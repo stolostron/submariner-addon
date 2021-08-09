@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/open-cluster-management/addon-framework/pkg/lease"
 	"github.com/spf13/cobra"
+	"open-cluster-management.io/addon-framework/pkg/lease"
 
 	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	addoninformers "github.com/open-cluster-management/api/client/addon/informers/externalversions"

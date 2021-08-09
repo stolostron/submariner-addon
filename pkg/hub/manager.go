@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/spf13/cobra"
 
-	"github.com/open-cluster-management/addon-framework/pkg/addonmanager"
 	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	addoninformers "github.com/open-cluster-management/api/client/addon/informers/externalversions"
 	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
@@ -29,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 )
 
 const (
