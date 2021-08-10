@@ -11,12 +11,6 @@ import (
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/spf13/cobra"
 
-	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
-	addoninformers "github.com/open-cluster-management/api/client/addon/informers/externalversions"
-	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
-	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
-	workinformers "github.com/open-cluster-management/api/client/work/informers/externalversions"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
@@ -29,6 +23,12 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
+	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
+	workinformers "open-cluster-management.io/api/client/work/informers/externalversions"
 )
 
 const (

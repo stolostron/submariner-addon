@@ -15,10 +15,10 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 
-	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
-	workv1 "github.com/open-cluster-management/api/work/v1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws/client"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
+	workv1 "open-cluster-management.io/api/work/v1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

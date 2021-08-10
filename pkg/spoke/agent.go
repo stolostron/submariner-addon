@@ -8,12 +8,12 @@ import (
 	"github.com/spf13/cobra"
 	"open-cluster-management.io/addon-framework/pkg/lease"
 
-	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
-	addoninformers "github.com/open-cluster-management/api/client/addon/informers/externalversions"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 

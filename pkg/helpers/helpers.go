@@ -15,13 +15,13 @@ import (
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 
-	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
-	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
-	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	workv1 "github.com/open-cluster-management/api/work/v1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	workv1 "open-cluster-management.io/api/work/v1"
 
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
 	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"

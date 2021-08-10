@@ -948,8 +948,6 @@ github.com/onsi/gomega v1.10.2/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1y
 github.com/onsi/gomega v1.11.0 h1:+CqWgvj0OZycCaqclBD1pxKHAU+tOkHmQIWvDHq2aug=
 github.com/onsi/gomega v1.11.0/go.mod h1:azGKhqFUon9Vuj0YmTfLSmx0FUwqXYSTl5re8lQLTUg=
 github.com/op/go-logging v0.0.0-20160315200505-970db520ece7/go.mod h1:HzydrMdWErDVzsI23lYNej1Htcns9BCg93Dk0bBINWk=
-github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f h1:s6z3k0jV0ccoYDPJWMSqVNevO1UoQLYb8f7dYFALSNk=
-github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f/go.mod h1:ot+A1DWq+v1IV+e1S7nhIteYAmNByFgtazvzpoeAfRQ=
 github.com/opencontainers/go-digest v0.0.0-20170106003457-a6d0ee40d420/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
 github.com/opencontainers/go-digest v0.0.0-20180430190053-c9281466c8b2/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
 github.com/opencontainers/go-digest v1.0.0-rc1/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
@@ -1812,7 +1810,6 @@ k8s.io/api v0.18.0-rc.1/go.mod h1:ZOh6SbHjOYyaMLlWmB2+UOQKEWDpCnVEVpEyt7S2J9s=
 k8s.io/api v0.18.2/go.mod h1:SJCWI7OLzhZSvbY7U8zwNl9UA4o1fizoug34OV/2r78=
 k8s.io/api v0.18.4/go.mod h1:lOIQAKYgai1+vz9J7YcDZwC26Z0zQewYOGWdyIPUUQ4=
 k8s.io/api v0.18.6/go.mod h1:eeyxr+cwCjMdLAmr2W3RyDI0VvTawSg/3RFFBEnmZGI=
-k8s.io/api v0.20.0/go.mod h1:HyLC5l5eoS/ygQYl1BXBgFzWNlkHiAuyNAbevIn+FKg=
 k8s.io/api v0.20.1/go.mod h1:KqwcCVogGxQY3nBlRpwt+wpAMF/KjaCc7RpywacvqUo=
 k8s.io/api v0.20.2/go.mod h1:d7n6Ehyzx+S+cE3VhTGfVNNqtGc/oL9DCdYYahlurV8=
 k8s.io/api v0.21.1/go.mod h1:FstGROTmsSHBarKc8bylzXih8BLNYTiS3TZcsoEDg2s=
@@ -1848,7 +1845,6 @@ k8s.io/apimachinery v0.18.0-rc.1/go.mod h1:9SnR/e11v5IbyPCGbvJViimtJ0SwHG4nfZFjU
 k8s.io/apimachinery v0.18.2/go.mod h1:9SnR/e11v5IbyPCGbvJViimtJ0SwHG4nfZFjU77ftcA=
 k8s.io/apimachinery v0.18.4/go.mod h1:OaXp26zu/5J7p0f92ASynJa1pZo06YlV9fG7BoWbCko=
 k8s.io/apimachinery v0.18.6/go.mod h1:OaXp26zu/5J7p0f92ASynJa1pZo06YlV9fG7BoWbCko=
-k8s.io/apimachinery v0.20.0/go.mod h1:WlLqWAHZGg07AeltaI0MV5uk1Omp8xaN0JGLY6gkRpU=
 k8s.io/apimachinery v0.20.1/go.mod h1:WlLqWAHZGg07AeltaI0MV5uk1Omp8xaN0JGLY6gkRpU=
 k8s.io/apimachinery v0.20.2/go.mod h1:WlLqWAHZGg07AeltaI0MV5uk1Omp8xaN0JGLY6gkRpU=
 k8s.io/apimachinery v0.21.1/go.mod h1:jbreFvJo3ov9rj7eWT7+sYiRx+qZuCYXwWT1bcDswPY=
@@ -1887,7 +1883,6 @@ k8s.io/client-go v0.18.0-rc.1/go.mod h1:0lGW/AaaFfNWlmyYvWSJrtaDlti7oNRyCjq4CNK/
 k8s.io/client-go v0.18.2/go.mod h1:Xcm5wVGXX9HAA2JJ2sSBUn3tCJ+4SVlCbl2MNNv+CIU=
 k8s.io/client-go v0.18.4/go.mod h1:f5sXwL4yAZRkAtzOxRWUhA/N8XzGCb+nPZI8PfobZ9g=
 k8s.io/client-go v0.18.6/go.mod h1:/fwtGLjYMS1MaM5oi+eXhKwG+1UHidUEXRh6cNsdO0Q=
-k8s.io/client-go v0.20.0/go.mod h1:4KWh/g+Ocd8KkCwKF8vUNnmqgv+EVnQDK4MBF4oB5tY=
 k8s.io/client-go v0.20.1/go.mod h1:/zcHdt1TeWSd5HoUe6elJmHSQ6uLLgp4bIJHVEuy+/Y=
 k8s.io/client-go v0.20.2/go.mod h1:kH5brqWqp7HDxUFKoEgiI4v8G1xzbe9giaCenUWJzgE=
 k8s.io/client-go v0.21.1/go.mod h1:/kEw4RgW+3xnBGzvp9IWxKSNA+lXn3A7AuH3gdOAzLs=

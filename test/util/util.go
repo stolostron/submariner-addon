@@ -9,12 +9,12 @@ import (
 
 	"github.com/onsi/ginkgo"
 
-	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
-	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	workclientset "github.com/open-cluster-management/api/client/work/clientset/versioned"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 

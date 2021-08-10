@@ -5,10 +5,10 @@ import (
 	"embed"
 	"fmt"
 
-	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1"
-	clusterinformerv1alpha1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
-	clusterlisterv1alpha1 "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
+	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1"
+	clusterinformerv1alpha1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
+	clusterlisterv1alpha1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
