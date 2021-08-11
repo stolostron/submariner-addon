@@ -46,40 +46,27 @@ func (g *gcpClient) GetProjectID() string {
 }
 
 func (g *gcpClient) InsertFirewallRule(rule *compute.Firewall) error {
-	if _, err := g.computeClient.Firewalls.Insert(g.projectID, rule).Context(context.TODO()).Do(); err != nil {
-		return err
-	}
-	return nil
+	_, err := g.computeClient.Firewalls.Insert(g.projectID, rule).Context(context.TODO()).Do()
+	return err
 }
 
 func (g *gcpClient) GetFirewallRule(name string) (*compute.Firewall, error) {
-	resp, err := g.computeClient.Firewalls.Get(g.projectID, name).Context(context.TODO()).Do()
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
+	return g.computeClient.Firewalls.Get(g.projectID, name).Context(context.TODO()).Do()
 }
 
 func (g *gcpClient) DeleteFirewallRule(name string) error {
-	if _, err := g.computeClient.Firewalls.Delete(g.projectID, name).Context(context.TODO()).Do(); err != nil {
-		return err
-	}
-	return nil
+	_, err := g.computeClient.Firewalls.Delete(g.projectID, name).Context(context.TODO()).Do()
+	return err
 }
 
 func (g *gcpClient) UpdateFirewallRule(name string, rule *compute.Firewall) error {
-	if _, err := g.computeClient.Firewalls.Update(g.projectID, name, rule).Context(context.TODO()).Do(); err != nil {
-		return err
-	}
-	return nil
+	_, err := g.computeClient.Firewalls.Update(g.projectID, name, rule).Context(context.TODO()).Do()
+	return err
+
 }
 
 func (g *gcpClient) GetInstance(zone string, instance string) (*compute.Instance, error) {
-	resp, err := g.computeClient.Instances.Get(g.projectID, zone, instance).Context(context.TODO()).Do()
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
+	return g.computeClient.Instances.Get(g.projectID, zone, instance).Context(context.TODO()).Do()
 }
 
 func (g *gcpClient) EnablePublicIP(instance *compute.Instance) error {
@@ -95,12 +82,10 @@ func (g *gcpClient) EnablePublicIP(instance *compute.Instance) error {
 		return nil
 	}
 
-	if _, err := g.computeClient.Instances.AddAccessConfig(
+	_, err := g.computeClient.Instances.AddAccessConfig(
 		g.projectID, zone, instance.Name, networkInterface.Name, &compute.AccessConfig{}).
-		Context(context.TODO()).Do(); err != nil {
-		return err
-	}
-	return nil
+		Context(context.TODO()).Do()
+	return err
 }
 
 func (g *gcpClient) DisablePublicIP(instance *compute.Instance) error {
@@ -111,12 +96,11 @@ func (g *gcpClient) DisablePublicIP(instance *compute.Instance) error {
 	// the zone of instance is an URL, so we just need the latest value
 	zone := instance.Zone[strings.LastIndex(instance.Zone, "/")+1:]
 	networkInterface := instance.NetworkInterfaces[0]
-	if _, err := g.computeClient.Instances.DeleteAccessConfig(
+
+	_, err := g.computeClient.Instances.DeleteAccessConfig(
 		g.projectID, zone, instance.Name, "External NAT", networkInterface.Name).
-		Context(context.TODO()).Do(); err != nil {
-		return err
-	}
-	return nil
+		Context(context.TODO()).Do()
+	return err
 }
 
 func NewClient(kubeClient kubernetes.Interface, secretNamespace, secretName string) (Interface, error) {
