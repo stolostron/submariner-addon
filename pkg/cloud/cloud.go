@@ -6,6 +6,7 @@ import (
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp"
+	gcpclient "github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp/client"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 
@@ -50,12 +51,12 @@ func GetCloudProvider(
 			config.Spec.Gateways,
 		)
 	case "GCP":
-		return gcp.NewGCPProvider(
-			kubeClient,
-			eventsRecorder,
-			infraId, clusterName, config.Spec.CredentialsSecret.Name,
-			config.Spec.IPSecIKEPort, config.Spec.IPSecNATTPort,
-		)
+		gcpClient, err := gcpclient.NewClient(kubeClient, clusterName, config.Spec.CredentialsSecret.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		return gcp.NewGCPProvider(gcpClient, eventsRecorder, infraId, config.Spec.IPSecIKEPort, config.Spec.IPSecNATTPort)
 	}
 	return nil, fmt.Errorf("unsupported cloud platform %q of cluster %q", platform, clusterName)
 }

@@ -13,8 +13,6 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
-
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -33,11 +31,8 @@ type gcpProvider struct {
 	eventRecorder events.Recorder
 }
 
-func NewGCPProvider(
-	kubeClient kubernetes.Interface,
-	eventRecorder events.Recorder,
-	infraId, clusterName, credentialsSecretName string,
-	ikePort, nattPort int) (*gcpProvider, error) {
+func NewGCPProvider(gcpClient client.Interface, eventRecorder events.Recorder, infraId string, ikePort,
+	nattPort int) (*gcpProvider, error) {
 	if infraId == "" {
 		return nil, fmt.Errorf("cluster infraId is empty")
 	}
@@ -48,11 +43,6 @@ func NewGCPProvider(
 
 	if nattPort == 0 {
 		nattPort = helpers.SubmarinerNatTPort
-	}
-
-	gcpClient, err := client.NewClient(kubeClient, clusterName, credentialsSecretName)
-	if err != nil {
-		return nil, err
 	}
 
 	return &gcpProvider{
