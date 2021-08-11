@@ -1,140 +1,167 @@
-package gcp
+package gcp_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/golang/mock/gomock"
-
-	googleapi "google.golang.org/api/googleapi"
-
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp/client/mock"
-
-	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
+	"github.com/openshift/library-go/pkg/operator/events"
+	"google.golang.org/api/compute/v1"
+	googleapi "google.golang.org/api/googleapi"
 )
 
-func TestPrepareSubmarinerClusterEnv(t *testing.T) {
-	cases := []struct {
-		name           string
-		ikePort        string
-		nattPort       string
-		expectInvoking func(*mock.MockInterface)
-	}{
-		{
-			name:     "build submariner env",
-			ikePort:  "500",
-			nattPort: "4500",
-			expectInvoking: func(gcpClient *mock.MockInterface) {
-				// get rules
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-ingress").Return(nil, &googleapi.Error{Code: 404})
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-egress").Return(nil, &googleapi.Error{Code: 404})
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-metrics-ingress").Return(nil, &googleapi.Error{Code: 404})
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-metrics-egress").Return(nil, &googleapi.Error{Code: 404})
+const (
+	routePort   = "4800"
+	metricsPort = "8080"
+)
 
-				// instert rules
-				ingress, egress := newFirewallRules(submarinerRuleName, "test", "test-x595d", "udp", []string{"500", "4500", "4800"})
-				gcpClient.EXPECT().InsertFirewallRule(ingress).Return(nil)
-				gcpClient.EXPECT().InsertFirewallRule(egress).Return(nil)
-				mIngress, mEgress := newFirewallRules(submarinerMetricsRuleName, "test", "test-x595d", "tcp", []string{"8080"})
-				gcpClient.EXPECT().InsertFirewallRule(mIngress).Return(nil)
-				gcpClient.EXPECT().InsertFirewallRule(mEgress).Return(nil)
-			},
-		},
-		{
-			name:     "rebuild submariner env - no update",
-			ikePort:  "500",
-			nattPort: "4500",
-			expectInvoking: func(gcpClient *mock.MockInterface) {
-				// get rules
-				ingress, egress := newFirewallRules(submarinerRuleName, "test", "test-x595d", "udp", []string{"500", "4500", "4800"})
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-ingress").Return(ingress, nil)
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-egress").Return(egress, nil)
-				mIngress, mEgress := newFirewallRules(submarinerMetricsRuleName, "test", "test-x595d", "tcp", []string{"8080"})
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-metrics-ingress").Return(mIngress, nil)
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-metrics-egress").Return(mEgress, nil)
-			},
-		},
-		{
-			name:     "rebuild submariner env - update",
-			ikePort:  "501",
-			nattPort: "4501",
-			expectInvoking: func(gcpClient *mock.MockInterface) {
-				// get rules
-				ingress, egress := newFirewallRules(submarinerRuleName, "test", "test-x595d", "udp", []string{"500", "4500", "4800"})
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-ingress").Return(ingress, nil)
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-egress").Return(egress, nil)
-				mIngress, mEgress := newFirewallRules(submarinerMetricsRuleName, "test", "test-x595d", "tcp", []string{"8080"})
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-metrics-ingress").Return(mIngress, nil)
-				gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-metrics-egress").Return(mEgress, nil)
+func TestGCP(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "GCP Suite")
+}
 
-				// udpate rules
-				newIngress, newEgress := newFirewallRules(submarinerRuleName, "test", "test-x595d", "udp", []string{"501", "4501", "4800"})
-				gcpClient.EXPECT().UpdateFirewallRule("test-x595d-submariner-ingress", newIngress).Return(nil)
-				gcpClient.EXPECT().UpdateFirewallRule("test-x595d-submariner-egress", newEgress).Return(nil)
-			},
-		},
-	}
+var _ = Describe("PrepareSubmarinerClusterEnv", func() {
+	t := newTestDriver()
 
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
+	When("the firewall rules don't exist", func() {
+		BeforeEach(func() {
+			t.gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-ingress").Return(nil, &googleapi.Error{Code: 404})
+			t.gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-egress").Return(nil, &googleapi.Error{Code: 404})
+			t.gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-metrics-ingress").Return(nil, &googleapi.Error{Code: 404})
+			t.gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-metrics-egress").Return(nil, &googleapi.Error{Code: 404})
 
-			gcpClient := mock.NewMockInterface(mockCtrl)
-			c.expectInvoking(gcpClient)
+			t.gcpClient.EXPECT().InsertFirewallRule(newIngressFirewallRule("test-x595d-submariner", "udp",
+				t.ikePort, t.nattPort, routePort)).Return(nil)
+			t.gcpClient.EXPECT().InsertFirewallRule(newEgressFirewallRule("test-x595d-submariner", "udp",
+				t.ikePort, t.nattPort, routePort)).Return(nil)
 
-			gp := &gcpProvider{
-				infraId:       "test-x595d",
-				projectId:     "test",
-				ikePort:       c.ikePort,
-				nattPort:      c.nattPort,
-				routePort:     "4800",
-				metricsPort:   "8080",
-				gcpClient:     gcpClient,
-				eventRecorder: eventstesting.NewTestingEventRecorder(t),
-			}
-
-			err := gp.PrepareSubmarinerClusterEnv()
-			if err != nil {
-				t.Errorf("expect no err, bug got %v", err)
-			}
+			t.gcpClient.EXPECT().InsertFirewallRule(newIngressFirewallRule("test-x595d-submariner-metrics", "tcp",
+				metricsPort)).Return(nil)
+			t.gcpClient.EXPECT().InsertFirewallRule(newEgressFirewallRule("test-x595d-submariner-metrics", "tcp",
+				metricsPort)).Return(nil)
 		})
+
+		It("should insert them", func() {
+			Expect(t.provider.PrepareSubmarinerClusterEnv()).To(Succeed())
+		})
+	})
+
+	When("the firewall rules exist", func() {
+		BeforeEach(func() {
+			t.gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-ingress").Return(
+				newIngressFirewallRule("test-x595d-submariner", "udp", t.ikePort, t.nattPort, routePort), nil)
+			t.gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-egress").Return(
+				newEgressFirewallRule("test-x595d-submariner", "udp", t.ikePort, t.nattPort, routePort), nil)
+			t.gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-metrics-ingress").Return(
+				newIngressFirewallRule("test-x595d-submariner-metrics", "tcp", metricsPort), nil)
+			t.gcpClient.EXPECT().GetFirewallRule("test-x595d-submariner-metrics-egress").Return(
+				newEgressFirewallRule("test-x595d-submariner-metrics", "tcp", metricsPort), nil)
+		})
+
+		Context("and have not changed", func() {
+			It("should not update them", func() {
+				Expect(t.provider.PrepareSubmarinerClusterEnv()).To(Succeed())
+			})
+		})
+
+		Context("and have changed", func() {
+			BeforeEach(func() {
+				t.ikePort = "501"
+				t.nattPort = "4501"
+
+				t.gcpClient.EXPECT().UpdateFirewallRule("test-x595d-submariner-ingress",
+					newIngressFirewallRule("test-x595d-submariner", "udp", t.ikePort, t.nattPort, routePort)).Return(nil)
+				t.gcpClient.EXPECT().UpdateFirewallRule("test-x595d-submariner-egress",
+					newEgressFirewallRule("test-x595d-submariner", "udp", t.ikePort, t.nattPort, routePort)).Return(nil)
+			})
+
+			It("should update them", func() {
+				Expect(t.provider.PrepareSubmarinerClusterEnv()).To(Succeed())
+			})
+		})
+	})
+})
+
+var _ = Describe("CleanUpSubmarinerClusterEnv", func() {
+	t := newTestDriver()
+
+	BeforeEach(func() {
+		t.gcpClient.EXPECT().DeleteFirewallRule("test-x595d-submariner-ingress").Return(nil)
+		t.gcpClient.EXPECT().DeleteFirewallRule("test-x595d-submariner-egress").Return(nil)
+		t.gcpClient.EXPECT().DeleteFirewallRule("test-x595d-submariner-metrics-ingress").Return(nil)
+		t.gcpClient.EXPECT().DeleteFirewallRule("test-x595d-submariner-metrics-egress").Return(nil)
+	})
+
+	It("should delete the firewall rules", func() {
+		Expect(t.provider.CleanUpSubmarinerClusterEnv()).To(Succeed())
+	})
+})
+
+type testDriver struct {
+	gcpClient *mock.MockInterface
+	mockCtrl  *gomock.Controller
+	provider  cloud.CloudProvider
+	ikePort   string
+	nattPort  string
+}
+
+func newTestDriver() *testDriver {
+	t := &testDriver{}
+
+	BeforeEach(func() {
+		t.mockCtrl = gomock.NewController(GinkgoT())
+		t.gcpClient = mock.NewMockInterface(t.mockCtrl)
+		t.ikePort = "500"
+		t.nattPort = "4500"
+
+		t.gcpClient.EXPECT().GetProjectID().Return("test")
+	})
+
+	JustBeforeEach(func() {
+		var err error
+
+		t.provider, err = gcp.NewGCPProvider(t.gcpClient, events.NewLoggingEventRecorder("test"), "test-x595d",
+			atoi(t.ikePort), atoi(t.nattPort))
+		Expect(err).To(Succeed())
+	})
+
+	AfterEach(func() {
+		t.mockCtrl.Finish()
+	})
+
+	return t
+}
+
+func newFirewallRule(name, dir, protocol string, ports ...string) *compute.Firewall {
+	return &compute.Firewall{
+		Name:      name,
+		Network:   "projects/test/global/networks/test-x595d-network",
+		Direction: dir,
+		Allowed: []*compute.FirewallAllowed{
+			{
+				IPProtocol: protocol,
+				Ports:      ports,
+			},
+		},
 	}
 }
 
-func TestCleanUpSubmarinerClusterEnv(t *testing.T) {
-	cases := []struct {
-		name           string
-		expectInvoking func(*mock.MockInterface)
-	}{
-		{
-			name: "delete submariner env",
-			expectInvoking: func(gcpClient *mock.MockInterface) {
-				gcpClient.EXPECT().DeleteFirewallRule("test-x595d-submariner-ingress").Return(nil)
-				gcpClient.EXPECT().DeleteFirewallRule("test-x595d-submariner-egress").Return(nil)
-				gcpClient.EXPECT().DeleteFirewallRule("test-x595d-submariner-metrics-ingress").Return(nil)
-				gcpClient.EXPECT().DeleteFirewallRule("test-x595d-submariner-metrics-egress").Return(nil)
-			},
-		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
+func newIngressFirewallRule(namePrefix, protocol string, ports ...string) *compute.Firewall {
+	return newFirewallRule(namePrefix+"-ingress", "INGRESS", protocol, ports...)
+}
 
-			gcpClient := mock.NewMockInterface(mockCtrl)
-			c.expectInvoking(gcpClient)
+func newEgressFirewallRule(namePrefix, protocol string, ports ...string) *compute.Firewall {
+	return newFirewallRule(namePrefix+"-egress", "EGRESS", protocol, ports...)
+}
 
-			gp := &gcpProvider{
-				infraId:       "test-x595d",
-				projectId:     "test",
-				gcpClient:     gcpClient,
-				eventRecorder: eventstesting.NewTestingEventRecorder(t),
-			}
+func atoi(s string) int {
+	i, err := strconv.Atoi(s)
+	Expect(err).To(Succeed())
 
-			err := gp.CleanUpSubmarinerClusterEnv()
-			if err != nil {
-				t.Errorf("expect no err, bug got %v", err)
-			}
-		})
-	}
+	return i
 }
