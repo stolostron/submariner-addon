@@ -27,7 +27,7 @@ type SubmarinerConfig struct {
 // SubmarinerConfigSpec describes the configuration of the Submariner
 type SubmarinerConfigSpec struct {
 	// CableDriver represents the submariner cable driver implementation.
-	// Available options are libreswan (default) strongswan, and wireguard.
+	// Available options are libreswan (default) strongswan, wireguard, and vxlan.
 	// +optional
 	// +kubebuilder:default=libreswan
 	CableDriver string `json:"cableDriver,omitempty"`
