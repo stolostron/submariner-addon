@@ -20,14 +20,15 @@ import (
 
 func TestNewSubmarinerBrokerInfo(t *testing.T) {
 	cases := []struct {
-		name             string
-		clusterName      string
-		brokerName       string
-		secrets          []runtime.Object
-		cluster          *clusterv1.ManagedCluster
-		infrastructures  []runtime.Object
-		submarinerConfig *configv1alpha1.SubmarinerConfig
-		expectedSource   string
+		name               string
+		clusterName        string
+		brokerName         string
+		secrets            []runtime.Object
+		cluster            *clusterv1.ManagedCluster
+		infrastructures    []runtime.Object
+		submarinerConfig   *configv1alpha1.SubmarinerConfig
+		expectedSource     string
+		expectedNATEnabled bool
 	}{
 		{
 			name:        "upstream build",
@@ -99,9 +100,11 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 						Source:          "operatorhubio-catalog",
 						SourceNamespace: "olm",
 					},
+					NATTEnable: false,
 				},
 			},
-			expectedSource: "operatorhubio-catalog",
+			expectedSource:     "operatorhubio-catalog",
+			expectedNATEnabled: false,
 		},
 		{
 			name:        "default build",
@@ -234,6 +237,7 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 					CableDriver:   "test",
 					IPSecIKEPort:  501,
 					IPSecNATTPort: 4501,
+					NATTEnable:    true,
 					ImagePullSpecs: configv1alpha1.SubmarinerImagePullSpecs{
 						SubmarinerImagePullSpec:           "test-submariner",
 						LighthouseCoreDNSImagePullSpec:    "test-lighthouse-coredns",
@@ -242,7 +246,8 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 					},
 				},
 			},
-			expectedSource: "redhat-operators",
+			expectedSource:     "redhat-operators",
+			expectedNATEnabled: true,
 		},
 	}
 
@@ -270,8 +275,8 @@ func TestNewSubmarinerBrokerInfo(t *testing.T) {
 			if err != nil {
 				t.Errorf("expect no err, but got: %v", err)
 			}
-			if !brokerInfo.NATEnabled {
-				t.Errorf("expect NATEnabled true, but false")
+			if brokerInfo.NATEnabled != c.expectedNATEnabled {
+				t.Errorf("expect NATEnabled %v, but got %v", c.expectedNATEnabled, brokerInfo.NATEnabled)
 			}
 			if brokerInfo.CatalogSource != c.expectedSource {
 				t.Errorf("expect %s, but got %v", c.expectedSource, brokerInfo)

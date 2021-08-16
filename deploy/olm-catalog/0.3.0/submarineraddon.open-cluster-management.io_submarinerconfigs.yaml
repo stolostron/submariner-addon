@@ -35,6 +35,9 @@ spec:
             IPSecNATTPort:
               description: IPSecNATTPort represents IPsec NAT-T port (default 4500).
               type: integer
+            NATTEnable:
+              description: NATTEnable represents IPsec NAT-T enabled (default true).
+              type: boolean
             cableDriver:
               description: CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, wireguard, and vxlan.
               type: string

@@ -42,6 +42,11 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=4500
 	IPSecNATTPort int `json:"IPSecNATTPort,omitempty"`
 
+	// NATTEnable represents IPsec NAT-T enabled (default true).
+	// +optional
+	// +kubebuilder:default=true
+	NATTEnable bool `json:"NATTEnable"`
+
 	// CredentialsSecret is a reference to the secret with a certain cloud platform
 	// credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD.
 	// The submariner-addon will use these credentials to prepare Submariner cluster
