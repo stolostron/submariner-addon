@@ -1,5 +1,7 @@
 /*
-© 2021 Red Hat, Inc. and others
+SPDX-License-Identifier: Apache-2.0
+
+Copyright Contributors to the Submariner project.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package v1
 
 import (
@@ -48,6 +51,12 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&EndpointList{},
 		&Gateway{},
 		&GatewayList{},
+		&GlobalEgressIP{},
+		&GlobalEgressIPList{},
+		&ClusterGlobalEgressIP{},
+		&ClusterGlobalEgressIPList{},
+		&GlobalIngressIP{},
+		&GlobalIngressIPList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 

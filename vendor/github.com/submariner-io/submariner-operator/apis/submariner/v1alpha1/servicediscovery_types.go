@@ -1,5 +1,7 @@
 /*
-© 2021 Red Hat, Inc. and others.
+SPDX-License-Identifier: Apache-2.0
+
+Copyright Contributors to the Submariner project.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +21,6 @@ package v1alpha1
 import (
 	"encoding/json"
 
-	"github.com/submariner-io/submariner-operator/pkg/versions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -56,6 +57,7 @@ type CoreDNSCustomConfig struct {
 // ServiceDiscoveryStatus defines the observed state of ServiceDiscovery
 // +k8s:openapi-gen=true
 type ServiceDiscoveryStatus struct {
+	DeploymentInfo DeploymentInfo `json:"deploymentInfo,omitempty"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make manifests" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
@@ -93,8 +95,8 @@ func (sd *ServiceDiscovery) UnmarshalJSON(data []byte) error {
 	type serviceDiscoveryAlias ServiceDiscovery
 	serviceDiscovery := &serviceDiscoveryAlias{
 		Spec: ServiceDiscoverySpec{
-			Version:    versions.DefaultLighthouseVersion,
-			Repository: versions.DefaultRepo,
+			Version:    DefaultLighthouseVersion,
+			Repository: DefaultRepo,
 		},
 	}
 

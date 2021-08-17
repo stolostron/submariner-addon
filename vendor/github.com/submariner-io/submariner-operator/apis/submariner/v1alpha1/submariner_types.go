@@ -1,5 +1,7 @@
 /*
-© 2019 Red Hat, Inc. and others.
+SPDX-License-Identifier: Apache-2.0
+
+Copyright Contributors to the Submariner project.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,8 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	submv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
-
-	"github.com/submariner-io/submariner-operator/pkg/versions"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -56,6 +56,7 @@ type SubmarinerSpec struct {
 	CeIPSecForceUDPEncaps    bool                 `json:"ceIPSecForceUDPEncaps,omitempty"`
 	Debug                    bool                 `json:"debug"`
 	NatEnabled               bool                 `json:"natEnabled"`
+	LoadBalancerEnabled      bool                 `json:"loadBalancerEnabled,omitempty"`
 	ServiceDiscoveryEnabled  bool                 `json:"serviceDiscoveryEnabled,omitempty"`
 	CoreDNSCustomConfig      *CoreDNSCustomConfig `json:"coreDNSCustomConfig,omitempty"`
 	// +listType=set
@@ -81,10 +82,16 @@ type SubmarinerStatus struct {
 	GatewayDaemonSetStatus    DaemonSetStatus         `json:"gatewayDaemonSetStatus,omitempty"`
 	RouteAgentDaemonSetStatus DaemonSetStatus         `json:"routeAgentDaemonSetStatus,omitempty"`
 	GlobalnetDaemonSetStatus  DaemonSetStatus         `json:"globalnetDaemonSetStatus,omitempty"`
+	LoadBalancerStatus        LoadBalancerStatus      `json:"loadBalancerStatus,omitempty"`
 	Gateways                  *[]submv1.GatewayStatus `json:"gateways,omitempty"`
+	DeploymentInfo            DeploymentInfo          `json:"deploymentInfo,omitempty"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make manifests" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+}
+
+type LoadBalancerStatus struct {
+	Status *corev1.LoadBalancerStatus `json:"status,omitempty"`
 }
 
 type DaemonSetStatus struct {
@@ -92,6 +99,13 @@ type DaemonSetStatus struct {
 	Status                    *appsv1.DaemonSetStatus  `json:"status,omitempty"`
 	NonReadyContainerStates   *[]corev1.ContainerState `json:"nonReadyContainerStates,omitempty"`
 	MismatchedContainerImages bool                     `json:"mismatchedContainerImages"`
+}
+
+type DeploymentInfo struct {
+	KubernetesType        KubernetesType `json:"kubernetesType,omitempty"`
+	KubernetesTypeVersion string         `json:"kubernetesTypeVersion,omitempty"`
+	KubernetesVersion     string         `json:"kubernetesVersion,omitempty"`
+	CloudProvider         CloudProvider  `json:"cloudProvider,omitempty"`
 }
 
 type HealthCheckSpec struct {
@@ -102,7 +116,23 @@ type HealthCheckSpec struct {
 	MaxPacketLossCount uint64 `json:"maxPacketLossCount,omitempty"`
 }
 
-const DefaultColorCode = "blue"
+type KubernetesType string
+type CloudProvider string
+
+const (
+	DefaultColorCode                     = "blue"
+	K8s                   KubernetesType = "k8s"
+	OCP                                  = "ocp"
+	EKS                                  = "eks"
+	AKS                                  = "aks"
+	GKE                                  = "gke"
+	DefaultKubernetesType                = K8s
+	Kind                  CloudProvider  = "kind"
+	AWS                                  = "aws"
+	GCP                                  = "gcp"
+	Azure                                = "azure"
+	Openstack                            = "openstack"
+)
 
 // +kubebuilder:object:root=true
 
@@ -157,7 +187,7 @@ type BrokerStatus struct {
 // +kubebuilder:resource:path=brokers,scope=Namespaced
 // +genclient
 // +operator-sdk:csv:customresourcedefinitions:displayName="Broker"
-type Broker struct { //nolint:maligned // we want to keep the traditional order
+type Broker struct { //nolint:govet // we want to keep the traditional order
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -183,8 +213,8 @@ func (s *Submariner) UnmarshalJSON(data []byte) error {
 	type submarinerAlias Submariner
 	subm := &submarinerAlias{
 		Spec: SubmarinerSpec{
-			Repository: versions.DefaultRepo,
-			Version:    versions.DefaultSubmarinerVersion,
+			Repository: DefaultRepo,
+			Version:    DefaultSubmarinerVersion,
 			ColorCodes: DefaultColorCode,
 		},
 	}
