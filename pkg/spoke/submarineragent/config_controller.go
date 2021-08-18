@@ -13,6 +13,7 @@ import (
 	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	gcpclient "github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp/client"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"k8s.io/apimachinery/pkg/util/sets"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
@@ -42,7 +43,7 @@ const (
 	submarinerConfigFinalizer = "submarineraddon.open-cluster-management.io/config-addon-cleanup"
 )
 
-const submarinerGatewayCondition = "SubmarinerGatewayLabled"
+const submarinerGatewayCondition = "SubmarinerGatewaysLabeled"
 
 const (
 	submarinerUDPPortLabel = "gateway.submariner.io/udp-port"
@@ -129,51 +130,9 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	// addon is deleting from the hub, remove its related resources on the managed cluster
-	// TODO: add finalizer in next release
-	if !addOn.DeletionTimestamp.IsZero() {
-		// if the addon is deleted before config, clean up gateways config on the manged cluster
-		config, err := c.configLister.SubmarinerConfigs(c.clusterName).Get(helpers.SubmarinerConfigName)
-		if errors.IsNotFound(err) {
-			// the config not found, could be deleted, do nothing
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-
-		if config.Status.ManagedClusterInfo.Platform == "" {
-			// no managed cluster info, do nothing
-			return nil
-		}
-
-		if config.Status.ManagedClusterInfo.Platform == "AWS" {
-			// for AWS, the gateway configuration will be operated on the hub, do nothing
-			return nil
-		}
-
-		msg := "The gatways labels are unlabled from nodes after addon was deleted"
-		if err := c.removeAllGateways(ctx, config); err != nil {
-			msg = fmt.Sprintf("Failed to unlable the gatway labels from nodes: %v", err)
-		}
-
-		_, _, err = helpers.UpdateSubmarinerConfigStatus(
-			c.configClient,
-			config.Namespace,
-			config.Name,
-			helpers.UpdateSubmarinerConfigConditionFn(metav1.Condition{
-				Type:    submarinerGatewayCondition,
-				Status:  metav1.ConditionFalse,
-				Reason:  "SubmarinerGatewayUnlabeled",
-				Message: msg,
-			}),
-		)
-		return err
-	}
-
 	config, err := c.configLister.SubmarinerConfigs(c.clusterName).Get(helpers.SubmarinerConfigName)
 	if errors.IsNotFound(err) {
-		// the config not found, could be deleted, ignore
+		// the config not found, could be deleted, do nothing
 		return nil
 	}
 	if err != nil {
@@ -185,10 +144,41 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return nil
 	}
 
+	// addon is deleting from the hub, remove its related resources on the managed cluster
+	// TODO: add finalizer in next release
+	if !addOn.DeletionTimestamp.IsZero() {
+		// if the addon is deleted before config, clean up gateways config on the manged cluster
+
+		if config.Status.ManagedClusterInfo.Platform == "AWS" {
+			// for AWS, the gateway configuration will be operated on the hub, do nothing
+			return nil
+		}
+
+		condition := metav1.Condition{
+			Type:    submarinerGatewayCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "ManagedClusterAddOnDeleted",
+			Message: "There are no nodes labeled as gateways",
+		}
+
+		err = c.removeAllGateways(ctx, config)
+		if err != nil {
+			condition = failedCondition("Failed to unlabel the gatway nodes: %v", err)
+		}
+
+		updateErr := c.updateSubmarinerConfigStatus(syncCtx.Recorder(), config, condition)
+
+		if err != nil {
+			return err
+		}
+
+		return updateErr
+	}
+
 	if config.Status.ManagedClusterInfo.Platform == "AWS" {
 		// for AWS, the gateway configuration will be operated on the hub
 		// count the gateways status on the managed cluster and report it to the hub
-		return c.updateGatewayStatus(ctx, config)
+		return c.updateGatewayStatus(syncCtx.Recorder(), config)
 	}
 
 	// config is deleting from hub, remove its related resources
@@ -198,44 +188,44 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	// ensure the expected count of gateways
-	gatewayNames, err := c.ensureGateways(ctx, config)
-	// fixed the order of gateway names
-	sort.Strings(gatewayNames)
+	condition, err := c.ensureGateways(ctx, config)
 
-	// update config status according to current gateways
-	condition := metav1.Condition{
-		Type:    submarinerGatewayCondition,
-		Status:  metav1.ConditionTrue,
-		Reason:  "SubmarinerGatewayLabeled",
-		Message: fmt.Sprintf("The nodes (%q) are labeled to gateways", strings.Join(gatewayNames, ",")),
-	}
+	updateErr := c.updateSubmarinerConfigStatus(syncCtx.Recorder(), config, condition)
 
 	if err != nil {
-		condition.Status = metav1.ConditionFalse
-		condition.Reason = "SubmarinerGatewayNotLabeled"
-		condition.Message = fmt.Sprintf("Failed to prepare gateways: %v", err)
+		return err
 	}
 
-	_, _, err = helpers.UpdateSubmarinerConfigStatus(
-		c.configClient,
-		config.Namespace,
-		config.Name,
-		helpers.UpdateSubmarinerConfigConditionFn(condition),
-	)
+	return updateErr
+}
+
+func (c *submarinerConfigController) updateSubmarinerConfigStatus(recorder events.Recorder, config *configv1alpha1.SubmarinerConfig,
+	condition metav1.Condition) error {
+	updatedStatus, updated, err := helpers.UpdateSubmarinerConfigStatus(c.configClient, config.Namespace, config.Name,
+		helpers.UpdateSubmarinerConfigConditionFn(condition))
+
+	if updated {
+		recorder.Eventf("SubmarinerConfigStatusUpdated", "Updated status conditions:  %#v", updatedStatus.Conditions)
+	}
 
 	return err
 }
 
-func (c *submarinerConfigController) ensureGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig) ([]string, error) {
+func (c *submarinerConfigController) ensureGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig) (metav1.Condition, error) {
 	if config.Spec.Gateways < 1 {
-		return nil, fmt.Errorf("the count of gateways must be equal or greater than 1")
+		return metav1.Condition{
+			Type:    submarinerGatewayCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "InvalidInput",
+			Message: "The desired number of gateways must be at least 1",
+		}, nil
 	}
 
 	currentGateways, err := c.getLabeledNodes(
 		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},
 	)
 	if err != nil {
-		return nil, err
+		return failedCondition("Error retrieving nodes: %v", err), err
 	}
 
 	currentGatewayNames := []string{}
@@ -243,54 +233,51 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context, config 
 		currentGatewayNames = append(currentGatewayNames, gateway.Name)
 	}
 
+	updatedGatewayNames := []string{}
+
 	requiredGateways := config.Spec.Gateways - len(currentGateways)
-	if requiredGateways == 0 {
-		// current count of gateways are expected, ensure that the gateways are labled with nat-t lables
+	switch {
+	case requiredGateways == 0:
+		// number of gateways unchanged, ensure that the gateways are fully labeled
 		errs := []error{}
 		for _, gateway := range currentGateways {
 			errs = append(errs, c.labelNode(ctx, config, gateway))
 		}
 
-		return currentGatewayNames, operatorhelpers.NewMultiLineAggregate(errs)
-	}
+		updatedGatewayNames = currentGatewayNames
+		err = operatorhelpers.NewMultiLineAggregate(errs)
+	case requiredGateways > 0:
+		// gateways increased, need to label new ones
+		updatedGatewayNames, err = c.addGateways(ctx, config, requiredGateways)
+	default:
+		// gateways decreased, need to unlabel some
+		var removed []string
 
-	if requiredGateways > 0 {
-		// require to create more gateways
-		added, err := c.addGateways(ctx, config, requiredGateways)
-		if err != nil {
-			return nil, err
-		}
+		removed, err = c.removeGateways(ctx, config, currentGateways, -requiredGateways)
 
-		for _, gateway := range added {
-			currentGatewayNames = append(currentGatewayNames, gateway.Name)
-		}
-
-		return currentGatewayNames, nil
-	}
-
-	// require to remove gateways
-	removed, err := c.removeGateways(ctx, config, currentGateways, -requiredGateways)
-	if err != nil {
-		return nil, err
-	}
-
-	remainingGatewaysNames := []string{}
-	for _, name := range currentGatewayNames {
-		isNotRemoved := true
-
-		for _, gateway := range removed {
-			if name == gateway.Name {
-				isNotRemoved = false
-				break
+		removedNames := sets.NewString(removed...)
+		for _, name := range currentGatewayNames {
+			if !removedNames.Has(name) {
+				updatedGatewayNames = append(updatedGatewayNames, name)
 			}
 		}
-
-		if isNotRemoved {
-			remainingGatewaysNames = append(remainingGatewaysNames, name)
-		}
 	}
 
-	return remainingGatewaysNames, nil
+	if err != nil {
+		return failedCondition("Unable to label the gateway nodes: %v", err), err
+	}
+
+	if len(updatedGatewayNames) == 0 {
+		return metav1.Condition{
+			Type:    submarinerGatewayCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "InsufficientNodes",
+			Message: "Insufficient number of worker nodes to satisfy the desired number of gateways",
+		}, nil
+	}
+
+	sort.Strings(updatedGatewayNames)
+	return successCondition(updatedGatewayNames), nil
 }
 
 func (c *submarinerConfigController) getLabeledNodes(nodeLabelSelectors ...nodeLabelSelector) ([]*corev1.Node, error) {
@@ -366,8 +353,8 @@ func (c *submarinerConfigController) unlabelNode(ctx context.Context, config *co
 	})
 }
 
-func (c *submarinerConfigController) addGateways(
-	ctx context.Context, config *configv1alpha1.SubmarinerConfig, expectedGateways int) ([]*corev1.Node, error) {
+func (c *submarinerConfigController) addGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
+	expectedGateways int) ([]string, error) {
 	var zoneLabel string
 	// currently only gcp is supported
 	switch config.Status.ManagedClusterInfo.Platform {
@@ -377,31 +364,32 @@ func (c *submarinerConfigController) addGateways(
 		// for other non-public cloud platform (vsphere) or native k8s
 		zoneLabel = defaultZoneLabel
 	}
+
 	gateways, err := c.findGatewaysWithZone(expectedGateways, zoneLabel)
 	if err != nil {
-		return nil, err
+		return []string{}, err
 	}
 
+	names := []string{}
 	errs := []error{}
 	for _, gateway := range gateways {
 		errs = append(errs, c.labelNode(ctx, config, gateway))
+		names = append(names, gateway.Name)
 	}
 
-	return gateways, operatorhelpers.NewMultiLineAggregate(errs)
+	return names, operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (c *submarinerConfigController) removeGateways(
-	ctx context.Context,
-	config *configv1alpha1.SubmarinerConfig,
-	gateways []*corev1.Node, removedGateways int) ([]*corev1.Node, error) {
+func (c *submarinerConfigController) removeGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
+	gateways []*corev1.Node, removedGateways int) ([]string, error) {
 	if len(gateways) < removedGateways {
 		removedGateways = len(gateways)
 	}
 
 	errs := []error{}
-	removed := []*corev1.Node{}
+	removed := []string{}
 	for i := 0; i < removedGateways; i++ {
-		removed = append(removed, gateways[i])
+		removed = append(removed, gateways[i].Name)
 		errs = append(errs, c.unlabelNode(ctx, config, gateways[i]))
 	}
 
@@ -427,7 +415,7 @@ func (c *submarinerConfigController) findGatewaysWithZone(expected int, zoneLabe
 	}
 
 	if len(workers) < expected {
-		return nil, fmt.Errorf("the candidate worker nodes (%d) are insufficient for required gateways (%d)", len(workers), expected)
+		return []*corev1.Node{}, nil
 	}
 
 	// group the nodes with zone
@@ -471,7 +459,7 @@ func (c *submarinerConfigController) findGatewaysWithZone(expected int, zoneLabe
 	return gateways, nil
 }
 
-func (c *submarinerConfigController) updateGatewayStatus(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
+func (c *submarinerConfigController) updateGatewayStatus(recorder events.Recorder, config *configv1alpha1.SubmarinerConfig) error {
 	gateways, err := c.getLabeledNodes(
 		nodeLabelSelector{workerNodeLabel, selection.Exists},
 		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},
@@ -485,28 +473,21 @@ func (c *submarinerConfigController) updateGatewayStatus(ctx context.Context, co
 		gatewayNames = append(gatewayNames, gateway.Name)
 	}
 
-	condition := metav1.Condition{
-		Type:    submarinerGatewayCondition,
-		Status:  metav1.ConditionTrue,
-		Reason:  "SubmarinerGatewayLabeled",
-		Message: fmt.Sprintf("The nodes (%q) are labeled to gateways", strings.Join(gatewayNames, ",")),
-	}
+	var condition metav1.Condition
 
 	if config.Spec.Gateways != len(gateways) {
-		condition.Status = metav1.ConditionFalse
-		condition.Reason = "SubmarinerGatewayNotLabeled"
-		condition.Message = fmt.Sprintf("Expected %d gateways, but got %d gateways (%q)",
-			config.Spec.Gateways, len(gateways), strings.Join(gatewayNames, ","))
+		condition = metav1.Condition{
+			Type:   submarinerGatewayCondition,
+			Status: metav1.ConditionFalse,
+			Reason: "InsufficientNodes",
+			Message: fmt.Sprintf("The %d worker nodes labeled as gateways (%q) does not match the desired number %d",
+				len(gatewayNames), strings.Join(gatewayNames, ","), config.Spec.Gateways),
+		}
+	} else {
+		condition = successCondition(gatewayNames)
 	}
 
-	_, _, err = helpers.UpdateSubmarinerConfigStatus(
-		c.configClient,
-		config.Namespace,
-		config.Name,
-		helpers.UpdateSubmarinerConfigConditionFn(condition),
-	)
-
-	return err
+	return c.updateSubmarinerConfigStatus(recorder, config, condition)
 }
 
 //TODO consider to put this into the cloud-library
@@ -524,4 +505,23 @@ func (c *submarinerConfigController) getGCPInstance(node *corev1.Node) (gcpclien
 	}
 
 	return gc, instance, nil
+}
+
+func failedCondition(formatMsg string, args ...interface{}) metav1.Condition {
+	return metav1.Condition{
+		Type:    submarinerGatewayCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  "Failure",
+		Message: fmt.Sprintf(formatMsg, args...),
+	}
+}
+
+func successCondition(gatewayNames []string) metav1.Condition {
+	return metav1.Condition{
+		Type:   submarinerGatewayCondition,
+		Status: metav1.ConditionTrue,
+		Reason: "Success",
+		Message: fmt.Sprintf("%d node(s) (%q) are labeled as gateways", len(gatewayNames),
+			strings.Join(gatewayNames, ",")),
+	}
 }
