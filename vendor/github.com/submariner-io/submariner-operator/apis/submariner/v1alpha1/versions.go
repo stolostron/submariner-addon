@@ -1,5 +1,7 @@
 /*
-© 2021 Red Hat, Inc. and others
+SPDX-License-Identifier: Apache-2.0
+
+Copyright Contributors to the Submariner project.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,11 +15,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package versions
+package v1alpha1
 
 var (
 	DefaultRepo                      = "quay.io/submariner"
-	DefaultSubmarinerOperatorVersion = "0.9.0"
-	DefaultSubmarinerVersion         = "0.9.0"
-	DefaultLighthouseVersion         = "0.9.0"
+	DefaultSubmarinerOperatorVersion = "0.10.0-rc1"
+	DefaultSubmarinerVersion         = "0.10.0-rc1"
+	DefaultLighthouseVersion         = "0.10.0-rc1"
 )
