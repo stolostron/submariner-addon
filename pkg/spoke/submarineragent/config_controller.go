@@ -313,12 +313,30 @@ func (c *submarinerConfigController) labelNode(ctx context.Context, config *conf
 		return nil
 	}
 
-	copied := node.DeepCopy()
-	copied.Labels[submarinerGatewayLabel] = "true"
-	copied.Labels[submarinerUDPPortLabel] = nattPort
+	return c.updateNode(ctx, node, func(node *corev1.Node) {
+		node.Labels[submarinerGatewayLabel] = "true"
+		node.Labels[submarinerUDPPortLabel] = nattPort
+	})
+}
 
+func (c *submarinerConfigController) updateNode(ctx context.Context, node *corev1.Node, mutate func(node *corev1.Node)) error {
+	name := node.Name
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		_, err := c.kubeClient.CoreV1().Nodes().Update(ctx, copied, metav1.UpdateOptions{})
+		var err error
+
+		if node == nil {
+			node, err = c.kubeClient.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+		}
+
+		node = node.DeepCopy()
+		mutate(node)
+
+		_, err = c.kubeClient.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+		node = nil
+
 		return err
 	})
 }
@@ -342,14 +360,9 @@ func (c *submarinerConfigController) unlabelNode(ctx context.Context, config *co
 		return nil
 	}
 
-	copied := node.DeepCopy()
-	// remove the gateway and port label
-	delete(copied.Labels, submarinerGatewayLabel)
-	delete(copied.Labels, submarinerUDPPortLabel)
-
-	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		_, err := c.kubeClient.CoreV1().Nodes().Update(ctx, copied, metav1.UpdateOptions{})
-		return err
+	return c.updateNode(ctx, node, func(node *corev1.Node) {
+		delete(node.Labels, submarinerGatewayLabel)
+		delete(node.Labels, submarinerUDPPortLabel)
 	})
 }
 
