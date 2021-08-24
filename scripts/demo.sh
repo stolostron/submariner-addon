@@ -62,9 +62,9 @@ do
 done
 
 # check submariner-addon status
-for((i=1;i<=24;i++));
+for((i=1;i<=48;i++));
 do
-  echo "Checking clusters connections ..."
+  echo "$i. Checking clusters connections ..."
   connected=$(kubectl -n cluster1 get managedclusteraddons submariner -o=jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\n"}{end}' | grep SubmarinerConnectionDegraded | grep False)
   if [ -n "$connected" ]; then
     echo "Clusters are connected"
