@@ -36,7 +36,7 @@ spec:
               description: IPSecNATTPort represents IPsec NAT-T port (default 4500).
               type: integer
             cableDriver:
-              description: CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, and wireguard.
+              description: CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, wireguard, and vxlan.
               type: string
             credentialsSecret:
               description: CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.
