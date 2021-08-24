@@ -3,10 +3,15 @@ package testing
 import (
 	"reflect"
 	"testing"
+	"time"
 
+	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clienttesting "k8s.io/client-go/testing"
 )
 
@@ -45,5 +50,50 @@ func AssertActionResource(t *testing.T, action clienttesting.Action, expectedRes
 	}
 	if action.GetResource().Resource != expectedResource {
 		t.Errorf("expected action resource %s but got: %#v", expectedResource, action)
+	}
+}
+
+func EnsureNoActionsForResource(f *clienttesting.Fake, resource string, expectedVerbs ...string) {
+	Consistently(func() []string {
+		expSet := sets.NewString(expectedVerbs...)
+		verbs := []string{}
+
+		actualActions := f.Actions()
+		for i := range actualActions {
+			if actualActions[i].GetResource().Resource == resource && expSet.Has(actualActions[i].GetVerb()) {
+				verbs = append(verbs, actualActions[i].GetVerb())
+			}
+		}
+
+		return verbs
+	}).Should(BeEmpty())
+}
+
+func AwaitStatusCondition(expCond metav1.Condition, get func() ([]metav1.Condition, error)) {
+	var found *metav1.Condition
+
+	err := wait.PollImmediate(50*time.Millisecond, 5*time.Second, func() (bool, error) {
+		conditions, err := get()
+		if err != nil {
+			return false, err
+		}
+
+		found = meta.FindStatusCondition(conditions, expCond.Type)
+		if found == nil {
+			return false, nil
+		}
+
+		return found.Status == expCond.Status && found.Reason == expCond.Reason, nil
+	})
+
+	if err == wait.ErrWaitTimeout {
+		Expect(found).ToNot(BeNil(), "Status condition not found")
+		Expect(found.Type).To(Equal(expCond.Type))
+		Expect(found.Status).To(Equal(expCond.Status))
+		Expect(found.LastTransitionTime).To(Not(BeNil()))
+		Expect(found.Message).To(Not(BeEmpty()))
+		Expect(found.Reason).To(Equal(expCond.Reason))
+	} else {
+		Expect(err).To(Succeed())
 	}
 }
