@@ -6,13 +6,10 @@ import (
 	"strings"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
 	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
-	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
-
-	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -32,18 +29,15 @@ const (
 // to submariner-addon on the hub cluster
 type connectionsStatusController struct {
 	addOnClient      addonclient.Interface
-	addOnLister      addonlisterv1alpha1.ManagedClusterAddOnLister
 	submarinerLister cache.GenericLister
 	clusterName      string
 }
 
 // NewConnectionsStatusController returns an instance of submarinerAgentStatusController
-func NewConnectionsStatusController(clusterName string, addOnClient addonclient.Interface,
-	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer, submarinerInformer informers.GenericInformer,
+func NewConnectionsStatusController(clusterName string, addOnClient addonclient.Interface, submarinerInformer informers.GenericInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &connectionsStatusController{
 		addOnClient:      addOnClient,
-		addOnLister:      addOnInformer.Lister(),
 		submarinerLister: submarinerInformer.Lister(),
 		clusterName:      clusterName,
 	}
@@ -58,15 +52,6 @@ func NewConnectionsStatusController(clusterName string, addOnClient addonclient.
 }
 
 func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
-	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(helpers.SubmarinerAddOnName)
-	if errors.IsNotFound(err) {
-		// addon is not found, could be deleted, ignore it.
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
 	namespace, name, _ := cache.SplitMetaNamespaceKey(syncCtx.QueueKey())
 	runtimeSubmariner, err := c.submarinerLister.ByNamespace(namespace).Get(name)
 	if errors.IsNotFound(err) {
@@ -88,19 +73,15 @@ func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.
 	}
 
 	// check submariner agent status and update submariner-addon status on the hub cluster
-	_, updated, err := helpers.UpdateManagedClusterAddOnStatus(
-		ctx,
-		c.addOnClient,
-		c.clusterName,
-		addOn.Name,
-		helpers.UpdateManagedClusterAddOnStatusFn(c.checkSubmarinerConnections(submariner)),
-	)
+	updatedStatus, updated, err := helpers.UpdateManagedClusterAddOnStatus(ctx, c.addOnClient, c.clusterName,
+		helpers.UpdateManagedClusterAddOnStatusFn(c.checkSubmarinerConnections(submariner)))
 	if err != nil {
 		return err
 	}
 
 	if updated {
-		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "update managed cluster addon %q status with connections status", addOn.Name)
+		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "Updated status conditions:  %#v",
+			updatedStatus.Conditions)
 	}
 
 	return nil

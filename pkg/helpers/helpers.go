@@ -163,16 +163,17 @@ func UpdateSubmarinerConfigStatusFn(cond metav1.Condition, managedClusterInfo co
 
 type UpdateManagedClusterAddOnStatusFunc func(status *addonv1alpha1.ManagedClusterAddOnStatus) error
 
-func UpdateManagedClusterAddOnStatus(
-	ctx context.Context,
-	client addonclient.Interface,
-	addOnNamespace, addOnName string,
+func UpdateManagedClusterAddOnStatus(ctx context.Context, client addonclient.Interface, addOnNamespace string,
 	updateFuncs ...UpdateManagedClusterAddOnStatusFunc) (*addonv1alpha1.ManagedClusterAddOnStatus, bool, error) {
 	updated := false
 	var updatedAddOnStatus *addonv1alpha1.ManagedClusterAddOnStatus
 
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		addOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).Get(ctx, addOnName, metav1.GetOptions{})
+		addOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).Get(ctx, SubmarinerAddOnName, metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return nil
+		}
+
 		if err != nil {
 			return err
 		}

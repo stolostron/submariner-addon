@@ -189,18 +189,14 @@ func TestUpdateManagedClusterAddOnStatus(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			fakeAddOnClient := addonfake.NewSimpleClientset(&addonv1alpha1.ManagedClusterAddOn{
-				ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: SubmarinerAddOnName},
 				Status: addonv1alpha1.ManagedClusterAddOnStatus{
 					Conditions: c.startingConditions,
 				},
 			})
 
-			status, updated, err := UpdateManagedClusterAddOnStatus(
-				context.TODO(),
-				fakeAddOnClient,
-				"test", "test",
-				UpdateManagedClusterAddOnStatusFn(c.newCondition),
-			)
+			status, updated, err := UpdateManagedClusterAddOnStatus(context.TODO(), fakeAddOnClient, "test",
+				UpdateManagedClusterAddOnStatusFn(c.newCondition))
 			if err != nil {
 				t.Errorf("unexpected err: %v", err)
 			}
