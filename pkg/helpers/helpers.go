@@ -23,9 +23,6 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	workv1 "open-cluster-management.io/api/work/v1"
 
-	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
-	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
-
 	"github.com/openshift/api"
 	apicofigv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -75,10 +72,6 @@ const (
 	ocpInfrastructureName = "cluster"
 	ocpAPIServerName      = "cluster"
 	ocpConfigNamespace    = "openshift-config"
-)
-
-const (
-	submarinerConnectionDegraded = "SubmarinerConnectionDegraded"
 )
 
 const (
@@ -546,53 +539,6 @@ func getKubeAPIServerCA(kubeClient kubernetes.Interface, dynamicClient dynamic.I
 	}
 
 	return nil, nil
-}
-
-func CheckSubmarinerConnections(clusterName string, submariner *submarinerv1alpha1.Submariner) metav1.Condition {
-	condition := metav1.Condition{
-		Type: submarinerConnectionDegraded,
-	}
-	if submariner.Status.Gateways == nil || len(*submariner.Status.Gateways) == 0 {
-		condition.Status = metav1.ConditionTrue
-		condition.Reason = "ConnectionsNotEstablished"
-		condition.Message = "There are no connections on gateways"
-		return condition
-	}
-
-	connectedMessages := []string{}
-	unconnectedMessages := []string{}
-	for _, gateway := range *submariner.Status.Gateways {
-		for _, connection := range gateway.Connections {
-			if connection.Status != submarinermv1.Connected {
-				unconnectedMessages = append(unconnectedMessages, fmt.Sprintf("The connection between clusters %q and %q is not established (status=%s)",
-					clusterName, connection.Endpoint.ClusterID, connection.Status))
-				continue
-			}
-
-			connectedMessages = append(connectedMessages, fmt.Sprintf("The connection between clusters %q and %q is established",
-				clusterName, connection.Endpoint.ClusterID))
-		}
-	}
-
-	if len(connectedMessages) == 0 && len(unconnectedMessages) == 0 {
-		condition.Status = metav1.ConditionTrue
-		condition.Reason = "ConnectionsNotEstablished"
-		condition.Message = "There are no connections on gateways"
-		return condition
-	}
-
-	if len(unconnectedMessages) != 0 {
-		condition.Status = metav1.ConditionTrue
-		condition.Reason = "ConnectionsDegraded"
-		connectedMessages = append(connectedMessages, unconnectedMessages...)
-		condition.Message = strings.Join(connectedMessages, "\n")
-		return condition
-	}
-
-	condition.Status = metav1.ConditionFalse
-	condition.Reason = "ConnectionsEstablished"
-	condition.Message = strings.Join(connectedMessages, "\n")
-	return condition
 }
 
 // GetCurrentNamespace returns the current namesapce from file system,
