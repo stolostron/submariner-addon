@@ -3,10 +3,12 @@ package testing
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -39,4 +41,12 @@ func NewSubmarinerConfigCondition(name, status, reason, message string, lastTran
 		ret.LastTransitionTime = *lastTransition
 	}
 	return ret
+}
+
+func ToUnstructured(obj runtime.Object) *unstructured.Unstructured {
+	m, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	Expect(err).To(Succeed())
+
+	return &unstructured.Unstructured{Object: m}
+
 }
