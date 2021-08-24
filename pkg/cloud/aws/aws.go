@@ -25,6 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+
+	cpapi "github.com/submariner-io/cloud-prepare/pkg/api"
+	cpaws "github.com/submariner-io/cloud-prepare/pkg/aws"
 )
 
 const (
@@ -63,6 +66,7 @@ type awsProvider struct {
 	clusterName   string
 	instanceType  string
 	gateways      int
+	cloudPrepare  cpapi.Cloud
 }
 
 func NewAWSProvider(
@@ -112,6 +116,7 @@ func NewAWSProvider(
 		clusterName:   clusterName,
 		instanceType:  instanceType,
 		gateways:      gateways,
+		cloudPrepare:  cpaws.NewCloud(awsClient.FullEC2API(), infraId, region),
 	}, nil
 }
 
