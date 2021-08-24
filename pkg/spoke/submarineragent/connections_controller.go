@@ -31,31 +31,28 @@ const (
 // connectionsStatusController watches the status of submariner CR and reflect the status
 // to submariner-addon on the hub cluster
 type connectionsStatusController struct {
-	addOnClient           addonclient.Interface
-	addOnLister           addonlisterv1alpha1.ManagedClusterAddOnLister
-	submarinerLister      cache.GenericLister
-	clusterName           string
-	installationNamespace string
+	addOnClient      addonclient.Interface
+	addOnLister      addonlisterv1alpha1.ManagedClusterAddOnLister
+	submarinerLister cache.GenericLister
+	clusterName      string
 }
 
 // NewConnectionsStatusController returns an instance of submarinerAgentStatusController
-func NewConnectionsStatusController(
-	clusterName string,
-	installationNamespace string,
-	addOnClient addonclient.Interface,
-	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
-	submarinerInformer informers.GenericInformer,
+func NewConnectionsStatusController(clusterName string, addOnClient addonclient.Interface,
+	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer, submarinerInformer informers.GenericInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &connectionsStatusController{
-		addOnClient:           addOnClient,
-		addOnLister:           addOnInformer.Lister(),
-		submarinerLister:      submarinerInformer.Lister(),
-		clusterName:           clusterName,
-		installationNamespace: installationNamespace,
+		addOnClient:      addOnClient,
+		addOnLister:      addOnInformer.Lister(),
+		submarinerLister: submarinerInformer.Lister(),
+		clusterName:      clusterName,
 	}
 
 	return factory.New().
-		WithInformers(submarinerInformer.Informer()).
+		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			key, _ := cache.MetaNamespaceKeyFunc(obj)
+			return key
+		}, submarinerInformer.Informer()).
 		WithSync(c.sync).
 		ToController("SubmarinerConnectionsStatusController", recorder)
 }
@@ -70,7 +67,8 @@ func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.
 		return err
 	}
 
-	runtimeSubmariner, err := c.submarinerLister.ByNamespace(c.installationNamespace).Get(submarinerCRName)
+	namespace, name, _ := cache.SplitMetaNamespaceKey(syncCtx.QueueKey())
+	runtimeSubmariner, err := c.submarinerLister.ByNamespace(namespace).Get(name)
 	if errors.IsNotFound(err) {
 		// submariner cr is not found, could be deleted, ignore it.
 		return nil

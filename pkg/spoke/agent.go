@@ -141,14 +141,8 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		controllerContext.EventRecorder,
 	)
 
-	connectionsStatusController := submarineragent.NewConnectionsStatusController(
-		o.ClusterName,
-		o.InstallationNamespace,
-		addOnHubKubeClient,
-		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
-		dynamicInformers.ForResource(submarinerGVR),
-		controllerContext.EventRecorder,
-	)
+	connectionsStatusController := submarineragent.NewConnectionsStatusController(o.ClusterName, addOnHubKubeClient,
+		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(), dynamicInformers.ForResource(submarinerGVR), controllerContext.EventRecorder)
 
 	go addOnInformers.Start(ctx.Done())
 	go configInformers.Start(ctx.Done())
