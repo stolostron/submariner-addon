@@ -101,10 +101,6 @@ func NewSubmarinerBrokerInfo(
 		return nil, err
 	}
 
-	if helpers.GetClusterProduct(managedCluster) == helpers.ProductOCP {
-		brokerInfo.NATEnabled = true
-	}
-
 	return brokerInfo, nil
 }
 
@@ -115,6 +111,8 @@ func applySubmarinerConfig(
 	if submarinerConfig == nil {
 		return nil
 	}
+
+	brokerInfo.NATEnabled = submarinerConfig.Spec.NATTEnable
 
 	if submarinerConfig.Spec.CableDriver != "" {
 		brokerInfo.CableDriver = submarinerConfig.Spec.CableDriver
