@@ -1,117 +1,177 @@
-package submarineragent
+package submarineragent_test
 
 import (
 	"context"
-	"testing"
-	"time"
 
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
-	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
-
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
+	"github.com/openshift/library-go/pkg/operator/events"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	kubeinformers "k8s.io/client-go/informers"
-	kubefake "k8s.io/client-go/kubernetes/fake"
-	clienttesting "k8s.io/client-go/testing"
+	kubeInformers "k8s.io/client-go/informers"
+	kubeFake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/cache"
 )
 
-func TestGatewaysStatusControllerSync(t *testing.T) {
-	cases := []struct {
-		name            string
-		addOns          []runtime.Object
-		nodes           []runtime.Object
-		validateActions func(t *testing.T, addOnActions []clienttesting.Action)
-	}{
-		{
-			name: "nodes are labeled",
-			addOns: []runtime.Object{
-				&addonv1alpha1.ManagedClusterAddOn{
+const gatewayNodesLabeledType = "SubmarinerGatewayNodesLabeled"
+
+var _ = Describe("Gateways Status Controller", func() {
+	t := newGatewaysControllerTestDriver()
+
+	When("there is a worker node labeled as a gateway", func() {
+		BeforeEach(func() {
+			t.nodes = []*corev1.Node{
+				newWorkerNode("worker-1"),
+				newGatewayNode("worker-2"),
+				{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner",
+						Name: "non-worker",
 					},
 				},
-			},
-			nodes: []runtime.Object{
-				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test",
-						Labels: map[string]string{
-							"submariner.io/gateway": "true",
-						},
-					},
-				},
-			},
-			validateActions: func(t *testing.T, addOnActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, addOnActions, "get", "update")
-				actual := addOnActions[1].(clienttesting.UpdateActionImpl).Object
-				addOn := actual.(*addonv1alpha1.ManagedClusterAddOn)
-				if !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerGatewayNodesLabeled") {
-					t.Errorf("expected SubmarinerGatewayNodesLabeled is true, but %v", addOn.Status.Conditions)
-				}
-			},
-		},
-		{
-			name: "nodes are not labeled",
-			addOns: []runtime.Object{
-				&addonv1alpha1.ManagedClusterAddOn{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner",
-					},
-				},
-			},
-			nodes: []runtime.Object{
-				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test",
-					},
-				},
-			},
-			validateActions: func(t *testing.T, addOnActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, addOnActions, "get", "update")
-				actual := addOnActions[1].(clienttesting.UpdateActionImpl).Object
-				addOn := actual.(*addonv1alpha1.ManagedClusterAddOn)
-				if meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerGatewayNodesLabeled") {
-					t.Errorf("expected SubmarinerGatewayNodesLabeled is false, but %v", addOn.Status.Conditions)
-				}
-			},
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			addOnClient := addonfake.NewSimpleClientset(c.addOns...)
-			addOnInformerFactory := addoninformers.NewSharedInformerFactory(addOnClient, time.Minute*10)
-			addOnStroe := addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().GetStore()
-			for _, addOn := range c.addOns {
-				addOnStroe.Add(addOn)
 			}
-
-			kubeClient := kubefake.NewSimpleClientset(c.nodes...)
-			kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Minute*10)
-			nodeStore := kubeInformerFactory.Core().V1().Nodes().Informer().GetStore()
-			for _, node := range c.nodes {
-				nodeStore.Add(node)
-			}
-
-			ctrl := &gatewaysStatusController{
-				addOnClient: addOnClient,
-				addOnLister: addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
-				nodeLister:  kubeInformerFactory.Core().V1().Nodes().Lister(),
-				clusterName: "test",
-			}
-
-			err := ctrl.sync(context.TODO(), testinghelpers.NewFakeSyncContext(t, "gateway"))
-			if err != nil {
-				t.Errorf("unexpected err: %v", err)
-			}
-
-			c.validateActions(t, addOnClient.Actions())
 		})
-	}
+
+		It("should add the ManagedClusterAddOn condition with status True", func() {
+			t.awaitGatwaysLabeledCondition()
+		})
+
+		Context("and is subsequently unlabeled", func() {
+			JustBeforeEach(func() {
+				t.awaitGatwaysLabeledCondition()
+			})
+
+			Context("by setting to false", func() {
+				It("should update the ManagedClusterAddOn condition with status False", func() {
+					t.nodes[1].Labels["submariner.io/gateway"] = "false"
+					_, err := t.kubeClient.CoreV1().Nodes().Update(context.TODO(), t.nodes[1], metav1.UpdateOptions{})
+					Expect(err).To(Succeed())
+
+					t.awaitGatwaysNotLabeledCondition()
+				})
+			})
+
+			Context("by removing it", func() {
+				It("should update the ManagedClusterAddOn condition with status False", func() {
+					t.awaitGatwaysLabeledCondition()
+
+					delete(t.nodes[1].Labels, "submariner.io/gateway")
+					_, err := t.kubeClient.CoreV1().Nodes().Update(context.TODO(), t.nodes[1], metav1.UpdateOptions{})
+					Expect(err).To(Succeed())
+
+					t.awaitGatwaysNotLabeledCondition()
+				})
+			})
+		})
+	})
+
+	When("initially there are no worker nodes labeled as gateways and one is subsequently labeled", func() {
+		BeforeEach(func() {
+			t.nodes = []*corev1.Node{
+				newWorkerNode("worker-1"),
+			}
+		})
+
+		It("should update the ManagedClusterAddOn condition with status True", func() {
+			t.awaitGatwaysNotLabeledCondition()
+
+			t.nodes[0].Labels["submariner.io/gateway"] = "true"
+			_, err := t.kubeClient.CoreV1().Nodes().Update(context.TODO(), t.nodes[0], metav1.UpdateOptions{})
+			Expect(err).To(Succeed())
+
+			t.awaitGatwaysLabeledCondition()
+		})
+	})
+
+	When("updating the ManagedClusterAddOn status initially fails", func() {
+		Context("", func() {
+			BeforeEach(func() {
+				testing.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
+			})
+
+			It("should eventually update it", func() {
+				t.awaitGatwaysLabeledCondition()
+			})
+		})
+
+		Context("with a conflict error", func() {
+			BeforeEach(func() {
+				testing.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
+			})
+
+			It("should eventually update it", func() {
+				t.awaitGatwaysLabeledCondition()
+			})
+		})
+	})
+})
+
+type gatewaysControllerTestDriver struct {
+	managedClusterAddOnTestBase
+	kubeClient *kubeFake.Clientset
+	nodes      []*corev1.Node
+	stop       context.CancelFunc
+}
+
+func newGatewaysControllerTestDriver() *gatewaysControllerTestDriver {
+	t := &gatewaysControllerTestDriver{}
+
+	BeforeEach(func() {
+		t.kubeClient = kubeFake.NewSimpleClientset()
+		t.managedClusterAddOnTestBase.init()
+	})
+
+	JustBeforeEach(func() {
+		for _, node := range t.nodes {
+			_, err := t.kubeClient.CoreV1().Nodes().Create(context.TODO(), node, metav1.CreateOptions{})
+			Expect(err).To(Succeed())
+		}
+
+		kubeInformerFactory := kubeInformers.NewSharedInformerFactory(t.kubeClient, 0)
+
+		t.managedClusterAddOnTestBase.run()
+
+		controller := submarineragent.NewGatewaysStatusController(clusterName, t.addOnClient,
+			kubeInformerFactory.Core().V1().Nodes(), events.NewLoggingEventRecorder("test"))
+
+		var ctx context.Context
+
+		ctx, t.stop = context.WithCancel(context.TODO())
+
+		kubeInformerFactory.Start(ctx.Done())
+
+		cache.WaitForCacheSync(ctx.Done(), kubeInformerFactory.Core().V1().Nodes().Informer().HasSynced)
+
+		go controller.Run(ctx, 1)
+	})
+
+	AfterEach(func() {
+		t.stop()
+	})
+
+	return t
+}
+
+func (t *gatewaysControllerTestDriver) awaitStatusCondition(status metav1.ConditionStatus, reason string) {
+	t.awaitManagedClusterAddOnStatusCondition(metav1.Condition{
+		Type:   gatewayNodesLabeledType,
+		Status: status,
+		Reason: reason,
+	})
+}
+
+func (t *gatewaysControllerTestDriver) awaitGatwaysNotLabeledCondition() {
+	t.awaitStatusCondition(metav1.ConditionFalse, "SubmarinerGatewayNodesUnlabeled")
+}
+
+func (t *gatewaysControllerTestDriver) awaitGatwaysLabeledCondition() {
+	t.awaitStatusCondition(metav1.ConditionTrue, "SubmarinerGatewayNodesLabeled")
+}
+
+func newGatewayNode(name string) *corev1.Node {
+	node := newWorkerNode(name)
+	node.Labels["submariner.io/gateway"] = "true"
+
+	return node
 }
