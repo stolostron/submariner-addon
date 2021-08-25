@@ -125,7 +125,6 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	gatewaysStatusController := submarineragent.NewGatewaysStatusController(
 		o.ClusterName,
 		addOnHubKubeClient,
-		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 		spokeKubeInformers.Core().V1().Nodes(),
 		controllerContext.EventRecorder,
 	)
