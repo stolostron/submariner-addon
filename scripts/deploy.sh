@@ -95,6 +95,10 @@ function deploy_hub() {
     mkdir -p ${submariner_deploy_dir}
     cp -r deploy/* ${submariner_deploy_dir}
 
+    # Set submariner-addon imagePullPolicy to IfNotPresent
+    sed -i -- '/image: quay.io*/a\        imagePullPolicy: IfNotPresent' ${submariner_deploy_dir}/config/operator/operator.yaml
+
+
     # add master apiserver to submariner-addon deployment
     cat <<EOF >> ${submariner_deployment}
           - name: BROKER_API_SERVER
@@ -161,11 +165,11 @@ function accept_managed_cluster() {
         if [ 0 -eq $? ]; then
             break
         fi
-        sleep 1
+        sleep 2
         times=$(($times+1))
     done
     if [ $times -ge 60 ]; then
-        echo "Unabel to find managed cluster $cluster within 1 min"
+        echo "Unable to find managed cluster $cluster within 2 min"
         return 2
     fi
 
@@ -200,6 +204,15 @@ spec:
     source: operatorhubio-catalog
     sourceNamespace: olm
 EOF
+
+    submrepo="quay.io/submariner"
+    submver="0.9.1"
+    kubectl patch submarinerconfigs submariner -n ${cluster} --type "json" -p '[
+{"op":"add","path":"/spec/imagePullSpecs/submarinerImagePullSpec","value":"'${submrepo}'/submariner-gateway:'${submver}'"},
+{"op":"add","path":"/spec/imagePullSpecs/submarinerRouteAgentImagePullSpec","value":"'${submrepo}'/submariner-route-agent:'${submver}'"},
+{"op":"add","path":"/spec/imagePullSpecs/lighthouseAgentImagePullSpec","value":"'${submrepo}'/lighthouse-agent:'${submver}'"},
+{"op":"add","path":"/spec/imagePullSpecs/lighthouseCoreDNSImagePullSpec","value":"'${submrepo}'/lighthouse-coredns:'${submver}'"}]'
+
 }
 
 ### main ###
