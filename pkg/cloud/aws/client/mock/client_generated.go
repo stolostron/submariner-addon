@@ -8,7 +8,6 @@ import (
 	reflect "reflect"
 
 	ec2 "github.com/aws/aws-sdk-go/service/ec2"
-	ec2iface "github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -78,6 +77,21 @@ func (m *MockInterface) CreateTags(input *ec2.CreateTagsInput) (*ec2.CreateTagsO
 func (mr *MockInterfaceMockRecorder) CreateTags(input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTags", reflect.TypeOf((*MockInterface)(nil).CreateTags), input)
+}
+
+// DeleteSecurityGroup mocks base method.
+func (m *MockInterface) DeleteSecurityGroup(input *ec2.DeleteSecurityGroupInput) (*ec2.DeleteSecurityGroupOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSecurityGroup", input)
+	ret0, _ := ret[0].(*ec2.DeleteSecurityGroupOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteSecurityGroup indicates an expected call of DeleteSecurityGroup.
+func (mr *MockInterfaceMockRecorder) DeleteSecurityGroup(input interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecurityGroup", reflect.TypeOf((*MockInterface)(nil).DeleteSecurityGroup), input)
 }
 
 // DeleteTags mocks base method.
@@ -168,20 +182,6 @@ func (m *MockInterface) DescribeVpcs(input *ec2.DescribeVpcsInput) (*ec2.Describ
 func (mr *MockInterfaceMockRecorder) DescribeVpcs(input interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeVpcs", reflect.TypeOf((*MockInterface)(nil).DescribeVpcs), input)
-}
-
-// FullEC2API mocks base method.
-func (m *MockInterface) FullEC2API() ec2iface.EC2API {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FullEC2API")
-	ret0, _ := ret[0].(ec2iface.EC2API)
-	return ret0
-}
-
-// FullEC2API indicates an expected call of FullEC2API.
-func (mr *MockInterfaceMockRecorder) FullEC2API() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FullEC2API", reflect.TypeOf((*MockInterface)(nil).FullEC2API))
 }
 
 // RevokeSecurityGroupIngress mocks base method.

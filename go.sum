@@ -73,8 +73,8 @@ github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmV
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
 github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
-github.com/aws/aws-sdk-go v1.40.27 h1:8fWW0CpmBZ8WWduNwl4vE9t07nMYFrhAsUHjPj81qUM=
-github.com/aws/aws-sdk-go v1.40.27/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
+github.com/aws/aws-sdk-go v1.40.37 h1:I+Q6cLctkFyMMrKukcDnj+i2kjrQ37LGiOM6xmsxC48=
+github.com/aws/aws-sdk-go v1.40.37/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -575,8 +575,8 @@ github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/submariner-io/admiral v0.10.0-rc1.0.20210824123934-19b8fb8b93bc h1:x1WczfeThBFuSJRNyXHgvb8ojsHb79ErYjyekZJkO1c=
 github.com/submariner-io/admiral v0.10.0-rc1.0.20210824123934-19b8fb8b93bc/go.mod h1:3N/rS69ThKz0M/5itKjL/JEJ1bOZR2ep8nkxJJw87bQ=
-github.com/submariner-io/cloud-prepare v0.10.0-rc1.0.20210824133448-4c44f10b211d h1:mtuodp4Lj+37nKK1VLoSFP3oIX9h7J+MS5Pc5EccjIc=
-github.com/submariner-io/cloud-prepare v0.10.0-rc1.0.20210824133448-4c44f10b211d/go.mod h1:MN5NRACqvspZFcfaYekT5ra7LIjn2gycJGBut6GlTPs=
+github.com/submariner-io/cloud-prepare v0.10.0-rc1.0.20210909090958-4f4abaf3900c h1:DMx8G33qoXhdacSq060uNUCaTVrhL0NB68sa1qE8E58=
+github.com/submariner-io/cloud-prepare v0.10.0-rc1.0.20210909090958-4f4abaf3900c/go.mod h1:m7smDPK0ayAli3vTenzTq8IzzfGd4h5gJ5C8hrNq+tk=
 github.com/submariner-io/shipyard v0.10.0/go.mod h1:Wi1G4N4EiwwPINAL5PCSdeQh52DWnPanqUNIC9R+Zl0=
 github.com/submariner-io/submariner-operator/apis v0.0.0-20210817145008-861856b068a1 h1:s99jw3hFchlWINPSI6K9ZHrzLL2wGXoGjU3BcN1tFE8=
 github.com/submariner-io/submariner-operator/apis v0.0.0-20210817145008-861856b068a1/go.mod h1:B+zRDZfMVnyRkVGas8SffK3ECWYVdDrzQVqimrdhuvo=

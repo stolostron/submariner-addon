@@ -11,7 +11,9 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events"
 
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 )
 
@@ -23,8 +25,10 @@ type CloudProvider interface {
 }
 
 func GetCloudProvider(
+	restConfig *rest.Config,
 	kubeClient kubernetes.Interface,
 	workClient workclient.Interface,
+	dynamicClient dynamic.Interface,
 	eventsRecorder events.Recorder,
 	managedClusterInfo configv1alpha1.ManagedClusterInfo, config *configv1alpha1.SubmarinerConfig) (CloudProvider, error) {
 	clusterName := managedClusterInfo.ClusterName
@@ -42,7 +46,9 @@ func GetCloudProvider(
 	switch platform {
 	case "AWS":
 		return aws.NewAWSProvider(
+			restConfig,
 			kubeClient, workClient,
+			dynamicClient,
 			eventsRecorder,
 			region, infraId, clusterName, config.Spec.CredentialsSecret.Name,
 			config.Spec.GatewayConfig.AWS.InstanceType,

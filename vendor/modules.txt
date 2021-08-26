@@ -6,7 +6,7 @@ github.com/NYTimes/gziphandler
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/aws/aws-sdk-go v1.40.27
+# github.com/aws/aws-sdk-go v1.40.37
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -318,10 +318,11 @@ github.com/spf13/cobra
 ## explicit
 github.com/spf13/pflag
 # github.com/submariner-io/admiral v0.10.0-rc1.0.20210824123934-19b8fb8b93bc
+## explicit
 github.com/submariner-io/admiral/pkg/log
 github.com/submariner-io/admiral/pkg/resource
 github.com/submariner-io/admiral/pkg/util
-# github.com/submariner-io/cloud-prepare v0.10.0-rc1.0.20210824133448-4c44f10b211d
+# github.com/submariner-io/cloud-prepare v0.10.0-rc1.0.20210909090958-4f4abaf3900c
 ## explicit
 github.com/submariner-io/cloud-prepare/pkg/api
 github.com/submariner-io/cloud-prepare/pkg/aws
@@ -467,7 +468,7 @@ golang.org/x/tools/internal/imports
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.54.0 => google.golang.org/api v0.29.0
+# google.golang.org/api v0.56.0 => google.golang.org/api v0.29.0
 ## explicit
 google.golang.org/api/compute/v1
 google.golang.org/api/dns/v1

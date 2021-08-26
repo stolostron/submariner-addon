@@ -18,7 +18,7 @@ limitations under the License.
 package aws
 
 import (
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 )
 
@@ -29,14 +29,32 @@ const (
 	messageValidatedPrerequisites = "Validated pre-requisites"
 )
 
+type awsClient interface {
+	AuthorizeSecurityGroupIngress(input *ec2.AuthorizeSecurityGroupIngressInput) (*ec2.AuthorizeSecurityGroupIngressOutput, error)
+
+	CreateSecurityGroup(input *ec2.CreateSecurityGroupInput) (*ec2.CreateSecurityGroupOutput, error)
+	CreateTags(input *ec2.CreateTagsInput) (*ec2.CreateTagsOutput, error)
+
+	DeleteSecurityGroup(input *ec2.DeleteSecurityGroupInput) (*ec2.DeleteSecurityGroupOutput, error)
+	DeleteTags(input *ec2.DeleteTagsInput) (*ec2.DeleteTagsOutput, error)
+
+	DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error)
+	DescribeInstanceTypeOfferings(input *ec2.DescribeInstanceTypeOfferingsInput) (*ec2.DescribeInstanceTypeOfferingsOutput, error)
+	DescribeSecurityGroups(input *ec2.DescribeSecurityGroupsInput) (*ec2.DescribeSecurityGroupsOutput, error)
+	DescribeSubnets(input *ec2.DescribeSubnetsInput) (*ec2.DescribeSubnetsOutput, error)
+	DescribeVpcs(input *ec2.DescribeVpcsInput) (*ec2.DescribeVpcsOutput, error)
+
+	RevokeSecurityGroupIngress(input *ec2.RevokeSecurityGroupIngressInput) (*ec2.RevokeSecurityGroupIngressOutput, error)
+}
+
 type awsCloud struct {
-	client  ec2iface.EC2API
+	client  awsClient
 	infraID string
 	region  string
 }
 
 // NewCloud creates a new api.Cloud instance which can prepare AWS for Submariner to be deployed on it
-func NewCloud(client ec2iface.EC2API, infraID, region string) api.Cloud {
+func NewCloud(client awsClient, infraID, region string) api.Cloud {
 	return &awsCloud{
 		client:  client,
 		infraID: infraID,
