@@ -38,6 +38,10 @@ spec:
                 default: 4500
                 description: IPSecNATTPort represents IPsec NAT-T port (default 4500).
                 type: integer
+              NATTDiscoveryPort:
+                default: 4900
+                description: NATTDiscoveryPort represents NAT-T Discovery port (default UDP/4900).
+                type: integer
               NATTEnable:
                 default: true
                 description: NATTEnable represents IPsec NAT-T enabled (default true).

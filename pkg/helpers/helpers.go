@@ -65,10 +65,11 @@ const (
 )
 
 const (
-	SubmarinerIKEPort     = 500
-	SubmarinerNatTPort    = 4500
-	SubmarinerRoutePort   = 4800
-	SubmarinerMetricsPort = 8080
+	SubmarinerIKEPort           = 500
+	SubmarinerNatTPort          = 4500
+	SubmarinerNatTDiscoveryPort = 4900
+	SubmarinerRoutePort         = 4800
+	SubmarinerMetricsPort       = 8080
 )
 
 const (

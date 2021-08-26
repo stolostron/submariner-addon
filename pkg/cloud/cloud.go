@@ -46,7 +46,7 @@ func GetCloudProvider(
 			eventsRecorder,
 			region, infraId, clusterName, config.Spec.CredentialsSecret.Name,
 			config.Spec.GatewayConfig.AWS.InstanceType,
-			config.Spec.IPSecIKEPort, config.Spec.IPSecNATTPort,
+			config.Spec.IPSecIKEPort, config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort,
 			config.Spec.Gateways,
 		)
 	case "GCP":
@@ -54,7 +54,7 @@ func GetCloudProvider(
 			kubeClient,
 			eventsRecorder,
 			infraId, clusterName, config.Spec.CredentialsSecret.Name,
-			config.Spec.IPSecIKEPort, config.Spec.IPSecNATTPort,
+			config.Spec.IPSecIKEPort, config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort,
 		)
 	}
 	return nil, fmt.Errorf("unsupported cloud platform %q of cluster %q", platform, clusterName)

@@ -211,7 +211,8 @@ EOF
 {"op":"add","path":"/spec/imagePullSpecs/submarinerImagePullSpec","value":"'${submrepo}'/submariner-gateway:'${submver}'"},
 {"op":"add","path":"/spec/imagePullSpecs/submarinerRouteAgentImagePullSpec","value":"'${submrepo}'/submariner-route-agent:'${submver}'"},
 {"op":"add","path":"/spec/imagePullSpecs/lighthouseAgentImagePullSpec","value":"'${submrepo}'/lighthouse-agent:'${submver}'"},
-{"op":"add","path":"/spec/imagePullSpecs/lighthouseCoreDNSImagePullSpec","value":"'${submrepo}'/lighthouse-coredns:'${submver}'"}]'
+{"op":"add","path":"/spec/imagePullSpecs/lighthouseCoreDNSImagePullSpec","value":"'${submrepo}'/lighthouse-coredns:'${submver}'"},
+{"op":"add","path":"/spec/NATTEnable","value":false}]'
 
 }
 

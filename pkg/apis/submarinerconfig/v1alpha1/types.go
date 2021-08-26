@@ -42,6 +42,11 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=4500
 	IPSecNATTPort int `json:"IPSecNATTPort,omitempty"`
 
+	// NATTDiscoveryPort represents NAT Discovery port (default UDP/4900).
+	// +optional
+	// +kubebuilder:default=4900
+	NATTDiscoveryPort int `json:"NATTDiscoveryPort,omitempty"`
+
 	// NATTEnable represents IPsec NAT-T enabled (default true).
 	// +optional
 	// +kubebuilder:default=true

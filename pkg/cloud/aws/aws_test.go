@@ -135,7 +135,7 @@ func TestPrepareSubmarinerClusterEnv(t *testing.T) {
 				}).Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-3")}, nil)
 				mock.EXPECT().AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
 					GroupId:       aws.String("sg-3"),
-					IpPermissions: getIPsecPortsPermission(int64(500), int64(4500)),
+					IpPermissions: getIPsecPortsPermission(int64(500), int64(4500), int64(4900)),
 				}).Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil)
 				mock.EXPECT().DescribeSubnets(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -273,7 +273,7 @@ func TestPrepareSubmarinerClusterEnv(t *testing.T) {
 				}).Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, awserr.New("InvalidPermission.Duplicate", "test", nil))
 				gwSG := &ec2.SecurityGroup{
 					GroupId:       aws.String("sg-3"),
-					IpPermissions: getIPsecPortsPermission(int64(500), int64(4500)),
+					IpPermissions: getIPsecPortsPermission(int64(500), int64(4500), int64(4900)),
 				}
 				mock.EXPECT().DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
@@ -348,16 +348,17 @@ func TestPrepareSubmarinerClusterEnv(t *testing.T) {
 
 			workClient := fakeworkclient.NewSimpleClientset(c.works...)
 			awsProvider := &awsProvider{
-				workClinet:    workClient,
-				awsClinet:     awsClient,
-				region:        "us-east-1",
-				infraId:       "testcluster-a1b1",
-				ikePort:       int64(500),
-				nattPort:      int64(4500),
-				clusterName:   "testcluster",
-				instanceType:  "m5n.large",
-				gateways:      1,
-				eventRecorder: eventstesting.NewTestingEventRecorder(t),
+				workClinet:        workClient,
+				awsClinet:         awsClient,
+				region:            "us-east-1",
+				infraId:           "testcluster-a1b1",
+				ikePort:           int64(500),
+				nattPort:          int64(4500),
+				nattDiscoveryPort: int64(4900),
+				clusterName:       "testcluster",
+				instanceType:      "m5n.large",
+				gateways:          1,
+				eventRecorder:     eventstesting.NewTestingEventRecorder(t),
 			}
 
 			err := awsProvider.PrepareSubmarinerClusterEnv()
@@ -437,7 +438,8 @@ func TestCleanUpSubmarinerClusterEnv(t *testing.T) {
 					},
 					Resources: []*string{aws.String("sub-1")},
 				}).Return(&ec2.DeleteTagsOutput{}, nil)
-				sg := &ec2.SecurityGroup{GroupId: aws.String("sg-3"), IpPermissions: getIPsecPortsPermission(int64(500), int64(4500))}
+				sg := &ec2.SecurityGroup{GroupId: aws.String("sg-3"), IpPermissions: getIPsecPortsPermission(int64(500),
+					int64(4500), int64(4900))}
 				mock.EXPECT().DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -518,14 +520,15 @@ func TestCleanUpSubmarinerClusterEnv(t *testing.T) {
 
 			workClient := fakeworkclient.NewSimpleClientset(c.works...)
 			awsProvider := &awsProvider{
-				workClinet:    workClient,
-				awsClinet:     awsClient,
-				region:        "us-east-1",
-				infraId:       "testcluster-a1b1",
-				ikePort:       int64(500),
-				nattPort:      int64(4500),
-				clusterName:   "testcluster",
-				eventRecorder: eventstesting.NewTestingEventRecorder(t),
+				workClinet:        workClient,
+				awsClinet:         awsClient,
+				region:            "us-east-1",
+				infraId:           "testcluster-a1b1",
+				ikePort:           int64(500),
+				nattPort:          int64(4500),
+				nattDiscoveryPort: int64(4900),
+				clusterName:       "testcluster",
+				eventRecorder:     eventstesting.NewTestingEventRecorder(t),
 			}
 
 			err := awsProvider.CleanUpSubmarinerClusterEnv()

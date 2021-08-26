@@ -56,17 +56,18 @@ type machineSetConfig struct {
 }
 
 type awsProvider struct {
-	workClinet    workclient.Interface
-	awsClinet     client.Interface
-	eventRecorder events.Recorder
-	region        string
-	infraId       string
-	ikePort       int64
-	nattPort      int64
-	clusterName   string
-	instanceType  string
-	gateways      int
-	cloudPrepare  cpapi.Cloud
+	workClinet        workclient.Interface
+	awsClinet         client.Interface
+	eventRecorder     events.Recorder
+	region            string
+	infraId           string
+	ikePort           int64
+	nattPort          int64
+	nattDiscoveryPort int64
+	clusterName       string
+	instanceType      string
+	gateways          int
+	cloudPrepare      cpapi.Cloud
 }
 
 func NewAWSProvider(
@@ -74,7 +75,7 @@ func NewAWSProvider(
 	eventRecorder events.Recorder,
 	region, infraId, clusterName, credentialsSecretName string,
 	instanceType string,
-	ikePort, nattPort int,
+	ikePort, nattPort, nattDiscoveryPort int,
 	gateways int) (*awsProvider, error) {
 	if region == "" {
 		return nil, fmt.Errorf("cluster region is empty")
@@ -96,6 +97,10 @@ func NewAWSProvider(
 		nattPort = helpers.SubmarinerNatTPort
 	}
 
+	if nattDiscoveryPort == 0 {
+		nattDiscoveryPort = helpers.SubmarinerNatTDiscoveryPort
+	}
+
 	if instanceType == "" {
 		instanceType = defaultInstanceType
 	}
@@ -106,17 +111,18 @@ func NewAWSProvider(
 	}
 
 	return &awsProvider{
-		workClinet:    workClient,
-		awsClinet:     awsClient,
-		eventRecorder: eventRecorder,
-		region:        region,
-		infraId:       infraId,
-		ikePort:       int64(ikePort),
-		nattPort:      int64(nattPort),
-		clusterName:   clusterName,
-		instanceType:  instanceType,
-		gateways:      gateways,
-		cloudPrepare:  cpaws.NewCloud(awsClient.FullEC2API(), infraId, region),
+		workClinet:        workClient,
+		awsClinet:         awsClient,
+		eventRecorder:     eventRecorder,
+		region:            region,
+		infraId:           infraId,
+		ikePort:           int64(ikePort),
+		nattPort:          int64(nattPort),
+		nattDiscoveryPort: int64(nattDiscoveryPort),
+		clusterName:       clusterName,
+		instanceType:      instanceType,
+		gateways:          gateways,
+		cloudPrepare:      cpaws.NewCloud(awsClient.FullEC2API(), infraId, region),
 	}, nil
 }
 
@@ -124,7 +130,7 @@ func NewAWSProvider(
 // The below tasks will be executed
 // 1. open submariner route port (4800/UDP) between all master and worker nodes
 // 2. open submariner metrics port (8080/TCP) between all master and worker nodes
-// 3. open IPsec ports (by default, 4500/UDP and 500/UDP) for submariner gateway instances
+// 3. open IPsec ant NATT discovery ports (by default, 4500/UDP, 4900/UDP and 500/UDP) for submariner gateway instances
 // 4. find one pulic subnet and tag it with label AWS internal elb label for automatic
 //    subnet discovery by aws load balancers or ingress controllers
 // 5. apply a manifest work to create a MachineSet on managed cluster to create a new AWS
@@ -160,7 +166,7 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 		return fmt.Errorf("failed to open route port in security group: %v \n", err)
 	}
 
-	// Open IPsec ports (by default, 4500/UDP and 500/UDP) for submariner gateway instances
+	// Open IPsec and NAT discovery ports (by default, 4500/UDP, 4900/UDP and 500/UDP) for submariner gateway instances
 	if err := a.openIPsecPorts(vpc); err != nil {
 		return fmt.Errorf("failed to create security group with infraID %s and vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
 	}
@@ -458,7 +464,7 @@ func (a *awsProvider) revokePort(masterSecurityGroup, workerSecurityGroup *ec2.S
 }
 
 func (a *awsProvider) openIPsecPorts(vpc *ec2.Vpc) error {
-	permissions := getIPsecPortsPermission(a.ikePort, a.nattPort)
+	permissions := getIPsecPortsPermission(a.ikePort, a.nattPort, a.nattDiscoveryPort)
 	groupName := fmt.Sprintf("%s-submariner-gw-sg", a.infraId)
 	sg, err := a.findSecurityGroup(*vpc.VpcId, groupName)
 	if errors.IsNotFound(err) {
@@ -469,7 +475,7 @@ func (a *awsProvider) openIPsecPorts(vpc *ec2.Vpc) error {
 	}
 
 	// the rules has been built
-	if hasIPsecPorts(sg.IpPermissions, a.ikePort, a.nattPort) {
+	if hasIPsecPorts(sg.IpPermissions, a.ikePort, a.nattPort, a.nattDiscoveryPort) {
 		klog.V(4).Infof("the IPsec ports has been opened in security group %s on aws", *sg.GroupId)
 		return nil
 	}
@@ -734,7 +740,7 @@ func getRoutePortPermission(
 			})
 }
 
-func getIPsecPortsPermission(ikePort, nattPort int64) []*ec2.IpPermission {
+func getIPsecPortsPermission(ikePort, nattPort, nattDiscoveryPort int64) []*ec2.IpPermission {
 	return []*ec2.IpPermission{
 		(&ec2.IpPermission{}).
 			SetIpProtocol("udp").
@@ -750,20 +756,31 @@ func getIPsecPortsPermission(ikePort, nattPort int64) []*ec2.IpPermission {
 			SetIpRanges([]*ec2.IpRange{
 				(&ec2.IpRange{}).SetCidrIp("0.0.0.0/0"),
 			}),
+		(&ec2.IpPermission{}).
+			SetIpProtocol("udp").
+			SetFromPort(nattDiscoveryPort).
+			SetToPort(nattDiscoveryPort).
+			SetIpRanges([]*ec2.IpRange{
+				(&ec2.IpRange{}).SetCidrIp("0.0.0.0/0"),
+			}),
 	}
 }
 
-func hasIPsecPorts(permissions []*ec2.IpPermission, expectedIKEPort, expectedNatTPort int64) bool {
-	if len(permissions) != 2 {
+func hasIPsecPorts(permissions []*ec2.IpPermission, expectedIKEPort, expectedNatTPort, expectedNatTDiscoveryPort int64) bool {
+	if len(permissions) != 3 {
 		return false
 	}
 	ports := make(map[int64]bool)
 	ports[*permissions[0].FromPort] = true
 	ports[*permissions[1].FromPort] = true
+	ports[*permissions[2].FromPort] = true
 	if _, ok := ports[expectedIKEPort]; !ok {
 		return false
 	}
 	if _, ok := ports[expectedNatTPort]; !ok {
+		return false
+	}
+	if _, ok := ports[expectedNatTDiscoveryPort]; !ok {
 		return false
 	}
 	return true
