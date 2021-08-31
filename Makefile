@@ -115,3 +115,8 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+# [golangci-lint] validates Go code in the project
+golangci-lint:
+	golangci-lint linters
+	golangci-lint run --timeout 10m
