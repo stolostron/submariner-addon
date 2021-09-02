@@ -18,9 +18,6 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	workv1 "open-cluster-management.io/api/work/v1"
 
-	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
-	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
-
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
 	corev1 "k8s.io/api/core/v1"
@@ -192,18 +189,14 @@ func TestUpdateManagedClusterAddOnStatus(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			fakeAddOnClient := addonfake.NewSimpleClientset(&addonv1alpha1.ManagedClusterAddOn{
-				ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: SubmarinerAddOnName},
 				Status: addonv1alpha1.ManagedClusterAddOnStatus{
 					Conditions: c.startingConditions,
 				},
 			})
 
-			status, updated, err := UpdateManagedClusterAddOnStatus(
-				context.TODO(),
-				fakeAddOnClient,
-				"test", "test",
-				UpdateManagedClusterAddOnStatusFn(c.newCondition),
-			)
+			status, updated, err := UpdateManagedClusterAddOnStatus(context.TODO(), fakeAddOnClient, "test",
+				UpdateManagedClusterAddOnStatusFn(c.newCondition))
 			if err != nil {
 				t.Errorf("unexpected err: %v", err)
 			}
@@ -874,112 +867,6 @@ func TestGetEnv(t *testing.T) {
 			if value != c.expectedValue {
 				t.Errorf("expect %v, but got: %v", c.expectedValue, value)
 			}
-		})
-	}
-}
-
-func TestCheckSubmarinerConnections(t *testing.T) {
-	cases := []struct {
-		name              string
-		submariner        *submarinerv1alpha1.Submariner
-		validateCondation func(t *testing.T, actual metav1.Condition)
-	}{
-		{
-			name:       "no status",
-			submariner: &submarinerv1alpha1.Submariner{},
-			validateCondation: func(t *testing.T, actual metav1.Condition) {
-				if actual.Status != metav1.ConditionTrue {
-					t.Errorf("expected degraded, but failed")
-				}
-				if actual.Reason != "ConnectionsNotEstablished" {
-					t.Errorf("unexpected reason, %v", actual)
-				}
-			},
-		},
-		{
-			name: "no connections",
-			submariner: &submarinerv1alpha1.Submariner{
-				Status: submarinerv1alpha1.SubmarinerStatus{
-					Gateways: &[]submarinermv1.GatewayStatus{{Connections: []submarinermv1.Connection{}}},
-				},
-			},
-			validateCondation: func(t *testing.T, actual metav1.Condition) {
-				if actual.Status != metav1.ConditionTrue {
-					t.Errorf("expected degraded, but failed")
-				}
-				if actual.Reason != "ConnectionsNotEstablished" {
-					t.Errorf("unexpected reason, %v", actual)
-				}
-			},
-		},
-		{
-			name: "connections are not established",
-			submariner: &submarinerv1alpha1.Submariner{
-				Status: submarinerv1alpha1.SubmarinerStatus{
-					Gateways: &[]submarinermv1.GatewayStatus{
-						{
-							Connections: []submarinermv1.Connection{
-								{
-									Status: "connected",
-									Endpoint: submarinermv1.EndpointSpec{
-										ClusterID: "test1",
-										Hostname:  "test2",
-									},
-								},
-								{
-									Status: "error",
-									Endpoint: submarinermv1.EndpointSpec{
-										ClusterID: "test2",
-										Hostname:  "test2",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			validateCondation: func(t *testing.T, actual metav1.Condition) {
-				if actual.Status != metav1.ConditionTrue {
-					t.Errorf("expected degraded, but failed")
-				}
-				if actual.Reason != "ConnectionsDegraded" {
-					t.Errorf("unexpected reason, %v", actual)
-				}
-			},
-		},
-		{
-			name: "connections are established",
-			submariner: &submarinerv1alpha1.Submariner{
-				Status: submarinerv1alpha1.SubmarinerStatus{
-					Gateways: &[]submarinermv1.GatewayStatus{
-						{
-							Connections: []submarinermv1.Connection{
-								{
-									Status: "connected",
-									Endpoint: submarinermv1.EndpointSpec{
-										ClusterID: "test",
-										Hostname:  "test",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			validateCondation: func(t *testing.T, actual metav1.Condition) {
-				if actual.Status != metav1.ConditionFalse {
-					t.Errorf("expected undegraded, but failed")
-				}
-				if actual.Reason != "ConnectionsEstablished" {
-					t.Errorf("unexpected reason, %v", actual)
-				}
-			},
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			c.validateCondation(t, CheckSubmarinerConnections("test", c.submariner))
 		})
 	}
 }

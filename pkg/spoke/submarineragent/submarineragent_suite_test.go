@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	testingHelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonFake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
@@ -39,6 +40,18 @@ func (t *managedClusterAddOnTestBase) run() {
 	}
 
 	t.addOnClient.ClearActions()
+}
+
+func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(expCond metav1.Condition) {
+	testingHelpers.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
+		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.TODO(),
+			helpers.SubmarinerAddOnName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		return config.Status.Conditions, nil
+	})
 }
 
 func newAddOn() *addonv1alpha1.ManagedClusterAddOn {

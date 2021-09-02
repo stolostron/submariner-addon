@@ -1,145 +1,225 @@
-package submarineragent
+package submarineragent_test
 
 import (
 	"context"
-	"testing"
-	"time"
 
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
-	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
-
-	"k8s.io/apimachinery/pkg/api/meta"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
+	"github.com/openshift/library-go/pkg/operator/events"
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
+	submv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic/dynamicinformer"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
-	clienttesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/tools/cache"
 )
 
-func TestConnectionsStatusControllerSync(t *testing.T) {
-	cases := []struct {
-		name            string
-		addOns          []runtime.Object
-		submariners     []runtime.Object
-		validateActions func(t *testing.T, addOnActions []clienttesting.Action)
-	}{
-		{
-			name: "submariner is deployed",
-			addOns: []runtime.Object{
-				&addonv1alpha1.ManagedClusterAddOn{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner",
-					},
-				},
+const (
+	submarinerNS           = "submariner-ns"
+	connectionDegradedType = "SubmarinerConnectionDegraded"
+)
+
+var _ = Describe("Connections Status Controller", func() {
+	t := newConnStatusControllerTestDriver()
+
+	When("all active gateway connections are established", func() {
+		It("should update the ManagedClusterAddOn status condition to connections established", func() {
+			t.awaitConnectionsEstablishedStatusCondition()
+		})
+
+		Context("after initially not established", func() {
+			var origGateways *[]submv1.GatewayStatus
+
+			BeforeEach(func() {
+				origGateways = t.submariner.Status.Gateways
+				t.submariner.Status.Gateways = nil
+			})
+
+			It("should transition the ManagedClusterAddOn status condition to connections established", func() {
+				t.awaitConnectionsNotEstablishedStatusCondition()
+
+				t.submariner.Status.Gateways = origGateways
+				_, err := t.submarinerClient.Update(context.TODO(), testing.ToUnstructured(t.submariner), metav1.UpdateOptions{})
+				Expect(err).To(Succeed())
+
+				t.awaitConnectionsEstablishedStatusCondition()
+			})
+		})
+	})
+
+	When("an active gateway connection is in the process of connecting", func() {
+		BeforeEach(func() {
+			(*t.submariner.Status.Gateways)[0].Connections[0].Status = submv1.Connecting
+		})
+
+		It("should update the ManagedClusterAddOn status condition to degraded", func() {
+			t.awaitConnectionsDegradedStatusCondition()
+		})
+	})
+
+	When("an active gateway connection has an error", func() {
+		BeforeEach(func() {
+			(*t.submariner.Status.Gateways)[0].Connections[0].Status = submv1.ConnectionError
+		})
+
+		It("should update the ManagedClusterAddOn status condition as degraded", func() {
+			t.awaitConnectionsDegradedStatusCondition()
+		})
+	})
+
+	When("the gateway status isn't present", func() {
+		BeforeEach(func() {
+			t.submariner.Status.Gateways = nil
+		})
+
+		It("should update the ManagedClusterAddOn status condition to no connections present", func() {
+			t.awaitConnectionsNotEstablishedStatusCondition()
+		})
+	})
+
+	When("there are no gateways", func() {
+		BeforeEach(func() {
+			t.submariner.Status.Gateways = &[]submv1.GatewayStatus{}
+		})
+
+		It("should update the ManagedClusterAddOn status condition to no connections present", func() {
+			t.awaitConnectionsNotEstablishedStatusCondition()
+		})
+	})
+
+	When("there are no active gateway connections", func() {
+		BeforeEach(func() {
+			(*t.submariner.Status.Gateways)[0].Connections = nil
+		})
+
+		It("should update the ManagedClusterAddOn status condition to no connections present", func() {
+			t.awaitConnectionsNotEstablishedStatusCondition()
+		})
+	})
+
+	When("updating the ManagedClusterAddOn status initially fails", func() {
+		Context("", func() {
+			BeforeEach(func() {
+				testing.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
+			})
+
+			It("should eventually update it", func() {
+				t.awaitConnectionsEstablishedStatusCondition()
+			})
+		})
+
+		Context("with a conflict error", func() {
+			BeforeEach(func() {
+				testing.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
+			})
+
+			It("should eventually update it", func() {
+				t.awaitConnectionsEstablishedStatusCondition()
+			})
+		})
+	})
+})
+
+type connStatusControllerTestDriver struct {
+	managedClusterAddOnTestBase
+	submariner       *submarinerv1alpha1.Submariner
+	submarinerClient dynamic.ResourceInterface
+	stop             context.CancelFunc
+}
+
+func newConnStatusControllerTestDriver() *connStatusControllerTestDriver {
+	t := &connStatusControllerTestDriver{}
+
+	BeforeEach(func() {
+		t.submariner = &submarinerv1alpha1.Submariner{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "submariner",
+				Namespace: submarinerNS,
 			},
-			submariners: []runtime.Object{
-				&unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"apiVersion": "submariner.io/v1alpha1",
-						"kind":       "Submariner",
-						"metadata": map[string]interface{}{
-							"namespace": "submariner-operator",
-							"name":      "submariner",
+			Status: submarinerv1alpha1.SubmarinerStatus{
+				Gateways: &[]submv1.GatewayStatus{
+					{
+						HAStatus: submv1.HAStatusActive,
+						Connections: []submv1.Connection{
+							{
+								Status: submv1.Connected,
+								Endpoint: submv1.EndpointSpec{
+									ClusterID: "cluster1",
+								},
+							},
+							{
+								Status: submv1.Connected,
+								Endpoint: submv1.EndpointSpec{
+									ClusterID: "cluster2",
+								},
+							},
 						},
-						"spec":   map[string]interface{}{},
-						"status": map[string]interface{}{},
 					},
-				},
-			},
-			validateActions: func(t *testing.T, addOnActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, addOnActions, "get", "update")
-				actual := addOnActions[1].(clienttesting.UpdateActionImpl).Object
-				addOn := actual.(*addonv1alpha1.ManagedClusterAddOn)
-				if !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded") {
-					t.Errorf("expected SubmarinerConnectionDegraded is true, but %v", addOn.Status.Conditions)
-				}
-			},
-		},
-		{
-			name: "submariner is deployed",
-			addOns: []runtime.Object{
-				&addonv1alpha1.ManagedClusterAddOn{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner",
-					},
-				},
-			},
-			submariners: []runtime.Object{
-				&unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"apiVersion": "submariner.io/v1alpha1",
-						"kind":       "Submariner",
-						"metadata": map[string]interface{}{
-							"namespace": "submariner-operator",
-							"name":      "submariner",
-						},
-						"spec": map[string]interface{}{},
-						"status": map[string]interface{}{
-							"gateways": []map[string]interface{}{
-								{
-									"connections": []map[string]interface{}{
-										{
-											"status": "connected",
-											"endpoint": map[string]interface{}{
-												"cluster_id": "cluster1",
-												"hostname":   "ip-10-0-37-115",
-											},
-										},
-									},
+					{
+						HAStatus: submv1.HAStatusPassive,
+						Connections: []submv1.Connection{
+							{
+								Status: submv1.ConnectionError,
+								Endpoint: submv1.EndpointSpec{
+									ClusterID: "cluster1",
 								},
 							},
 						},
 					},
 				},
 			},
-			validateActions: func(t *testing.T, addOnActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, addOnActions, "get", "update")
-				actual := addOnActions[1].(clienttesting.UpdateActionImpl).Object
-				addOn := actual.(*addonv1alpha1.ManagedClusterAddOn)
-				if meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded") {
-					t.Errorf("expected SubmarinerConnectionDegraded is true, but %v", addOn.Status.Conditions)
-				}
-			},
-		},
-	}
+		}
 
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			addOnClient := addonfake.NewSimpleClientset(c.addOns...)
-			addOnInformerFactory := addoninformers.NewSharedInformerFactory(addOnClient, time.Minute*10)
-			addOnStroe := addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().GetStore()
-			for _, addOn := range c.addOns {
-				addOnStroe.Add(addOn)
-			}
+		t.managedClusterAddOnTestBase.init()
+	})
 
-			submarinerGVR, _ := schema.ParseResourceArg("submariners.v1alpha1.submariner.io")
-			fakeDynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
-			dynamicInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(fakeDynamicClient, time.Minute*10)
-			submarinerInformer := dynamicInformerFactory.ForResource(*submarinerGVR)
-			submarinerStore := submarinerInformer.Informer().GetStore()
-			for _, submariner := range c.submariners {
-				submarinerStore.Add(submariner)
-			}
+	JustBeforeEach(func() {
+		submarinerClient, dynamicInformerFactory, submarinerInformer := testing.NewDynamicClientWithInformer(submarinerNS)
+		t.submarinerClient = submarinerClient
 
-			ctrl := &connectionsStatusController{
-				addOnClient:           addOnClient,
-				addOnLister:           addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
-				submarinerLister:      submarinerInformer.Lister(),
-				clusterName:           "test",
-				installationNamespace: "submariner-operator",
-			}
+		_, err := t.submarinerClient.Create(context.TODO(), testing.ToUnstructured(t.submariner), metav1.CreateOptions{})
+		Expect(err).To(Succeed())
 
-			err := ctrl.sync(context.TODO(), testinghelpers.NewFakeSyncContext(t, "submariner"))
-			if err != nil {
-				t.Errorf("unexpected err: %v", err)
-			}
-			c.validateActions(t, addOnClient.Actions())
-		})
-	}
+		t.managedClusterAddOnTestBase.run()
+
+		controller := submarineragent.NewConnectionsStatusController(clusterName, t.addOnClient, submarinerInformer,
+			events.NewLoggingEventRecorder("test"))
+
+		var ctx context.Context
+
+		ctx, t.stop = context.WithCancel(context.TODO())
+
+		dynamicInformerFactory.Start(ctx.Done())
+
+		cache.WaitForCacheSync(ctx.Done(), submarinerInformer.Informer().HasSynced)
+
+		go controller.Run(ctx, 1)
+	})
+
+	AfterEach(func() {
+		t.stop()
+	})
+
+	return t
+}
+
+func (t *connStatusControllerTestDriver) awaitStatusCondition(status metav1.ConditionStatus, reason string) {
+	t.awaitManagedClusterAddOnStatusCondition(metav1.Condition{
+		Type:   connectionDegradedType,
+		Status: status,
+		Reason: reason,
+	})
+}
+
+func (t *connStatusControllerTestDriver) awaitConnectionsEstablishedStatusCondition() {
+	t.awaitStatusCondition(metav1.ConditionFalse, "ConnectionsEstablished")
+}
+
+func (t *connStatusControllerTestDriver) awaitConnectionsNotEstablishedStatusCondition() {
+	t.awaitStatusCondition(metav1.ConditionTrue, "ConnectionsNotEstablished")
+}
+
+func (t *connStatusControllerTestDriver) awaitConnectionsDegradedStatusCondition() {
+	t.awaitStatusCondition(metav1.ConditionTrue, "ConnectionsDegraded")
 }

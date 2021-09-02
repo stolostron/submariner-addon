@@ -99,13 +99,8 @@ func (c *gatewaysStatusController) sync(ctx context.Context, syncCtx factory.Syn
 	}
 
 	// check submariner agent status and update submariner-addon status on the hub cluster
-	_, updated, err := helpers.UpdateManagedClusterAddOnStatus(
-		ctx,
-		c.addOnClient,
-		c.clusterName,
-		addOn.Name,
-		helpers.UpdateManagedClusterAddOnStatusFn(gatewayNodeCondtion),
-	)
+	_, updated, err := helpers.UpdateManagedClusterAddOnStatus(ctx, c.addOnClient, c.clusterName,
+		helpers.UpdateManagedClusterAddOnStatusFn(gatewayNodeCondtion))
 	if err != nil {
 		return err
 	}
