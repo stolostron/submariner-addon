@@ -65,6 +65,7 @@ var map_SubmarinerConfigSpec = map[string]string{
 	"cableDriver":        "CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, wireguard, and vxlan.",
 	"IPSecIKEPort":       "IPSecIKEPort represents IPsec IKE port (default 500).",
 	"IPSecNATTPort":      "IPSecNATTPort represents IPsec NAT-T port (default 4500).",
+	"NATTDiscoveryPort":  "NATTDiscoveryPort represents NAT Discovery port (default UDP/4900).",
 	"NATTEnable":         "NATTEnable represents IPsec NAT-T enabled (default true).",
 	"credentialsSecret":  "CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.",
 	"subscriptionConfig": "SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.",
