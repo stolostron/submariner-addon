@@ -7,14 +7,10 @@ import (
 	"strings"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
-	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
-
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	corev1informers "k8s.io/client-go/informers/core/v1"
@@ -30,7 +26,6 @@ const (
 // whether the nodes are labeled with gateway to the submariner-addon on the hub cluster
 type gatewaysStatusController struct {
 	addOnClient addonclient.Interface
-	addOnLister addonlisterv1alpha1.ManagedClusterAddOnLister
 	nodeLister  corev1lister.NodeLister
 	clusterName string
 }
@@ -39,12 +34,10 @@ type gatewaysStatusController struct {
 func NewGatewaysStatusController(
 	clusterName string,
 	addOnClient addonclient.Interface,
-	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
 	nodeInformer corev1informers.NodeInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &gatewaysStatusController{
 		addOnClient: addOnClient,
-		addOnLister: addOnInformer.Lister(),
 		nodeLister:  nodeInformer.Lister(),
 		clusterName: clusterName,
 	}
@@ -63,15 +56,6 @@ func NewGatewaysStatusController(
 }
 
 func (c *gatewaysStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
-	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(helpers.SubmarinerAddOnName)
-	if errors.IsNotFound(err) {
-		// addon is not found, could be deleted, ignore it.
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
 	nodes, err := c.nodeLister.List(labels.SelectorFromSet(labels.Set{submarinerGatewayLabel: "true"}))
 	if err != nil {
 		return err
@@ -99,13 +83,15 @@ func (c *gatewaysStatusController) sync(ctx context.Context, syncCtx factory.Syn
 	}
 
 	// check submariner agent status and update submariner-addon status on the hub cluster
-	_, updated, err := helpers.UpdateManagedClusterAddOnStatus(ctx, c.addOnClient, c.clusterName,
+	updatedStatus, updated, err := helpers.UpdateManagedClusterAddOnStatus(ctx, c.addOnClient, c.clusterName,
 		helpers.UpdateManagedClusterAddOnStatusFn(gatewayNodeCondtion))
 	if err != nil {
 		return err
 	}
+
 	if updated {
-		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "update managed cluster addon %q status with gateways status", addOn.Name)
+		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "Updated status conditions:  %#v",
+			updatedStatus.Conditions)
 	}
 
 	return nil
