@@ -80,10 +80,10 @@ function deploy_hub() {
 
     export KUBECONFIG=${kubeconfig_dir}/kubeconfig
     echo "Deploy hub on cluster ${cluster} ..."
-    # delploy operator
+    # deploy operator
     kubectl apply -k ${deploy_dir}/config/manifests
 
-    # delploy cluster managers
+    # deploy cluster managers
     kubectl apply -k ${deploy_dir}/config/samples
 
     # deploy the acm_submariner
@@ -121,10 +121,10 @@ function deploy_klusterlet() {
 
     export KUBECONFIG=${kubeconfig_dir}/kubeconfig
     echo "Deploy klusterlet on cluster ${cluster} ..."
-    # delploy operator
+    # deploy operator
     kubectl apply -k ${deploy_dir}/config/manifests
 
-    # delploy klusterlet
+    # deploy klusterlet
     kubectl create namespace open-cluster-management-agent
     kubectl -n open-cluster-management-agent create secret generic bootstrap-hub-kubeconfig --from-file=${hub_kubeconfig}
     cat << EOF | kubectl apply -f -
@@ -159,7 +159,7 @@ function accept_managed_cluster() {
     export KUBECONFIG=${hub_kubeconfig}
     # try to find the managed cluster
     times=0
-    for i in {0..60};
+    for i in {0..120};
     do
         kubectl get managedclusters $cluster >/dev/null 2>&1
         if [ 0 -eq $? ]; then
@@ -168,8 +168,8 @@ function accept_managed_cluster() {
         sleep 2
         times=$(($times+1))
     done
-    if [ $times -ge 60 ]; then
-        echo "Unable to find managed cluster $cluster within 2 min"
+    if [ $times -ge 120 ]; then
+        echo "Unable to find managed cluster $cluster within 4 min"
         return 2
     fi
 
@@ -215,10 +215,23 @@ EOF
 
 }
 
+function validate_kubectl_version() {
+    majorVersion=$(kubectl version --short --client | cut -d: -f2 | cut -d. -f1)
+    minorVersion=$(kubectl version --short --client | cut -d: -f2 | cut -d. -f2)
+    if [ $majorVersion != "v1" ] || [ $minorVersion -lt 19 ]
+    then
+	    echo "Please update your kubectl version to v1.19 (or above)"
+	    exit 1
+    fi
+}
+
+validate_kubectl_version
+
 ### main ###
 work_dir="$(pwd)/_output"
 rm -rf ${work_dir}
 mkdir -p ${work_dir}
+
 
 # prepare clusters
 i=1
