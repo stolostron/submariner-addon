@@ -25,7 +25,6 @@ const (
 type gcpProvider struct {
 	infraId           string
 	projectId         string
-	ikePort           string
 	nattPort          string
 	nattDiscoveryPort string
 	routePort         string
@@ -38,13 +37,9 @@ func NewGCPProvider(
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 	infraId, clusterName, credentialsSecretName string,
-	ikePort, nattPort, nattDiscoveryPort int) (*gcpProvider, error) {
+	nattPort, nattDiscoveryPort int) (*gcpProvider, error) {
 	if infraId == "" {
 		return nil, fmt.Errorf("cluster infraId is empty")
-	}
-
-	if ikePort == 0 {
-		ikePort = helpers.SubmarinerIKEPort
 	}
 
 	if nattPort == 0 {
@@ -63,7 +58,6 @@ func NewGCPProvider(
 	return &gcpProvider{
 		infraId:           infraId,
 		projectId:         gcpClient.GetProjectID(),
-		ikePort:           strconv.Itoa(ikePort),
 		nattPort:          strconv.Itoa(nattPort),
 		nattDiscoveryPort: strconv.Itoa(nattDiscoveryPort),
 		routePort:         strconv.Itoa(helpers.SubmarinerRoutePort),
@@ -84,7 +78,7 @@ func NewGCPProvider(
 func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 	// open IPsec IKE port (by default 500/UDP), NAT traversal port (by default 4500/UDP),
 	// NAT Traversal discovery port (by default 4900/udp) and route port (4800/UDP)
-	ports := []string{g.ikePort, g.nattPort, g.nattDiscoveryPort, g.routePort}
+	ports := []string{g.nattPort, g.nattDiscoveryPort, g.routePort}
 	ingress, egress := newFirewallRules(submarinerRuleName, g.projectId, g.infraId, "udp", ports)
 	if err := g.openPorts(ingress, egress); err != nil {
 		return fmt.Errorf("failed to open submariner ports: %v", err)

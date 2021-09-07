@@ -61,7 +61,6 @@ type awsProvider struct {
 	eventRecorder     events.Recorder
 	region            string
 	infraId           string
-	ikePort           int64
 	nattPort          int64
 	nattDiscoveryPort int64
 	clusterName       string
@@ -75,7 +74,7 @@ func NewAWSProvider(
 	eventRecorder events.Recorder,
 	region, infraId, clusterName, credentialsSecretName string,
 	instanceType string,
-	ikePort, nattPort, nattDiscoveryPort int,
+	nattPort, nattDiscoveryPort int,
 	gateways int) (*awsProvider, error) {
 	if region == "" {
 		return nil, fmt.Errorf("cluster region is empty")
@@ -87,10 +86,6 @@ func NewAWSProvider(
 
 	if gateways < 1 {
 		return nil, fmt.Errorf("the count of gateways is less than 1")
-	}
-
-	if ikePort == 0 {
-		ikePort = helpers.SubmarinerIKEPort
 	}
 
 	if nattPort == 0 {
@@ -116,7 +111,6 @@ func NewAWSProvider(
 		eventRecorder:     eventRecorder,
 		region:            region,
 		infraId:           infraId,
-		ikePort:           int64(ikePort),
 		nattPort:          int64(nattPort),
 		nattDiscoveryPort: int64(nattDiscoveryPort),
 		clusterName:       clusterName,
@@ -464,7 +458,7 @@ func (a *awsProvider) revokePort(masterSecurityGroup, workerSecurityGroup *ec2.S
 }
 
 func (a *awsProvider) openIPsecPorts(vpc *ec2.Vpc) error {
-	permissions := getIPsecPortsPermission(a.ikePort, a.nattPort, a.nattDiscoveryPort)
+	permissions := getIPsecPortsPermission(a.nattPort, a.nattDiscoveryPort)
 	groupName := fmt.Sprintf("%s-submariner-gw-sg", a.infraId)
 	sg, err := a.findSecurityGroup(*vpc.VpcId, groupName)
 	if errors.IsNotFound(err) {
@@ -475,7 +469,7 @@ func (a *awsProvider) openIPsecPorts(vpc *ec2.Vpc) error {
 	}
 
 	// the rules has been built
-	if hasIPsecPorts(sg.IpPermissions, a.ikePort, a.nattPort, a.nattDiscoveryPort) {
+	if hasIPsecPorts(sg.IpPermissions, a.nattPort, a.nattDiscoveryPort) {
 		klog.V(4).Infof("the IPsec ports has been opened in security group %s on aws", *sg.GroupId)
 		return nil
 	}
@@ -740,15 +734,8 @@ func getRoutePortPermission(
 			})
 }
 
-func getIPsecPortsPermission(ikePort, nattPort, nattDiscoveryPort int64) []*ec2.IpPermission {
+func getIPsecPortsPermission(nattPort, nattDiscoveryPort int64) []*ec2.IpPermission {
 	return []*ec2.IpPermission{
-		(&ec2.IpPermission{}).
-			SetIpProtocol("udp").
-			SetFromPort(ikePort).
-			SetToPort(ikePort).
-			SetIpRanges([]*ec2.IpRange{
-				(&ec2.IpRange{}).SetCidrIp("0.0.0.0/0"),
-			}),
 		(&ec2.IpPermission{}).
 			SetIpProtocol("udp").
 			SetFromPort(nattPort).
@@ -766,17 +753,13 @@ func getIPsecPortsPermission(ikePort, nattPort, nattDiscoveryPort int64) []*ec2.
 	}
 }
 
-func hasIPsecPorts(permissions []*ec2.IpPermission, expectedIKEPort, expectedNatTPort, expectedNatTDiscoveryPort int64) bool {
-	if len(permissions) != 3 {
+func hasIPsecPorts(permissions []*ec2.IpPermission, expectedNatTPort, expectedNatTDiscoveryPort int64) bool {
+	if len(permissions) != 2 {
 		return false
 	}
 	ports := make(map[int64]bool)
 	ports[*permissions[0].FromPort] = true
 	ports[*permissions[1].FromPort] = true
-	ports[*permissions[2].FromPort] = true
-	if _, ok := ports[expectedIKEPort]; !ok {
-		return false
-	}
 	if _, ok := ports[expectedNatTPort]; !ok {
 		return false
 	}
