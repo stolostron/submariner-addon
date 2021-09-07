@@ -6,14 +6,10 @@ import (
 	"strings"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
-	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
-
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
-
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,7 +33,6 @@ const submarinerAgentDegraded = "SubmarinerAgentDegraded"
 // on the managed cluster and reports the status to the submariner-addon on the hub cluster
 type deploymentStatusController struct {
 	addOnClient        addonclient.Interface
-	addOnLister        addonlisterv1alpha1.ManagedClusterAddOnLister
 	daemonSetLister    appsv1lister.DaemonSetLister
 	deploymentLister   appsv1lister.DeploymentLister
 	subscriptionLister cache.GenericLister
@@ -46,18 +41,11 @@ type deploymentStatusController struct {
 }
 
 // NewDeploymentStatusController returns an instance of deploymentStatusController
-func NewDeploymentStatusController(
-	clusterName string,
-	installationNamespace string,
-	addOnClient addonclient.Interface,
-	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
-	daemonsetInformer appsv1informers.DaemonSetInformer,
-	deploymentInformer appsv1informers.DeploymentInformer,
-	subscriptionInformer informers.GenericInformer,
-	recorder events.Recorder) factory.Controller {
+func NewDeploymentStatusController(clusterName string, installationNamespace string, addOnClient addonclient.Interface,
+	daemonsetInformer appsv1informers.DaemonSetInformer, deploymentInformer appsv1informers.DeploymentInformer,
+	subscriptionInformer informers.GenericInformer, recorder events.Recorder) factory.Controller {
 	c := &deploymentStatusController{
 		addOnClient:        addOnClient,
-		addOnLister:        addOnInformer.Lister(),
 		daemonSetLister:    daemonsetInformer.Lister(),
 		deploymentLister:   deploymentInformer.Lister(),
 		subscriptionLister: subscriptionInformer.Lister(),
@@ -72,15 +60,6 @@ func NewDeploymentStatusController(
 }
 
 func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
-	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(helpers.SubmarinerAddOnName)
-	if errors.IsNotFound(err) {
-		// addon is not found, could be deleted, ignore it.
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
 	degradedConditionReasons := []string{}
 	degradedConditionMessages := []string{}
 
@@ -185,13 +164,15 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	// check submariner agent status and update submariner-addon status on the hub cluster
-	_, updated, err := helpers.UpdateManagedClusterAddOnStatus(ctx, c.addOnClient, c.clusterName,
+	updatedStatus, updated, err := helpers.UpdateManagedClusterAddOnStatus(ctx, c.addOnClient, c.clusterName,
 		helpers.UpdateManagedClusterAddOnStatusFn(submarinerAgentCondtion))
 	if err != nil {
 		return err
 	}
+
 	if updated {
-		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "update managed cluster addon %q status with submariner agent status", addOn.Name)
+		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "Updated status conditions:  %#v",
+			updatedStatus.Conditions)
 	}
 
 	return nil
