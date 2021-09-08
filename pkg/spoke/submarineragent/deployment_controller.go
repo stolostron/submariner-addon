@@ -85,7 +85,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	if len(sub.Status.InstalledCSV) == 0 {
 		startingCSV := sub.Spec.StartingCSV
 		if len(startingCSV) == 0 {
-			startingCSV = "defualt"
+			startingCSV = "default"
 		}
 
 		channel := sub.Spec.Channel
@@ -93,7 +93,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 			channel = "default"
 		}
 
-		degradedConditionReasons = append(degradedConditionReasons, "OperatorNotDeployed")
+		degradedConditionReasons = append(degradedConditionReasons, "CSVNotInstalled")
 		degradedConditionMessages = append(degradedConditionMessages,
 			fmt.Sprintf("The submariner-operator CSV (%s) is not installed from channel (%s) in catalog source (%s/%s)",
 				startingCSV, channel, sub.Spec.CatalogSourceNamespace, sub.Spec.CatalogSource))
@@ -102,12 +102,12 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	operator, err := c.deploymentLister.Deployments(c.namespace).Get(operatorName)
 	switch {
 	case errors.IsNotFound(err):
-		degradedConditionReasons = append(degradedConditionReasons, "OperatorNotDeployed")
-		degradedConditionMessages = append(degradedConditionMessages, "The submariner-operator is not found")
+		degradedConditionReasons = append(degradedConditionReasons, "NoOperatorDeployment")
+		degradedConditionMessages = append(degradedConditionMessages, "The submariner operator deployment does not exist")
 	case err == nil:
 		if operator.Status.AvailableReplicas == 0 {
-			degradedConditionReasons = append(degradedConditionReasons, "OperatorDegraded")
-			degradedConditionMessages = append(degradedConditionMessages, "There is no available submariner-operator")
+			degradedConditionReasons = append(degradedConditionReasons, "NoOperatorAvailable")
+			degradedConditionMessages = append(degradedConditionMessages, "There is no submariner operator replica available")
 		}
 	case err != nil:
 		return err
@@ -116,16 +116,16 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	gateways, err := c.daemonSetLister.DaemonSets(c.namespace).Get(gatewayName)
 	switch {
 	case errors.IsNotFound(err):
-		degradedConditionReasons = append(degradedConditionReasons, "GatewaysNotDeployed")
-		degradedConditionMessages = append(degradedConditionMessages, "The gateways are not found")
+		degradedConditionReasons = append(degradedConditionReasons, "NoGatewayDaemonSet")
+		degradedConditionMessages = append(degradedConditionMessages, "The gateway daemon set does not exist")
 	case err == nil:
 		if gateways.Status.DesiredNumberScheduled == 0 {
-			degradedConditionReasons = append(degradedConditionReasons, "GatewaysDegraded")
+			degradedConditionReasons = append(degradedConditionReasons, "NoScheduledGateways")
 			degradedConditionMessages = append(degradedConditionMessages, "There are no nodes to run the gateways")
 		}
 
 		if gateways.Status.NumberUnavailable != 0 {
-			degradedConditionReasons = append(degradedConditionReasons, "GatewaysDegraded")
+			degradedConditionReasons = append(degradedConditionReasons, "GatewaysUnavailable")
 			degradedConditionMessages = append(degradedConditionMessages,
 				fmt.Sprintf("There are %d unavailable gateways", gateways.Status.NumberUnavailable))
 		}
@@ -136,11 +136,11 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	routeAgent, err := c.daemonSetLister.DaemonSets(c.namespace).Get(routeAgentName)
 	switch {
 	case errors.IsNotFound(err):
-		degradedConditionReasons = append(degradedConditionReasons, "RouteAgentsNotDeployed")
+		degradedConditionReasons = append(degradedConditionReasons, "NoRouteAgentDaemonSet")
 		degradedConditionMessages = append(degradedConditionMessages, "The route agents are not found")
 	case err == nil:
 		if routeAgent.Status.NumberUnavailable != 0 {
-			degradedConditionReasons = append(degradedConditionReasons, "RouteAgentsDegraded")
+			degradedConditionReasons = append(degradedConditionReasons, "RouteAgentsUnavailable")
 			degradedConditionMessages = append(degradedConditionMessages,
 				fmt.Sprintf("There are %d unavailable route agents", routeAgent.Status.NumberUnavailable))
 		}
