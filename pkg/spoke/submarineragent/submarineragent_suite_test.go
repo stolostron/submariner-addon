@@ -3,11 +3,13 @@ package submarineragent_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	testingHelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonFake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
@@ -52,6 +54,16 @@ func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(ex
 
 		return config.Status.Conditions, nil
 	})
+}
+
+func (t *managedClusterAddOnTestBase) awaitNoManagedClusterAddOnStatusCondition(condType string) {
+	Consistently(func() *metav1.Condition {
+		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.TODO(),
+			helpers.SubmarinerConfigName, metav1.GetOptions{})
+		Expect(err).To(Succeed())
+
+		return meta.FindStatusCondition(config.Status.Conditions, condType)
+	}, 300*time.Millisecond).Should(BeNil())
 }
 
 func newAddOn() *addonv1alpha1.ManagedClusterAddOn {
