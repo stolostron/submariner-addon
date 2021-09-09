@@ -1,228 +1,342 @@
-package submarineragent
+package submarineragent_test
 
 import (
 	"context"
-	"testing"
-	"time"
 
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
-	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
-
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
+	"github.com/openshift/library-go/pkg/operator/events"
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic/dynamicinformer"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
-	kubeinformers "k8s.io/client-go/informers"
-	kubefake "k8s.io/client-go/kubernetes/fake"
-	clienttesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/dynamic"
+	kubeInformers "k8s.io/client-go/informers"
+	kubeFake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/cache"
 )
 
-func TestDeploymentStatusControllerSync(t *testing.T) {
-	cases := []struct {
-		name            string
-		addOns          []runtime.Object
-		subscriptions   []runtime.Object
-		deployemnts     []runtime.Object
-		daemonsets      []runtime.Object
-		validateActions func(t *testing.T, addOnActions []clienttesting.Action)
-	}{
-		{
-			name: "submariner not deployed",
-			addOns: []runtime.Object{
-				&addonv1alpha1.ManagedClusterAddOn{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner",
-					},
-				},
-			},
-			subscriptions: []runtime.Object{
-				&unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"apiVersion": "operators.coreos.com/v1alpha1",
-						"kind":       "Subscription",
-						"metadata": map[string]interface{}{
-							"namespace": "test",
-							"name":      "submariner",
-						},
-						"spec":   map[string]interface{}{},
-						"status": map[string]interface{}{},
-					},
-				},
-			},
-			validateActions: func(t *testing.T, addOnActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, addOnActions, "get", "update")
-				actual := addOnActions[1].(clienttesting.UpdateActionImpl).Object
-				addOn := actual.(*addonv1alpha1.ManagedClusterAddOn)
-				if !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerAgentDegraded") {
-					t.Errorf("expected SubmarinerAgentDegraded is true, but %v", addOn.Status.Conditions)
-				}
-			},
+const deploymentDegradedType string = "SubmarinerAgentDegraded"
+
+var _ = Describe("Deployment Status Controller", func() {
+	t := newDeploymentControllerTestDriver()
+
+	When("all components are deployed", func() {
+		It("should update the ManagedClusterAddOn status condition to deployed", func() {
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("the submariner subscription doesn't exist", func() {
+		BeforeEach(func() {
+			t.subscription = nil
+		})
+
+		It("should not update the ManagedClusterAddOn status condition", func() {
+			t.awaitNoManagedClusterAddOnStatusCondition(deploymentDegradedType)
+		})
+	})
+
+	When("the submariner subscription CSV isn't installed", func() {
+		BeforeEach(func() {
+			t.subscription.Status.InstalledCSV = ""
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "CSVNotInstalled")
+
+			t.subscription.Status.InstalledCSV = "submariner-csv"
+			t.updateSubscription()
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("the operator deployment doesn't initially exist", func() {
+		BeforeEach(func() {
+			t.operatorDeployment = nil
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "NoOperatorDeployment")
+
+			t.operatorDeployment = newOperatorDeployment()
+			t.createOperatorDeployment()
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("no operator deployment replica is initially available", func() {
+		BeforeEach(func() {
+			t.operatorDeployment.Status.AvailableReplicas = 0
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "NoOperatorAvailable")
+
+			t.operatorDeployment.Status.AvailableReplicas = 1
+			t.updateOperatorDeployment()
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("the gateway daemon set doesn't initially exist", func() {
+		BeforeEach(func() {
+			t.gatewayDaemonSet = nil
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "NoGatewayDaemonSet")
+
+			t.gatewayDaemonSet = newGatewayDaemonSet()
+			t.createDaemonSet(t.gatewayDaemonSet)
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("a gateway daemon set pod isn't initially available", func() {
+		BeforeEach(func() {
+			t.gatewayDaemonSet.Status.NumberUnavailable = 1
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "GatewaysUnavailable")
+
+			t.gatewayDaemonSet.Status.NumberUnavailable = 0
+			t.updateDaemonSet(t.gatewayDaemonSet)
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("no gateway daemon set pod is initially scheduled", func() {
+		BeforeEach(func() {
+			t.gatewayDaemonSet.Status.DesiredNumberScheduled = 0
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "NoScheduledGateways")
+
+			t.gatewayDaemonSet.Status.DesiredNumberScheduled = 1
+			t.updateDaemonSet(t.gatewayDaemonSet)
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("the route agent daemon set doesn't initially exist", func() {
+		BeforeEach(func() {
+			t.routeAgentDaemonSet = nil
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "NoRouteAgentDaemonSet")
+
+			t.routeAgentDaemonSet = newRouteAgentDaemonSet()
+			t.createDaemonSet(t.routeAgentDaemonSet)
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("a route agent daemon set pod isn't initially available", func() {
+		BeforeEach(func() {
+			t.routeAgentDaemonSet.Status.NumberUnavailable = 1
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "RouteAgentsUnavailable")
+
+			t.routeAgentDaemonSet.Status.NumberUnavailable = 0
+			t.updateDaemonSet(t.routeAgentDaemonSet)
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("updating the ManagedClusterAddOn status initially fails", func() {
+		Context("", func() {
+			BeforeEach(func() {
+				testing.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
+			})
+
+			It("should eventually update it", func() {
+				t.awaitStatusConditionDeployed()
+			})
+		})
+
+		Context("with a conflict error", func() {
+			BeforeEach(func() {
+				testing.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
+			})
+
+			It("should eventually update it", func() {
+				t.awaitStatusConditionDeployed()
+			})
+		})
+	})
+})
+
+type deploymentControllerTestDriver struct {
+	managedClusterAddOnTestBase
+	kubeClient          *kubeFake.Clientset
+	subscriptionClient  dynamic.ResourceInterface
+	subscription        *operatorsv1alpha1.Subscription
+	operatorDeployment  *appsv1.Deployment
+	gatewayDaemonSet    *appsv1.DaemonSet
+	routeAgentDaemonSet *appsv1.DaemonSet
+	stop                context.CancelFunc
+}
+
+func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
+	t := &deploymentControllerTestDriver{}
+
+	BeforeEach(func() {
+		t.kubeClient = kubeFake.NewSimpleClientset()
+		t.managedClusterAddOnTestBase.init()
+
+		t.subscription = newSubscription()
+		t.operatorDeployment = newOperatorDeployment()
+		t.gatewayDaemonSet = newGatewayDaemonSet()
+		t.routeAgentDaemonSet = newRouteAgentDaemonSet()
+	})
+
+	JustBeforeEach(func() {
+		subscriptionClient, dynamicInformerFactory, subscriptionInformer := testing.NewDynamicClientWithInformer(submarinerNS)
+		t.subscriptionClient = subscriptionClient
+
+		if t.subscription != nil {
+			t.createSubscription()
+		}
+
+		if t.operatorDeployment != nil {
+			t.createOperatorDeployment()
+		}
+
+		if t.gatewayDaemonSet != nil {
+			t.createDaemonSet(t.gatewayDaemonSet)
+		}
+
+		if t.routeAgentDaemonSet != nil {
+			t.createDaemonSet(t.routeAgentDaemonSet)
+		}
+
+		kubeInformerFactory := kubeInformers.NewSharedInformerFactory(t.kubeClient, 0)
+
+		t.managedClusterAddOnTestBase.run()
+
+		controller := submarineragent.NewDeploymentStatusController(clusterName, submarinerNS, t.addOnClient,
+			kubeInformerFactory.Apps().V1().DaemonSets(), kubeInformerFactory.Apps().V1().Deployments(),
+			subscriptionInformer, events.NewLoggingEventRecorder("test"))
+
+		var ctx context.Context
+
+		ctx, t.stop = context.WithCancel(context.TODO())
+
+		kubeInformerFactory.Start(ctx.Done())
+		dynamicInformerFactory.Start(ctx.Done())
+
+		cache.WaitForCacheSync(ctx.Done(), kubeInformerFactory.Apps().V1().DaemonSets().Informer().HasSynced,
+			kubeInformerFactory.Apps().V1().Deployments().Informer().HasSynced)
+
+		go controller.Run(ctx, 1)
+	})
+
+	AfterEach(func() {
+		t.stop()
+	})
+
+	return t
+}
+
+func (t *deploymentControllerTestDriver) createSubscription() {
+	_, err := t.subscriptionClient.Create(context.TODO(), testing.ToUnstructured(t.subscription), metav1.CreateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func (t *deploymentControllerTestDriver) updateSubscription() {
+	_, err := t.subscriptionClient.Update(context.TODO(), testing.ToUnstructured(t.subscription), metav1.UpdateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func (t *deploymentControllerTestDriver) createOperatorDeployment() {
+	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(context.TODO(), t.operatorDeployment, metav1.CreateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func (t *deploymentControllerTestDriver) updateOperatorDeployment() {
+	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Update(context.TODO(), t.operatorDeployment, metav1.UpdateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func (t *deploymentControllerTestDriver) createDaemonSet(d *appsv1.DaemonSet) {
+	_, err := t.kubeClient.AppsV1().DaemonSets(submarinerNS).Create(context.TODO(), d, metav1.CreateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func (t *deploymentControllerTestDriver) updateDaemonSet(d *appsv1.DaemonSet) {
+	_, err := t.kubeClient.AppsV1().DaemonSets(submarinerNS).Update(context.TODO(), d, metav1.UpdateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func (t *deploymentControllerTestDriver) awaitStatusCondition(status metav1.ConditionStatus, reason string) {
+	t.awaitManagedClusterAddOnStatusCondition(metav1.Condition{
+		Type:   deploymentDegradedType,
+		Status: status,
+		Reason: reason,
+	})
+}
+
+func (t *deploymentControllerTestDriver) awaitStatusConditionDeployed() {
+	t.awaitStatusCondition(metav1.ConditionFalse, "SubmarinerAgentDeployed")
+}
+
+func newSubscription() *operatorsv1alpha1.Subscription {
+	return &operatorsv1alpha1.Subscription{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "submariner",
+			Namespace: submarinerNS,
 		},
-		{
-			name: "operator unavailable",
-			addOns: []runtime.Object{
-				&addonv1alpha1.ManagedClusterAddOn{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner",
-					},
-				},
-			},
-			subscriptions: []runtime.Object{
-				&unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"apiVersion": "operators.coreos.com/v1alpha1",
-						"kind":       "Subscription",
-						"metadata": map[string]interface{}{
-							"namespace": "test",
-							"name":      "submariner",
-						},
-						"spec": map[string]interface{}{},
-						"status": map[string]interface{}{
-							"installedCSV": "test",
-						},
-					},
-				},
-			},
-			deployemnts: []runtime.Object{
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner-operator",
-					},
-				},
-			},
-			validateActions: func(t *testing.T, addOnActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, addOnActions, "get", "update")
-				actual := addOnActions[1].(clienttesting.UpdateActionImpl).Object
-				addOn := actual.(*addonv1alpha1.ManagedClusterAddOn)
-				if !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerAgentDegraded") {
-					t.Errorf("expected SubmarinerAgentDegraded is true, but %v", addOn.Status.Conditions)
-				}
-			},
-		},
-		{
-			name: "submariner unavailable",
-			addOns: []runtime.Object{
-				&addonv1alpha1.ManagedClusterAddOn{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner",
-					},
-				},
-			},
-			subscriptions: []runtime.Object{
-				&unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"apiVersion": "operators.coreos.com/v1alpha1",
-						"kind":       "Subscription",
-						"metadata": map[string]interface{}{
-							"namespace": "test",
-							"name":      "submariner",
-						},
-						"spec": map[string]interface{}{},
-						"status": map[string]interface{}{
-							"installedCSV": "test",
-						},
-					},
-				},
-			},
-			deployemnts: []runtime.Object{
-				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner-operator",
-					},
-					Status: appsv1.DeploymentStatus{
-						AvailableReplicas: 1,
-					},
-				},
-			},
-			daemonsets: []runtime.Object{
-				&appsv1.DaemonSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner-gateway",
-					},
-					Status: appsv1.DaemonSetStatus{
-						NumberUnavailable: 1,
-					},
-				},
-				&appsv1.DaemonSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "submariner-routeagent",
-					},
-					Status: appsv1.DaemonSetStatus{
-						NumberUnavailable: 1,
-					},
-				},
-			},
-			validateActions: func(t *testing.T, addOnActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, addOnActions, "get", "update")
-				actual := addOnActions[1].(clienttesting.UpdateActionImpl).Object
-				addOn := actual.(*addonv1alpha1.ManagedClusterAddOn)
-				if !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerAgentDegraded") {
-					t.Errorf("expected SubmarinerAgentDegraded is true, but %v", addOn.Status.Conditions)
-				}
-			},
+		Spec: &operatorsv1alpha1.SubscriptionSpec{},
+		Status: operatorsv1alpha1.SubscriptionStatus{
+			InstalledCSV: "submariner-csv",
 		},
 	}
+}
 
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			addOnClient := addonfake.NewSimpleClientset(c.addOns...)
-			addOnInformerFactory := addoninformers.NewSharedInformerFactory(addOnClient, time.Minute*10)
-			addOnStroe := addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().GetStore()
-			for _, addOn := range c.addOns {
-				addOnStroe.Add(addOn)
-			}
+func newOperatorDeployment() *appsv1.Deployment {
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: submarinerNS,
+			Name:      "submariner-operator",
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+		},
+	}
+}
 
-			subscriptionGVR, _ := schema.ParseResourceArg("subscriptions.v1alpha1.operators.coreos.com")
-			fakeDynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
-			dynamicInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(fakeDynamicClient, time.Minute*10)
-			subscriptionInformer := dynamicInformerFactory.ForResource(*subscriptionGVR)
-			subscriptionStore := subscriptionInformer.Informer().GetStore()
-			for _, subscription := range c.subscriptions {
-				subscriptionStore.Add(subscription)
-			}
+func newGatewayDaemonSet() *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: submarinerNS,
+			Name:      "submariner-gateway",
+		},
+		Status: appsv1.DaemonSetStatus{
+			DesiredNumberScheduled: 1,
+		},
+	}
+}
 
-			apps := append([]runtime.Object{}, c.daemonsets...)
-			apps = append(apps, c.deployemnts...)
-			kubeClient := kubefake.NewSimpleClientset(apps...)
-			kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Minute*10)
-			deploymentStore := kubeInformerFactory.Apps().V1().Deployments().Informer().GetStore()
-			for _, deploy := range c.deployemnts {
-				deploymentStore.Add(deploy)
-			}
-			daemonsetStore := kubeInformerFactory.Apps().V1().DaemonSets().Informer().GetStore()
-			for _, ds := range c.daemonsets {
-				daemonsetStore.Add(ds)
-			}
-
-			ctrl := &deploymentStatusController{
-				addOnClient:        addOnClient,
-				addOnLister:        addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
-				deploymentLister:   kubeInformerFactory.Apps().V1().Deployments().Lister(),
-				daemonSetLister:    kubeInformerFactory.Apps().V1().DaemonSets().Lister(),
-				subscriptionLister: subscriptionInformer.Lister(),
-				clusterName:        "test",
-				namespace:          "test",
-			}
-
-			err := ctrl.sync(context.TODO(), testinghelpers.NewFakeSyncContext(t, "deployment"))
-			if err != nil {
-				t.Errorf("unexpected err: %v", err)
-			}
-
-			c.validateActions(t, addOnClient.Actions())
-		})
+func newRouteAgentDaemonSet() *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: submarinerNS,
+			Name:      "submariner-routeagent",
+		},
 	}
 }
