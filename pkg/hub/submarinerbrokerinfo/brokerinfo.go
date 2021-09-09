@@ -64,7 +64,6 @@ func NewSubmarinerBrokerInfo(
 	managedClusterAddOn *addonv1alpha1.ManagedClusterAddOn) (*SubmarinerBrokerInfo, error) {
 	brokerInfo := &SubmarinerBrokerInfo{
 		CableDriver:            defaultCableDriver,
-		IPSecIKEPort:           helpers.SubmarinerIKEPort,
 		IPSecNATTPort:          helpers.SubmarinerNatTPort,
 		BrokerNamespace:        brokeNamespace,
 		ClusterName:            managedCluster.Name,
