@@ -114,7 +114,7 @@ func Get(
 	}
 	brokerInfo.IPSecPSK = ipSecPSK
 
-	token, ca, err := getBrokerTokenAndCA(kubeClient, dynamicClient, brokeNamespace, clusterName)
+	token, ca, err := getBrokerTokenAndCA(kubeClient, dynamicClient, brokeNamespace, clusterName, apiServer)
 	if err != nil {
 		return nil, err
 	}
@@ -234,12 +234,7 @@ func getBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
 	return strings.Trim(apiServer, "https://"), nil
 }
 
-func getKubeAPIServerCA(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) ([]byte, error) {
-	kubeAPIServer, err := getBrokerAPIServer(dynamicClient)
-	if err != nil {
-		return nil, err
-	}
-
+func getKubeAPIServerCA(kubeAPIServer string, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) ([]byte, error) {
 	kubeAPIServerURL, err := url.Parse(fmt.Sprintf("https://%s", kubeAPIServer))
 	if err != nil {
 		return nil, err
@@ -283,7 +278,8 @@ func getKubeAPIServerCA(kubeClient kubernetes.Interface, dynamicClient dynamic.I
 	return nil, nil
 }
 
-func getBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, brokerNS, clusterName string) (token, ca string, err error) {
+func getBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, brokerNS, clusterName,
+	kubeAPIServer string) (token, ca string, err error) {
 	sa, err := kubeClient.CoreV1().ServiceAccounts(brokerNS).Get(context.TODO(), clusterName, metav1.GetOptions{})
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get agent ServiceAccount %v/%v: %v", brokerNS, clusterName, err)
@@ -302,7 +298,7 @@ func getBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.
 
 			if tokenSecret.Type == corev1.SecretTypeServiceAccountToken {
 				// try to get ca from apiserver secret firstly, if the ca cannot be found, get it from sa
-				kubeAPIServerCA, err := getKubeAPIServerCA(kubeClient, dynamicClient)
+				kubeAPIServerCA, err := getKubeAPIServerCA(kubeAPIServer, kubeClient, dynamicClient)
 				if err != nil {
 					return "", "", err
 				}
