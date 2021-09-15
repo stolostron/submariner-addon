@@ -450,7 +450,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	}
 
 	// create submariner broker info with submariner config
-	brokerInfo, err := brokerinfo.NewSubmarinerBrokerInfo(
+	brokerInfo, err := brokerinfo.Get(
 		c.kubeClient,
 		c.dynamicClient,
 		c.configClient,

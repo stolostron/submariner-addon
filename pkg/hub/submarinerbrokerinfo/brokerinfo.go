@@ -79,8 +79,8 @@ type SubmarinerBrokerInfo struct {
 	LighthouseCoreDNSImage    string
 }
 
-// NewSubmarinerBrokerInfo creates submariner broker information with hub information
-func NewSubmarinerBrokerInfo(
+// Get retrieves submariner broker information consolidated with hub information.
+func Get(
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
 	configClient configclient.Interface,
