@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 )
 
 const (
@@ -87,7 +86,7 @@ func Get(
 	clusterName string,
 	brokeNamespace string,
 	submarinerConfig *configv1alpha1.SubmarinerConfig,
-	managedClusterAddOn *addonv1alpha1.ManagedClusterAddOn) (*SubmarinerBrokerInfo, error) {
+	installationNamespace string) (*SubmarinerBrokerInfo, error) {
 	brokerInfo := &SubmarinerBrokerInfo{
 		CableDriver:            defaultCableDriver,
 		IPSecNATTPort:          helpers.SubmarinerNatTPort,
@@ -99,8 +98,8 @@ func Get(
 		InstallationNamespace:  defaultInstallationNamespace,
 	}
 
-	if len(managedClusterAddOn.Spec.InstallNamespace) != 0 {
-		brokerInfo.InstallationNamespace = managedClusterAddOn.Spec.InstallNamespace
+	if len(installationNamespace) != 0 {
+		brokerInfo.InstallationNamespace = installationNamespace
 	}
 
 	apiServer, err := getBrokerAPIServer(dynamicClient)
