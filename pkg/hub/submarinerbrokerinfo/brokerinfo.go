@@ -22,7 +22,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 const (
@@ -85,7 +84,7 @@ func Get(
 	dynamicClient dynamic.Interface,
 	configClient configclient.Interface,
 	recorder events.Recorder,
-	managedCluster *clusterv1.ManagedCluster,
+	clusterName string,
 	brokeNamespace string,
 	submarinerConfig *configv1alpha1.SubmarinerConfig,
 	managedClusterAddOn *addonv1alpha1.ManagedClusterAddOn) (*SubmarinerBrokerInfo, error) {
@@ -93,7 +92,7 @@ func Get(
 		CableDriver:            defaultCableDriver,
 		IPSecNATTPort:          helpers.SubmarinerNatTPort,
 		BrokerNamespace:        brokeNamespace,
-		ClusterName:            managedCluster.Name,
+		ClusterName:            clusterName,
 		CatalogName:            catalogName,
 		CatalogSource:          defaultCatalogSource,
 		CatalogSourceNamespace: defaultCatalogSourceNamespace,
@@ -116,7 +115,7 @@ func Get(
 	}
 	brokerInfo.IPSecPSK = ipSecPSK
 
-	token, ca, err := getBrokerTokenAndCA(kubeClient, dynamicClient, brokeNamespace, managedCluster.Name)
+	token, ca, err := getBrokerTokenAndCA(kubeClient, dynamicClient, brokeNamespace, clusterName)
 	if err != nil {
 		return nil, err
 	}

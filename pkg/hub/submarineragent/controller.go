@@ -455,7 +455,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		c.dynamicClient,
 		c.configClient,
 		c.eventRecorder,
-		managedCluster,
+		managedCluster.Name,
 		brokerNamespace,
 		submarinerConfig,
 		managedClusterAddOn,
