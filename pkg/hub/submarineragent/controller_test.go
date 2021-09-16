@@ -88,6 +88,22 @@ var _ = Describe("Controller", func() {
 
 				It("should deploy the submariner ManifestWork with the SubmarinerConfig overrides", func() {
 					t.awaitManifestWork()
+
+					expCond := &metav1.Condition{
+						Type:   configv1alpha1.SubmarinerConfigConditionApplied,
+						Status: metav1.ConditionTrue,
+						Reason: "SubmarinerConfigApplied",
+					}
+
+					test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
+						config, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(clusterName).Get(context.TODO(),
+							helpers.SubmarinerConfigName, metav1.GetOptions{})
+						if err != nil {
+							return nil, err
+						}
+
+						return config.Status.Conditions, nil
+					})
 				})
 			})
 

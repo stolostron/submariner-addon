@@ -426,8 +426,6 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	brokerInfo, err := brokerinfo.Get(
 		c.kubeClient,
 		c.dynamicClient,
-		c.configClient,
-		c.eventRecorder,
 		managedCluster.Name,
 		brokerNamespace,
 		submarinerConfig,
@@ -435,6 +433,13 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create submariner brokerInfo of cluster %v : %w", managedCluster.Name, err)
+	}
+
+	if submarinerConfig != nil {
+		err := c.updateSubmarinerConfigStatus(submarinerConfig, managedCluster.Name)
+		if err != nil {
+			return err
+		}
 	}
 
 	// apply submariner operator manifest work
@@ -448,6 +453,26 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	}
 
 	return nil
+}
+
+func (c *submarinerAgentController) updateSubmarinerConfigStatus(submarinerConfig *configv1alpha1.SubmarinerConfig,
+	clusterName string) error {
+	condition := &metav1.Condition{
+		Type:    configv1alpha1.SubmarinerConfigConditionApplied,
+		Status:  metav1.ConditionTrue,
+		Reason:  "SubmarinerConfigApplied",
+		Message: "SubmarinerConfig was applied",
+	}
+
+	_, updated, err := helpers.UpdateSubmarinerConfigStatus(c.configClient, submarinerConfig.Namespace, submarinerConfig.Name,
+		helpers.UpdateSubmarinerConfigConditionFn(condition))
+
+	if updated {
+		c.eventRecorder.Eventf("SubmarinerConfigApplied", "SubmarinerConfig %q was applied for managed cluster %q",
+			submarinerConfig.Name, clusterName)
+	}
+
+	return err
 }
 
 func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, clusterName string) error {
