@@ -52,7 +52,7 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
     ```
     $ oc get managedclusters
     $ oc get csr | grep <managedcluster name> | grep Pending
-    $ oc certificate approve <managedcluster csr>
+    $ oc adm certificate approve <managedcluster csr>
     ```
 
 5. Accept the `ManagedClusters` on the Hub cluster.
