@@ -450,15 +450,15 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	}
 
 	// create submariner broker info with submariner config
-	brokerInfo, err := brokerinfo.NewSubmarinerBrokerInfo(
+	brokerInfo, err := brokerinfo.Get(
 		c.kubeClient,
 		c.dynamicClient,
 		c.configClient,
 		c.eventRecorder,
-		managedCluster,
+		managedCluster.Name,
 		brokerNamespace,
 		submarinerConfig,
-		managedClusterAddOn,
+		managedClusterAddOn.Spec.InstallNamespace,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create submariner brokerInfo of cluster %v : %v", managedCluster.Name, err)
