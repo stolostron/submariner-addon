@@ -7,11 +7,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	apiconfigv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/library-go/pkg/operator/events"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -38,7 +35,6 @@ func TestSubmarinerBrokerInfo(t *testing.T) {
 
 var _ = Describe("Function Get", func() {
 	var (
-		configClient          configclient.Interface
 		installationNamespace string
 		submarinerConfig      *configv1alpha1.SubmarinerConfig
 		infrastructure        *unstructured.Unstructured
@@ -102,17 +98,9 @@ var _ = Describe("Function Get", func() {
 	})
 
 	JustBeforeEach(func() {
-		if submarinerConfig != nil {
-			configClient = fakeconfigclient.NewSimpleClientset(submarinerConfig)
-		} else {
-			configClient = fakeconfigclient.NewSimpleClientset()
-		}
-
 		brokerInfo, err = submarinerbrokerinfo.Get(
 			kubefake.NewSimpleClientset(kubeObjs...),
 			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), dynamicObjs...),
-			configClient,
-			events.NewLoggingEventRecorder("test"),
 			clusterName,
 			brokerNamespace,
 			submarinerConfig,

@@ -9,10 +9,8 @@ import (
 	"strings"
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	apiconfigv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/library-go/pkg/operator/events"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -81,8 +79,6 @@ type SubmarinerBrokerInfo struct {
 func Get(
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
-	configClient configclient.Interface,
-	recorder events.Recorder,
 	clusterName string,
 	brokeNamespace string,
 	submarinerConfig *configv1alpha1.SubmarinerConfig,
@@ -124,19 +120,14 @@ func Get(
 	brokerInfo.BrokerCA = ca
 	brokerInfo.BrokerToken = token
 
-	if err := applySubmarinerConfig(configClient, recorder, brokerInfo, submarinerConfig); err != nil {
-		return nil, err
-	}
+	applySubmarinerConfig(brokerInfo, submarinerConfig)
 
 	return brokerInfo, nil
 }
 
-func applySubmarinerConfig(
-	configClient configclient.Interface,
-	recorder events.Recorder,
-	brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig) error {
+func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig) {
 	if submarinerConfig == nil {
-		return nil
+		return
 	}
 
 	brokerInfo.NATEnabled = submarinerConfig.Spec.NATTEnable
@@ -175,28 +166,6 @@ func applySubmarinerConfig(
 	}
 
 	applySubmarinerImageConfig(brokerInfo, submarinerConfig)
-
-	condition := metav1.Condition{
-		Type:    configv1alpha1.SubmarinerConfigConditionApplied,
-		Status:  metav1.ConditionTrue,
-		Reason:  "SubmarinerConfigApplied",
-		Message: "SubmarinerConfig was applied",
-	}
-	_, updated, err := helpers.UpdateSubmarinerConfigStatus(
-		configClient,
-		submarinerConfig.Namespace, submarinerConfig.Name,
-		helpers.UpdateSubmarinerConfigConditionFn(&condition),
-	)
-	if err != nil {
-		return err
-	}
-
-	if updated {
-		recorder.Eventf("SubmarinerConfigApplied", "SubmarinerConfig %s was applied for manged cluster %s", submarinerConfig.Name,
-			submarinerConfig.Namespace)
-	}
-
-	return nil
 }
 
 func applySubmarinerImageConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig) {
