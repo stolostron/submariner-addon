@@ -3,7 +3,7 @@ module github.com/open-cluster-management/submariner-addon
 go 1.16
 
 require (
-	github.com/aws/aws-sdk-go v1.40.27
+	github.com/aws/aws-sdk-go v1.40.37
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo v1.16.4
@@ -16,7 +16,8 @@ require (
 	github.com/prometheus/procfs v0.7.2 // indirect
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/cloud-prepare v0.10.0-rc1.0.20210824133448-4c44f10b211d
+	github.com/submariner-io/admiral v0.10.0-rc1.0.20210824123934-19b8fb8b93bc
+	github.com/submariner-io/cloud-prepare v0.10.0-rc1.0.20210909090958-4f4abaf3900c
 	github.com/submariner-io/submariner-operator/apis v0.0.0-20210817145008-861856b068a1
 	github.com/submariner-io/submariner/pkg/apis v0.0.0-20210817085048-59f656555db0
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
@@ -25,7 +26,7 @@ require (
 	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/api v0.54.0
+	google.golang.org/api v0.56.0
 	k8s.io/api v0.21.3
 	k8s.io/apiextensions-apiserver v0.21.3
 	k8s.io/apimachinery v0.21.3

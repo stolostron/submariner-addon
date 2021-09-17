@@ -36,11 +36,10 @@ type Interface interface {
 	DescribeSubnets(input *ec2.DescribeSubnetsInput) (*ec2.DescribeSubnetsOutput, error)
 	DescribeInstanceTypeOfferings(input *ec2.DescribeInstanceTypeOfferingsInput) (*ec2.DescribeInstanceTypeOfferingsOutput, error)
 
+	DeleteSecurityGroup(input *ec2.DeleteSecurityGroupInput) (*ec2.DeleteSecurityGroupOutput, error)
 	DeleteTags(input *ec2.DeleteTagsInput) (*ec2.DeleteTagsOutput, error)
 
 	RevokeSecurityGroupIngress(input *ec2.RevokeSecurityGroupIngressInput) (*ec2.RevokeSecurityGroupIngressOutput, error)
-
-	FullEC2API() ec2iface.EC2API
 }
 
 type awsClient struct {
@@ -74,6 +73,10 @@ func (ac *awsClient) DescribeSubnets(input *ec2.DescribeSubnetsInput) (*ec2.Desc
 	return ac.ec2Client.DescribeSubnets(input)
 }
 
+func (ac *awsClient) DeleteSecurityGroup(input *ec2.DeleteSecurityGroupInput) (*ec2.DeleteSecurityGroupOutput, error) {
+	return ac.ec2Client.DeleteSecurityGroup(input)
+}
+
 func (ac *awsClient) DeleteTags(input *ec2.DeleteTagsInput) (*ec2.DeleteTagsOutput, error) {
 	return ac.ec2Client.DeleteTags(input)
 }
@@ -84,10 +87,6 @@ func (ac *awsClient) RevokeSecurityGroupIngress(input *ec2.RevokeSecurityGroupIn
 
 func (ac *awsClient) DescribeInstanceTypeOfferings(input *ec2.DescribeInstanceTypeOfferingsInput) (*ec2.DescribeInstanceTypeOfferingsOutput, error) {
 	return ac.ec2Client.DescribeInstanceTypeOfferings(input)
-}
-
-func (ac *awsClient) FullEC2API() ec2iface.EC2API {
-	return ac.ec2Client
 }
 
 func NewClient(kubeClient kubernetes.Interface, secretNamespace, secretName, region string) (Interface, error) {
