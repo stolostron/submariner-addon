@@ -269,6 +269,7 @@ type csrHolder struct {
 }
 
 func newCSR(holder csrHolder) *certificatesv1.CertificateSigningRequest {
+	//nolint:gosec // These are test credentials, using insecure rand vs crypto/rand is okay
 	insecureRand := rand.New(rand.NewSource(0))
 	pk, err := ecdsa.GenerateKey(elliptic.P256(), insecureRand)
 	Expect(err).To(Succeed())
