@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws/client"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/submariner-io/admiral/pkg/util"
 	cpapi "github.com/submariner-io/cloud-prepare/pkg/api"
 	cpaws "github.com/submariner-io/cloud-prepare/pkg/aws"
+	cpclient "github.com/submariner-io/cloud-prepare/pkg/aws/client"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 )
 
@@ -41,7 +41,7 @@ const (
 
 type awsProvider struct {
 	workClient         workclient.Interface
-	awsClient          client.Interface
+	awsClient          cpclient.Interface
 	eventRecorder      events.Recorder
 	region             string
 	infraId            string
@@ -87,7 +87,20 @@ func NewAWSProvider(
 		instanceType = defaultInstanceType
 	}
 
-	awsClient, err := client.NewClient(kubeClient, clusterName, credentialsSecretName, region)
+	credentialsSecret, err := kubeClient.CoreV1().Secrets(clusterName).Get(context.TODO(), credentialsSecretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	accessKeyID, ok := credentialsSecret.Data[accessKeyIDSecretKey]
+	if !ok {
+		return nil, fmt.Errorf("the aws credentials key %s is not in secret %s/%s", accessKeyIDSecretKey, clusterName, credentialsSecretName)
+	}
+	secretAccessKey, ok := credentialsSecret.Data[accessKeySecretKey]
+	if !ok {
+		return nil, fmt.Errorf("the aws credentials key %s is not in secret %s/%s", accessKeySecretKey, clusterName, credentialsSecretName)
+	}
+
+	awsClient, err := cpclient.New(string(accessKeyID), string(secretAccessKey), region)
 	if err != nil {
 		return nil, err
 	}

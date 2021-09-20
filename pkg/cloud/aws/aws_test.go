@@ -11,9 +11,9 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
-	mockaws "github.com/open-cluster-management/submariner-addon/pkg/cloud/aws/client/mock"
 	mockmsd "github.com/open-cluster-management/submariner-addon/pkg/cloud/aws/machineset/mock"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	mockaws "github.com/submariner-io/cloud-prepare/pkg/aws/client/fake"
 	fakeworkclient "open-cluster-management.io/api/client/work/clientset/versioned/fake"
 	workv1 "open-cluster-management.io/api/work/v1"
 
