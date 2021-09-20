@@ -409,7 +409,7 @@ func GetCurrentNamespace(defaultNamespace string) string {
 	return string(nsBytes)
 }
 
-func GernerateBrokerName(clusterSetName string) string {
+func GenerateBrokerName(clusterSetName string) string {
 	name := fmt.Sprintf("%s-%s", clusterSetName, brokerSuffix)
 	if len(name) > namespaceMaxLength {
 		truncatedClusterSetName := clusterSetName[(len(brokerSuffix) - 1):]

@@ -591,7 +591,7 @@ func TestGernerateBrokerName(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			actual := GernerateBrokerName(c.clusterSetName)
+			actual := GenerateBrokerName(c.clusterSetName)
 			if len(actual) != c.expectedLength {
 				t.Errorf("expected %d, but: %d, %q", c.expectedLength, len(actual), actual)
 			}
