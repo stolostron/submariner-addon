@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -49,8 +48,7 @@ const (
 )
 
 const (
-	IPSecPSKSecretLength = 48
-	IPSecPSKSecretName   = "submariner-ipsec-psk"
+	IPSecPSKSecretName = "submariner-ipsec-psk"
 )
 
 const (
@@ -286,30 +284,6 @@ func CleanUpSubmarinerManifests(
 		recorder.Eventf(fmt.Sprintf("Submariner%sDeleted", gvk.Kind), "Deleted %s", resourcehelper.FormatResourceForCLIWithNamespace(object))
 	}
 	return errorhelpers.NewMultiLineAggregate(errs)
-}
-
-func GenerateIPSecPSKSecret(client kubernetes.Interface, brokerNamespace string) error {
-	_, err := client.CoreV1().Secrets(brokerNamespace).Get(context.TODO(), IPSecPSKSecretName, metav1.GetOptions{})
-	switch {
-	case errors.IsNotFound(err):
-		psk := make([]byte, IPSecPSKSecretLength)
-		if _, err := rand.Read(psk); err != nil {
-			return err
-		}
-		pskSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: IPSecPSKSecretName,
-			},
-			Data: map[string][]byte{
-				"psk": psk,
-			},
-		}
-		_, err := client.CoreV1().Secrets(brokerNamespace).Create(context.TODO(), pskSecret, metav1.CreateOptions{})
-		return err
-	case err != nil:
-		return err
-	}
-	return nil
 }
 
 func GetClusterProduct(managedCluster *clusterv1.ManagedCluster) string {

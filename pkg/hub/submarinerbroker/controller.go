@@ -2,32 +2,32 @@ package submarinerbroker
 
 import (
 	"context"
+	"crypto/rand"
 	"embed"
 	"fmt"
 
-	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1"
-	clusterinformerv1alpha1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
-	clusterlisterv1alpha1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
-
+	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
-
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1"
+	clusterinformerv1alpha1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
+	clusterlisterv1alpha1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 )
 
 const (
-	brokerFinalizer = "cluster.open-cluster-management.io/submariner-cleanup"
+	brokerFinalizer      = "cluster.open-cluster-management.io/submariner-cleanup"
+	ipSecPSKSecretLength = 48
 )
 
 var (
@@ -134,8 +134,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 		}
 	}
 
-	// Generate IPSECPSK secret
-	if err := helpers.GenerateIPSecPSKSecret(c.kubeClient, config.SubmarinerNamespace); err != nil {
+	if err := c.createIPSecPSKSecret(config.SubmarinerNamespace); err != nil {
 		errs = append(errs, fmt.Errorf("unable to generate IPSECPSK secret : %v", err))
 	}
 
@@ -174,4 +173,27 @@ func (c *submarinerBrokerController) removeClusterManagerFinalizer(ctx context.C
 	}
 
 	return nil
+}
+
+func (c *submarinerBrokerController) createIPSecPSKSecret(brokerNamespace string) error {
+	_, err := c.kubeClient.CoreV1().Secrets(brokerNamespace).Get(context.TODO(), helpers.IPSecPSKSecretName, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		psk := make([]byte, ipSecPSKSecretLength)
+		if _, err := rand.Read(psk); err != nil {
+			return err
+		}
+
+		pskSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: helpers.IPSecPSKSecretName,
+			},
+			Data: map[string][]byte{
+				"psk": psk,
+			},
+		}
+
+		_, err = c.kubeClient.CoreV1().Secrets(brokerNamespace).Create(context.TODO(), pskSecret, metav1.CreateOptions{})
+	}
+
+	return err
 }
