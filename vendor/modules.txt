@@ -6,7 +6,7 @@ github.com/NYTimes/gziphandler
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/aws/aws-sdk-go v1.40.37
+# github.com/aws/aws-sdk-go v1.40.45
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -178,7 +178,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.15.0
+# github.com/onsi/gomega v1.16.0
 ## explicit
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -317,15 +317,17 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit
 github.com/spf13/pflag
-# github.com/submariner-io/admiral v0.10.0-rc1.0.20210824123934-19b8fb8b93bc
+# github.com/submariner-io/admiral v0.11.0-m2
 ## explicit
 github.com/submariner-io/admiral/pkg/log
 github.com/submariner-io/admiral/pkg/resource
 github.com/submariner-io/admiral/pkg/util
-# github.com/submariner-io/cloud-prepare v0.10.0-rc1.0.20210909090958-4f4abaf3900c
+# github.com/submariner-io/cloud-prepare v0.11.0-m2.0.20210920144917-0b33718646a7
 ## explicit
 github.com/submariner-io/cloud-prepare/pkg/api
 github.com/submariner-io/cloud-prepare/pkg/aws
+github.com/submariner-io/cloud-prepare/pkg/aws/client
+github.com/submariner-io/cloud-prepare/pkg/aws/client/fake
 github.com/submariner-io/cloud-prepare/pkg/ocp
 # github.com/submariner-io/submariner-operator/apis v0.0.0-20210817145008-861856b068a1
 ## explicit
@@ -468,7 +470,7 @@ golang.org/x/tools/internal/imports
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.56.0 => google.golang.org/api v0.29.0
+# google.golang.org/api v0.57.0 => google.golang.org/api v0.29.0
 ## explicit
 google.golang.org/api/compute/v1
 google.golang.org/api/dns/v1
