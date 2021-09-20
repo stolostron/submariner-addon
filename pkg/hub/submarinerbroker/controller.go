@@ -51,7 +51,7 @@ type brokerConfig struct {
 	SubmarinerNamespace string
 }
 
-func NewSubmarinerBrokerController(
+func NewController(
 	clustersetClient clientset.ManagedClusterSetInterface,
 	kubeClient kubernetes.Interface,
 	clusterSetInformer clusterinformerv1alpha1.ManagedClusterSetInformer,
