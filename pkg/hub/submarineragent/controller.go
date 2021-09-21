@@ -42,7 +42,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 )
@@ -89,7 +88,6 @@ type clusterRBACConfig struct {
 // submarinerAgentController reconciles instances of ManagedCluster on the hub to deploy/remove
 // corresponding submariner agent manifestworks
 type submarinerAgentController struct {
-	restConfig         *rest.Config
 	kubeClient         kubernetes.Interface
 	dynamicClient      dynamic.Interface
 	clusterClient      clusterclient.Interface
@@ -106,7 +104,6 @@ type submarinerAgentController struct {
 
 // NewSubmarinerAgentController returns a submarinerAgentController instance
 func NewSubmarinerAgentController(
-	restConfig *rest.Config,
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
 	clusterClient clusterclient.Interface,
@@ -120,7 +117,6 @@ func NewSubmarinerAgentController(
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerAgentController{
-		restConfig:         restConfig,
 		kubeClient:         kubeClient,
 		dynamicClient:      dynamicClient,
 		clusterClient:      clusterClient,
@@ -375,8 +371,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 	// prepare submariner cluster environment
 	errs := []error{}
-	cloudProvider, preparedErr := cloud.GetCloudProvider(c.restConfig, c.kubeClient, c.manifestWorkClient, c.dynamicClient,
-		c.eventRecorder, managedClusterInfo, config)
+	cloudProvider, preparedErr := cloud.GetCloudProvider(c.kubeClient, c.manifestWorkClient, c.eventRecorder, managedClusterInfo, config)
 	if preparedErr == nil {
 		preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
 	}
@@ -573,8 +568,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Cont
 	}
 
 	managedClusterInfo := config.Status.ManagedClusterInfo
-	cloudProvider, err := cloud.GetCloudProvider(c.restConfig, c.kubeClient, c.manifestWorkClient, c.dynamicClient,
-		c.eventRecorder, managedClusterInfo, config)
+	cloudProvider, err := cloud.GetCloudProvider(c.kubeClient, c.manifestWorkClient, c.eventRecorder, managedClusterInfo, config)
 	if err != nil {
 		//TODO handle the error gracefully in the future
 		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to create cloud provider: %v", err)
