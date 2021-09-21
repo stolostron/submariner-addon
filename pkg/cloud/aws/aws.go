@@ -2,71 +2,52 @@ package aws
 
 import (
 	"context"
-	"embed"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
-	"github.com/ghodss/yaml"
-
-	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud/manifestwork"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
-	workv1 "open-cluster-management.io/api/work/v1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
 	cpapi "github.com/submariner-io/cloud-prepare/pkg/api"
 	cpaws "github.com/submariner-io/cloud-prepare/pkg/aws"
 	cpclient "github.com/submariner-io/cloud-prepare/pkg/aws/client"
+	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 )
 
 const (
-	defaultInstanceType       = "m5n.large"
-	accessKeyIDSecretKey      = "aws_access_key_id"
-	accessKeySecretKey        = "aws_secret_access_key"
-	internalELBLabel          = "kubernetes.io/role/internal-elb"
-	internalGatewayLabel      = "open-cluster-management.io/submariner-addon/gateway"
-	workName                  = "aws-submariner-gateway-machineset"
-	manifestFile              = "manifests/machineset.yaml"
-	aggeragateClusterroleFile = "manifests/machineset-aggeragate-clusterrole.yaml"
+	defaultInstanceType  = "m5n.large"
+	accessKeyIDSecretKey = "aws_access_key_id"
+	accessKeySecretKey   = "aws_secret_access_key"
+	internalELBLabel     = "kubernetes.io/role/internal-elb"
+	internalGatewayLabel = "submariner.io/gateway"
+	workName             = "aws-submariner-gateway-machineset"
 )
 
-//go:embed manifests
-var manifestFiles embed.FS
-
-type machineSetConfig struct {
-	InfraId           string
-	AZ                string
-	AMIId             string
-	InstanceType      string
-	Region            string
-	SecurityGroupName string
-	SubnetName        string
-	NATTPort          int64
-}
-
 type awsProvider struct {
-	workClinet        workclient.Interface
-	awsClinet         cpclient.Interface
-	eventRecorder     events.Recorder
-	region            string
-	infraId           string
-	nattPort          int64
-	nattDiscoveryPort int64
-	clusterName       string
-	instanceType      string
-	gateways          int
-	cloudPrepare      cpapi.Cloud
+	workClient         workclient.Interface
+	awsClient          cpclient.Interface
+	eventRecorder      events.Recorder
+	region             string
+	infraId            string
+	nattPort           int64
+	nattDiscoveryPort  int64
+	clusterName        string
+	instanceType       string
+	gateways           int
+	cloudPrepare       cpapi.Cloud
+	machinesetDeployer ocp.MachineSetDeployer
 }
 
 func NewAWSProvider(
@@ -119,75 +100,48 @@ func NewAWSProvider(
 	}
 
 	return &awsProvider{
-		workClinet:        workClient,
-		awsClinet:         awsClient,
-		eventRecorder:     eventRecorder,
-		region:            region,
-		infraId:           infraId,
-		nattPort:          int64(nattPort),
-		nattDiscoveryPort: int64(nattDiscoveryPort),
-		clusterName:       clusterName,
-		instanceType:      instanceType,
-		gateways:          gateways,
-		cloudPrepare:      cpaws.NewCloud(awsClient, infraId, region),
+		workClient:         workClient,
+		awsClient:          awsClient,
+		eventRecorder:      eventRecorder,
+		region:             region,
+		infraId:            infraId,
+		nattPort:           int64(nattPort),
+		nattDiscoveryPort:  int64(nattDiscoveryPort),
+		clusterName:        clusterName,
+		instanceType:       instanceType,
+		gateways:           gateways,
+		cloudPrepare:       cpaws.NewCloud(awsClient, infraId, region),
+		machinesetDeployer: manifestwork.NewMachineSetDeployer(workClient, workName, clusterName, eventRecorder),
 	}, nil
 }
 
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on AWS
-// The below tasks will be executed
-// 1. open submariner route port (4800/UDP) between all master and worker nodes
-// 2. open submariner metrics port (8080/TCP) between all master and worker nodes
-// 3. open IPsec ant NATT discovery ports (by default, 4500/UDP, 4900/UDP and 500/UDP) for submariner gateway instances
-// 4. find one pulic subnet and tag it with label AWS internal elb label for automatic
-//    subnet discovery by aws load balancers or ingress controllers
-// 5. apply a manifest work to create a MachineSet on managed cluster to create a new AWS
-//    instance for submariner gateway
 func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
-	vpc, err := a.findVPC()
+	// See prepareAws() in https://github.com/submariner-io/submariner-operator/blob/devel/pkg/subctl/cmd/cloud/prepare/aws.go
+	// For now we only support at least one gateway (no load-balancer)
+	gwDeployer, err := cpaws.NewOcpGatewayDeployer(a.cloudPrepare, a.machinesetDeployer, a.instanceType)
 	if err != nil {
-		return fmt.Errorf("failed to find aws vpc with %s: %v \n", a.infraId, err)
+		return err
 	}
-
-	amiId, err := a.findAMIId(*vpc.VpcId)
-	if err != nil {
-		return fmt.Errorf("failed to find instance ami with infraID %s and vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
+	if err := gwDeployer.Deploy(cpapi.GatewayDeployInput{
+		PublicPorts: []cpapi.PortSpec{
+			{Port: uint16(a.nattPort), Protocol: "udp"},
+			{Port: uint16(a.nattDiscoveryPort), Protocol: "udp"},
+			// ESP & AH protocols are used for private-ip to private-ip gateway communications
+			{Port: 0, Protocol: "50"},
+			{Port: 0, Protocol: "51"},
+		},
+		Gateways: a.gateways,
+	}, a); err != nil {
+		return err
 	}
-
-	masterSecurityGroup, err := a.findSecurityGroup(*vpc.VpcId, fmt.Sprintf("%s-master-sg", a.infraId))
-	if err != nil {
-		return fmt.Errorf("failed to find security group %s-master-sg with vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
-	}
-
-	workerSecurityGroup, err := a.findSecurityGroup(*vpc.VpcId, fmt.Sprintf("%s-worker-sg", a.infraId))
-	if err != nil {
-		return fmt.Errorf("failed to find security group %s-worker-sg with vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
-	}
-
-	// Open submariner route port (4800/UDP) between all master and worker nodes
-	if err := a.openPort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerRoutePort, "udp"); err != nil {
-		return fmt.Errorf("failed to open route port in security group: %v \n", err)
-	}
-
-	// Open submariner metrics port (8080/TCP) between all master and worker nodes
-	if err := a.openPort(masterSecurityGroup, workerSecurityGroup, helpers.SubmarinerMetricsPort, "tcp"); err != nil {
-		return fmt.Errorf("failed to open route port in security group: %v \n", err)
-	}
-
-	// Open IPsec and NAT discovery ports (by default, 4500/UDP, 4900/UDP and 500/UDP) for submariner gateway instances
-	if err := a.openIPsecPorts(vpc); err != nil {
-		return fmt.Errorf("failed to create security group with infraID %s and vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
-	}
-
-	// Tag one subnet with label kubernetes.io/role/internal-elb for automatic subnet discovery by aws load balancers or
-	// ingress controllers
-	subnets, err := a.tagSubnets(vpc)
-	if err != nil {
-		return fmt.Errorf("failed to tag subnet with infraID %s and vpcID %s: %v \n", a.infraId, *vpc.VpcId, err)
-	}
-
-	// Apply a manifest work to create a MachineSet on managed cluster to create a new aws instance for submariner gateway
-	if err := a.deployGatewayNode(amiId, subnets); err != nil {
-		return fmt.Errorf("failed to create MachineSet for %s: %v \n", a.infraId, err)
+	if err := a.cloudPrepare.PrepareForSubmariner(cpapi.PrepareForSubmarinerInput{
+		InternalPorts: []cpapi.PortSpec{
+			{Port: helpers.SubmarinerRoutePort, Protocol: "udp"},
+			{Port: helpers.SubmarinerMetricsPort, Protocol: "tcp"},
+		},
+	}, a); err != nil {
+		return err
 	}
 
 	a.eventRecorder.Eventf("SubmarinerClusterEnvBuild", "the submariner cluster env is build on aws")
@@ -257,8 +211,31 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
+// Reporter functions
+
+// Started will report that an operation started on the cloud
+func (a *awsProvider) Started(message string, args ...interface{}) {
+	a.eventRecorder.Eventf("SubmarinerClusterEnvBuild", message, args...)
+}
+
+// Succeeded will report that the last operation on the cloud has succeeded
+func (a *awsProvider) Succeeded(message string, args ...interface{}) {
+	a.eventRecorder.Eventf("SubmarinerClusterEnvBuild", message, args...)
+}
+
+// Failed will report that the last operation on the cloud has failed
+func (a *awsProvider) Failed(errs ...error) {
+	message := "Failed"
+	errMessages := []string{}
+	for i := range errs {
+		message += "\n%s"
+		errMessages = append(errMessages, errs[i].Error())
+	}
+	a.eventRecorder.Warningf("SubmarinerClusterEnvBuild", message, errMessages)
+}
+
 func (a *awsProvider) findVPC() (*ec2.Vpc, error) {
-	vpcsOutput, err := a.awsClinet.DescribeVpcs(&ec2.DescribeVpcsInput{
+	vpcsOutput, err := a.awsClient.DescribeVpcs(&ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("tag:Name"),
@@ -284,47 +261,8 @@ func (a *awsProvider) findVPC() (*ec2.Vpc, error) {
 	return vpcsOutput.Vpcs[0], nil
 }
 
-func (a *awsProvider) findAMIId(vpcId string) (string, error) {
-	instancesOutput, err := a.awsClinet.DescribeInstances(&ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: []*string{aws.String(vpcId)},
-			},
-			{
-				Name:   aws.String("tag:Name"),
-				Values: []*string{aws.String(fmt.Sprintf("%s-worker*", a.infraId))},
-			},
-			{
-				Name:   aws.String(fmt.Sprintf("tag:kubernetes.io/cluster/%s", a.infraId)),
-				Values: []*string{aws.String("owned")},
-			},
-		},
-	})
-	if err != nil {
-		return "", err
-	}
-	if len(instancesOutput.Reservations) == 0 {
-		return "", &errors.StatusError{
-			ErrStatus: metav1.Status{
-				Reason:  metav1.StatusReasonNotFound,
-				Message: "there are no reservations",
-			},
-		}
-	}
-	if len(instancesOutput.Reservations[0].Instances) == 0 {
-		return "", &errors.StatusError{
-			ErrStatus: metav1.Status{
-				Reason:  metav1.StatusReasonNotFound,
-				Message: "there are no instances",
-			},
-		}
-	}
-	return *instancesOutput.Reservations[0].Instances[0].ImageId, nil
-}
-
 func (a *awsProvider) findSecurityGroup(vpcId, nameTag string) (*ec2.SecurityGroup, error) {
-	securityGroups, err := a.awsClinet.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+	securityGroups, err := a.awsClient.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("vpc-id"),
@@ -350,100 +288,10 @@ func (a *awsProvider) findSecurityGroup(vpcId, nameTag string) (*ec2.SecurityGro
 	return securityGroups.SecurityGroups[0], nil
 }
 
-func (a *awsProvider) findSubnets(vpcId string) ([]*ec2.Subnet, error) {
-	subnets, err := a.awsClinet.DescribeSubnets(&ec2.DescribeSubnetsInput{
-		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: []*string{aws.String(vpcId)},
-			},
-			{
-				Name:   aws.String("tag:Name"),
-				Values: []*string{aws.String(fmt.Sprintf("%s-public-%s*", a.infraId, a.region))},
-			},
-			{
-				Name:   aws.String(fmt.Sprintf("tag:kubernetes.io/cluster/%s", a.infraId)),
-				Values: []*string{aws.String("owned")},
-			},
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if len(subnets.Subnets) < a.gateways {
-		return nil, &errors.StatusError{
-			ErrStatus: metav1.Status{
-				Reason:  metav1.StatusReasonNotFound,
-				Message: fmt.Sprintf("there are no sufficient subnets (%d) for expected gateways (%d)", len(subnets.Subnets), a.gateways),
-			},
-		}
-	}
-
-	found := []*ec2.Subnet{}
-	for _, subnet := range subnets.Subnets {
-		// list the offered instance types and filters them by subnet availability zone and gateway instance type
-		output, err := a.awsClinet.DescribeInstanceTypeOfferings(&ec2.DescribeInstanceTypeOfferingsInput{
-			LocationType: aws.String("availability-zone"),
-			Filters: []*ec2.Filter{
-				{
-					Name:   aws.String("location"),
-					Values: []*string{subnet.AvailabilityZone},
-				},
-				{
-					Name:   aws.String("instance-type"),
-					Values: []*string{aws.String(a.instanceType)},
-				},
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		// the length of offered instance type list is not zero, it includes the gateway instance type,
-		// so we are able to create gateway instance in this subnet availability zone
-		if len(output.InstanceTypeOfferings) != 0 {
-			found = append(found, subnet)
-			if len(found) == a.gateways {
-				return found, nil
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("the instance type %s cannot be supported in vpc %s", a.instanceType, vpcId)
-}
-
-func (a *awsProvider) openPort(masterSecurityGroup, workerSecurityGroup *ec2.SecurityGroup, port int64, protocol string) error {
-	workerPermission, masterPermission := getRoutePortPermission(masterSecurityGroup, workerSecurityGroup, port, protocol)
-	_, err := a.awsClinet.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
-		GroupId:       workerSecurityGroup.GroupId,
-		IpPermissions: []*ec2.IpPermission{workerPermission},
-	})
-	switch {
-	case isAWSDuplicatedError(err):
-		klog.V(4).Infof("the port %d/%s has been opened in security group %s on aws ", port, protocol, *workerSecurityGroup.GroupId)
-	case err != nil:
-		return err
-	}
-
-	_, err = a.awsClinet.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
-		GroupId:       masterSecurityGroup.GroupId,
-		IpPermissions: []*ec2.IpPermission{masterPermission},
-	})
-	switch {
-	case isAWSDuplicatedError(err):
-		klog.V(4).Infof("the port %d/%s has been opened in security group %s on aws", port, protocol, *masterSecurityGroup.GroupId)
-	case err != nil:
-		return err
-	}
-
-	return nil
-}
-
 func (a *awsProvider) revokePort(masterSecurityGroup, workerSecurityGroup *ec2.SecurityGroup, port int64, protocol string) error {
 	workerPermission, masterPermission := getRoutePortPermission(masterSecurityGroup, workerSecurityGroup, port, protocol)
 
-	_, err := a.awsClinet.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+	_, err := a.awsClient.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
 		GroupId:       workerSecurityGroup.GroupId,
 		IpPermissions: []*ec2.IpPermission{workerPermission},
 	})
@@ -455,7 +303,7 @@ func (a *awsProvider) revokePort(masterSecurityGroup, workerSecurityGroup *ec2.S
 		return err
 	}
 
-	_, err = a.awsClinet.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+	_, err = a.awsClient.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
 		GroupId:       masterSecurityGroup.GroupId,
 		IpPermissions: []*ec2.IpPermission{masterPermission},
 	})
@@ -467,69 +315,6 @@ func (a *awsProvider) revokePort(masterSecurityGroup, workerSecurityGroup *ec2.S
 		return err
 	}
 
-	return nil
-}
-
-func (a *awsProvider) openIPsecPorts(vpc *ec2.Vpc) error {
-	permissions := getIPsecPortsPermission(a.nattPort, a.nattDiscoveryPort)
-	groupName := fmt.Sprintf("%s-submariner-gw-sg", a.infraId)
-	sg, err := a.findSecurityGroup(*vpc.VpcId, groupName)
-	if errors.IsNotFound(err) {
-		return a.createGatewaySecurityGroup(vpc, groupName, permissions)
-	}
-	if err != nil {
-		return err
-	}
-
-	// the rules has been built
-	if hasIPsecPorts(sg.IpPermissions, a.nattPort, a.nattDiscoveryPort) {
-		klog.V(4).Infof("the IPsec ports has been opened in security group %s on aws", *sg.GroupId)
-		return nil
-	}
-
-	if len(sg.IpPermissions) != 0 {
-		// revoke the old rules
-		if _, err = a.awsClinet.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
-			GroupId:       sg.GroupId,
-			IpPermissions: sg.IpPermissions,
-		}); err != nil {
-			return err
-		}
-	}
-
-	_, err = a.awsClinet.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
-		GroupId:       sg.GroupId,
-		IpPermissions: permissions,
-	})
-	return err
-}
-
-func (a *awsProvider) createGatewaySecurityGroup(vpc *ec2.Vpc, groupName string, permissions []*ec2.IpPermission) error {
-	sg, err := a.awsClinet.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
-		GroupName:   aws.String(groupName),
-		VpcId:       vpc.VpcId,
-		Description: aws.String("For submariner gateway"),
-		TagSpecifications: []*ec2.TagSpecification{
-			{
-				ResourceType: aws.String("security-group"),
-				Tags: []*ec2.Tag{
-					{
-						Key:   aws.String("Name"),
-						Value: aws.String(groupName),
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if _, err := a.awsClinet.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
-		GroupId:       sg.GroupId,
-		IpPermissions: permissions,
-	}); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -544,7 +329,7 @@ func (a *awsProvider) revokeIPsecPorts(vpc *ec2.Vpc) error {
 		return err
 	}
 
-	_, err = a.awsClinet.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+	_, err = a.awsClient.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
 		GroupId:       sg.GroupId,
 		IpPermissions: sg.IpPermissions,
 	})
@@ -555,52 +340,10 @@ func (a *awsProvider) revokeIPsecPorts(vpc *ec2.Vpc) error {
 	return err
 }
 
-func (a *awsProvider) tagSubnets(vpc *ec2.Vpc) ([]*ec2.Subnet, error) {
-	subnets, err := a.findSubnets(*vpc.VpcId)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, subnet := range subnets {
-		// the subnet has been labeled with internal ELB label (e.g. the submarinerconfig is reconciled again), just return it
-		tagged := false
-		for _, tag := range subnet.Tags {
-			if *tag.Key == internalELBLabel {
-				klog.V(4).Infof("subnet %s has been tagged with internal ELB label on aws", *subnet.SubnetId)
-				tagged = true
-				break
-			}
-		}
-		if tagged {
-			continue
-		}
-
-		if _, err := a.awsClinet.CreateTags(&ec2.CreateTagsInput{
-			Tags: []*ec2.Tag{
-				{
-					Key:   aws.String(internalELBLabel),
-					Value: aws.String(""),
-				},
-				{
-					Key:   aws.String(internalGatewayLabel),
-					Value: aws.String(""),
-				},
-			},
-			Resources: []*string{
-				subnet.SubnetId,
-			},
-		}); err != nil {
-			return nil, err
-		}
-	}
-
-	return subnets, nil
-}
-
 func (a *awsProvider) untagSubnet(vpc *ec2.Vpc) error {
 	// find subnets and filter them with internal ELB label and internal gateway label, then we will untag
 	// the subnet that has these labels
-	subnets, err := a.awsClinet.DescribeSubnets(&ec2.DescribeSubnetsInput{
+	subnets, err := a.awsClient.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("vpc-id"),
@@ -630,7 +373,7 @@ func (a *awsProvider) untagSubnet(vpc *ec2.Vpc) error {
 
 	var errs []error
 	for _, subnet := range subnets.Subnets {
-		if _, err = a.awsClinet.DeleteTags(&ec2.DeleteTagsInput{
+		if _, err = a.awsClient.DeleteTags(&ec2.DeleteTagsInput{
 			Tags: []*ec2.Tag{
 				{
 					Key:   aws.String(internalELBLabel),
@@ -652,63 +395,8 @@ func (a *awsProvider) untagSubnet(vpc *ec2.Vpc) error {
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (a *awsProvider) deployGatewayNode(amiId string, subnets []*ec2.Subnet) error {
-	manifests := []workv1.Manifest{}
-
-	aggregateClusterRole, err := manifestFiles.ReadFile(aggeragateClusterroleFile)
-	if err != nil {
-		return err
-	}
-	clusterRoleYamlData := assets.MustCreateAssetFromTemplate(
-		aggeragateClusterroleFile,
-		aggregateClusterRole,
-		nil).Data
-	clusterRoleJsonData, err := yaml.YAMLToJSON(clusterRoleYamlData)
-	if err != nil {
-		return err
-	}
-	manifests = append(manifests, workv1.Manifest{RawExtension: runtime.RawExtension{Raw: clusterRoleJsonData}})
-
-	manifest, err := manifestFiles.ReadFile(manifestFile)
-	if err != nil {
-		return err
-	}
-	for _, subnet := range subnets {
-		az := *subnet.AvailabilityZone
-		msYamlData := assets.MustCreateAssetFromTemplate(
-			manifestFile,
-			[]byte(manifest),
-			&machineSetConfig{
-				InfraId:           a.infraId,
-				AZ:                az,
-				AMIId:             amiId,
-				Region:            a.region,
-				SecurityGroupName: fmt.Sprintf("%s-submariner-gw-sg", a.infraId),
-				InstanceType:      a.instanceType,
-				SubnetName:        fmt.Sprintf("%s-public-%s", a.infraId, az),
-				NATTPort:          a.nattPort,
-			}).Data
-		msJsonData, err := yaml.YAMLToJSON(msYamlData)
-		if err != nil {
-			return err
-		}
-		manifests = append(manifests, workv1.Manifest{RawExtension: runtime.RawExtension{Raw: msJsonData}})
-	}
-
-	return helpers.ApplyManifestWork(context.TODO(), a.workClinet, &workv1.ManifestWork{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      workName,
-			Namespace: a.clusterName,
-		},
-		Spec: workv1.ManifestWorkSpec{
-			Workload: workv1.ManifestsTemplate{Manifests: manifests},
-		},
-	}, a.eventRecorder)
-}
-
 func (a *awsProvider) deleteGatewayNode() error {
-	err := a.workClinet.WorkV1().ManifestWorks(a.clusterName).Delete(context.TODO(), workName, metav1.DeleteOptions{})
+	err := a.workClient.WorkV1().ManifestWorks(a.clusterName).Delete(context.TODO(), workName, metav1.DeleteOptions{})
 	if errors.IsNotFound(err) {
 		return nil
 	}
@@ -754,7 +442,7 @@ func getIPsecPortsPermission(nattPort, nattDiscoveryPort int64) []*ec2.IpPermiss
 			SetFromPort(nattPort).
 			SetToPort(nattPort).
 			SetIpRanges([]*ec2.IpRange{
-				(&ec2.IpRange{}).SetCidrIp("0.0.0.0/0"),
+				(&ec2.IpRange{}).SetCidrIp("0.0.0.0/0").SetDescription("Public Submariner traffic"),
 			}),
 		(&ec2.IpPermission{}).
 			SetIpProtocol("udp").
@@ -764,32 +452,6 @@ func getIPsecPortsPermission(nattPort, nattDiscoveryPort int64) []*ec2.IpPermiss
 				(&ec2.IpRange{}).SetCidrIp("0.0.0.0/0"),
 			}),
 	}
-}
-
-func hasIPsecPorts(permissions []*ec2.IpPermission, expectedNatTPort, expectedNatTDiscoveryPort int64) bool {
-	if len(permissions) != 2 {
-		return false
-	}
-	ports := make(map[int64]bool)
-	ports[*permissions[0].FromPort] = true
-	ports[*permissions[1].FromPort] = true
-	if _, ok := ports[expectedNatTPort]; !ok {
-		return false
-	}
-	if _, ok := ports[expectedNatTDiscoveryPort]; !ok {
-		return false
-	}
-	return true
-}
-
-func isAWSDuplicatedError(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		// we had to hardcoded, see https://github.com/aws/aws-sdk-go/issues/3235
-		if awsErr.Code() == "InvalidPermission.Duplicate" {
-			return true
-		}
-	}
-	return false
 }
 
 func isAWSNotFoundError(err error) bool {
