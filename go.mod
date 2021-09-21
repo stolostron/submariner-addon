@@ -3,11 +3,11 @@ module github.com/open-cluster-management/submariner-addon
 go 1.16
 
 require (
-	github.com/aws/aws-sdk-go v1.40.45
+	github.com/aws/aws-sdk-go v1.40.41
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.16.0
+	github.com/onsi/gomega v1.15.0
 	github.com/openshift/api v0.0.0-20210521075222-e273a339932a
 	github.com/openshift/build-machinery-go v0.0.0-20210423112049-9415d7ebd33e
 	github.com/openshift/library-go v0.0.0-20210609150209-1c980926414c
@@ -25,7 +25,7 @@ require (
 	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/api v0.57.0
+	google.golang.org/api v0.56.0
 	k8s.io/api v0.21.3
 	k8s.io/apiextensions-apiserver v0.21.3
 	k8s.io/apimachinery v0.21.3
