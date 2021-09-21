@@ -6,7 +6,9 @@ import (
 	"embed"
 	"fmt"
 
+	"github.com/open-cluster-management/submariner-addon/pkg/finalizer"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -22,7 +24,6 @@ import (
 	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1"
 	clusterinformerv1alpha1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
 	clusterlisterv1alpha1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 )
 
 const (
@@ -89,19 +90,9 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	// Update finalizer at first
-	if clusterSet.DeletionTimestamp.IsZero() {
-		hasFinalizer := false
-		for i := range clusterSet.Finalizers {
-			if clusterSet.Finalizers[i] == brokerFinalizer {
-				hasFinalizer = true
-				break
-			}
-		}
-		if !hasFinalizer {
-			clusterSet.Finalizers = append(clusterSet.Finalizers, brokerFinalizer)
-			_, err := c.clustersetClient.Update(ctx, clusterSet, metav1.UpdateOptions{})
-			return err
-		}
+	added, err := finalizer.Add(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
+	if added {
+		return err
 	}
 
 	// ClusterSet is deleting, we remove its related resources on hub
@@ -109,7 +100,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 		if err := c.cleanUp(ctx, syncCtx, config); err != nil {
 			return err
 		}
-		return c.removeClusterManagerFinalizer(ctx, clusterSet)
+		return finalizer.Remove(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
 	}
 
 	// Apply static files
@@ -155,24 +146,6 @@ func (c *submarinerBrokerController) cleanUp(ctx context.Context, controllerCont
 		},
 		staticResourceFiles...,
 	)
-}
-
-func (c *submarinerBrokerController) removeClusterManagerFinalizer(ctx context.Context, clusterset *clusterv1alpha1.ManagedClusterSet) error {
-	copiedFinalizers := []string{}
-	for i := range clusterset.Finalizers {
-		if clusterset.Finalizers[i] == brokerFinalizer {
-			continue
-		}
-		copiedFinalizers = append(copiedFinalizers, clusterset.Finalizers[i])
-	}
-
-	if len(clusterset.Finalizers) != len(copiedFinalizers) {
-		clusterset.Finalizers = copiedFinalizers
-		_, err := c.clustersetClient.Update(ctx, clusterset, metav1.UpdateOptions{})
-		return err
-	}
-
-	return nil
 }
 
 func (c *submarinerBrokerController) createIPSecPSKSecret(brokerNamespace string) error {
