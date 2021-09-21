@@ -6,7 +6,7 @@ github.com/NYTimes/gziphandler
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/aws/aws-sdk-go v1.40.41
+# github.com/aws/aws-sdk-go v1.40.45
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -178,7 +178,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.15.0
+# github.com/onsi/gomega v1.16.0
 ## explicit
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -322,10 +322,12 @@ github.com/submariner-io/admiral/pkg/log
 github.com/submariner-io/admiral/pkg/resource
 github.com/submariner-io/admiral/pkg/stringset
 github.com/submariner-io/admiral/pkg/util
-# github.com/submariner-io/cloud-prepare v0.10.0-rc1.0.20210913082605-731c52714048
+# github.com/submariner-io/cloud-prepare v0.11.0-m2.0.20210920144917-0b33718646a7
 ## explicit
 github.com/submariner-io/cloud-prepare/pkg/api
 github.com/submariner-io/cloud-prepare/pkg/aws
+github.com/submariner-io/cloud-prepare/pkg/aws/client
+github.com/submariner-io/cloud-prepare/pkg/aws/client/fake
 github.com/submariner-io/cloud-prepare/pkg/gcp
 github.com/submariner-io/cloud-prepare/pkg/gcp/client
 github.com/submariner-io/cloud-prepare/pkg/k8s
@@ -471,7 +473,7 @@ golang.org/x/tools/internal/imports
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.56.0 => google.golang.org/api v0.29.0
+# google.golang.org/api v0.57.0 => google.golang.org/api v0.29.0
 ## explicit
 google.golang.org/api/compute/v1
 google.golang.org/api/dns/v1
@@ -1154,6 +1156,7 @@ k8s.io/gengo/namer
 k8s.io/gengo/parser
 k8s.io/gengo/types
 # k8s.io/klog v1.0.0
+## explicit
 k8s.io/klog
 # k8s.io/klog/v2 v2.8.0
 ## explicit

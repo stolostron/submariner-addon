@@ -50,7 +50,7 @@ type gcpProvider struct {
 }
 
 func NewGCPProvider(
-	restConfig *rest.Config	,
+	restConfig *rest.Config,
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
 	hubKubeClient kubernetes.Interface,
@@ -96,6 +96,9 @@ func NewGCPProvider(
 
 	gwDeployer, err := cloudpreparegcp.NewOcpGatewayDeployer(cloudPrepare, msDeployer, instanceType,
 		"", false, k8sClient)
+	if err != nil {
+		return nil, err
+	}
 
 	return &gcpProvider{
 		infraId:           infraId,

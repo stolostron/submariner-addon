@@ -2,6 +2,8 @@ package cloud
 
 import (
 	"fmt"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws"
@@ -23,6 +25,7 @@ type CloudProvider interface {
 }
 
 func GetCloudProvider(
+	restConfig *rest.Config,
 	kubeClient kubernetes.Interface,
 	workClient workclient.Interface,
 	dynamicClient dynamic.Interface,
@@ -59,8 +62,7 @@ func GetCloudProvider(
 			hubKubeClient,
 			eventsRecorder,
 			region, infraId, clusterName, config.Spec.CredentialsSecret.Name,
-			config.Spec.GatewayConfig.AWS.InstanceType,
-			config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort,config.Spec.Gateways,
+			"", config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways,
 		)
 	}
 	return nil, fmt.Errorf("unsupported cloud platform %q of cluster %q", platform, clusterName)
