@@ -137,7 +137,6 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	)
 
 	submarinerAgentController := submarineragent.NewSubmarinerAgentController(
-		controllerContext.KubeConfig,
 		kubeClient,
 		dynamicClient,
 		clusterClient,
