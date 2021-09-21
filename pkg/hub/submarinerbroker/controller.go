@@ -4,16 +4,12 @@ import (
 	"context"
 	"crypto/rand"
 	"embed"
-	"fmt"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/finalizer"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/resource"
-	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -81,13 +77,12 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 		// ClusterSet not found, could have been deleted, do nothing.
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
+
 	clusterSet = clusterSet.DeepCopy()
-	config := &brokerConfig{
-		SubmarinerNamespace: helpers.GenerateBrokerName(clusterSet.Name),
-	}
 
 	// Update finalizer at first
 	added, err := finalizer.Add(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
@@ -95,57 +90,28 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
+	config := &brokerConfig{
+		SubmarinerNamespace: helpers.GenerateBrokerName(clusterSet.Name),
+	}
+
+	assetFunc := resource.AssetFromFile(manifestFiles, config)
+
 	// ClusterSet is deleting, we remove its related resources on hub
 	if !clusterSet.DeletionTimestamp.IsZero() {
-		if err := c.cleanUp(ctx, syncCtx, config); err != nil {
+		if err := resource.DeleteFromManifests(c.kubeClient, syncCtx.Recorder(), assetFunc, staticResourceFiles...); err != nil {
 			return err
 		}
+
 		return finalizer.Remove(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
 	}
 
 	// Apply static files
-	clientHolder := resourceapply.NewKubeClientHolder(c.kubeClient)
-	applyResults := resourceapply.ApplyDirectly(
-		clientHolder,
-		syncCtx.Recorder(),
-		func(name string) ([]byte, error) {
-			template, err := manifestFiles.ReadFile(name)
-			if err != nil {
-				return nil, err
-			}
-			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
-		},
-		staticResourceFiles...,
-	)
-
-	errs := []error{}
-	for _, result := range applyResults {
-		if result.Error != nil {
-			errs = append(errs, fmt.Errorf("%q (%T): %v", result.File, result.Type, result.Error))
-		}
+	err = resource.ApplyManifests(c.kubeClient, syncCtx.Recorder(), assetFunc, staticResourceFiles...)
+	if err != nil {
+		return err
 	}
 
-	if err := c.createIPSecPSKSecret(config.SubmarinerNamespace); err != nil {
-		errs = append(errs, fmt.Errorf("unable to generate IPSECPSK secret : %v", err))
-	}
-
-	return operatorhelpers.NewMultiLineAggregate(errs)
-}
-
-func (c *submarinerBrokerController) cleanUp(ctx context.Context, controllerContext factory.SyncContext, config *brokerConfig) error {
-	return helpers.CleanUpSubmarinerManifests(
-		ctx,
-		c.kubeClient,
-		controllerContext.Recorder(),
-		func(name string) ([]byte, error) {
-			template, err := manifestFiles.ReadFile(name)
-			if err != nil {
-				return nil, err
-			}
-			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
-		},
-		staticResourceFiles...,
-	)
+	return c.createIPSecPSKSecret(config.SubmarinerNamespace)
 }
 
 func (c *submarinerBrokerController) createIPSecPSKSecret(brokerNamespace string) error {
