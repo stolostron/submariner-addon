@@ -1,119 +1,215 @@
-package submarinerbroker
+package submarinerbroker_test
 
 import (
 	"context"
-	"testing"
 	"time"
 
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
-	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
-	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
-
-	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
-
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	helpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker"
+	"github.com/openshift/library-go/pkg/operator/events"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kubefake "k8s.io/client-go/kubernetes/fake"
-	clienttesting "k8s.io/client-go/testing"
+	kubeFake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/cache"
+	clusterSetFake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
+	clusterSetInformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 )
 
-func TestSync(t *testing.T) {
-	cases := []struct {
-		name            string
-		clusterSetName  string
-		clustersets     []runtime.Object
-		validateActions func(t *testing.T, kubeActions, clusterSetActions []clienttesting.Action)
-	}{
-		{
-			name:           "No clusterset",
-			clusterSetName: "key",
-			clustersets:    []runtime.Object{},
-			validateActions: func(t *testing.T, kubeActions, clusterSetActions []clienttesting.Action) {
-				testinghelpers.AssertNoActions(t, kubeActions)
-				testinghelpers.AssertNoActions(t, clusterSetActions)
-			},
-		},
-		{
-			name:           "Create a clusterset",
-			clusterSetName: "set1",
-			clustersets:    []runtime.Object{newManagedClusterSet("set1", []string{}, false)},
-			validateActions: func(t *testing.T, kubeActions, clusterSetActions []clienttesting.Action) {
-				testinghelpers.AssertNoActions(t, kubeActions)
-				testinghelpers.AssertActions(t, clusterSetActions, "update")
-				managedClusterSet := clusterSetActions[0].(clienttesting.UpdateActionImpl).Object
-				testinghelpers.AssertFinalizers(t, managedClusterSet, []string{brokerFinalizer})
-			},
-		},
-		{
-			name:           "Sync an existed clusterset",
-			clusterSetName: "set1",
-			clustersets:    []runtime.Object{newManagedClusterSet("set1", []string{brokerFinalizer}, false)},
-			validateActions: func(t *testing.T, kubeActions, clusterSetActions []clienttesting.Action) {
-				testinghelpers.AssertNoActions(t, clusterSetActions)
-				testinghelpers.AssertActions(t, kubeActions, "get", "create", "get", "create", "get", "create")
-				namespace := (kubeActions[1].(clienttesting.CreateActionImpl).Object).(*corev1.Namespace)
-				if namespace.Name != "set1-broker" {
-					t.Errorf("expected set1-broker, but got %v", namespace)
-				}
-				testinghelpers.AssertActionResource(t, kubeActions[3], "roles")
-				testinghelpers.AssertActionResource(t, kubeActions[5], "secrets")
-			},
-		},
-		{
-			name:           "Delete a clusterset",
-			clusterSetName: "set1",
-			clustersets:    []runtime.Object{newManagedClusterSet("set1", []string{"test", brokerFinalizer}, true)},
-			validateActions: func(t *testing.T, kubeActions, clusterSetActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, kubeActions, "delete", "delete")
-				testinghelpers.AssertActionResource(t, kubeActions[0], "namespaces")
-				testinghelpers.AssertActionResource(t, kubeActions[1], "roles")
-				testinghelpers.AssertActions(t, clusterSetActions, "update")
-				managedClusterSet := clusterSetActions[0].(clienttesting.UpdateActionImpl).Object
-				testinghelpers.AssertFinalizers(t, managedClusterSet, []string{"test"})
-			},
-		},
-	}
+const (
+	finalizerName  = "cluster.open-cluster-management.io/submariner-cleanup"
+	clusterSetName = "east"
+	brokerNS       = "east-broker"
+	brokerRoleName = "submariner-k8s-broker-cluster"
+)
 
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			fakeKubeClient := kubefake.NewSimpleClientset()
+var _ = Describe("Controller", func() {
+	t := newBrokerControllerTestDriver()
 
-			fakeClusterClient := clusterfake.NewSimpleClientset(c.clustersets...)
-			informerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 5*time.Minute)
-			for _, clusterset := range c.clustersets {
-				informerFactory.Cluster().V1alpha1().ManagedClusterSets().Informer().GetStore().Add(clusterset)
-			}
-
-			ctrl := &submarinerBrokerController{
-				kubeClient:       fakeKubeClient,
-				clustersetClient: fakeClusterClient.ClusterV1alpha1().ManagedClusterSets(),
-				clusterSetLister: informerFactory.Cluster().V1alpha1().ManagedClusterSets().Lister(),
-				eventRecorder:    eventstesting.NewTestingEventRecorder(t),
-			}
-
-			err := ctrl.sync(context.TODO(), testinghelpers.NewFakeSyncContext(t, c.clusterSetName))
-			if err != nil {
-				t.Errorf("unexpected err: %v", err)
-			}
-
-			c.validateActions(t, fakeKubeClient.Actions(), fakeClusterClient.Actions())
+	When("a ManagedClusterSet is created", func() {
+		It("should add the Finalizer", func() {
+			helpers.AwaitFinalizer(finalizerName, func() (metav1.Object, error) {
+				return t.clusterSetClient.ClusterV1alpha1().ManagedClusterSets().Get(context.TODO(), clusterSetName, metav1.GetOptions{})
+			})
 		})
-	}
+
+		It("should create the broker Namespace resource", func() {
+			t.awaitNamespace()
+		})
+
+		It("should create the broker Role resource", func() {
+			Eventually(func() error {
+				_, err := t.kubeClient.RbacV1().Roles(brokerNS).Get(context.TODO(), brokerRoleName, metav1.GetOptions{})
+				return err
+			}).Should(Succeed(), "Broker Role not found")
+		})
+
+		It("should create the IPsec PSK Secret resource", func() {
+			t.awaitSecret()
+		})
+
+		Context("and creation of the broker Namespace resource initially fails", func() {
+			BeforeEach(func() {
+				t.justBeforeRun = func() {
+					helpers.FailOnAction(&t.kubeClient.Fake, "namespaces", "create", nil, true)
+				}
+			})
+
+			It("should eventually create it", func() {
+				t.awaitNamespace()
+			})
+		})
+
+		Context("and creation of the IPsec PSK Secret resource initially fails", func() {
+			BeforeEach(func() {
+				t.justBeforeRun = func() {
+					helpers.FailOnAction(&t.kubeClient.Fake, "secrets", "create", nil, true)
+				}
+			})
+
+			It("should eventually create it", func() {
+				t.awaitSecret()
+			})
+		})
+	})
+
+	When("a ManagedClusterSet is being deleted", func() {
+		BeforeEach(func() {
+			t.clusterSet.Finalizers = []string{finalizerName}
+			t.kubeObjs = []runtime.Object{
+				&corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: brokerNS,
+					},
+				},
+				&rbacv1.Role{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      brokerRoleName,
+						Namespace: brokerNS,
+					},
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			time.Sleep(200 * time.Millisecond)
+
+			now := metav1.Now()
+			t.clusterSet.DeletionTimestamp = &now
+
+			_, err := t.clusterSetClient.ClusterV1alpha1().ManagedClusterSets().Update(context.TODO(), t.clusterSet, metav1.UpdateOptions{})
+			Expect(err).To(Succeed())
+		})
+
+		It("should remove the Finalizer", func() {
+			helpers.AwaitNoFinalizer(finalizerName, func() (metav1.Object, error) {
+				return t.clusterSetClient.ClusterV1alpha1().ManagedClusterSets().Get(context.TODO(), clusterSetName, metav1.GetOptions{})
+			})
+		})
+
+		It("should delete the broker Namespace resource", func() {
+			t.awaitNoNamespace()
+		})
+
+		It("should delete the broker Role resource", func() {
+			Eventually(func() bool {
+				_, err := t.kubeClient.RbacV1().Roles(brokerNS).Get(context.TODO(), brokerRoleName, metav1.GetOptions{})
+				return errors.IsNotFound(err)
+			}).Should(BeTrue(), "Broker Role still exists")
+		})
+
+		Context("and deletion of the broker Namespace initially fails", func() {
+			BeforeEach(func() {
+				t.justBeforeRun = func() {
+					helpers.FailOnAction(&t.kubeClient.Fake, "namespaces", "delete", nil, true)
+				}
+			})
+
+			It("should eventually delete it", func() {
+				t.awaitNoNamespace()
+			})
+		})
+	})
+})
+
+type brokerControllerTestDriver struct {
+	kubeClient       *kubeFake.Clientset
+	kubeObjs         []runtime.Object
+	justBeforeRun    func()
+	clusterSetClient *clusterSetFake.Clientset
+	clusterSet       *clusterv1alpha1.ManagedClusterSet
+	stop             context.CancelFunc
 }
 
-func newManagedClusterSet(name string, finalizers []string, terminating bool) *clusterv1alpha1.ManagedClusterSet {
-	clusterSet := &clusterv1alpha1.ManagedClusterSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       name,
-			Finalizers: finalizers,
-		},
-	}
-	if terminating {
-		now := metav1.Now()
-		clusterSet.DeletionTimestamp = &now
-	}
+func newBrokerControllerTestDriver() *brokerControllerTestDriver {
+	t := &brokerControllerTestDriver{}
 
-	return clusterSet
+	BeforeEach(func() {
+		t.clusterSet = &clusterv1alpha1.ManagedClusterSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "east",
+			},
+		}
+
+		t.kubeObjs = []runtime.Object{}
+		t.justBeforeRun = nil
+	})
+
+	JustBeforeEach(func() {
+		t.kubeClient = kubeFake.NewSimpleClientset(t.kubeObjs...)
+
+		t.clusterSetClient = clusterSetFake.NewSimpleClientset(t.clusterSet)
+
+		informerFactory := clusterSetInformers.NewSharedInformerFactory(t.clusterSetClient, 0)
+
+		if t.justBeforeRun != nil {
+			t.justBeforeRun()
+		}
+
+		controller := submarinerbroker.NewController(t.clusterSetClient.ClusterV1alpha1().ManagedClusterSets(),
+			t.kubeClient, informerFactory.Cluster().V1alpha1().ManagedClusterSets(),
+			events.NewLoggingEventRecorder("test"))
+
+		var ctx context.Context
+
+		ctx, t.stop = context.WithCancel(context.TODO())
+
+		informerFactory.Start(ctx.Done())
+
+		cache.WaitForCacheSync(ctx.Done(), informerFactory.Cluster().V1alpha1().ManagedClusterSets().Informer().HasSynced)
+
+		go controller.Run(ctx, 1)
+	})
+
+	AfterEach(func() {
+		t.stop()
+	})
+
+	return t
+}
+
+func (t *brokerControllerTestDriver) awaitSecret() bool {
+	return Eventually(func() error {
+		_, err := t.kubeClient.CoreV1().Secrets(brokerNS).Get(context.TODO(), "submariner-ipsec-psk", metav1.GetOptions{})
+		return err
+	}).Should(Succeed(), "IPsec PSK Secret not found")
+}
+
+func (t *brokerControllerTestDriver) awaitNamespace() bool {
+	return Eventually(func() error {
+		_, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), brokerNS, metav1.GetOptions{})
+		return err
+	}).Should(Succeed(), "Broker Namespace not found")
+}
+
+func (t *brokerControllerTestDriver) awaitNoNamespace() bool {
+	return Eventually(func() bool {
+		_, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), brokerNS, metav1.GetOptions{})
+		return errors.IsNotFound(err)
+	}).Should(BeTrue(), "Broker Namespace still exists")
 }

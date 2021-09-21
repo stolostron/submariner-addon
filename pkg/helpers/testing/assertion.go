@@ -69,6 +69,26 @@ func EnsureNoActionsForResource(f *clienttesting.Fake, resource string, expected
 	}).Should(BeEmpty())
 }
 
+func AwaitFinalizer(finalizer string, get func() (metav1.Object, error)) {
+	Eventually(func() []string {
+		obj, err := get()
+		Expect(err).To(Succeed())
+
+		return obj.GetFinalizers()
+
+	}).Should(ContainElement(finalizer))
+}
+
+func AwaitNoFinalizer(finalizer string, get func() (metav1.Object, error)) {
+	Eventually(func() []string {
+		obj, err := get()
+		Expect(err).To(Succeed())
+
+		return obj.GetFinalizers()
+
+	}).ShouldNot(ContainElement(finalizer))
+}
+
 func AwaitStatusCondition(expCond metav1.Condition, get func() ([]metav1.Condition, error)) {
 	var found *metav1.Condition
 
