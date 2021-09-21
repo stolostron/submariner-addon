@@ -11,6 +11,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/klog"
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
@@ -117,6 +118,25 @@ func UpdateSubmarinerConfigStatus(
 	})
 
 	return updatedStatus, updated, err
+}
+
+func IsSubmarinerEnvPrepared(
+	client configclient.Interface,
+	namespace, name string) bool {
+	config, err := client.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+
+	if err == nil {
+		for _, conditions := range config.Status.Conditions {
+			klog.Errorf("type is %v, Status is %v", conditions.Type, conditions.Status)
+			if conditions.Type == configv1alpha1.SubmarinerConfigConditionEnvPrepared &&
+				conditions.Status == metav1.ConditionTrue {
+				klog.Errorf("Returning true", config.Status.Conditions)
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func UpdateSubmarinerConfigConditionFn(cond metav1.Condition) UpdateSubmarinerConfigStatusFunc {

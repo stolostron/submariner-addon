@@ -341,17 +341,21 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 		}
 	}
 
-	// config is deleting, we remove its related resources
-	if !config.DeletionTimestamp.IsZero() {
-		if err := c.cleanUpSubmarinerClusterEnv(ctx, config); err != nil {
-			return err
-		}
-		return helpers.RemoveConfigFinalizer(ctx, c.configClient, config, submarinerConfigFinalizer)
-	}
-
 	if managedCluster == nil {
 		return nil
 	}
+
+	// config is deleting, we remove its related resources
+	if !config.DeletionTimestamp.IsZero() {
+		if config.Status.ManagedClusterInfo.Platform == "AWS" {
+			if err := c.cleanUpSubmarinerClusterEnv(ctx, config); err != nil {
+				return err
+			}
+		}
+		return helpers.RemoveConfigFinalizer(ctx, c.configClient, config, submarinerConfigFinalizer)
+
+	}
+
 	managedClusterInfo := helpers.GetManagedClusterInfo(managedCluster)
 
 	if config.Spec.CredentialsSecret == nil {
@@ -371,23 +375,37 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 	// prepare submariner cluster environment
 	errs := []error{}
-	cloudProvider, preparedErr := cloud.GetCloudProvider(c.kubeClient, c.manifestWorkClient, c.eventRecorder, managedClusterInfo, config)
-	if preparedErr == nil {
-		preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
-	}
+	var condition  metav1.Condition
+	if config.Status.ManagedClusterInfo.Platform == "AWS" {
+		cloudProvider, preparedErr := cloud.GetCloudProvider(c.restConfig, c.kubeClient, c.manifestWorkClient, c.dynamicClient,
+			nil, c.eventRecorder, managedClusterInfo, config)
+		if preparedErr == nil {
+			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
+		}
 
-	condition := metav1.Condition{
-		Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
-		Status:  metav1.ConditionTrue,
-		Reason:  "SubmarinerClusterEnvPrepared",
-		Message: "Submariner cluster environment was prepared",
-	}
+		condition = metav1.Condition{
+			Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+			Status:  metav1.ConditionTrue,
+			Reason:  "SubmarinerClusterEnvPrepared",
+			Message: "Submariner cluster environment was prepared",
+		}
 
-	if preparedErr != nil {
-		condition.Status = metav1.ConditionFalse
-		condition.Reason = "SubmarinerClusterEnvPreparationFailed"
-		condition.Message = fmt.Sprintf("Failed to prepare submariner cluster environment: %v", preparedErr)
-		errs = append(errs, preparedErr)
+		if preparedErr != nil {
+			condition.Status = metav1.ConditionFalse
+			condition.Reason = "SubmarinerClusterEnvPreparationFailed"
+			condition.Message = fmt.Sprintf("Failed to prepare submariner cluster environment: %v", preparedErr)
+			errs = append(errs, preparedErr)
+		}
+	} else {
+		if !helpers.IsSubmarinerEnvPrepared(c.configClient, config.Namespace, config.Name) {
+			condition = metav1.Condition{
+				Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+				Status: metav1.ConditionFalse,
+				Reason: "SubmarinerClusterEnvPreparationNotYetDone",
+			}
+		} else {
+			return operatorhelpers.NewMultiLineAggregate(errs)
+		}
 	}
 
 	_, updated, updatedErr := helpers.UpdateSubmarinerConfigStatus(
@@ -568,16 +586,24 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Cont
 	}
 
 	managedClusterInfo := config.Status.ManagedClusterInfo
+<<<<<<< HEAD
 	cloudProvider, err := cloud.GetCloudProvider(c.kubeClient, c.manifestWorkClient, c.eventRecorder, managedClusterInfo, config)
+=======
+	cloudProvider, err := cloud.GetCloudProvider(c.restConfig, c.kubeClient, c.manifestWorkClient, c.dynamicClient,
+		nil, c.eventRecorder, managedClusterInfo, config)
+>>>>>>> f2c6054 (Use the cloud-prepare GCP client interface)
 	if err != nil {
 		//TODO handle the error gracefully in the future
 		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to create cloud provider: %v", err)
 		return nil
 	}
-	if err := cloudProvider.CleanUpSubmarinerClusterEnv(); err != nil {
-		//TODO handle the error gracefully in the future
-		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to clean up cloud environment: %v", err)
-		return nil
+
+	if config.Status.ManagedClusterInfo.Platform == "AWS" {
+		if err := cloudProvider.CleanUpSubmarinerClusterEnv(); err != nil {
+			//TODO handle the error gracefully in the future
+			c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to clean up cloud environment: %v", err)
+			return nil
+		}
 	}
 	c.eventRecorder.Eventf("SubmarinerClusterEnvDeleted", "the managed cluster %s submariner cluster environment is deleted", managedClusterInfo.ClusterName)
 	return nil

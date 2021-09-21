@@ -25,6 +25,8 @@ type CloudProvider interface {
 func GetCloudProvider(
 	kubeClient kubernetes.Interface,
 	workClient workclient.Interface,
+	dynamicClient dynamic.Interface,
+	hubKubeClient kubernetes.Interface,
 	eventsRecorder events.Recorder,
 	managedClusterInfo configv1alpha1.ManagedClusterInfo, config *configv1alpha1.SubmarinerConfig) (CloudProvider, error) {
 	clusterName := managedClusterInfo.ClusterName
@@ -51,10 +53,14 @@ func GetCloudProvider(
 		)
 	case "GCP":
 		return gcp.NewGCPProvider(
+			restConfig,
 			kubeClient,
+			dynamicClient,
+			hubKubeClient,
 			eventsRecorder,
-			infraId, clusterName, config.Spec.CredentialsSecret.Name,
-			config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort,
+			region, infraId, clusterName, config.Spec.CredentialsSecret.Name,
+			config.Spec.GatewayConfig.AWS.InstanceType,
+			config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort,config.Spec.Gateways,
 		)
 	}
 	return nil, fmt.Errorf("unsupported cloud platform %q of cluster %q", platform, clusterName)

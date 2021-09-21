@@ -24,3 +24,6 @@ rules:
 - apiGroups: ["submarineraddon.open-cluster-management.io"]
   resources: ["submarinerconfigs/status"]
   verbs: ["patch", "update"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]

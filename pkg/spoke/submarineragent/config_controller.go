@@ -7,22 +7,23 @@ import (
 	"strconv"
 	"strings"
 
+	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
+	"k8s.io/client-go/dynamic"
+	corev1lister "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/rest"
+	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
+
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
-	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
-	gcpclient "github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp/client"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"k8s.io/apimachinery/pkg/util/sets"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
-	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
-
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
-
-	compute "google.golang.org/api/compute/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -31,29 +32,17 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
-	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/retry"
 )
 
 // TODO expose this as a flag to allow user to specify their zone label
 var defaultZoneLabel = ""
 
-const (
-	submarinerAddOnFinalizer  = "submarineraddon.open-cluster-management.io/submariner-addon-agent-cleanup"
-	submarinerConfigFinalizer = "submarineraddon.open-cluster-management.io/config-addon-cleanup"
-)
-
 const submarinerGatewayCondition = "SubmarinerGatewaysLabeled"
 
 const (
 	submarinerUDPPortLabel = "gateway.submariner.io/udp-port"
 	workerNodeLabel        = "node-role.kubernetes.io/worker"
-	gcpZoneLabel           = "failure-domain.beta.kubernetes.io/zone"
-)
-
-const (
-	ocpMachineAPINamespace = "openshift-machine-api"
-	gcpCredentialsSecret   = "gcp-cloud-credentials"
 )
 
 type nodeLabelSelector struct {
@@ -64,33 +53,44 @@ type nodeLabelSelector struct {
 // submarinerConfigController watches the SubmarinerConfigs API on the hub cluster and apply
 // the related configuration on the manged cluster
 type submarinerConfigController struct {
-	kubeClient   kubernetes.Interface
-	addOnClient  addonclient.Interface
-	configClient configclient.Interface
-	nodeLister   corev1lister.NodeLister
-	addOnLister  addonlisterv1alpha1.ManagedClusterAddOnLister
-	configLister configlister.SubmarinerConfigLister
-	clusterName  string
+	restConfig    *rest.Config
+	kubeClient    kubernetes.Interface
+	addOnClient   addonclient.Interface
+	configClient  configclient.Interface
+	dynamicClient dynamic.Interface
+	hubKubeClient kubernetes.Interface
+	nodeLister    corev1lister.NodeLister
+	addOnLister   addonlisterv1alpha1.ManagedClusterAddOnLister
+	configLister  configlister.SubmarinerConfigLister
+	clusterName   string
+	eventRecorder events.Recorder
 }
 
 // NewSubmarinerConfigController returns an instance of submarinerAgentConfigController
 func NewSubmarinerConfigController(
+	restConfig *rest.Config,
 	clusterName string,
 	kubeClient kubernetes.Interface,
 	addOnClient addonclient.Interface,
 	configClient configclient.Interface,
+	dynamicClient dynamic.Interface,
+	hubKubeClient kubernetes.Interface,
 	nodeInformer corev1informers.NodeInformer,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
 	configInformer configinformer.SubmarinerConfigInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerConfigController{
-		kubeClient:   kubeClient,
-		addOnClient:  addOnClient,
-		configClient: configClient,
-		nodeLister:   nodeInformer.Lister(),
-		addOnLister:  addOnInformer.Lister(),
-		configLister: configInformer.Lister(),
-		clusterName:  clusterName,
+		restConfig:    restConfig,
+		kubeClient:    kubeClient,
+		addOnClient:   addOnClient,
+		configClient:  configClient,
+		dynamicClient: dynamicClient,
+		hubKubeClient: hubKubeClient,
+		nodeLister:    nodeInformer.Lister(),
+		addOnLister:   addOnInformer.Lister(),
+		configLister:  configInformer.Lister(),
+		clusterName:   clusterName,
+		eventRecorder: recorder,
 	}
 
 	return factory.New().
@@ -138,12 +138,10 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	if err != nil {
 		return err
 	}
-
 	if config.Status.ManagedClusterInfo.Platform == "" {
 		// no managed cluster info, do nothing
 		return nil
 	}
-
 	// addon is deleting from the hub, remove its related resources on the managed cluster
 	// TODO: add finalizer in next release
 	if !addOn.DeletionTimestamp.IsZero() {
@@ -151,6 +149,16 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 
 		if config.Status.ManagedClusterInfo.Platform == "AWS" {
 			// for AWS, the gateway configuration will be operated on the hub, do nothing
+			return nil
+		}
+
+		if config.Status.ManagedClusterInfo.Platform == "GCP" {
+			cloudProvider, preparedErr := cloud.GetCloudProvider(c.restConfig, c.kubeClient, nil, c.dynamicClient,
+				c.hubKubeClient, c.eventRecorder, config.Status.ManagedClusterInfo, config)
+			if preparedErr == nil {
+				preparedErr = cloudProvider.CleanUpSubmarinerClusterEnv()
+			}
+
 			return nil
 		}
 
@@ -179,6 +187,46 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		// for AWS, the gateway configuration will be operated on the hub
 		// count the gateways status on the managed cluster and report it to the hub
 		return c.updateGatewayStatus(syncCtx.Recorder(), config)
+	}
+
+	if config.Status.ManagedClusterInfo.Platform == "GCP" {
+		if !helpers.IsSubmarinerEnvPrepared(c.configClient, config.Namespace, config.Name) {
+			cloudProvider, preparedErr := cloud.GetCloudProvider(c.restConfig, c.kubeClient, nil, c.dynamicClient,
+				c.hubKubeClient, c.eventRecorder, config.Status.ManagedClusterInfo, config)
+
+			if preparedErr != nil {
+				return preparedErr
+			} else {
+				preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
+			}
+
+			if preparedErr != nil {
+				return preparedErr
+			}
+			condition := metav1.Condition{
+				Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+				Status:  metav1.ConditionTrue,
+				Reason:  "SubmarinerClusterEnvPrepared",
+				Message: "Submariner cluster environment was prepared",
+			}
+
+			managedClusterInfo := config.Status.ManagedClusterInfo
+			_, updated, updatedErr := helpers.UpdateSubmarinerConfigStatus(
+				c.configClient,
+				config.Namespace, config.Name,
+				helpers.UpdateSubmarinerConfigStatusFn(condition, managedClusterInfo),
+			)
+
+			if updatedErr != nil {
+				return err
+			}
+			if updated {
+				c.eventRecorder.Eventf("SubmarinerClusterEnvPrepared", "submariner cluster environment was prepared for manged cluster %s", config.Namespace)
+			}
+		}
+
+		updatedErr := c.updateGatewayStatus(syncCtx.Recorder(), config)
+		return updatedErr
 	}
 
 	// config is deleting from hub, remove its related resources
@@ -294,17 +342,6 @@ func (c *submarinerConfigController) getLabeledNodes(nodeLabelSelectors ...nodeL
 }
 
 func (c *submarinerConfigController) labelNode(ctx context.Context, config *configv1alpha1.SubmarinerConfig, node *corev1.Node) error {
-	if config.Status.ManagedClusterInfo.Platform == "GCP" {
-		gc, instance, err := c.getGCPInstance(node)
-		if err != nil {
-			return err
-		}
-
-		if err := gc.EnablePublicIP(instance); err != nil {
-			return err
-		}
-	}
-
 	_, hasGatewayLabel := node.Labels[submarinerGatewayLabel]
 	labeledPort, hasPortLabel := node.Labels[submarinerUDPPortLabel]
 	nattPort := strconv.Itoa(config.Spec.IPSecNATTPort)
@@ -342,17 +379,6 @@ func (c *submarinerConfigController) updateNode(ctx context.Context, node *corev
 }
 
 func (c *submarinerConfigController) unlabelNode(ctx context.Context, config *configv1alpha1.SubmarinerConfig, node *corev1.Node) error {
-	if config.Status.ManagedClusterInfo.Platform == "GCP" {
-		gc, instance, err := c.getGCPInstance(node)
-		if err != nil {
-			return err
-		}
-
-		if err := gc.DisablePublicIP(instance); err != nil {
-			return err
-		}
-	}
-
 	_, hasGatewayLabel := node.Labels[submarinerGatewayLabel]
 	_, hasPortLabel := node.Labels[submarinerUDPPortLabel]
 	if !hasGatewayLabel && !hasPortLabel {
@@ -368,15 +394,8 @@ func (c *submarinerConfigController) unlabelNode(ctx context.Context, config *co
 
 func (c *submarinerConfigController) addGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
 	expectedGateways int) ([]string, error) {
-	var zoneLabel string
-	// currently only gcp is supported
-	switch config.Status.ManagedClusterInfo.Platform {
-	case "GCP":
-		zoneLabel = gcpZoneLabel
-	default:
-		// for other non-public cloud platform (vsphere) or native k8s
-		zoneLabel = defaultZoneLabel
-	}
+	// for other non-public cloud platform (vsphere) or native k8s
+	zoneLabel := defaultZoneLabel
 
 	gateways, err := c.findGatewaysWithZone(expectedGateways, zoneLabel)
 	if err != nil {
@@ -501,23 +520,6 @@ func (c *submarinerConfigController) updateGatewayStatus(recorder events.Recorde
 	}
 
 	return c.updateSubmarinerConfigStatus(recorder, config, condition)
-}
-
-//TODO consider to put this into the cloud-library
-func (c *submarinerConfigController) getGCPInstance(node *corev1.Node) (gcpclient.Interface, *compute.Instance, error) {
-	gc, err := gcpclient.NewOauth2Client(c.kubeClient, ocpMachineAPINamespace, gcpCredentialsSecret)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	zone := node.Labels[gcpZoneLabel]
-	instanceName := strings.Split(node.Name, ".")[0]
-	instance, err := gc.GetInstance(zone, instanceName)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return gc, instance, nil
 }
 
 func failedCondition(formatMsg string, args ...interface{}) metav1.Condition {
