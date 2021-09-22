@@ -1,76 +1,105 @@
-package submarinerbroker
+package submarinerbroker_test
 
 import (
 	"context"
-	"testing"
-	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	helpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker"
+	"github.com/openshift/library-go/pkg/operator/events"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	fakeapiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
-
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
-
-	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
-
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextensionsInformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clienttesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 )
+
+var _ = Describe("CRDs Controller", func() {
+	t := newBrokerCRDsControllerTestDriver()
+
+	When("the SubmarinerConfig CRD is created", func() {
+		It("should deploy the Submariner CRDs", func() {
+			t.awaitSubmarinerCRDs()
+		})
+
+		Context("and CRD creation initially fails", func() {
+			BeforeEach(func() {
+				t.justBeforeRun = func() {
+					helpers.FailOnAction(&t.crdClient.Fake, "customresourcedefinitions", "create", nil, true)
+				}
+			})
+
+			It("should eventually deploy the Submariner CRDs", func() {
+				t.awaitSubmarinerCRDs()
+			})
+		})
+	})
+})
+
+type brokerCRDsControllerTestDriver struct {
+	crdClient     *fake.Clientset
+	crds          []runtime.Object
+	justBeforeRun func()
+	stop          context.CancelFunc
+}
+
+func newBrokerCRDsControllerTestDriver() *brokerCRDsControllerTestDriver {
+	t := &brokerCRDsControllerTestDriver{}
+
+	BeforeEach(func() {
+		t.crds = []runtime.Object{newSubmarinerConfigCRD()}
+		t.justBeforeRun = func() {}
+	})
+
+	JustBeforeEach(func() {
+		t.crdClient = fake.NewSimpleClientset(t.crds...)
+
+		informerFactory := apiextensionsInformers.NewSharedInformerFactory(t.crdClient, 0)
+
+		t.justBeforeRun()
+
+		controller := submarinerbroker.NewCRDsController(t.crdClient,
+			informerFactory.Apiextensions().V1().CustomResourceDefinitions(), events.NewLoggingEventRecorder("test"))
+
+		var ctx context.Context
+
+		ctx, t.stop = context.WithCancel(context.TODO())
+
+		informerFactory.Start(ctx.Done())
+
+		cache.WaitForCacheSync(ctx.Done(), informerFactory.Apiextensions().V1().CustomResourceDefinitions().Informer().HasSynced)
+
+		go controller.Run(ctx, 1)
+	})
+
+	AfterEach(func() {
+		t.stop()
+	})
+
+	return t
+}
+
+func (t *brokerCRDsControllerTestDriver) awaitSubmarinerCRDs() {
+	t.awaitCRD("clusters.submariner.io")
+	t.awaitCRD("endpoints.submariner.io")
+	t.awaitCRD("gateways.submariner.io")
+	t.awaitCRD("serviceimports.lighthouse.submariner.io")
+	t.awaitCRD("serviceimports.multicluster.x-k8s.io")
+}
+
+func (t *brokerCRDsControllerTestDriver) awaitCRD(name string) {
+	Eventually(func() error {
+		_, err := t.crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), name, metav1.GetOptions{})
+		return err
+	}).Should(Succeed(), "CRD %q not found", name)
+}
 
 func newSubmarinerConfigCRD() *apiextensionsv1.CustomResourceDefinition {
 	return &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: configCRDName,
+			Name: "submarinerconfigs.submarineraddon.open-cluster-management.io",
 		},
-	}
-}
-
-func TestNewSubmarinerBrokerCRDsControllerSync(t *testing.T) {
-	cases := []struct {
-		name            string
-		crdName         string
-		crds            []runtime.Object
-		validateActions func(t *testing.T, crdActions []clienttesting.Action)
-	}{
-		{
-			name:    "No submarinerConfig crd",
-			crdName: "test",
-			crds:    []runtime.Object{},
-			validateActions: func(t *testing.T, crdActions []clienttesting.Action) {
-				testinghelpers.AssertNoActions(t, crdActions)
-			},
-		},
-		{
-			name:    "has submarinerConfig CRD",
-			crdName: configCRDName,
-			crds:    []runtime.Object{newSubmarinerConfigCRD()},
-			validateActions: func(t *testing.T, crdActions []clienttesting.Action) {
-				testinghelpers.AssertActionResource(t, crdActions[2], "customresourcedefinitions")
-				testinghelpers.AssertActions(t, crdActions, "get", "get", "create", "get", "create", "get", "create", "get", "create", "get", "create")
-			},
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			fakeCRDClient := fakeapiextensionsclientset.NewSimpleClientset(c.crds...)
-			apiExtensionsInformers := apiextensionsinformers.NewSharedInformerFactory(fakeCRDClient, 10*time.Minute)
-			for _, crd := range c.crds {
-				apiExtensionsInformers.Apiextensions().V1beta1().CustomResourceDefinitions().Informer().GetStore().Add(crd)
-			}
-
-			ctrl := &submarinerBrokerCRDsController{
-				crdClient:     fakeCRDClient,
-				eventRecorder: eventstesting.NewTestingEventRecorder(t),
-			}
-
-			err := ctrl.sync(context.TODO(), testinghelpers.NewFakeSyncContext(t, c.crdName))
-			if err != nil {
-				t.Errorf("unexpected err: %v", err)
-			}
-
-			c.validateActions(t, fakeCRDClient.Actions())
-		})
 	}
 }
