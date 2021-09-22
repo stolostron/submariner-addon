@@ -2,16 +2,13 @@ package submarinerbroker
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
-	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
 
@@ -79,27 +76,5 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 		ConfigCRDUID: configCRD.GetUID(),
 	}
 
-	// Apply CRDs
-	clientHolder := helpers.NewCRDClientHolder().WithAPIExtensionsClient(c.crdClient)
-	applyResults := helpers.ApplyCRDDirectly(
-		clientHolder,
-		syncCtx.Recorder(),
-		func(name string) ([]byte, error) {
-			template, err := manifestFiles.ReadFile(name)
-			if err != nil {
-				return nil, err
-			}
-			return assets.MustCreateAssetFromTemplate(name, template, crdsConfig).Data, nil
-		},
-		staticCRDFiles...,
-	)
-
-	errs := []error{}
-	for _, result := range applyResults {
-		if result.Error != nil {
-			errs = append(errs, fmt.Errorf("%q (%T): %v", result.File, result.Type, result.Error))
-		}
-	}
-
-	return operatorhelpers.NewMultiLineAggregate(errs)
+	return resource.ApplyCRDs(c.crdClient, syncCtx.Recorder(), resource.AssetFromFile(manifestFiles, crdsConfig), staticCRDFiles...)
 }
