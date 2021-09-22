@@ -9,7 +9,7 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
 	github.com/openshift/api v0.0.0-20210521075222-e273a339932a
-	github.com/openshift/build-machinery-go v0.0.0-20210423112049-9415d7ebd33e
+	github.com/openshift/build-machinery-go v0.0.0-20210922160744-a9caf93aef90
 	github.com/openshift/library-go v0.0.0-20210609150209-1c980926414c
 	github.com/operator-framework/api v0.5.2
 	github.com/prometheus/common v0.30.0 // indirect
