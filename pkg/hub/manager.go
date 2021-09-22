@@ -124,7 +124,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	apiExtensionsInformers := apiextensionsinformers.NewSharedInformerFactory(apiExtensionClient, 10*time.Minute)
 	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnClient, 10*time.Minute)
 
-	submarinerBrokerCRDsController := submarinerbroker.NewSubmarinerBrokerCRDsController(
+	submarinerBrokerCRDsController := submarinerbroker.NewCRDsController(
 		apiExtensionClient,
 		apiExtensionsInformers.Apiextensions().V1().CustomResourceDefinitions(),
 		controllerContext.EventRecorder,

@@ -42,7 +42,7 @@ type submarinerBrokerCRDsController struct {
 	eventRecorder events.Recorder
 }
 
-func NewSubmarinerBrokerCRDsController(
+func NewCRDsController(
 	crdClient apiextensionsclientset.Interface,
 	crdInformer apiextensionsinformers.CustomResourceDefinitionInformer,
 	recorder events.Recorder) factory.Controller {
