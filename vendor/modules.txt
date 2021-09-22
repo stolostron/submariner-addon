@@ -318,6 +318,7 @@ github.com/spf13/cobra
 ## explicit
 github.com/spf13/pflag
 # github.com/submariner-io/admiral v0.11.0-m2
+## explicit
 github.com/submariner-io/admiral/pkg/log
 github.com/submariner-io/admiral/pkg/resource
 github.com/submariner-io/admiral/pkg/util
