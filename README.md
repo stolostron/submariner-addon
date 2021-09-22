@@ -110,5 +110,18 @@ The add-on has been integrated into ACM 2.2 as a default component:
    
    > Note: The manged clusters must meet the [`Prerequisites`](/doc/prerequisites.md) for Submariner.
 
-3. Start deploying Submariner to managed clusters following the [Setup of Submariner on the Hub cluster](#setup-of-submariner-on-the-hub-cluster) above.
- 
+3. To test an in-development version of the addon, build an image and push it to one of your repositories
+   on Quay, then edit the `ClusterServiceVersion` resource:
+
+   ```
+   kubectl edit ClusterServiceVersion -n open-cluster-management
+   ```
+
+   to replace all instances of the addon with your image tag.
+
+   You can find the appropriate digest on Quay by clicking on the “download” button and choosing
+   “Docker Pull (by digest)”.
+
+4. Start deploying Submariner to managed clusters following the [Setup of Submariner on the Hub cluster](#setup-of-submariner-on-the-hub-cluster) above.
+
+To use a different version of Submariner itself, edit `submariner.io-submariners-cr.yaml` and rebuild your image.
