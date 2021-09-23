@@ -119,23 +119,6 @@ func UpdateSubmarinerConfigStatus(
 	return updatedStatus, updated, err
 }
 
-func IsSubmarinerEnvPrepared(
-	client configclient.Interface,
-	namespace, name string) bool {
-	config, err := client.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-
-	if err == nil {
-		for _, conditions := range config.Status.Conditions {
-			if conditions.Type == configv1alpha1.SubmarinerConfigConditionEnvPrepared &&
-				conditions.Status == metav1.ConditionTrue {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
 func UpdateSubmarinerConfigConditionFn(cond metav1.Condition) UpdateSubmarinerConfigStatusFunc {
 	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
 		meta.SetStatusCondition(&oldStatus.Conditions, cond)

@@ -159,7 +159,9 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 				preparedErr = cloudProvider.CleanUpSubmarinerClusterEnv()
 			}
 
-			return nil
+			if preparedErr != nil {
+				return preparedErr
+			}
 		}
 
 		condition := metav1.Condition{
@@ -190,7 +192,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "GCP" {
-		if !helpers.IsSubmarinerEnvPrepared(c.configClient, config.Namespace, config.Name) {
+		if meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
 			cloudProvider, preparedErr := cloud.GetCloudProvider(c.restMapper, c.kubeClient, nil, c.dynamicClient,
 				c.hubKubeClient, c.eventRecorder, config.Status.ManagedClusterInfo, config)
 
