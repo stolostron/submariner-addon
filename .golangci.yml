@@ -1,4 +1,7 @@
 ---
+run:
+  skip-dirs:
+    - pkg/cloud
 linters-settings:
   gocritic:
     enabled-tags:
