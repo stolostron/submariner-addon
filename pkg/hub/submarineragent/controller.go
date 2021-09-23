@@ -580,7 +580,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Cont
 		nil, c.eventRecorder, managedClusterInfo, config)
 	if err != nil {
 		//TODO handle the error gracefully in the future
-		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to create cloud provider: %v", err)
+		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to get cloud provider: %v", err)
 		return nil
 	}
 

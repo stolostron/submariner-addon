@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 
@@ -81,10 +81,6 @@ func NewGCPProvider(
 	}
 
 	cloudPrepare := cloudpreparegcp.NewCloud(projectId, infraId, region, gcpClient)
-
-	if err != nil {
-		return nil, err
-	}
 
 	msDeployer := ocp.NewK8sMachinesetDeployer(restMapper, dynamicClient)
 
@@ -192,18 +188,25 @@ func newClient(kubeClient kubernetes.Interface, secretNamespace, secretName stri
 
 }
 
+// Reporter functions
+
+// Started will report that an operation started on the cloud
 func (g *gcpProvider) Started(message string, args ...interface{}) {
-	klog.Infof(fmt.Sprintf(message, args...))
+	g.eventRecorder.Eventf("SubmarinerClusterEnvBuild", fmt.Sprintf(message, args...))
 }
 
+// Succeeded will report that the last operation on the cloud has succeeded
 func (g *gcpProvider) Succeeded(message string, args ...interface{}) {
-	if message != "" {
-		klog.Info(fmt.Sprintf(message, args...))
-	}
+	g.eventRecorder.Eventf("SubmarinerClusterEnvBuild", message, args...)
 }
 
-func (g *gcpProvider) Failed(err ...error) {
-	if len(err) > 0 {
-		klog.Error(err[0].Error())
+// Failed will report that the last operation on the cloud has failed
+func (g *gcpProvider) Failed(errs ...error) {
+	message := "Failed"
+	errMessages := []string{}
+	for i := range errs {
+		message += "\n%s"
+		errMessages = append(errMessages, errs[i].Error())
 	}
+	g.eventRecorder.Warningf("SubmarinerClusterEnvBuild", message, errMessages)
 }

@@ -192,7 +192,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "GCP" {
-		if meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
+		if meta.IsStatusConditionFalse(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
 			cloudProvider, preparedErr := cloud.GetCloudProvider(c.restMapper, c.kubeClient, nil, c.dynamicClient,
 				c.hubKubeClient, c.eventRecorder, config.Status.ManagedClusterInfo, config)
 

@@ -32,7 +32,6 @@ require (
 	k8s.io/client-go v0.21.3
 	k8s.io/code-generator v0.21.3
 	k8s.io/component-base v0.21.3
-	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/utils v0.0.0-20210802155522-efc7438f0176 // indirect
 	open-cluster-management.io/addon-framework v0.0.0-20210803032803-58eac513499e
