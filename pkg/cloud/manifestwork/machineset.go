@@ -96,7 +96,7 @@ func (msd *manifestWorkMachineSetDeployer) Delete(machineSet *unstructured.Unstr
 }
 
 func toJSON(obj runtime.Object) ([]byte, error) {
-	jsonSerializer := json.NewSerializer(json.DefaultMetaFactory, nil, nil, false)
+	jsonSerializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, nil, nil, json.SerializerOptions{})
 
 	var b bytes.Buffer
 	writer := json.Framer.NewFrameWriter(&b)
