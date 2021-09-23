@@ -10,20 +10,17 @@ import (
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	workv1 "open-cluster-management.io/api/work/v1"
-
 	"github.com/openshift/api"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 	errorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -332,38 +329,6 @@ func GetEnv(key, defaultValue string) string {
 	return value
 }
 
-func ApplyManifestWork(ctx context.Context, client workclient.Interface, required *workv1.ManifestWork, recorder events.Recorder) error {
-	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		existing, err := client.WorkV1().ManifestWorks(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
-		switch {
-		case errors.IsNotFound(err):
-			_, err := client.WorkV1().ManifestWorks(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
-			if err != nil {
-				return err
-			}
-
-			recorder.Event("ManifestWorkApplied", fmt.Sprintf("manifestwork %s/%s was created", required.Namespace, required.Name))
-			return nil
-		case err != nil:
-			return err
-		}
-
-		if manifestsEqual(existing.Spec.Workload.Manifests, required.Spec.Workload.Manifests) {
-			return nil
-		}
-
-		existingCopy := existing.DeepCopy()
-		existingCopy.Spec = required.Spec
-		_, err = client.WorkV1().ManifestWorks(required.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
-		if err != nil {
-			return err
-		}
-
-		recorder.Event("ManifestWorkApplied", fmt.Sprintf("manifestwork %s/%s was updated", required.Namespace, required.Name))
-		return nil
-	})
-}
-
 func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alpha1.ManagedClusterInfo {
 	clusterInfo := configv1alpha1.ManagedClusterInfo{
 		ClusterName: managedCluster.Name,
@@ -386,19 +351,6 @@ func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 		}
 	}
 	return clusterInfo
-}
-
-func manifestsEqual(new, old []workv1.Manifest) bool {
-	if len(new) != len(old) {
-		return false
-	}
-
-	for i := range new {
-		if !equality.Semantic.DeepEqual(new[i].Raw, old[i].Raw) {
-			return false
-		}
-	}
-	return true
 }
 
 // GetCurrentNamespace returns the current namesapce from file system,

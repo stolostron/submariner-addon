@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
+	"github.com/open-cluster-management/submariner-addon/pkg/manifestwork"
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
@@ -477,7 +478,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	if err != nil {
 		return err
 	}
-	if err := helpers.ApplyManifestWork(ctx, c.manifestWorkClient, operatorManifestWork, c.eventRecorder); err != nil {
+	if err := manifestwork.Apply(ctx, c.manifestWorkClient, operatorManifestWork, c.eventRecorder); err != nil {
 		return err
 	}
 
