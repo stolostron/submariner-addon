@@ -11,7 +11,6 @@ import (
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"k8s.io/client-go/dynamic"
 	corev1lister "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/rest"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
@@ -27,6 +26,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -53,7 +53,7 @@ type nodeLabelSelector struct {
 // submarinerConfigController watches the SubmarinerConfigs API on the hub cluster and apply
 // the related configuration on the manged cluster
 type submarinerConfigController struct {
-	restConfig    *rest.Config
+	restMapper    meta.RESTMapper
 	kubeClient    kubernetes.Interface
 	addOnClient   addonclient.Interface
 	configClient  configclient.Interface
@@ -68,7 +68,7 @@ type submarinerConfigController struct {
 
 // NewSubmarinerConfigController returns an instance of submarinerAgentConfigController
 func NewSubmarinerConfigController(
-	restConfig *rest.Config,
+	restMapper meta.RESTMapper,
 	clusterName string,
 	kubeClient kubernetes.Interface,
 	addOnClient addonclient.Interface,
@@ -80,7 +80,7 @@ func NewSubmarinerConfigController(
 	configInformer configinformer.SubmarinerConfigInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerConfigController{
-		restConfig:    restConfig,
+		restMapper:    restMapper,
 		kubeClient:    kubeClient,
 		addOnClient:   addOnClient,
 		configClient:  configClient,
@@ -153,7 +153,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		}
 
 		if config.Status.ManagedClusterInfo.Platform == "GCP" {
-			cloudProvider, preparedErr := cloud.GetCloudProvider(c.restConfig, c.kubeClient, nil, c.dynamicClient,
+			cloudProvider, preparedErr := cloud.GetCloudProvider(c.restMapper, c.kubeClient, nil, c.dynamicClient,
 				c.hubKubeClient, c.eventRecorder, config.Status.ManagedClusterInfo, config)
 			if preparedErr == nil {
 				preparedErr = cloudProvider.CleanUpSubmarinerClusterEnv()
@@ -191,7 +191,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 
 	if config.Status.ManagedClusterInfo.Platform == "GCP" {
 		if !helpers.IsSubmarinerEnvPrepared(c.configClient, config.Namespace, config.Name) {
-			cloudProvider, preparedErr := cloud.GetCloudProvider(c.restConfig, c.kubeClient, nil, c.dynamicClient,
+			cloudProvider, preparedErr := cloud.GetCloudProvider(c.restMapper, c.kubeClient, nil, c.dynamicClient,
 				c.hubKubeClient, c.eventRecorder, config.Status.ManagedClusterInfo, config)
 
 			if preparedErr != nil {
@@ -200,14 +200,17 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 				preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
 			}
 
-			if preparedErr != nil {
-				return preparedErr
-			}
-			condition := metav1.Condition{
+			condition := &metav1.Condition{
 				Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
 				Status:  metav1.ConditionTrue,
 				Reason:  "SubmarinerClusterEnvPrepared",
 				Message: "Submariner cluster environment was prepared",
+			}
+
+			if preparedErr != nil {
+				condition.Status = metav1.ConditionFalse
+				condition.Reason = "SubmarinerClusterEnvPreparationFailed"
+				condition.Message = fmt.Sprintf("Failed to prepare submariner cluster environment: %v", preparedErr)
 			}
 
 			managedClusterInfo := config.Status.ManagedClusterInfo

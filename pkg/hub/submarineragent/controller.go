@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"k8s.io/client-go/rest"
 
 	"github.com/ghodss/yaml"
 
@@ -89,7 +88,6 @@ type clusterRBACConfig struct {
 // submarinerAgentController reconciles instances of ManagedCluster on the hub to deploy/remove
 // corresponding submariner agent manifestworks
 type submarinerAgentController struct {
-	restConfig         *rest.Config
 	kubeClient         kubernetes.Interface
 	dynamicClient      dynamic.Interface
 	clusterClient      clusterclient.Interface
@@ -365,7 +363,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 		_, _, err := helpers.UpdateSubmarinerConfigStatus(
 			c.configClient,
 			config.Namespace, config.Name,
-			helpers.UpdateSubmarinerConfigStatusFn(metav1.Condition{
+			helpers.UpdateSubmarinerConfigStatusFn(&metav1.Condition{
 				Type:    configv1alpha1.SubmarinerConfigConditionApplied,
 				Status:  metav1.ConditionTrue,
 				Reason:  "SubmarinerConfigApplied",
@@ -377,15 +375,15 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 	// prepare submariner cluster environment
 	errs := []error{}
-	var condition metav1.Condition
-	if config.Status.ManagedClusterInfo.Platform != "GCP" {
-		cloudProvider, preparedErr := cloud.GetCloudProvider(c.restConfig, c.kubeClient, c.manifestWorkClient, c.dynamicClient,
+	var condition *metav1.Condition
+	if managedClusterInfo.Platform != "GCP" {
+		cloudProvider, preparedErr := cloud.GetCloudProvider(nil, c.kubeClient, c.manifestWorkClient, c.dynamicClient,
 			nil, c.eventRecorder, managedClusterInfo, config)
 		if preparedErr == nil {
 			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
 		}
 
-		condition = metav1.Condition{
+		condition = &metav1.Condition{
 			Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
 			Status:  metav1.ConditionTrue,
 			Reason:  "SubmarinerClusterEnvPrepared",
@@ -397,16 +395,6 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 			condition.Reason = "SubmarinerClusterEnvPreparationFailed"
 			condition.Message = fmt.Sprintf("Failed to prepare submariner cluster environment: %v", preparedErr)
 			errs = append(errs, preparedErr)
-		}
-	} else {
-		if !helpers.IsSubmarinerEnvPrepared(c.configClient, config.Namespace, config.Name) {
-			condition = metav1.Condition{
-				Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
-				Status: metav1.ConditionFalse,
-				Reason: "SubmarinerClusterEnvPreparationNotYetDone",
-			}
-		} else {
-			return operatorhelpers.NewMultiLineAggregate(errs)
 		}
 	}
 
@@ -588,7 +576,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Cont
 	}
 
 	managedClusterInfo := config.Status.ManagedClusterInfo
-	cloudProvider, err := cloud.GetCloudProvider(c.restConfig, c.kubeClient, c.manifestWorkClient, c.dynamicClient,
+	cloudProvider, err := cloud.GetCloudProvider(nil, c.kubeClient, c.manifestWorkClient, c.dynamicClient,
 		nil, c.eventRecorder, managedClusterInfo, config)
 	if err != nil {
 		//TODO handle the error gracefully in the future
@@ -596,13 +584,12 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Cont
 		return nil
 	}
 
-	if config.Status.ManagedClusterInfo.Platform != "GCP" {
-		if err := cloudProvider.CleanUpSubmarinerClusterEnv(); err != nil {
-			//TODO handle the error gracefully in the future
-			c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to clean up cloud environment: %v", err)
-			return nil
-		}
+	if err := cloudProvider.CleanUpSubmarinerClusterEnv(); err != nil {
+		//TODO handle the error gracefully in the future
+		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to clean up cloud environment: %v", err)
+		return nil
 	}
+
 	c.eventRecorder.Eventf("SubmarinerClusterEnvDeleted", "the managed cluster %s submariner cluster environment is deleted", managedClusterInfo.ClusterName)
 	return nil
 }

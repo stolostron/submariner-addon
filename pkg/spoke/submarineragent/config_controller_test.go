@@ -2,7 +2,6 @@ package submarineragent_test
 
 import (
 	"context"
-	"k8s.io/client-go/rest"
 	"strconv"
 	"time"
 
@@ -462,7 +461,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 
 		addOnInformerFactory := addonInformers.NewSharedInformerFactory(t.addOnClient, defaultResync)
 
-		t.controller = submarineragent.NewSubmarinerConfigController(&rest.Config{}, clusterName, t.kubeClient, t.addOnClient, t.configClient,
+		t.controller = submarineragent.NewSubmarinerConfigController(nil, clusterName, t.kubeClient, t.addOnClient, t.configClient,
 			nil, nil, kubeInformerFactory.Core().V1().Nodes(), addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
 			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 			events.NewLoggingEventRecorder("test"))

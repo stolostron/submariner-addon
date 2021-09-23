@@ -143,10 +143,12 @@ func UpdateSubmarinerConfigConditionFn(cond metav1.Condition) UpdateSubmarinerCo
 	}
 }
 
-func UpdateSubmarinerConfigStatusFn(cond metav1.Condition, managedClusterInfo configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
+func UpdateSubmarinerConfigStatusFn(cond *metav1.Condition, managedClusterInfo configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
 	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
 		oldStatus.ManagedClusterInfo = managedClusterInfo
-		meta.SetStatusCondition(&oldStatus.Conditions, cond)
+		if cond != nil {
+			meta.SetStatusCondition(&oldStatus.Conditions, *cond)
+		}
 		return nil
 	}
 }

@@ -13,10 +13,7 @@ import (
 	"google.golang.org/api/option"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/klog"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
@@ -50,7 +47,7 @@ type gcpProvider struct {
 }
 
 func NewGCPProvider(
-	restConfig *rest.Config,
+	restMapper meta.RESTMapper,
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
 	hubKubeClient kubernetes.Interface,
@@ -77,7 +74,7 @@ func NewGCPProvider(
 		nattDiscoveryPort = helpers.SubmarinerNatTDiscoveryPort
 	}
 
-	projectId, gcpClient, err := NewClient(hubKubeClient, clusterName, credentialsSecretName)
+	projectId, gcpClient, err := newClient(hubKubeClient, clusterName, credentialsSecretName)
 	if err != nil {
 		klog.Errorf("Unable to retrieve the gcpclient :%v", err)
 		return nil, err
@@ -85,7 +82,6 @@ func NewGCPProvider(
 
 	cloudPrepare := cloudpreparegcp.NewCloud(projectId, infraId, region, gcpClient)
 
-	restMapper, err := buildRestMapper(restConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +163,7 @@ func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func NewClient(kubeClient kubernetes.Interface, secretNamespace, secretName string) (string, gcpclient.Interface, error) {
+func newClient(kubeClient kubernetes.Interface, secretNamespace, secretName string) (string, gcpclient.Interface, error) {
 	credentialsSecret, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return "", nil, err
@@ -194,20 +190,6 @@ func NewClient(kubeClient kubernetes.Interface, secretNamespace, secretName stri
 
 	return creds.ProjectID, computeClient, nil
 
-}
-
-func buildRestMapper(restConfig *rest.Config) (meta.RESTMapper, error) {
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("error creating discovery client: %v", err)
-	}
-
-	groupResources, err := restmapper.GetAPIGroupResources(discoveryClient)
-	if err != nil {
-		return nil, fmt.Errorf("error retrieving API group resources: %v", err)
-	}
-
-	return restmapper.NewDiscoveryRESTMapper(groupResources), nil
 }
 
 func (g *gcpProvider) Started(message string, args ...interface{}) {

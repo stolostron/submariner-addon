@@ -3,6 +3,7 @@ package spoke
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -17,11 +18,15 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -109,6 +114,11 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		return err
 	}
 
+	restMapper, err := buildRestMapper(controllerContext.KubeConfig)
+	if err != nil {
+		return err
+	}
+
 	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnHubKubeClient, 10*time.Minute, addoninformers.WithNamespace(o.ClusterName))
 	configInformers := configinformers.NewSharedInformerFactoryWithOptions(configHubKubeClient, 10*time.Minute, configinformers.WithNamespace(o.ClusterName))
 
@@ -117,7 +127,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	dynamicInformers := dynamicinformer.NewFilteredDynamicSharedInformerFactory(spokeDynamicClient, 10*time.Minute, o.InstallationNamespace, nil)
 
 	submarinerConfigController := submarineragent.NewSubmarinerConfigController(
-		controllerContext.KubeConfig,
+		restMapper,
 		o.ClusterName,
 		spokeKubeClient,
 		addOnHubKubeClient,
@@ -164,4 +174,18 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 
 	<-ctx.Done()
 	return nil
+}
+
+func buildRestMapper(restConfig *rest.Config) (meta.RESTMapper, error) {
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("error creating discovery client: %v", err)
+	}
+
+	groupResources, err := restmapper.GetAPIGroupResources(discoveryClient)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving API group resources: %v", err)
+	}
+
+	return restmapper.NewDiscoveryRESTMapper(groupResources), nil
 }

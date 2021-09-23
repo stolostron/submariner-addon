@@ -2,8 +2,6 @@ package cloud
 
 import (
 	"fmt"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws"
@@ -13,6 +11,8 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
@@ -25,7 +25,7 @@ type CloudProvider interface {
 }
 
 func GetCloudProvider(
-	restConfig *rest.Config,
+	restMapper meta.RESTMapper,
 	kubeClient kubernetes.Interface,
 	workClient workclient.Interface,
 	dynamicClient dynamic.Interface,
@@ -56,7 +56,7 @@ func GetCloudProvider(
 		)
 	case "GCP":
 		return gcp.NewGCPProvider(
-			restConfig,
+			restMapper,
 			kubeClient,
 			dynamicClient,
 			hubKubeClient,
