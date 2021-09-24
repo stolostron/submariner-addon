@@ -12,13 +12,10 @@ import (
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
-	fakeworkclient "open-cluster-management.io/api/client/work/clientset/versioned/fake"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	workv1 "open-cluster-management.io/api/work/v1"
-
-	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kubefake "k8s.io/client-go/kubernetes/fake"
-	clienttesting "k8s.io/client-go/testing"
 )
 
 func TestUpdateStatusCondition(t *testing.T) {
@@ -407,133 +403,6 @@ func TestGetManagedClusterInfo(t *testing.T) {
 			if !reflect.DeepEqual(info, c.expected) {
 				t.Errorf("expect %v, but %s", c.expected, info)
 			}
-		})
-	}
-}
-
-func TestApplyManifestWork(t *testing.T) {
-	cases := []struct {
-		name            string
-		existingWorks   []runtime.Object
-		work            *workv1.ManifestWork
-		validateActions func(t *testing.T, workActions []clienttesting.Action)
-	}{
-		{
-			name:          "create a work",
-			existingWorks: []runtime.Object{},
-			work: &workv1.ManifestWork{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "test",
-				},
-				Spec: workv1.ManifestWorkSpec{
-					Workload: workv1.ManifestsTemplate{
-						Manifests: []workv1.Manifest{},
-					},
-				},
-			},
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "get", "create")
-			},
-		},
-		{
-			name: "update a work",
-			existingWorks: []runtime.Object{
-				&workv1.ManifestWork{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test",
-						Namespace: "test",
-					},
-					Spec: workv1.ManifestWorkSpec{
-						Workload: workv1.ManifestsTemplate{
-							Manifests: []workv1.Manifest{
-								{
-									RawExtension: runtime.RawExtension{
-										Raw: []byte("test1"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			work: &workv1.ManifestWork{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "test",
-				},
-				Spec: workv1.ManifestWorkSpec{
-					Workload: workv1.ManifestsTemplate{
-						Manifests: []workv1.Manifest{
-							{
-								RawExtension: runtime.RawExtension{
-									Raw: []byte("test2"),
-								},
-							},
-						},
-					},
-				},
-			},
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "get", "update")
-			},
-		},
-		{
-			name: "update a same work",
-			existingWorks: []runtime.Object{
-				&workv1.ManifestWork{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test",
-						Namespace: "test",
-					},
-					Spec: workv1.ManifestWorkSpec{
-						Workload: workv1.ManifestsTemplate{
-							Manifests: []workv1.Manifest{
-								{
-									RawExtension: runtime.RawExtension{
-										Raw: []byte("test"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			work: &workv1.ManifestWork{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "test",
-				},
-				Spec: workv1.ManifestWorkSpec{
-					Workload: workv1.ManifestsTemplate{
-						Manifests: []workv1.Manifest{
-							{
-								RawExtension: runtime.RawExtension{
-									Raw: []byte("test"),
-								},
-							},
-						},
-					},
-				},
-			},
-			validateActions: func(t *testing.T, workActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, workActions, "get")
-			},
-		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			workClient := fakeworkclient.NewSimpleClientset(c.existingWorks...)
-			err := ApplyManifestWork(context.TODO(), workClient, c.work, eventstesting.NewTestingEventRecorder(t))
-			if err != nil {
-				t.Errorf("expect no err, but got: %v", err)
-			}
-			c.validateActions(t, workClient.Actions())
 		})
 	}
 }

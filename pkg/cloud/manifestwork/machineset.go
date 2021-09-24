@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/manifestwork"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
@@ -70,7 +70,7 @@ func (msd *manifestWorkMachineSetDeployer) Deploy(machineSet *unstructured.Unstr
 	}
 	manifests = append(manifests, workv1.Manifest{RawExtension: runtime.RawExtension{Raw: machineSetJson}})
 
-	return helpers.ApplyManifestWork(context.TODO(), msd.client, &workv1.ManifestWork{
+	return manifestwork.Apply(context.TODO(), msd.client, &workv1.ManifestWork{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      msd.workName,
