@@ -31,6 +31,8 @@ var (
 	staticResourceFiles = []string{
 		"manifests/broker-namespace.yaml",
 		"manifests/broker-cluster-role.yaml",
+		"../submarineragent/manifests/operator/submariner-operator-subscription.yaml",
+		"manifests/operator/submariner.io-broker-cr.yaml",
 	}
 )
 
