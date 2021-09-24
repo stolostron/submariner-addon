@@ -8,12 +8,11 @@ import (
 	"io/ioutil"
 	"os"
 
+	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-
-	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
@@ -107,7 +106,8 @@ func UpdateSubmarinerConfigStatus(
 		}
 
 		config.Status = *newStatus
-		updatedConfig, err := client.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).UpdateStatus(context.TODO(), config, metav1.UpdateOptions{})
+		updatedConfig, err := client.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).UpdateStatus(context.TODO(),
+			config, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -126,10 +126,12 @@ func UpdateSubmarinerConfigConditionFn(cond metav1.Condition) UpdateSubmarinerCo
 	}
 }
 
-func UpdateSubmarinerConfigStatusFn(cond metav1.Condition, managedClusterInfo configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
+func UpdateSubmarinerConfigStatusFn(cond *metav1.Condition, managedClusterInfo configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
 	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
 		oldStatus.ManagedClusterInfo = managedClusterInfo
-		meta.SetStatusCondition(&oldStatus.Conditions, cond)
+		if cond != nil {
+			meta.SetStatusCondition(&oldStatus.Conditions, *cond)
+		}
 		return nil
 	}
 }

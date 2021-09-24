@@ -321,6 +321,7 @@ github.com/spf13/pflag
 ## explicit
 github.com/submariner-io/admiral/pkg/log
 github.com/submariner-io/admiral/pkg/resource
+github.com/submariner-io/admiral/pkg/stringset
 github.com/submariner-io/admiral/pkg/util
 # github.com/submariner-io/cloud-prepare v0.11.0-m2.0.20210920144917-0b33718646a7
 ## explicit
@@ -328,6 +329,9 @@ github.com/submariner-io/cloud-prepare/pkg/api
 github.com/submariner-io/cloud-prepare/pkg/aws
 github.com/submariner-io/cloud-prepare/pkg/aws/client
 github.com/submariner-io/cloud-prepare/pkg/aws/client/fake
+github.com/submariner-io/cloud-prepare/pkg/gcp
+github.com/submariner-io/cloud-prepare/pkg/gcp/client
+github.com/submariner-io/cloud-prepare/pkg/k8s
 github.com/submariner-io/cloud-prepare/pkg/ocp
 # github.com/submariner-io/submariner-operator/apis v0.0.0-20210817145008-861856b068a1
 ## explicit

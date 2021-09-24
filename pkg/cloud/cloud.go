@@ -11,6 +11,8 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
@@ -23,8 +25,11 @@ type CloudProvider interface {
 }
 
 func GetCloudProvider(
+	restMapper meta.RESTMapper,
 	kubeClient kubernetes.Interface,
 	workClient workclient.Interface,
+	dynamicClient dynamic.Interface,
+	hubKubeClient kubernetes.Interface,
 	eventsRecorder events.Recorder,
 	managedClusterInfo configv1alpha1.ManagedClusterInfo, config *configv1alpha1.SubmarinerConfig) (CloudProvider, error) {
 	clusterName := managedClusterInfo.ClusterName
@@ -51,10 +56,13 @@ func GetCloudProvider(
 		)
 	case "GCP":
 		return gcp.NewGCPProvider(
+			restMapper,
 			kubeClient,
+			dynamicClient,
+			hubKubeClient,
 			eventsRecorder,
-			infraId, clusterName, config.Spec.CredentialsSecret.Name,
-			config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort,
+			region, infraId, clusterName, config.Spec.CredentialsSecret.Name,
+			"", config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways,
 		)
 	}
 	return nil, fmt.Errorf("unsupported cloud platform %q of cluster %q", platform, clusterName)
