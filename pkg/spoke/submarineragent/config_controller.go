@@ -9,7 +9,6 @@ import (
 
 	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
-	"k8s.io/client-go/dynamic"
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 
@@ -21,7 +20,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	"k8s.io/apimachinery/pkg/util/sets"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -53,44 +51,35 @@ type nodeLabelSelector struct {
 // submarinerConfigController watches the SubmarinerConfigs API on the hub cluster and apply
 // the related configuration on the manged cluster
 type submarinerConfigController struct {
-	restMapper    meta.RESTMapper
-	kubeClient    kubernetes.Interface
-	addOnClient   addonclient.Interface
-	configClient  configclient.Interface
-	dynamicClient dynamic.Interface
-	hubKubeClient kubernetes.Interface
-	nodeLister    corev1lister.NodeLister
-	addOnLister   addonlisterv1alpha1.ManagedClusterAddOnLister
-	configLister  configlister.SubmarinerConfigLister
-	clusterName   string
-	eventRecorder events.Recorder
+	kubeClient           kubernetes.Interface
+	configClient         configclient.Interface
+	nodeLister           corev1lister.NodeLister
+	addOnLister          addonlisterv1alpha1.ManagedClusterAddOnLister
+	configLister         configlister.SubmarinerConfigLister
+	clusterName          string
+	cloudProviderFactory cloud.ProviderFactory
+	eventRecorder        events.Recorder
 }
 
 // NewSubmarinerConfigController returns an instance of submarinerAgentConfigController
 func NewSubmarinerConfigController(
-	restMapper meta.RESTMapper,
 	clusterName string,
 	kubeClient kubernetes.Interface,
-	addOnClient addonclient.Interface,
 	configClient configclient.Interface,
-	dynamicClient dynamic.Interface,
-	hubKubeClient kubernetes.Interface,
 	nodeInformer corev1informers.NodeInformer,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
 	configInformer configinformer.SubmarinerConfigInformer,
+	cloudProviderFactory cloud.ProviderFactory,
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerConfigController{
-		restMapper:    restMapper,
-		kubeClient:    kubeClient,
-		addOnClient:   addOnClient,
-		configClient:  configClient,
-		dynamicClient: dynamicClient,
-		hubKubeClient: hubKubeClient,
-		nodeLister:    nodeInformer.Lister(),
-		addOnLister:   addOnInformer.Lister(),
-		configLister:  configInformer.Lister(),
-		clusterName:   clusterName,
-		eventRecorder: recorder,
+		kubeClient:           kubeClient,
+		configClient:         configClient,
+		nodeLister:           nodeInformer.Lister(),
+		addOnLister:          addOnInformer.Lister(),
+		configLister:         configInformer.Lister(),
+		clusterName:          clusterName,
+		cloudProviderFactory: cloudProviderFactory,
+		eventRecorder:        recorder,
 	}
 
 	return factory.New().
@@ -153,8 +142,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		}
 
 		if config.Status.ManagedClusterInfo.Platform == "GCP" {
-			cloudProvider, preparedErr := cloud.GetCloudProvider(c.restMapper, c.kubeClient, nil, c.dynamicClient,
-				c.hubKubeClient, c.eventRecorder, config.Status.ManagedClusterInfo, config)
+			cloudProvider, preparedErr := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, c.eventRecorder)
 			if preparedErr == nil {
 				preparedErr = cloudProvider.CleanUpSubmarinerClusterEnv()
 			}
@@ -193,9 +181,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 
 	if config.Status.ManagedClusterInfo.Platform == "GCP" {
 		if meta.IsStatusConditionFalse(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
-			cloudProvider, preparedErr := cloud.GetCloudProvider(c.restMapper, c.kubeClient, nil, c.dynamicClient,
-				c.hubKubeClient, c.eventRecorder, config.Status.ManagedClusterInfo, config)
-
+			cloudProvider, preparedErr := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, c.eventRecorder)
 			if preparedErr != nil {
 				return preparedErr
 			} else {

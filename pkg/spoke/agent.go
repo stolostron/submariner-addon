@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"github.com/spf13/cobra"
 	"open-cluster-management.io/addon-framework/pkg/lease"
+	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
@@ -119,6 +121,11 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		return err
 	}
 
+	workClient, err := workclient.NewForConfig(controllerContext.KubeConfig)
+	if err != nil {
+		return err
+	}
+
 	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnHubKubeClient, 10*time.Minute, addoninformers.WithNamespace(o.ClusterName))
 	configInformers := configinformers.NewSharedInformerFactoryWithOptions(configHubKubeClient, 10*time.Minute, configinformers.WithNamespace(o.ClusterName))
 
@@ -127,18 +134,14 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	dynamicInformers := dynamicinformer.NewFilteredDynamicSharedInformerFactory(spokeDynamicClient, 10*time.Minute, o.InstallationNamespace, nil)
 
 	submarinerConfigController := submarineragent.NewSubmarinerConfigController(
-		restMapper,
 		o.ClusterName,
 		spokeKubeClient,
-		addOnHubKubeClient,
 		configHubKubeClient,
-		spokeDynamicClient,
-		hubClient,
 		spokeKubeInformers.Core().V1().Nodes(),
 		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 		configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
-		controllerContext.EventRecorder,
-	)
+		cloud.NewProviderFactory(restMapper, spokeKubeClient, workClient, spokeDynamicClient, hubClient),
+		controllerContext.EventRecorder)
 
 	gatewaysStatusController := submarineragent.NewGatewaysStatusController(
 		o.ClusterName,

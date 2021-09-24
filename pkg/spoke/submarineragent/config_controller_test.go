@@ -5,11 +5,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configFake "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	configInformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
+	cloudFake "github.com/open-cluster-management/submariner-addon/pkg/cloud/fake"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
@@ -412,12 +414,14 @@ type configControllerTestDriver struct {
 	stop         context.CancelFunc
 	kubeClient   *kubeFake.Clientset
 	configClient *configFake.Clientset
+	mockCtrl     *gomock.Controller
 }
 
 func newConfigControllerTestDriver() *configControllerTestDriver {
 	t := &configControllerTestDriver{}
 
 	BeforeEach(func() {
+		t.mockCtrl = gomock.NewController(GinkgoT())
 		t.config = newSubmarinerConfig()
 
 		t.nodes = []*corev1.Node{
@@ -461,10 +465,11 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 
 		addOnInformerFactory := addonInformers.NewSharedInformerFactory(t.addOnClient, defaultResync)
 
-		t.controller = submarineragent.NewSubmarinerConfigController(nil, clusterName, t.kubeClient, t.addOnClient, t.configClient,
-			nil, nil, kubeInformerFactory.Core().V1().Nodes(), addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
+		t.controller = submarineragent.NewSubmarinerConfigController(clusterName, t.kubeClient, t.configClient,
+			kubeInformerFactory.Core().V1().Nodes(),
+			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
 			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
-			events.NewLoggingEventRecorder("test"))
+			cloudFake.NewMockProviderFactory(t.mockCtrl), events.NewLoggingEventRecorder("test"))
 
 		var ctx context.Context
 
@@ -483,6 +488,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 
 	AfterEach(func() {
 		t.stop()
+		t.mockCtrl.Finish()
 	})
 
 	return t
