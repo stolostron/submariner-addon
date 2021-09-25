@@ -50,15 +50,19 @@ func NewProviderFactory(restMapper meta.RESTMapper, kubeClient kubernetes.Interf
 
 func (f *providerFactory) Get(managedClusterInfo configv1alpha1.ManagedClusterInfo, config *configv1alpha1.SubmarinerConfig,
 	eventsRecorder events.Recorder) (Provider, error) {
-	clusterName := managedClusterInfo.ClusterName
-	vendor := managedClusterInfo.Vendor
-	if vendor != helpers.ProductOCP {
-		return nil, fmt.Errorf("unsupported vendor %q of cluster %q", vendor, clusterName)
-	}
-
 	platform := managedClusterInfo.Platform
 	region := managedClusterInfo.Region
 	infraId := managedClusterInfo.InfraId
+	clusterName := managedClusterInfo.ClusterName
+	vendor := managedClusterInfo.Vendor
+
+	if config.Spec.CredentialsSecret == nil {
+		return &defaultProvider{}, nil
+	}
+
+	if vendor != helpers.ProductOCP {
+		return nil, fmt.Errorf("unsupported vendor %q of cluster %q", vendor, clusterName)
+	}
 
 	klog.V(4).Infof("get cloud provider: platform=%s,region=%s,infraId=%s,clusterName=%s,config=%s", platform,
 		region, infraId, clusterName, config.Name)
@@ -74,5 +78,16 @@ func (f *providerFactory) Get(managedClusterInfo configv1alpha1.ManagedClusterIn
 			"", config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
 	}
 
-	return nil, fmt.Errorf("unsupported cloud platform %q of cluster %q", platform, clusterName)
+	return &defaultProvider{}, nil
+}
+
+type defaultProvider struct {
+}
+
+func (p *defaultProvider) PrepareSubmarinerClusterEnv() error {
+	return nil
+}
+
+func (p *defaultProvider) CleanUpSubmarinerClusterEnv() error {
+	return nil
 }
