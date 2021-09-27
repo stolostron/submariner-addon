@@ -7,7 +7,6 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
 # github.com/aws/aws-sdk-go v1.40.45
-## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -328,7 +327,6 @@ github.com/submariner-io/admiral/pkg/util
 github.com/submariner-io/cloud-prepare/pkg/api
 github.com/submariner-io/cloud-prepare/pkg/aws
 github.com/submariner-io/cloud-prepare/pkg/aws/client
-github.com/submariner-io/cloud-prepare/pkg/aws/client/fake
 github.com/submariner-io/cloud-prepare/pkg/gcp
 github.com/submariner-io/cloud-prepare/pkg/gcp/client
 github.com/submariner-io/cloud-prepare/pkg/k8s

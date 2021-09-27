@@ -3,7 +3,6 @@ module github.com/open-cluster-management/submariner-addon
 go 1.16
 
 require (
-	github.com/aws/aws-sdk-go v1.40.45
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo v1.16.4
