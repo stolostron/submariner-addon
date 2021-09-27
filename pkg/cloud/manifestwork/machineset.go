@@ -88,7 +88,7 @@ func (msd *manifestWorkMachineSetDeployer) GetWorkerNodeImage(machineSet *unstru
 }
 
 func (msd *manifestWorkMachineSetDeployer) Delete(machineSet *unstructured.Unstructured) error {
-	err := msd.client.WorkV1().ManifestWorks(msd.clusterName).Delete(context.TODO(), machineSet.GetName(), metav1.DeleteOptions{})
+	err := msd.client.WorkV1().ManifestWorks(msd.clusterName).Delete(context.TODO(), msd.workName, metav1.DeleteOptions{})
 	if errors.IsNotFound(err) {
 		return nil
 	}
