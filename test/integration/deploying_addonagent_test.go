@@ -33,7 +33,8 @@ var _ = Describe("Deploy a submariner-addon agent", func() {
 		BeforeEach(func() {
 			By("Create a ManagedClusterSet")
 			managedClusterSet := util.NewManagedClusterSet(managedClusterSetName)
-			_, err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
+
+			_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)

@@ -20,7 +20,7 @@ import (
 	workfake "open-cluster-management.io/api/client/work/clientset/versioned/fake"
 	workinformers "open-cluster-management.io/api/client/work/informers/externalversions"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	workv1 "open-cluster-management.io/api/work/v1"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
@@ -310,7 +310,7 @@ func TestSyncManagedCluster(t *testing.T) {
 				clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore().Add(cluster)
 			}
 			for _, clusterset := range c.clustersets {
-				clusterInformerFactory.Cluster().V1alpha1().ManagedClusterSets().Informer().GetStore().Add(clusterset)
+				clusterInformerFactory.Cluster().V1beta1().ManagedClusterSets().Informer().GetStore().Add(clusterset)
 			}
 
 			fakeWorkClient := workfake.NewSimpleClientset()
@@ -334,7 +334,7 @@ func TestSyncManagedCluster(t *testing.T) {
 				configClient:       configClient,
 				addOnClient:        addOnClient,
 				clusterLister:      clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
-				clusterSetLister:   clusterInformerFactory.Cluster().V1alpha1().ManagedClusterSets().Lister(),
+				clusterSetLister:   clusterInformerFactory.Cluster().V1beta1().ManagedClusterSets().Lister(),
 				manifestWorkLister: workInformerFactory.Work().V1().ManifestWorks().Lister(),
 				configLister:       configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Lister(),
 				addOnLister:        addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister(),
@@ -548,7 +548,7 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				clusterClient:      clusterClient,
 				configClient:       configClient,
 				clusterLister:      clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
-				clusterSetLister:   clusterInformerFactory.Cluster().V1alpha1().ManagedClusterSets().Lister(),
+				clusterSetLister:   clusterInformerFactory.Cluster().V1beta1().ManagedClusterSets().Lister(),
 				manifestWorkClient: fakeworkclient.NewSimpleClientset(),
 				configLister:       configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Lister(),
 				eventRecorder:      eventstesting.NewTestingEventRecorder(t),
@@ -580,8 +580,8 @@ func newManagedCluster(name string, labels map[string]string, finalizers []strin
 	return cluster
 }
 
-func newManagedClusterSet(name string) *clusterv1alpha1.ManagedClusterSet {
-	clusterSet := &clusterv1alpha1.ManagedClusterSet{
+func newManagedClusterSet(name string) *clusterv1beta1.ManagedClusterSet {
+	clusterSet := &clusterv1beta1.ManagedClusterSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},

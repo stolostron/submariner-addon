@@ -17,9 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
-	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1"
-	clusterinformerv1alpha1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
-	clusterlisterv1alpha1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
+	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta1"
+	clusterinformerv1beta1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta1"
+	clusterlisterv1beta1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta1"
 )
 
 const (
@@ -40,7 +40,7 @@ var manifestFiles embed.FS
 type submarinerBrokerController struct {
 	kubeClient       kubernetes.Interface
 	clustersetClient clientset.ManagedClusterSetInterface
-	clusterSetLister clusterlisterv1alpha1.ManagedClusterSetLister
+	clusterSetLister clusterlisterv1beta1.ManagedClusterSetLister
 	eventRecorder    events.Recorder
 }
 
@@ -51,7 +51,7 @@ type brokerConfig struct {
 func NewController(
 	clustersetClient clientset.ManagedClusterSetInterface,
 	kubeClient kubernetes.Interface,
-	clusterSetInformer clusterinformerv1alpha1.ManagedClusterSetInformer,
+	clusterSetInformer clusterinformerv1beta1.ManagedClusterSetInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerBrokerController{
 		kubeClient:       kubeClient,

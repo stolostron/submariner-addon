@@ -30,7 +30,8 @@ var _ = Describe("Deploy a submariner on hub", func() {
 		BeforeEach(func() {
 			By("Create a ManagedClusterSet")
 			managedClusterSet := util.NewManagedClusterSet(managedClusterSetName)
-			_, err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
+
+			_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Check if the submariner broker is deployed")
@@ -71,7 +72,8 @@ var _ = Describe("Deploy a submariner on hub", func() {
 		BeforeEach(func() {
 			By("Create a ManagedClusterSet")
 			managedClusterSet := util.NewManagedClusterSet(managedClusterSetName)
-			_, err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
+
+			_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
@@ -169,7 +171,8 @@ var _ = Describe("Deploy a submariner on hub", func() {
 		It("Should remove the submariner broker after the managedclusterset is removed", func() {
 			By("Create a ManagedClusterSet")
 			managedClusterSet := util.NewManagedClusterSet(managedClusterSetName)
-			_, err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
+
+			_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Check if the submariner broker is deployed")
@@ -179,7 +182,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 
 			By("Remove the managedclusterset")
-			err = clusterClient.ClusterV1alpha1().ManagedClusterSets().Delete(context.Background(), managedClusterSetName, metav1.DeleteOptions{})
+			err = clusterClient.ClusterV1beta1().ManagedClusterSets().Delete(context.Background(), managedClusterSetName, metav1.DeleteOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Check if the submariner broker is removed")
