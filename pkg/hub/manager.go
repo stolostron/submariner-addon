@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"k8s.io/client-go/dynamic"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
@@ -148,6 +149,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		workInformers.Work().V1().ManifestWorks(),
 		configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		cloud.NewProviderFactory(nil, kubeClient, workClient, dynamicClient, nil),
 		controllerContext.EventRecorder,
 	)
 	go clusterInformers.Start(ctx.Done())

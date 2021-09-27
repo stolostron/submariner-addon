@@ -487,59 +487,6 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 			},
 		},
 		{
-			name:     "unsupported cluster vendor",
-			queueKey: "cluster1/submariner",
-			configs: []runtime.Object{
-				&configv1alpha1.SubmarinerConfig{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:       "submariner",
-						Namespace:  "cluster1",
-						Finalizers: []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
-					},
-					Spec: configv1alpha1.SubmarinerConfigSpec{
-						CredentialsSecret: &v1.LocalObjectReference{
-							Name: "test",
-						},
-					},
-				},
-			},
-			clusters: []runtime.Object{
-				&clusterv1.ManagedCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   "cluster1",
-						Labels: map[string]string{"vendor": "unsupported"},
-					},
-				},
-			},
-			expectedErr: true,
-			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, configActions, "get", "update")
-			},
-		},
-		{
-			name:     "delete a submariner config without credentials secret",
-			queueKey: "cluster1/submariner",
-			configs: []runtime.Object{
-				&configv1alpha1.SubmarinerConfig{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "submariner",
-						Namespace:         "cluster1",
-						DeletionTimestamp: &now,
-						Finalizers:        []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
-					},
-				},
-			},
-			clusters: []runtime.Object{},
-			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, configActions, "update")
-				updatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
-				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
-				if len(config.Finalizers) != 0 {
-					t.Errorf("unexpect size of finalizers")
-				}
-			},
-		},
-		{
 			name:     "delete a submariner config",
 			queueKey: "cluster1/submariner",
 			configs: []runtime.Object{
@@ -549,11 +496,6 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 						Namespace:         "cluster1",
 						DeletionTimestamp: &now,
 						Finalizers:        []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
-					},
-					Spec: configv1alpha1.SubmarinerConfigSpec{
-						CredentialsSecret: &v1.LocalObjectReference{
-							Name: "aws-credentials-secret",
-						},
 					},
 				},
 			},

@@ -89,18 +89,19 @@ type clusterRBACConfig struct {
 // submarinerAgentController reconciles instances of ManagedCluster on the hub to deploy/remove
 // corresponding submariner agent manifestworks
 type submarinerAgentController struct {
-	kubeClient         kubernetes.Interface
-	dynamicClient      dynamic.Interface
-	clusterClient      clusterclient.Interface
-	manifestWorkClient workclient.Interface
-	configClient       configclient.Interface
-	addOnClient        addonclient.Interface
-	clusterLister      clusterlisterv1.ManagedClusterLister
-	clusterSetLister   clusterlisterv1alpha1.ManagedClusterSetLister
-	manifestWorkLister worklister.ManifestWorkLister
-	configLister       configlister.SubmarinerConfigLister
-	addOnLister        addonlisterv1alpha1.ManagedClusterAddOnLister
-	eventRecorder      events.Recorder
+	kubeClient           kubernetes.Interface
+	dynamicClient        dynamic.Interface
+	clusterClient        clusterclient.Interface
+	manifestWorkClient   workclient.Interface
+	configClient         configclient.Interface
+	addOnClient          addonclient.Interface
+	clusterLister        clusterlisterv1.ManagedClusterLister
+	clusterSetLister     clusterlisterv1alpha1.ManagedClusterSetLister
+	manifestWorkLister   worklister.ManifestWorkLister
+	configLister         configlister.SubmarinerConfigLister
+	addOnLister          addonlisterv1alpha1.ManagedClusterAddOnLister
+	cloudProviderFactory cloud.ProviderFactory
+	eventRecorder        events.Recorder
 }
 
 // NewSubmarinerAgentController returns a submarinerAgentController instance
@@ -116,20 +117,22 @@ func NewSubmarinerAgentController(
 	manifestWorkInformer workinformer.ManifestWorkInformer,
 	configInformer configinformer.SubmarinerConfigInformer,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
+	cloudProviderFactory cloud.ProviderFactory,
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerAgentController{
-		kubeClient:         kubeClient,
-		dynamicClient:      dynamicClient,
-		clusterClient:      clusterClient,
-		manifestWorkClient: manifestWorkClient,
-		configClient:       configClient,
-		addOnClient:        addOnClient,
-		clusterLister:      clusterInformer.Lister(),
-		clusterSetLister:   clusterSetInformer.Lister(),
-		manifestWorkLister: manifestWorkInformer.Lister(),
-		configLister:       configInformer.Lister(),
-		addOnLister:        addOnInformer.Lister(),
-		eventRecorder:      recorder.WithComponentSuffix("submariner-agent-controller"),
+		kubeClient:           kubeClient,
+		dynamicClient:        dynamicClient,
+		clusterClient:        clusterClient,
+		manifestWorkClient:   manifestWorkClient,
+		configClient:         configClient,
+		addOnClient:          addOnClient,
+		clusterLister:        clusterInformer.Lister(),
+		clusterSetLister:     clusterSetInformer.Lister(),
+		manifestWorkLister:   manifestWorkInformer.Lister(),
+		configLister:         configInformer.Lister(),
+		addOnLister:          addOnInformer.Lister(),
+		cloudProviderFactory: cloudProviderFactory,
+		eventRecorder:        recorder.WithComponentSuffix("submariner-agent-controller"),
 	}
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
@@ -378,8 +381,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	errs := []error{}
 	var condition *metav1.Condition
 	if managedClusterInfo.Platform != "GCP" {
-		cloudProvider, preparedErr := cloud.GetCloudProvider(nil, c.kubeClient, c.manifestWorkClient, c.dynamicClient,
-			nil, c.eventRecorder, managedClusterInfo, config)
+		cloudProvider, preparedErr := c.cloudProviderFactory.Get(managedClusterInfo, config, c.eventRecorder)
 		if preparedErr == nil {
 			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
 		}
@@ -577,8 +579,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Cont
 	}
 
 	managedClusterInfo := config.Status.ManagedClusterInfo
-	cloudProvider, err := cloud.GetCloudProvider(nil, c.kubeClient, c.manifestWorkClient, c.dynamicClient,
-		nil, c.eventRecorder, managedClusterInfo, config)
+	cloudProvider, err := c.cloudProviderFactory.Get(managedClusterInfo, config, c.eventRecorder)
 	if err != nil {
 		//TODO handle the error gracefully in the future
 		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to get cloud provider: %v", err)
