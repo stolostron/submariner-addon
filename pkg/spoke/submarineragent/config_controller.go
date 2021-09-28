@@ -58,28 +58,33 @@ type submarinerConfigController struct {
 	configLister         configlister.SubmarinerConfigLister
 	clusterName          string
 	cloudProviderFactory cloud.ProviderFactory
-	eventRecorder        events.Recorder
+	onSyncDefer          func()
+}
+
+type SubmarinerConfigControllerInput struct {
+	ClusterName          string
+	KubeClient           kubernetes.Interface
+	ConfigClient         configclient.Interface
+	NodeInformer         corev1informers.NodeInformer
+	AddOnInformer        addoninformerv1alpha1.ManagedClusterAddOnInformer
+	ConfigInformer       configinformer.SubmarinerConfigInformer
+	CloudProviderFactory cloud.ProviderFactory
+	Recorder             events.Recorder
+	// This is a hook for unit tests to invoke a defer (specifically GinkgoRecover) when the sync function is called.
+	OnSyncDefer func()
 }
 
 // NewSubmarinerConfigController returns an instance of submarinerAgentConfigController
-func NewSubmarinerConfigController(
-	clusterName string,
-	kubeClient kubernetes.Interface,
-	configClient configclient.Interface,
-	nodeInformer corev1informers.NodeInformer,
-	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
-	configInformer configinformer.SubmarinerConfigInformer,
-	cloudProviderFactory cloud.ProviderFactory,
-	recorder events.Recorder) factory.Controller {
+func NewSubmarinerConfigController(input SubmarinerConfigControllerInput) factory.Controller {
 	c := &submarinerConfigController{
-		kubeClient:           kubeClient,
-		configClient:         configClient,
-		nodeLister:           nodeInformer.Lister(),
-		addOnLister:          addOnInformer.Lister(),
-		configLister:         configInformer.Lister(),
-		clusterName:          clusterName,
-		cloudProviderFactory: cloudProviderFactory,
-		eventRecorder:        recorder,
+		kubeClient:           input.KubeClient,
+		configClient:         input.ConfigClient,
+		nodeLister:           input.NodeInformer.Lister(),
+		addOnLister:          input.AddOnInformer.Lister(),
+		configLister:         input.ConfigInformer.Lister(),
+		clusterName:          input.ClusterName,
+		cloudProviderFactory: input.CloudProviderFactory,
+		onSyncDefer:          input.OnSyncDefer,
 	}
 
 	return factory.New().
@@ -89,14 +94,14 @@ func NewSubmarinerConfigController(
 				return true
 			}
 			return false
-		}, addOnInformer.Informer()).
+		}, input.AddOnInformer.Informer()).
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
 			if metaObj.GetName() == helpers.SubmarinerConfigName {
 				return true
 			}
 			return false
-		}, configInformer.Informer()).
+		}, input.ConfigInformer.Informer()).
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
 			// only handle the changes of worker nodes
@@ -104,12 +109,16 @@ func NewSubmarinerConfigController(
 				return true
 			}
 			return false
-		}, nodeInformer.Informer()).
+		}, input.NodeInformer.Informer()).
 		WithSync(c.sync).
-		ToController("SubmarinerAgentConfigController", recorder)
+		ToController("SubmarinerAgentConfigController", input.Recorder)
 }
 
 func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+	if c.onSyncDefer != nil {
+		defer c.onSyncDefer()
+	}
+
 	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(helpers.SubmarinerAddOnName)
 	if errors.IsNotFound(err) {
 		// the addon not found, could be deleted, ignore
@@ -144,7 +153,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		}
 
 		if config.Status.ManagedClusterInfo.Platform == "GCP" {
-			cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, c.eventRecorder)
+			cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, syncCtx.Recorder())
 			if err == nil {
 				err = cloudProvider.CleanUpSubmarinerClusterEnv()
 			}
@@ -185,7 +194,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		if !meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
 			errs := []error{}
 
-			cloudProvider, preparedErr := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, c.eventRecorder)
+			cloudProvider, preparedErr := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, syncCtx.Recorder())
 			if preparedErr == nil {
 				preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
 			}
@@ -212,7 +221,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 			}
 
 			if updated {
-				c.eventRecorder.Eventf("SubmarinerClusterEnvPrepared",
+				syncCtx.Recorder().Eventf("SubmarinerClusterEnvPrepared",
 					"submariner cluster environment was prepared for managed cluster %s", config.Namespace)
 			}
 

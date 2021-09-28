@@ -133,15 +133,16 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	// TODO if submariner provides the informer in future, we will use it instead of dynamic informer
 	dynamicInformers := dynamicinformer.NewFilteredDynamicSharedInformerFactory(spokeDynamicClient, 10*time.Minute, o.InstallationNamespace, nil)
 
-	submarinerConfigController := submarineragent.NewSubmarinerConfigController(
-		o.ClusterName,
-		spokeKubeClient,
-		configHubKubeClient,
-		spokeKubeInformers.Core().V1().Nodes(),
-		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
-		configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
-		cloud.NewProviderFactory(restMapper, spokeKubeClient, workClient, spokeDynamicClient, hubClient),
-		controllerContext.EventRecorder)
+	submarinerConfigController := submarineragent.NewSubmarinerConfigController(submarineragent.SubmarinerConfigControllerInput{
+		ClusterName:          o.ClusterName,
+		KubeClient:           spokeKubeClient,
+		ConfigClient:         configHubKubeClient,
+		NodeInformer:         spokeKubeInformers.Core().V1().Nodes(),
+		AddOnInformer:        addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		ConfigInformer:       configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
+		CloudProviderFactory: cloud.NewProviderFactory(restMapper, spokeKubeClient, workClient, spokeDynamicClient, hubClient),
+		Recorder:             controllerContext.EventRecorder,
+	})
 
 	gatewaysStatusController := submarineragent.NewGatewaysStatusController(
 		o.ClusterName,
