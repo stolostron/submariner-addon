@@ -2,6 +2,7 @@ package submarineragent_test
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"time"
 
@@ -270,6 +271,57 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 		})
 	})
 
+	When("the SubmarinerConfig's Platform field is set to GCP", func() {
+		BeforeEach(func() {
+			t.config.Status.ManagedClusterInfo.Platform = "GCP"
+		})
+
+		Context("", func() {
+			BeforeEach(func() {
+				t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(nil).MinTimes(1)
+			})
+
+			It("should invoke the cloud provider and update the SubmarinerConfig status condition", func() {
+				t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+					Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+					Status: metav1.ConditionTrue,
+					Reason: "SubmarinerClusterEnvPrepared",
+				})
+			})
+		})
+
+		Context("and the cloud provider initially fails", func() {
+			var waitCh chan struct{}
+
+			BeforeEach(func() {
+				waitCh = make(chan struct{})
+				gomock.InOrder(
+					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(errors.New("fake error")).Times(1),
+					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().DoAndReturn(func() error {
+						<-waitCh
+						return nil
+					}).AnyTimes(),
+				)
+			})
+
+			It("should initially set a failure status condition", func() {
+				t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+					Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+					Status: metav1.ConditionFalse,
+					Reason: "SubmarinerClusterEnvPreparationFailed",
+				})
+
+				close(waitCh)
+
+				t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+					Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+					Status: metav1.ConditionTrue,
+					Reason: "SubmarinerClusterEnvPrepared",
+				})
+			})
+		})
+	})
+
 	When("the SubmarinerConfig is being deleted", func() {
 		BeforeEach(func() {
 			t.config.Spec.Gateways = 2
@@ -278,16 +330,9 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 			t.nodes[1].Labels["submariner.io/gateway"] = "true"
 			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
-		})
-
-		JustBeforeEach(func() {
-			t.awaitSuccessStatusCondition()
 
 			now := metav1.Now()
 			t.config.DeletionTimestamp = &now
-			_, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(t.config.Namespace).Update(context.TODO(),
-				t.config, metav1.UpdateOptions{})
-			Expect(err).To(Succeed())
 		})
 
 		It("should unlabel the gateway nodes", func() {
@@ -311,6 +356,38 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 			It("should not unlabel the gateway nodes", func() {
 				t.ensureLabeledNodes()
+			})
+		})
+
+		Context("the SubmarinerConfig's Platform field is set to GCP", func() {
+			BeforeEach(func() {
+				t.config.Status.ManagedClusterInfo.Platform = "GCP"
+			})
+
+			Context("", func() {
+				BeforeEach(func() {
+					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().AnyTimes()
+				})
+
+				It("should not unlabel the gateway nodes", func() {
+					t.ensureLabeledNodes()
+				})
+			})
+
+			Context("", func() {
+				var invoked chan bool
+
+				BeforeEach(func() {
+					invoked = make(chan bool)
+					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().DoAndReturn(func() error {
+						invoked <- true
+						return nil
+					}).Times(1)
+				})
+
+				It("should invoke the cloud provider to clean up", func() {
+					Eventually(invoked).Should(Receive())
+				})
 			})
 		})
 	})
@@ -352,16 +429,9 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 			t.nodes[1].Labels["submariner.io/gateway"] = "true"
 			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
-		})
-
-		JustBeforeEach(func() {
-			t.awaitSuccessStatusCondition()
 
 			now := metav1.Now()
 			t.addOn.DeletionTimestamp = &now
-			_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(t.addOn.Namespace).Update(context.TODO(),
-				t.addOn, metav1.UpdateOptions{})
-			Expect(err).To(Succeed())
 		})
 
 		It("should unlabel the gateway nodes", func() {
@@ -401,6 +471,69 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 			It("should not unlabel the gateway nodes", func() {
 				t.ensureLabeledNodes()
+				t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+					Type:   gatewayConditionType,
+					Status: metav1.ConditionFalse,
+					Reason: "ManagedClusterAddOnDeleted",
+				})
+			})
+		})
+
+		Context("the SubmarinerConfig's Platform field is set to GCP", func() {
+			BeforeEach(func() {
+				t.config.Status.ManagedClusterInfo.Platform = "GCP"
+			})
+
+			Context("", func() {
+				BeforeEach(func() {
+					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(nil).MinTimes(1)
+				})
+
+				It("should invoke the cloud provider to clean up", func() {
+					t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+						Type:   gatewayConditionType,
+						Status: metav1.ConditionFalse,
+						Reason: "ManagedClusterAddOnDeleted",
+					})
+				})
+			})
+
+			Context("", func() {
+				BeforeEach(func() {
+					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(nil).AnyTimes()
+				})
+
+				It("should not unlabel the gateway nodes", func() {
+					t.ensureLabeledNodes()
+				})
+			})
+
+			Context("and the cloud provider initially fails", func() {
+				var waitCh chan struct{}
+
+				BeforeEach(func() {
+					waitCh = make(chan struct{})
+					gomock.InOrder(
+						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(errors.New("fake error")).Times(1),
+						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().DoAndReturn(func() error {
+							<-waitCh
+							return nil
+						}).AnyTimes(),
+					)
+				})
+
+				It("should initially set a failure status condition", func() {
+					t.awaitFailureStatusCondition()
+
+					close(waitCh)
+
+					t.ensureLabeledNodes()
+					t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+						Type:   gatewayConditionType,
+						Status: metav1.ConditionFalse,
+						Reason: "ManagedClusterAddOnDeleted",
+					})
+				})
 			})
 		})
 	})
@@ -408,13 +541,14 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 type configControllerTestDriver struct {
 	managedClusterAddOnTestBase
-	controller   factory.Controller
-	config       *configv1alpha1.SubmarinerConfig
-	nodes        []*corev1.Node
-	stop         context.CancelFunc
-	kubeClient   *kubeFake.Clientset
-	configClient *configFake.Clientset
-	mockCtrl     *gomock.Controller
+	controller    factory.Controller
+	config        *configv1alpha1.SubmarinerConfig
+	nodes         []*corev1.Node
+	stop          context.CancelFunc
+	kubeClient    *kubeFake.Clientset
+	configClient  *configFake.Clientset
+	cloudProvider *cloudFake.MockProvider
+	mockCtrl      *gomock.Controller
 }
 
 func newConfigControllerTestDriver() *configControllerTestDriver {
@@ -438,6 +572,8 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 		t.configClient = configFake.NewSimpleClientset()
 
 		t.managedClusterAddOnTestBase.init()
+
+		t.cloudProvider = cloudFake.NewMockProvider(t.mockCtrl)
 	})
 
 	JustBeforeEach(func() {
@@ -465,11 +601,26 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 
 		addOnInformerFactory := addonInformers.NewSharedInformerFactory(t.addOnClient, defaultResync)
 
-		t.controller = submarineragent.NewSubmarinerConfigController(clusterName, t.kubeClient, t.configClient,
-			kubeInformerFactory.Core().V1().Nodes(),
-			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
-			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
-			cloudFake.NewMockProviderFactory(t.mockCtrl), events.NewLoggingEventRecorder("test"))
+		providerFactory := cloudFake.NewMockProviderFactory(t.mockCtrl)
+
+		if t.config != nil {
+			providerFactory.EXPECT().Get(t.config.Status.ManagedClusterInfo, gomock.Not(gomock.Nil()), gomock.Any()).
+				Return(t.cloudProvider, nil).AnyTimes()
+		} else {
+			providerFactory.EXPECT().Get(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).Return(t.cloudProvider, nil).AnyTimes()
+		}
+
+		t.controller = submarineragent.NewSubmarinerConfigController(submarineragent.SubmarinerConfigControllerInput{
+			ClusterName:          clusterName,
+			KubeClient:           t.kubeClient,
+			ConfigClient:         t.configClient,
+			NodeInformer:         kubeInformerFactory.Core().V1().Nodes(),
+			AddOnInformer:        addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
+			ConfigInformer:       configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
+			CloudProviderFactory: providerFactory,
+			Recorder:             events.NewLoggingEventRecorder("test"),
+			OnSyncDefer:          GinkgoRecover,
+		})
 
 		var ctx context.Context
 
