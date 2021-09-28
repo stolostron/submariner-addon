@@ -180,7 +180,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "GCP" {
-		if meta.IsStatusConditionFalse(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
+		if !meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
 			errs := []error{}
 
 			cloudProvider, preparedErr := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, c.eventRecorder)
