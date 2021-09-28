@@ -362,21 +362,6 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 	managedClusterInfo := helpers.GetManagedClusterInfo(managedCluster)
 
-	if config.Spec.CredentialsSecret == nil {
-		// no platform credentials, the cluster env is not requred to prepare, only update the manged cluster info
-		_, _, err := helpers.UpdateSubmarinerConfigStatus(
-			c.configClient,
-			config.Namespace, config.Name,
-			helpers.UpdateSubmarinerConfigStatusFn(&metav1.Condition{
-				Type:    configv1alpha1.SubmarinerConfigConditionApplied,
-				Status:  metav1.ConditionTrue,
-				Reason:  "SubmarinerConfigApplied",
-				Message: "SubmarinerConfig was applied",
-			}, managedClusterInfo),
-		)
-		return err
-	}
-
 	// prepare submariner cluster environment
 	errs := []error{}
 	var condition *metav1.Condition
@@ -406,11 +391,14 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 		config.Namespace, config.Name,
 		helpers.UpdateSubmarinerConfigStatusFn(condition, managedClusterInfo),
 	)
+
 	if updatedErr != nil {
 		errs = append(errs, updatedErr)
 	}
+
 	if updated {
-		c.eventRecorder.Eventf("SubmarinerClusterEnvPrepared", "submariner cluster environment was prepared for manged cluster %s", config.Namespace)
+		c.eventRecorder.Eventf("SubmarinerClusterEnvPrepared",
+			"submariner cluster environment was prepared for managed cluster %s", config.Namespace)
 	}
 
 	return operatorhelpers.NewMultiLineAggregate(errs)
@@ -573,13 +561,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 }
 
 func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
-	// no platform credentials, the submariner cluster environment is not prepared
-	if config.Spec.CredentialsSecret == nil {
-		return nil
-	}
-
-	managedClusterInfo := config.Status.ManagedClusterInfo
-	cloudProvider, err := c.cloudProviderFactory.Get(managedClusterInfo, config, c.eventRecorder)
+	cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, c.eventRecorder)
 	if err != nil {
 		//TODO handle the error gracefully in the future
 		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to get cloud provider: %v", err)
@@ -592,7 +574,8 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Cont
 		return nil
 	}
 
-	c.eventRecorder.Eventf("SubmarinerClusterEnvDeleted", "the managed cluster %s submariner cluster environment is deleted", managedClusterInfo.ClusterName)
+	c.eventRecorder.Eventf("SubmarinerClusterEnvDeleted", "the managed cluster %s submariner cluster environment is deleted",
+		config.Status.ManagedClusterInfo.ClusterName)
 	return nil
 }
 

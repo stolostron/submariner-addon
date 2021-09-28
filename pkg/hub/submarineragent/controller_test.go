@@ -497,6 +497,11 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 						DeletionTimestamp: &now,
 						Finalizers:        []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
 					},
+					Status: configv1alpha1.SubmarinerConfigStatus{
+						ManagedClusterInfo: configv1alpha1.ManagedClusterInfo{
+							Platform: "GCP",
+						},
+					},
 				},
 			},
 			clusters: []runtime.Object{
