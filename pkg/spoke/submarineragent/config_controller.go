@@ -146,23 +146,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	// addon is deleting from the hub, remove its related resources on the managed cluster
 	// TODO: add finalizer in next release
 	if !addOn.DeletionTimestamp.IsZero() {
-		// if the addon is deleted before config, clean up gateways config on the manged cluster
-		if config.Status.ManagedClusterInfo.Platform == "AWS" {
-			// for AWS, the gateway configuration will be operated on the hub, do nothing
-			return nil
-		}
-
-		if config.Status.ManagedClusterInfo.Platform == "GCP" {
-			cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, syncCtx.Recorder())
-			if err == nil {
-				err = cloudProvider.CleanUpSubmarinerClusterEnv()
-			}
-
-			if err != nil {
-				return err
-			}
-		}
-
+		// if the addon is deleted before config, clean up the submariner cluster environment.
 		condition := metav1.Condition{
 			Type:    submarinerGatewayCondition,
 			Status:  metav1.ConditionFalse,
@@ -170,9 +154,22 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 			Message: "There are no nodes labeled as gateways",
 		}
 
-		err = c.removeAllGateways(ctx, config)
-		if err != nil {
-			condition = failedCondition("Failed to unlabel the gatway nodes: %v", err)
+		if config.Status.ManagedClusterInfo.Platform == "GCP" {
+			var cloudProvider cloud.Provider
+
+			cloudProvider, err = c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, syncCtx.Recorder())
+			if err == nil {
+				err = cloudProvider.CleanUpSubmarinerClusterEnv()
+			}
+
+			if err != nil {
+				condition = failedCondition("Failed to clean up the submariner cluster environment: %v", err)
+			}
+		} else if config.Status.ManagedClusterInfo.Platform != "AWS" {
+			err = c.removeAllGateways(ctx, config)
+			if err != nil {
+				condition = failedCondition("Failed to unlabel the gateway nodes: %v", err)
+			}
 		}
 
 		updateErr := c.updateSubmarinerConfigStatus(syncCtx.Recorder(), config, condition)
