@@ -21,7 +21,6 @@ import (
 )
 
 const (
-	submarinerCRName             = "submariner"
 	submarinerConnectionDegraded = "SubmarinerConnectionDegraded"
 )
 

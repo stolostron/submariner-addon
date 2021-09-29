@@ -54,9 +54,8 @@ const (
 )
 
 const (
-	brokerSuffix            = "broker"
-	namespaceMaxLength      = 63
-	clusterSetNameMaxLength = namespaceMaxLength - len(brokerSuffix) - 1
+	brokerSuffix       = "broker"
+	namespaceMaxLength = 63
 )
 
 var (
