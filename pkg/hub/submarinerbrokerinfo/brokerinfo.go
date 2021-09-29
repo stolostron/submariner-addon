@@ -36,9 +36,6 @@ const (
 )
 
 var (
-	// catalogSource represents submariner catalog source, this can be set with go build ldflags
-	catalogSource string
-
 	infrastructureGVR = schema.GroupVersionResource{
 		Group:    "config.openshift.io",
 		Version:  "v1",
