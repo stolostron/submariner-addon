@@ -7,30 +7,29 @@ import (
 	"strconv"
 	"strings"
 
-	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
-	corev1lister "k8s.io/client-go/listers/core/v1"
-	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
-
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
+	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
-	"k8s.io/apimachinery/pkg/util/sets"
-	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
-
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/sets"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
+	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/retry"
+	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
+	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 )
 
 // TODO expose this as a flag to allow user to specify their zone label
@@ -120,7 +119,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(helpers.SubmarinerAddOnName)
-	if errors.IsNotFound(err) {
+	if apiErrors.IsNotFound(err) {
 		// the addon not found, could be deleted, ignore
 		return nil
 	}
@@ -130,7 +129,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	config, err := c.configLister.SubmarinerConfigs(c.clusterName).Get(helpers.SubmarinerConfigName)
-	if errors.IsNotFound(err) {
+	if apiErrors.IsNotFound(err) {
 		// the config not found, could be deleted, do nothing
 		return nil
 	}
@@ -154,22 +153,9 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 			Message: "There are no nodes labeled as gateways",
 		}
 
-		if config.Status.ManagedClusterInfo.Platform == "GCP" {
-			var cloudProvider cloud.Provider
-
-			cloudProvider, err = c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, syncCtx.Recorder())
-			if err == nil {
-				err = cloudProvider.CleanUpSubmarinerClusterEnv()
-			}
-
-			if err != nil {
-				condition = failedCondition("Failed to clean up the submariner cluster environment: %v", err)
-			}
-		} else if config.Status.ManagedClusterInfo.Platform != "AWS" {
-			err = c.removeAllGateways(ctx, config)
-			if err != nil {
-				condition = failedCondition("Failed to unlabel the gateway nodes: %v", err)
-			}
+		err := c.cleanupClusterEnvironment(ctx, config, syncCtx.Recorder())
+		if err != nil {
+			condition = failedCondition(err.Error())
 		}
 
 		updateErr := c.updateSubmarinerConfigStatus(syncCtx.Recorder(), config, condition)
@@ -179,6 +165,12 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		}
 
 		return updateErr
+	}
+
+	// config is deleting from hub, remove its related resources
+	// TODO: add finalizer in next release
+	if !config.DeletionTimestamp.IsZero() {
+		return c.cleanupClusterEnvironment(ctx, config, syncCtx.Recorder())
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "AWS" {
@@ -230,12 +222,6 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return c.updateGatewayStatus(syncCtx.Recorder(), config)
 	}
 
-	// config is deleting from hub, remove its related resources
-	// TODO: add finalizer in next release
-	if !config.DeletionTimestamp.IsZero() {
-		return c.removeAllGateways(ctx, config)
-	}
-
 	// ensure the expected count of gateways
 	condition, err := c.ensureGateways(ctx, config)
 
@@ -246,6 +232,26 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	return updateErr
+}
+
+func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
+	recorder events.Recorder) error {
+	if config.Status.ManagedClusterInfo.Platform == "GCP" {
+		var cloudProvider cloud.Provider
+
+		cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, recorder)
+		if err == nil {
+			err = cloudProvider.CleanUpSubmarinerClusterEnv()
+		}
+
+		return errors.WithMessagef(err, "Failed to clean up the submariner cluster environment")
+	}
+
+	if config.Status.ManagedClusterInfo.Platform != "AWS" {
+		return errors.WithMessagef(c.removeAllGateways(ctx, config), "Failed to unlabel the gateway nodes")
+	}
+
+	return nil
 }
 
 func (c *submarinerConfigController) updateSubmarinerConfigStatus(recorder events.Recorder, config *configv1alpha1.SubmarinerConfig,
