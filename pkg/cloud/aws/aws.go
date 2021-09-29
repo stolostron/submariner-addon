@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/manifestwork"
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud/reporter"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 
@@ -28,7 +29,7 @@ const (
 )
 
 type awsProvider struct {
-	eventRecorder     events.Recorder
+	reporter          cpapi.Reporter
 	nattPort          int64
 	nattDiscoveryPort int64
 	instanceType      string
@@ -94,7 +95,7 @@ func NewAWSProvider(
 	}
 
 	return &awsProvider{
-		eventRecorder:     eventRecorder,
+		reporter:          reporter.NewEventRecorderWrapper("AWSCloudProvider", eventRecorder),
 		nattPort:          int64(nattPort),
 		nattDiscoveryPort: int64(nattDiscoveryPort),
 		instanceType:      instanceType,
@@ -117,7 +118,7 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 			{Port: 0, Protocol: "51"},
 		},
 		Gateways: a.gateways,
-	}, a); err != nil {
+	}, a.reporter); err != nil {
 		return err
 	}
 	if err := a.cloudPrepare.PrepareForSubmariner(cpapi.PrepareForSubmarinerInput{
@@ -125,49 +126,26 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 			{Port: helpers.SubmarinerRoutePort, Protocol: "udp"},
 			{Port: helpers.SubmarinerMetricsPort, Protocol: "tcp"},
 		},
-	}, a); err != nil {
+	}, a.reporter); err != nil {
 		return err
 	}
 
-	a.eventRecorder.Eventf("SubmarinerClusterEnvBuild", "the submariner cluster env is build on aws")
+	a.reporter.Succeeded("The Submariner cluster environment has been set up on AWS")
 
 	return nil
 }
 
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on AWS after the SubmarinerConfig was deleted
 func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
-	if err := a.gatewayDeployer.Cleanup(a); err != nil {
+	if err := a.gatewayDeployer.Cleanup(a.reporter); err != nil {
 		return err
 	}
 
-	if err := a.cloudPrepare.CleanupAfterSubmariner(a); err != nil {
+	if err := a.cloudPrepare.CleanupAfterSubmariner(a.reporter); err != nil {
 		return err
 	}
 
-	a.eventRecorder.Eventf("SubmarinerClusterEnvCleanedUp", "the submariner cluster env is cleaned up on aws")
+	a.reporter.Succeeded("The Submariner cluster environment has been cleaned up on AWS")
 
 	return nil
-}
-
-// Reporter functions
-
-// Started will report that an operation started on the cloud
-func (a *awsProvider) Started(message string, args ...interface{}) {
-	a.eventRecorder.Eventf("SubmarinerClusterEnvBuild", message, args...)
-}
-
-// Succeeded will report that the last operation on the cloud has succeeded
-func (a *awsProvider) Succeeded(message string, args ...interface{}) {
-	a.eventRecorder.Eventf("SubmarinerClusterEnvBuild", message, args...)
-}
-
-// Failed will report that the last operation on the cloud has failed
-func (a *awsProvider) Failed(errs ...error) {
-	message := "Failed"
-	errMessages := []string{}
-	for i := range errs {
-		message += "\n%s"
-		errMessages = append(errMessages, errs[i].Error())
-	}
-	a.eventRecorder.Warningf("SubmarinerClusterEnvBuild", message, errMessages)
 }

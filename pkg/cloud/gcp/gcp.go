@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/klog/v2"
 
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud/reporter"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -36,7 +37,7 @@ type gcpProvider struct {
 	routePort         string
 	metricsPort       uint16
 	cloudPrepare      api.Cloud
-	eventRecorder     events.Recorder
+	reporter          api.Reporter
 	gwDeployer        api.GatewayDeployer
 	gateways          int
 	nattDiscoveryPort int64
@@ -95,7 +96,7 @@ func NewGCPProvider(
 		metricsPort:       helpers.SubmarinerMetricsPort,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
-		eventRecorder:     eventRecorder,
+		reporter:          reporter.NewEventRecorderWrapper("GCPCloudProvider", eventRecorder),
 		nattDiscoveryPort: int64(nattDiscoveryPort),
 		gateways:          gateways,
 	}, nil
@@ -118,7 +119,7 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 			{Port: 0, Protocol: "ah"},
 		},
 		Gateways: g.gateways,
-	}, g); err != nil {
+	}, g.reporter); err != nil {
 		return err
 	}
 
@@ -128,12 +129,12 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 			{Port: g.metricsPort, Protocol: "tcp"},
 		},
 	}
-	err := g.cloudPrepare.PrepareForSubmariner(input, g)
+	err := g.cloudPrepare.PrepareForSubmariner(input, g.reporter)
 	if err != nil {
 		return err
 	}
 
-	g.eventRecorder.Eventf("SubmarinerClusterEnvBuild", "the submariner cluster env is build on gcp")
+	g.reporter.Succeeded("The Submariner cluster environment has been set up on GCP")
 	return nil
 }
 
@@ -141,12 +142,18 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 // 1. delete the inbound and outbound firewall rules to close submariner ports
 // 2. delete the inbound and outbound firewall rules to close submariner metrics port
 func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
-	err := g.gwDeployer.Cleanup(g)
+	err := g.gwDeployer.Cleanup(g.reporter)
 	if err != nil {
 		return err
 	}
 
-	return g.cloudPrepare.CleanupAfterSubmariner(g)
+	err = g.cloudPrepare.CleanupAfterSubmariner(g.reporter)
+	if err != nil {
+		return err
+	}
+
+	g.reporter.Succeeded("The Submariner cluster environment has been cleaned up on GCP")
+	return nil
 }
 
 func newClient(kubeClient kubernetes.Interface, secretNamespace, secretName string) (string, gcpclient.Interface, error) {
@@ -176,27 +183,4 @@ func newClient(kubeClient kubernetes.Interface, secretNamespace, secretName stri
 
 	return creds.ProjectID, computeClient, nil
 
-}
-
-// Reporter functions
-
-// Started will report that an operation started on the cloud
-func (g *gcpProvider) Started(message string, args ...interface{}) {
-	g.eventRecorder.Eventf("SubmarinerClusterEnvBuild", fmt.Sprintf(message, args...))
-}
-
-// Succeeded will report that the last operation on the cloud has succeeded
-func (g *gcpProvider) Succeeded(message string, args ...interface{}) {
-	g.eventRecorder.Eventf("SubmarinerClusterEnvBuild", message, args...)
-}
-
-// Failed will report that the last operation on the cloud has failed
-func (g *gcpProvider) Failed(errs ...error) {
-	message := "Failed"
-	errMessages := []string{}
-	for i := range errs {
-		message += "\n%s"
-		errMessages = append(errMessages, errs[i].Error())
-	}
-	g.eventRecorder.Warningf("SubmarinerClusterEnvBuild", message, errMessages)
 }
