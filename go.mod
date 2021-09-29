@@ -11,6 +11,7 @@ require (
 	github.com/openshift/build-machinery-go v0.0.0-20210922160744-a9caf93aef90
 	github.com/openshift/library-go v0.0.0-20210609150209-1c980926414c
 	github.com/operator-framework/api v0.5.2
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/common v0.30.0 // indirect
 	github.com/prometheus/procfs v0.7.2 // indirect
 	github.com/spf13/cobra v1.1.3
