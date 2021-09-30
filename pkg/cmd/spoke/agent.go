@@ -18,5 +18,6 @@ func NewAgent() *cobra.Command {
 	cmd.Short = "Start the ACM Submariner Agent"
 
 	agentOptions.AddFlags(cmd)
+
 	return cmd
 }

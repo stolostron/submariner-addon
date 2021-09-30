@@ -68,6 +68,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 		// submariner subscription is not found, could be deleted, ignore it.
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
@@ -100,6 +101,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	operator, err := c.deploymentLister.Deployments(c.namespace).Get(operatorName)
+
 	switch {
 	case errors.IsNotFound(err):
 		degradedConditionReasons = append(degradedConditionReasons, "NoOperatorDeployment")
@@ -114,6 +116,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	gateways, err := c.daemonSetLister.DaemonSets(c.namespace).Get(gatewayName)
+
 	switch {
 	case errors.IsNotFound(err):
 		degradedConditionReasons = append(degradedConditionReasons, "NoGatewayDaemonSet")
@@ -134,6 +137,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	routeAgent, err := c.daemonSetLister.DaemonSets(c.namespace).Get(routeAgentName)
+
 	switch {
 	case errors.IsNotFound(err):
 		degradedConditionReasons = append(degradedConditionReasons, "NoRouteAgentDaemonSet")

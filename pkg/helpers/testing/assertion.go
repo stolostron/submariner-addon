@@ -20,6 +20,7 @@ func AssertActions(t *testing.T, actualActions []clienttesting.Action, expectedV
 	if len(actualActions) != len(expectedVerbs) {
 		t.Errorf("expected %d call but got: %#v", len(expectedVerbs), actualActions)
 	}
+
 	for i, expected := range expectedVerbs {
 		if actualActions[i].GetVerb() != expected {
 			t.Errorf("expected %s action but got: %#v", expected, actualActions[i])
@@ -39,6 +40,7 @@ func AssertFinalizers(t *testing.T, obj runtime.Object, finalizers []string) {
 	if len(actual) == 0 && len(finalizers) == 0 {
 		return
 	}
+
 	if !reflect.DeepEqual(actual, finalizers) {
 		t.Fatal(diff.ObjectDiff(actual, finalizers))
 	}
@@ -48,6 +50,7 @@ func AssertActionResource(t *testing.T, action clienttesting.Action, expectedRes
 	if action == nil {
 		t.Fatal("action is nil")
 	}
+
 	if action.GetResource().Resource != expectedResource {
 		t.Errorf("expected action resource %s but got: %#v", expectedResource, action)
 	}

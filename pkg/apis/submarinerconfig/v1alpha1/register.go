@@ -34,5 +34,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&SubmarinerConfigList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
+
 	return nil
 }

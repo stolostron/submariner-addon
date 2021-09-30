@@ -73,6 +73,7 @@ func (o *AddOnOptions) Complete(kubeClient kubernetes.Interface) error {
 			return nil
 		}
 	}
+
 	return fmt.Errorf("The agent image cannot be found from the container %q of the pod %q", containerName, podName)
 }
 
@@ -152,6 +153,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		cloud.NewProviderFactory(nil, kubeClient, workClient, dynamicClient, nil),
 		controllerContext.EventRecorder,
 	)
+
 	go clusterInformers.Start(ctx.Done())
 	go workInformers.Start(ctx.Done())
 	go kubeInformers.Start(ctx.Done())
@@ -175,5 +177,6 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	go mgr.Start(ctx)
 
 	<-ctx.Done()
+
 	return nil
 }

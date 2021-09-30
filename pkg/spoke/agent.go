@@ -176,6 +176,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	go leaseUpdater.Start(ctx)
 
 	<-ctx.Done()
+
 	return nil
 }
 

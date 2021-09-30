@@ -59,6 +59,7 @@ func NewController(
 		clusterSetLister: clusterSetInformer.Lister(),
 		eventRecorder:    recorder.WithComponentSuffix("submariner-broker-controller"),
 	}
+
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)

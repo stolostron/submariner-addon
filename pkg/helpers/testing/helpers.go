@@ -40,6 +40,7 @@ func NewSubmarinerConfigCondition(name, status, reason, message string, lastTran
 	if lastTransition != nil {
 		ret.LastTransitionTime = *lastTransition
 	}
+
 	return ret
 }
 
@@ -48,5 +49,4 @@ func ToUnstructured(obj runtime.Object) *unstructured.Unstructured {
 	Expect(err).To(Succeed())
 
 	return &unstructured.Unstructured{Object: m}
-
 }

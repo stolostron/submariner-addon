@@ -106,18 +106,21 @@ func Get(
 	if err != nil {
 		return nil, err
 	}
+
 	brokerInfo.BrokerAPIServer = apiServer
 
 	ipSecPSK, err := getIPSecPSK(kubeClient, brokeNamespace)
 	if err != nil {
 		return nil, err
 	}
+
 	brokerInfo.IPSecPSK = ipSecPSK
 
 	token, ca, err := getBrokerTokenAndCA(kubeClient, dynamicClient, brokeNamespace, clusterName, apiServer)
 	if err != nil {
 		return nil, err
 	}
+
 	brokerInfo.BrokerCA = ca
 	brokerInfo.BrokerToken = token
 
@@ -221,8 +224,10 @@ func getBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
 			if apiServer == "" {
 				return "", fmt.Errorf("failed to get apiserver in env %v", brokerAPIServer)
 			}
+
 			return apiServer, nil
 		}
+
 		return "", fmt.Errorf("failed to get infrastructures cluster: %v", err)
 	}
 
@@ -236,6 +241,7 @@ func getBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
 
 func getKubeAPIServerCA(kubeAPIServer string, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) ([]byte, error) {
 	kubeAPIServerURL, err := url.Parse(fmt.Sprintf("https://%s", kubeAPIServer))
+
 	if err != nil {
 		return nil, err
 	}
@@ -244,6 +250,7 @@ func getKubeAPIServerCA(kubeAPIServer string, kubeClient kubernetes.Interface, d
 	if errors.IsNotFound(err) {
 		return nil, nil
 	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -270,6 +277,7 @@ func getKubeAPIServerCA(kubeAPIServer string, kubeClient kubernetes.Interface, d
 				if !ok {
 					return nil, fmt.Errorf("failed to find data[tls.crt] in secret %s/%s", ocpConfigNamespace, secretName)
 				}
+
 				return ca, nil
 			}
 		}
@@ -284,11 +292,13 @@ func getBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get agent ServiceAccount %v/%v: %v", brokerNS, clusterName, err)
 	}
+
 	if len(sa.Secrets) < 1 {
 		return "", "", fmt.Errorf("ServiceAccount %v does not have any secret", sa.Name)
 	}
 
 	brokerTokenPrefix := fmt.Sprintf("%s-token-", clusterName)
+
 	for _, secret := range sa.Secrets {
 		if strings.HasPrefix(secret.Name, brokerTokenPrefix) {
 			tokenSecret, err := kubeClient.CoreV1().Secrets(brokerNS).Get(context.TODO(), secret.Name, metav1.GetOptions{})
@@ -313,5 +323,4 @@ func getBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.
 	}
 
 	return "", "", fmt.Errorf("ServiceAccount %v/%v does not have a secret of type token", brokerNS, clusterName)
-
 }

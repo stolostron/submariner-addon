@@ -77,6 +77,7 @@ func main() {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error in verification process: %s\n", err)
 		}
+
 		os.Exit(rc)
 	}
 

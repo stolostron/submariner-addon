@@ -115,6 +115,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		// the addon not found, could be deleted, ignore
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
@@ -124,9 +125,11 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		// the config not found, could be deleted, do nothing
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
+
 	if config.Status.ManagedClusterInfo.Platform == "" {
 		// no managed cluster info, do nothing
 		return nil
@@ -135,7 +138,6 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	// TODO: add finalizer in next release
 	if !addOn.DeletionTimestamp.IsZero() {
 		// if the addon is deleted before config, clean up gateways config on the manged cluster
-
 		if config.Status.ManagedClusterInfo.Platform == "AWS" {
 			// for AWS, the gateway configuration will be operated on the hub, do nothing
 			return nil
@@ -277,6 +279,7 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context, config 
 	updatedGatewayNames := []string{}
 
 	requiredGateways := config.Spec.Gateways - len(currentGateways)
+
 	switch {
 	case requiredGateways == 0:
 		// number of gateways unchanged, ensure that the gateways are fully labeled
@@ -297,6 +300,7 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context, config 
 		removed, err = c.removeGateways(ctx, config, currentGateways, -requiredGateways)
 
 		removedNames := sets.NewString(removed...)
+
 		for _, name := range currentGatewayNames {
 			if !removedNames.Has(name) {
 				updatedGatewayNames = append(updatedGatewayNames, name)
@@ -318,16 +322,19 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context, config 
 	}
 
 	sort.Strings(updatedGatewayNames)
+
 	return successCondition(updatedGatewayNames), nil
 }
 
 func (c *submarinerConfigController) getLabeledNodes(nodeLabelSelectors ...nodeLabelSelector) ([]*corev1.Node, error) {
 	requirements := []labels.Requirement{}
+
 	for _, selector := range nodeLabelSelectors {
 		requirement, err := labels.NewRequirement(selector.label, selector.op, []string{})
 		if err != nil {
 			return nil, err
 		}
+
 		requirements = append(requirements, *requirement)
 	}
 
@@ -351,6 +358,7 @@ func (c *submarinerConfigController) labelNode(ctx context.Context, config *conf
 
 func (c *submarinerConfigController) updateNode(ctx context.Context, node *corev1.Node, mutate func(node *corev1.Node)) error {
 	name := node.Name
+
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error
 
@@ -413,6 +421,7 @@ func (c *submarinerConfigController) removeGateways(ctx context.Context, config 
 
 	errs := []error{}
 	removed := []string{}
+
 	for i := 0; i < removedGateways; i++ {
 		removed = append(removed, gateways[i].Name)
 		errs = append(errs, c.unlabelNode(ctx, config, gateways[i]))
@@ -426,7 +435,9 @@ func (c *submarinerConfigController) removeAllGateways(ctx context.Context, conf
 	if err != nil {
 		return err
 	}
+
 	_, err = c.removeGateways(ctx, config, gateways, len(gateways))
+
 	return err
 }
 
@@ -445,6 +456,7 @@ func (c *submarinerConfigController) findGatewaysWithZone(expected int, zoneLabe
 
 	// group the nodes with zone
 	zoneNodes := map[string][]*corev1.Node{}
+
 	for _, worker := range workers {
 		zone, has := worker.Labels[zoneLabel]
 		if !has {
@@ -478,6 +490,7 @@ func (c *submarinerConfigController) findGatewaysWithZone(expected int, zoneLabe
 			gateways = append(gateways, nodes[nodeIndex])
 			count = count + 1
 		}
+
 		nodeIndex = nodeIndex + 1
 	}
 
