@@ -19,10 +19,8 @@ import (
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 
 	"github.com/openshift/library-go/pkg/operator/events"
-	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 
 	"github.com/submariner-io/cloud-prepare/pkg/api"
-	cpapi "github.com/submariner-io/cloud-prepare/pkg/api"
 	cloudpreparegcp "github.com/submariner-io/cloud-prepare/pkg/gcp"
 	"k8s.io/client-go/kubernetes"
 )
@@ -34,8 +32,6 @@ const (
 
 type gcpProvider struct {
 	infraId           string
-	projectId         string
-	instanceType      string
 	nattPort          uint16
 	routePort         string
 	metricsPort       uint16
@@ -113,8 +109,8 @@ func NewGCPProvider(
 //    - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
 // 2. create the inbound and outbound firewall rules to open 8080/TCP port to export metrics service from the Submariner gateway
 func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
-	if err := g.gwDeployer.Deploy(cpapi.GatewayDeployInput{
-		PublicPorts: []cpapi.PortSpec{
+	if err := g.gwDeployer.Deploy(api.GatewayDeployInput{
+		PublicPorts: []api.PortSpec{
 			{Port: g.nattPort, Protocol: "udp"},
 			{Port: uint16(g.nattDiscoveryPort), Protocol: "udp"},
 			// ESP & AH protocols are used for private-ip to private-ip gateway communications
@@ -145,18 +141,12 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 // 1. delete the inbound and outbound firewall rules to close submariner ports
 // 2. delete the inbound and outbound firewall rules to close submariner metrics port
 func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
-	var errs []error
-
 	err := g.gwDeployer.Cleanup(g)
 	if err != nil {
 		return err
 	}
 
-	err = g.cloudPrepare.CleanupAfterSubmariner(g)
-	if err != nil {
-		return err
-	}
-	return operatorhelpers.NewMultiLineAggregate(errs)
+	return g.cloudPrepare.CleanupAfterSubmariner(g)
 }
 
 func newClient(kubeClient kubernetes.Interface, secretNamespace, secretName string) (string, gcpclient.Interface, error) {
