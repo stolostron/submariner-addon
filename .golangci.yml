@@ -23,7 +23,7 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    # - deadcode
+    - deadcode
     - depguard
     - dogsled
     # - dupl
