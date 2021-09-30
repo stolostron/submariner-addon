@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -45,8 +44,7 @@ const (
 )
 
 const (
-	IPSecPSKSecretLength = 48
-	IPSecPSKSecretName   = "submariner-ipsec-psk"
+	IPSecPSKSecretName = "submariner-ipsec-psk"
 )
 
 const (
@@ -287,30 +285,6 @@ func CleanUpSubmarinerManifests(
 	return errorhelpers.NewMultiLineAggregate(errs)
 }
 
-func GenerateIPSecPSKSecret(client kubernetes.Interface, brokerNamespace string) error {
-	_, err := client.CoreV1().Secrets(brokerNamespace).Get(context.TODO(), IPSecPSKSecretName, metav1.GetOptions{})
-	switch {
-	case errors.IsNotFound(err):
-		psk := make([]byte, IPSecPSKSecretLength)
-		if _, err := rand.Read(psk); err != nil {
-			return err
-		}
-		pskSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: IPSecPSKSecretName,
-			},
-			Data: map[string][]byte{
-				"psk": psk,
-			},
-		}
-		_, err := client.CoreV1().Secrets(brokerNamespace).Create(context.TODO(), pskSecret, metav1.CreateOptions{})
-		return err
-	case err != nil:
-		return err
-	}
-	return nil
-}
-
 func GetClusterProduct(managedCluster *clusterv1.ManagedCluster) string {
 	for _, claim := range managedCluster.Status.ClusterClaims {
 		if claim.Name == "product.open-cluster-management.io" {
@@ -363,7 +337,7 @@ func GetCurrentNamespace(defaultNamespace string) string {
 	return string(nsBytes)
 }
 
-func GernerateBrokerName(clusterSetName string) string {
+func GenerateBrokerName(clusterSetName string) string {
 	name := fmt.Sprintf("%s-%s", clusterSetName, brokerSuffix)
 	if len(name) > namespaceMaxLength {
 		truncatedClusterSetName := clusterSetName[(len(brokerSuffix) - 1):]

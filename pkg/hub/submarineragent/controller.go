@@ -443,7 +443,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	managedClusterAddOn *addonv1alpha1.ManagedClusterAddOn,
 	submarinerConfig *configv1alpha1.SubmarinerConfig) error {
 	// generate service account and bind it to `submariner-k8s-broker-cluster` role
-	brokerNamespace := helpers.GernerateBrokerName(clusterSetName)
+	brokerNamespace := helpers.GenerateBrokerName(clusterSetName)
 	if err := c.applyClusterRBACFiles(brokerNamespace, managedCluster.Name); err != nil {
 		return err
 	}
