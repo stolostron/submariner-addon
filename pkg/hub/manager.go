@@ -126,7 +126,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 
 	submarinerBrokerCRDsController := submarinerbroker.NewSubmarinerBrokerCRDsController(
 		apiExtensionClient,
-		apiExtensionsInformers.Apiextensions().V1beta1().CustomResourceDefinitions(),
+		apiExtensionsInformers.Apiextensions().V1().CustomResourceDefinitions(),
 		controllerContext.EventRecorder,
 	)
 

@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1beta1"
+	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -67,7 +67,7 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 		return nil
 	}
 
-	configCRD, err := c.crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(ctx, crdName, v1.GetOptions{})
+	configCRD, err := c.crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, crdName, v1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return nil
 	}
