@@ -6,23 +6,19 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-
-	"github.com/openshift/library-go/pkg/controller/controllercmd"
-
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	configclientset "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub"
 	"github.com/open-cluster-management/submariner-addon/test/util"
+	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	addonclientset "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-
-	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -30,8 +26,8 @@ import (
 )
 
 func TestIntegration(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Integration Suite", []ginkgo.Reporter{printer.NewlineReporter{}})
+	RegisterFailHandler(Fail)
+	RunSpecsWithDefaultAndCustomReporters(t, "Integration Suite", []Reporter{printer.NewlineReporter{}})
 }
 
 const (
@@ -56,16 +52,16 @@ var configClinet configclientset.Interface
 var addOnClient addonclientset.Interface
 var dynamicClient dynamic.Interface
 
-var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
-	logf.SetLogger(zap.New(zap.WriteTo(ginkgo.GinkgoWriter), zap.UseDevMode(true)))
+var _ = BeforeSuite(func(done Done) {
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-	ginkgo.By("bootstrapping test environment")
+	By("bootstrapping test environment")
 
 	var err error
 
 	// set api server env
 	err = os.Setenv("BROKER_API_SERVER", "127.0.0.1")
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 
 	// install cluster and work CRDs and start a local kube-apiserver
 	testEnv = &envtest.Environment{
@@ -81,37 +77,37 @@ var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 	}
 
 	cfg, err = testEnv.Start()
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(cfg).ToNot(gomega.BeNil())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cfg).ToNot(BeNil())
 
 	// prepare clients
 	kubeClient, err = kubernetes.NewForConfig(cfg)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(kubeClient).ToNot(gomega.BeNil())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(kubeClient).ToNot(BeNil())
 
 	clusterClient, err = clusterclientset.NewForConfig(cfg)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(clusterClient).ToNot(gomega.BeNil())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(clusterClient).ToNot(BeNil())
 
 	workClient, err = workclientset.NewForConfig(cfg)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(clusterClient).ToNot(gomega.BeNil())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(clusterClient).ToNot(BeNil())
 
 	configClinet, err = configclientset.NewForConfig(cfg)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(configClinet).ToNot(gomega.BeNil())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(configClinet).ToNot(BeNil())
 
 	addOnClient, err = addonclientset.NewForConfig(cfg)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(addOnClient).ToNot(gomega.BeNil())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(addOnClient).ToNot(BeNil())
 
 	dynamicClient, err = dynamic.NewForConfig(cfg)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(dynamicClient).ToNot(gomega.BeNil())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(dynamicClient).ToNot(BeNil())
 
 	// prepare open-cluster-management namespaces
 	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace("open-cluster-management"), metav1.CreateOptions{})
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	// start submariner broker and agent controller
 	go func() {
@@ -120,14 +116,14 @@ var _ = ginkgo.BeforeSuite(func(done ginkgo.Done) {
 			KubeConfig:    cfg,
 			EventRecorder: util.NewIntegrationTestEventRecorder("submariner-addon"),
 		})
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	}()
 
 	close(done)
 }, 60)
 
-var _ = ginkgo.AfterSuite(func() {
-	ginkgo.By("tearing down the test environment")
+var _ = AfterSuite(func() {
+	By("tearing down the test environment")
 	err := testEnv.Stop()
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 })
