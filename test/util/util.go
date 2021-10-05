@@ -7,17 +7,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/onsi/ginkgo"
-
+	. "github.com/onsi/ginkgo"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
-	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
-
 	"github.com/openshift/library-go/pkg/operator/events"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,6 +21,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/retry"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 )
 
 const (
@@ -287,7 +284,7 @@ func (r *IntegrationTestEventRecorder) WithComponentSuffix(suffix string) events
 }
 
 func (r *IntegrationTestEventRecorder) Event(reason, message string) {
-	fmt.Fprintf(ginkgo.GinkgoWriter, "Event: [%s] %v: %v \n", r.component, reason, message)
+	fmt.Fprintf(GinkgoWriter, "Event: [%s] %v: %v \n", r.component, reason, message)
 }
 
 func (r *IntegrationTestEventRecorder) Eventf(reason, messageFmt string, args ...interface{}) {
@@ -295,7 +292,7 @@ func (r *IntegrationTestEventRecorder) Eventf(reason, messageFmt string, args ..
 }
 
 func (r *IntegrationTestEventRecorder) Warning(reason, message string) {
-	fmt.Fprintf(ginkgo.GinkgoWriter, "Warning: [%s] %v: %v \n", r.component, reason, message)
+	fmt.Fprintf(GinkgoWriter, "Warning: [%s] %v: %v \n", r.component, reason, message)
 }
 
 func (r *IntegrationTestEventRecorder) Warningf(reason, messageFmt string, args ...interface{}) {
