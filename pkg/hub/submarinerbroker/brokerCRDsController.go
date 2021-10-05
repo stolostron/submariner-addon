@@ -47,6 +47,7 @@ func NewCRDsController(
 		crdClient:     crdClient,
 		eventRecorder: recorder.WithComponentSuffix("submariner-broker-crds-controller"),
 	}
+
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
@@ -68,6 +69,7 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 	if errors.IsNotFound(err) {
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}

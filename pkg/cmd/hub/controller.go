@@ -18,5 +18,6 @@ func NewController() *cobra.Command {
 	cmd.Short = "Start the ACM Submariner Controller"
 
 	addOnOptions.AddFlags(cmd)
+
 	return cmd
 }

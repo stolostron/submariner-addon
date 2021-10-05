@@ -125,9 +125,11 @@ func UpdateSubmarinerConfigConditionFn(cond metav1.Condition) UpdateSubmarinerCo
 func UpdateSubmarinerConfigStatusFn(cond *metav1.Condition, managedClusterInfo configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
 	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
 		oldStatus.ManagedClusterInfo = managedClusterInfo
+
 		if cond != nil {
 			meta.SetStatusCondition(&oldStatus.Conditions, *cond)
 		}
+
 		return nil
 	}
 }
@@ -190,17 +192,20 @@ func CleanUpSubmarinerManifests(
 	assetFunc resourceapply.AssetFunc,
 	files ...string) error {
 	errs := []error{}
+
 	for _, file := range files {
 		objectRaw, err := assetFunc(file)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
+
 		object, _, err := genericCodec.Decode(objectRaw, nil, nil)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
+
 		switch t := object.(type) {
 		case *corev1.Namespace:
 			err = client.CoreV1().Namespaces().Delete(ctx, t.Name, metav1.DeleteOptions{})
@@ -213,9 +218,11 @@ func CleanUpSubmarinerManifests(
 		default:
 			err = fmt.Errorf("unhandled type %T", object)
 		}
+
 		if errors.IsNotFound(err) {
 			continue
 		}
+
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -224,6 +231,7 @@ func CleanUpSubmarinerManifests(
 		gvk := resourcehelper.GuessObjectGroupVersionKind(object)
 		recorder.Eventf(fmt.Sprintf("Submariner%sDeleted", gvk.Kind), "Deleted %s", resourcehelper.FormatResourceForCLIWithNamespace(object))
 	}
+
 	return errorhelpers.NewMultiLineAggregate(errs)
 }
 
@@ -242,6 +250,7 @@ func GetEnv(key, defaultValue string) string {
 	if value == "" {
 		return defaultValue
 	}
+
 	return value
 }
 
@@ -249,16 +258,20 @@ func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 	clusterInfo := configv1alpha1.ManagedClusterInfo{
 		ClusterName: managedCluster.Name,
 	}
+
 	for _, claim := range managedCluster.Status.ClusterClaims {
 		if claim.Name == "product.open-cluster-management.io" {
 			clusterInfo.Vendor = claim.Value
 		}
+
 		if claim.Name == "platform.open-cluster-management.io" {
 			clusterInfo.Platform = claim.Value
 		}
+
 		if claim.Name == "region.open-cluster-management.io" {
 			clusterInfo.Region = claim.Value
 		}
+
 		if claim.Name == "infrastructure.openshift.io" {
 			var infraInfo map[string]interface{}
 			if err := json.Unmarshal([]byte(claim.Value), &infraInfo); err == nil {
@@ -266,6 +279,7 @@ func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 			}
 		}
 	}
+
 	return clusterInfo
 }
 
@@ -276,6 +290,7 @@ func GetCurrentNamespace(defaultNamespace string) string {
 	if err != nil {
 		return defaultNamespace
 	}
+
 	return string(nsBytes)
 }
 
@@ -285,15 +300,18 @@ func GenerateBrokerName(clusterSetName string) string {
 		truncatedClusterSetName := clusterSetName[(len(brokerSuffix) - 1):]
 		return fmt.Sprintf("%s-%s", truncatedClusterSetName, brokerSuffix)
 	}
+
 	return name
 }
 
 func RemoveConfigFinalizer(ctx context.Context, configClient configclient.Interface, config *configv1alpha1.SubmarinerConfig, finalizer string) error {
 	copiedFinalizers := []string{}
+
 	for i := range config.Finalizers {
 		if config.Finalizers[i] == finalizer {
 			continue
 		}
+
 		copiedFinalizers = append(copiedFinalizers, config.Finalizers[i])
 	}
 
@@ -301,6 +319,7 @@ func RemoveConfigFinalizer(ctx context.Context, configClient configclient.Interf
 		copied := config.DeepCopy()
 		copied.Finalizers = copiedFinalizers
 		_, err := configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(copied.Namespace).Update(ctx, copied, metav1.UpdateOptions{})
+
 		return err
 	}
 
@@ -310,10 +329,12 @@ func RemoveConfigFinalizer(ctx context.Context, configClient configclient.Interf
 // RemoveAddOnFinalizer removes the addon finalizer from a submariner-addon
 func RemoveAddOnFinalizer(ctx context.Context, addOnClient addonclient.Interface, addOn *addonv1alpha1.ManagedClusterAddOn, finalizer string) error {
 	copiedFinalizers := []string{}
+
 	for i := range addOn.Finalizers {
 		if addOn.Finalizers[i] == finalizer {
 			continue
 		}
+
 		copiedFinalizers = append(copiedFinalizers, addOn.Finalizers[i])
 	}
 
@@ -321,6 +342,7 @@ func RemoveAddOnFinalizer(ctx context.Context, addOnClient addonclient.Interface
 		copied := addOn.DeepCopy()
 		copied.Finalizers = copiedFinalizers
 		_, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(copied.Namespace).Update(ctx, copied, metav1.UpdateOptions{})
+
 		return err
 	}
 

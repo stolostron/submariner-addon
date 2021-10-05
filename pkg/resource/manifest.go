@@ -40,6 +40,7 @@ func ApplyManifests(kubeClient kubernetes.Interface, recorder events.Recorder, a
 	applyResults := resourceapply.ApplyDirectly(resourceapply.NewKubeClientHolder(kubeClient), recorder, assetFunc, files...)
 
 	errs := []error{}
+
 	for _, result := range applyResults {
 		if result.Error != nil {
 			errs = append(errs, fmt.Errorf("error applying %q (%T): %v", result.File, result.Type, result.Error))
@@ -51,6 +52,7 @@ func ApplyManifests(kubeClient kubernetes.Interface, recorder events.Recorder, a
 
 func DeleteFromManifests(kubeClient kubernetes.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc, files ...string) error {
 	errs := []error{}
+
 	for _, file := range files {
 		objectRaw, err := assetFunc(file)
 		if err != nil {
@@ -90,6 +92,7 @@ func DeleteFromManifests(kubeClient kubernetes.Interface, recorder events.Record
 		recorder.Eventf(fmt.Sprintf("Submariner%sDeleted", gvk.Kind), "Deleted %s",
 			resourcehelper.FormatResourceForCLIWithNamespace(object))
 	}
+
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 

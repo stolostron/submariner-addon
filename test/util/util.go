@@ -51,6 +51,7 @@ func GetCurrentNamespace(kubeClient kubernetes.Interface, defaultNamespace strin
 	}
 
 	namespace := string(nsBytes)
+
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
@@ -58,6 +59,7 @@ func GetCurrentNamespace(kubeClient kubernetes.Interface, defaultNamespace strin
 	}, metav1.CreateOptions{}); err != nil && !errors.IsAlreadyExists(err) {
 		return "", err
 	}
+
 	return namespace, nil
 }
 
@@ -80,6 +82,7 @@ func FindExpectedFinalizer(finalizers []string, expected string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -102,14 +105,17 @@ func FindSubmarinerBrokerResources(kubeClient kubernetes.Interface, brokerNamesp
 	if err != nil {
 		return false
 	}
+
 	_, err = kubeClient.RbacV1().Roles(brokerNamespace).Get(context.Background(), expectedBrokerRole, metav1.GetOptions{})
 	if err != nil {
 		return false
 	}
+
 	_, err = kubeClient.CoreV1().Secrets(brokerNamespace).Get(context.Background(), expectedIPSECSecret, metav1.GetOptions{})
 	if err != nil {
 		return false
 	}
+
 	return true
 }
 
@@ -120,6 +126,7 @@ func FindManifestWorks(workClient workclientset.Interface, managedClusterName st
 			return false
 		}
 	}
+
 	return true
 }
 

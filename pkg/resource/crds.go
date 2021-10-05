@@ -13,6 +13,7 @@ import (
 
 func ApplyCRDs(client apiextensionsClient.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc, files ...string) error {
 	errs := []error{}
+
 	for _, file := range files {
 		objectRaw, err := assetFunc(file)
 		if err != nil {

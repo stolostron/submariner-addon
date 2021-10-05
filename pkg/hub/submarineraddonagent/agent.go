@@ -117,13 +117,16 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 		if err != nil {
 			return objects, err
 		}
+
 		raw := assets.MustCreateAssetFromTemplate(file, template, &manifestConfig).Data
 		object, _, err := genericCodec.Decode(raw, nil, nil)
 		if err != nil {
 			return nil, err
 		}
+
 		objects = append(objects, object)
 	}
+
 	return objects, nil
 }
 
@@ -204,6 +207,7 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, addon *
 	)
 
 	errs := []error{}
+
 	for _, result := range results {
 		if result.Error != nil {
 			errs = append(errs, result.Error)

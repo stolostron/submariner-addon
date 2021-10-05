@@ -573,10 +573,12 @@ func newManagedCluster(name string, labels map[string]string, finalizers []strin
 			Finalizers: finalizers,
 		},
 	}
+
 	if terminating {
 		now := metav1.Now()
 		cluster.DeletionTimestamp = &now
 	}
+
 	return cluster
 }
 

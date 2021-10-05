@@ -134,6 +134,7 @@ func NewSubmarinerAgentController(
 		cloudProviderFactory: cloudProviderFactory,
 		eventRecorder:        recorder.WithComponentSuffix("submariner-agent-controller"),
 	}
+
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
@@ -182,6 +183,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 			// enqueue the managed cluster to reconcile
 			syncCtx.Queue().Add(managedCluster.Name)
 		}
+
 		return nil
 	}
 
@@ -200,6 +202,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 			// managed cluster not found, could have been deleted, do nothing.
 			return nil
 		}
+
 		if err != nil {
 			return err
 		}
@@ -209,6 +212,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 			// only sync the managed cluster
 			return c.syncManagedCluster(ctx, managedCluster.DeepCopy(), nil)
 		}
+
 		if err != nil {
 			return err
 		}
@@ -227,6 +231,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		// config is not found, could have been deleted, do nothing.
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
@@ -236,6 +241,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		// handle deleting submariner config after managed cluster was deleted.
 		return c.syncSubmarinerConfig(ctx, nil, config.DeepCopy())
 	}
+
 	if err != nil {
 		return err
 	}
@@ -255,6 +261,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 	config *configv1alpha1.SubmarinerConfig) error {
 	// find the submariner-addon on the managed cluster namespace
 	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(helpers.SubmarinerAddOnName)
+
 	switch {
 	case errors.IsNotFound(err):
 		// submariner-addon is not found, could have been deleted, do nothing.
@@ -266,15 +273,18 @@ func (c *submarinerAgentController) syncManagedCluster(
 	// add a submariner agent finalizer to a managed cluster
 	if managedCluster.DeletionTimestamp.IsZero() {
 		hasFinalizer := false
+
 		for i := range managedCluster.Finalizers {
 			if managedCluster.Finalizers[i] == agentFinalizer {
 				hasFinalizer = true
 				break
 			}
 		}
+
 		if !hasFinalizer {
 			managedCluster.Finalizers = append(managedCluster.Finalizers, agentFinalizer)
 			_, err := c.clusterClient.ClusterV1().ManagedClusters().Update(ctx, managedCluster, metav1.UpdateOptions{})
+
 			return err
 		}
 	}
@@ -292,6 +302,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 
 	// find the clustersets that contains this managed cluster
 	_, err = c.clusterSetLister.Get(clusterSetName)
+
 	switch {
 	case errors.IsNotFound(err):
 		// if one cluster has clusterset label, but the clusterset is not found, it could have been deleted
@@ -304,15 +315,18 @@ func (c *submarinerAgentController) syncManagedCluster(
 	// add a finalizer to the submariner-addon
 	if addOn.DeletionTimestamp.IsZero() {
 		hasFinalizer := false
+
 		for i := range addOn.Finalizers {
 			if addOn.Finalizers[i] == addOnFinalizer {
 				hasFinalizer = true
 				break
 			}
 		}
+
 		if !hasFinalizer {
 			addOn.Finalizers = append(addOn.Finalizers, addOnFinalizer)
 			_, err := c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name).Update(ctx, addOn, metav1.UpdateOptions{})
+
 			return err
 		}
 	}
@@ -332,15 +346,18 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	// add a finalizer to the submarinerconfig
 	if config.DeletionTimestamp.IsZero() {
 		hasFinalizer := false
+
 		for i := range config.Finalizers {
 			if config.Finalizers[i] == submarinerConfigFinalizer {
 				hasFinalizer = true
 				break
 			}
 		}
+
 		if !hasFinalizer {
 			config.Finalizers = append(config.Finalizers, submarinerConfigFinalizer)
 			_, err := c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace).Update(ctx, config, metav1.UpdateOptions{})
+
 			return err
 		}
 	}
@@ -352,8 +369,8 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 				return err
 			}
 		}
-		return helpers.RemoveConfigFinalizer(ctx, c.configClient, config, submarinerConfigFinalizer)
 
+		return helpers.RemoveConfigFinalizer(ctx, c.configClient, config, submarinerConfigFinalizer)
 	}
 
 	if managedCluster == nil {
@@ -420,16 +437,19 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 // removeAgentFinalizer removes the agent finalizer from a clusterset
 func (c *submarinerAgentController) removeAgentFinalizer(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
 	copiedFinalizers := []string{}
+
 	for i := range managedCluster.Finalizers {
 		if managedCluster.Finalizers[i] == agentFinalizer {
 			continue
 		}
+
 		copiedFinalizers = append(copiedFinalizers, managedCluster.Finalizers[i])
 	}
 
 	if len(managedCluster.Finalizers) != len(copiedFinalizers) {
 		managedCluster.Finalizers = copiedFinalizers
 		_, err := c.clusterClient.ClusterV1().ManagedClusters().Update(ctx, managedCluster, metav1.UpdateOptions{})
+
 		return err
 	}
 
@@ -468,6 +488,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	if err != nil {
 		return err
 	}
+
 	if err := manifestwork.Apply(ctx, c.manifestWorkClient, operatorManifestWork, c.eventRecorder); err != nil {
 		return err
 	}
@@ -479,6 +500,7 @@ func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, c
 	errs := []error{}
 	// remove submariner manifestworks
 	err := c.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Delete(ctx, manifestWorkName, metav1.DeleteOptions{})
+
 	switch {
 	case errors.IsNotFound(err):
 		//there is no submariner manifestworks, do noting
@@ -520,6 +542,7 @@ func (c *submarinerAgentController) applyClusterRBACFiles(brokerNamespace, manag
 			errs = append(errs, fmt.Errorf("%q (%T): %v", result.File, result.Type, result.Error))
 		}
 	}
+
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
@@ -576,6 +599,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Cont
 
 	c.eventRecorder.Eventf("SubmarinerClusterEnvDeleted", "the managed cluster %s submariner cluster environment is deleted",
 		config.Status.ManagedClusterInfo.ClusterName)
+
 	return nil
 }
 
@@ -584,22 +608,27 @@ func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{
 	if helpers.GetClusterProduct(managedCluster) == helpers.ProductOCP {
 		files = append(files, sccFiles...)
 	}
+
 	files = append(files, operatorFiles...)
 
 	manifests := []workv1.Manifest{}
+
 	for _, file := range files {
 		template, err := manifestFiles.ReadFile(file)
 		if err != nil {
 			return nil, err
 		}
+
 		yamlData := assets.MustCreateAssetFromTemplate(file, template, config).Data
 		jsonData, err := yaml.YAMLToJSON(yamlData)
 		if err != nil {
 			return nil, err
 		}
+
 		manifest := workv1.Manifest{RawExtension: runtime.RawExtension{Raw: jsonData}}
 		manifests = append(manifests, manifest)
 	}
+
 	return &workv1.ManifestWork{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{

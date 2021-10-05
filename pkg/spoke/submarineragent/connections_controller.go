@@ -58,6 +58,7 @@ func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.
 		// submariner cr is not found, could be deleted, ignore it.
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
@@ -120,14 +121,17 @@ func (c *connectionsStatusController) checkSubmarinerConnections(submariner *sub
 		condition.Status = metav1.ConditionTrue
 		condition.Reason = "ConnectionsNotEstablished"
 		condition.Message = "There are no connections on gateways"
+
 		return condition
 	}
 
 	if len(unconnectedMessages) != 0 {
 		condition.Status = metav1.ConditionTrue
 		condition.Reason = "ConnectionsDegraded"
+
 		connectedMessages = append(connectedMessages, unconnectedMessages...)
 		condition.Message = strings.Join(connectedMessages, "\n")
+
 		return condition
 	}
 
