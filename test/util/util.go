@@ -25,7 +25,7 @@ import (
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
 const (
@@ -180,8 +180,8 @@ func NewManagedCluster(name string, labels map[string]string) *clusterv1.Managed
 	}
 }
 
-func NewManagedClusterSet(name string) *clusterv1alpha1.ManagedClusterSet {
-	return &clusterv1alpha1.ManagedClusterSet{
+func NewManagedClusterSet(name string) *clusterv1beta1.ManagedClusterSet {
+	return &clusterv1beta1.ManagedClusterSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},

@@ -35,7 +35,7 @@ require (
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/utils v0.0.0-20210802155522-efc7438f0176 // indirect
 	open-cluster-management.io/addon-framework v0.0.0-20210803032803-58eac513499e
-	open-cluster-management.io/api v0.0.0-20210727123024-41c7397e9f2d
+	open-cluster-management.io/api v0.0.0-20210927063308-2c6896161c48
 	sigs.k8s.io/controller-runtime v0.8.3
 )
 

@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	clusterSetFake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterSetInformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
 const (
@@ -34,7 +34,7 @@ var _ = Describe("Controller", func() {
 	When("a ManagedClusterSet is created", func() {
 		It("should add the Finalizer", func() {
 			helpers.AwaitFinalizer(finalizerName, func() (metav1.Object, error) {
-				return t.clusterSetClient.ClusterV1alpha1().ManagedClusterSets().Get(context.TODO(), clusterSetName, metav1.GetOptions{})
+				return t.clusterSetClient.ClusterV1beta1().ManagedClusterSets().Get(context.TODO(), clusterSetName, metav1.GetOptions{})
 			})
 		})
 
@@ -102,13 +102,13 @@ var _ = Describe("Controller", func() {
 			now := metav1.Now()
 			t.clusterSet.DeletionTimestamp = &now
 
-			_, err := t.clusterSetClient.ClusterV1alpha1().ManagedClusterSets().Update(context.TODO(), t.clusterSet, metav1.UpdateOptions{})
+			_, err := t.clusterSetClient.ClusterV1beta1().ManagedClusterSets().Update(context.TODO(), t.clusterSet, metav1.UpdateOptions{})
 			Expect(err).To(Succeed())
 		})
 
 		It("should remove the Finalizer", func() {
 			helpers.AwaitNoFinalizer(finalizerName, func() (metav1.Object, error) {
-				return t.clusterSetClient.ClusterV1alpha1().ManagedClusterSets().Get(context.TODO(), clusterSetName, metav1.GetOptions{})
+				return t.clusterSetClient.ClusterV1beta1().ManagedClusterSets().Get(context.TODO(), clusterSetName, metav1.GetOptions{})
 			})
 		})
 
@@ -142,7 +142,7 @@ type brokerControllerTestDriver struct {
 	kubeObjs         []runtime.Object
 	justBeforeRun    func()
 	clusterSetClient *clusterSetFake.Clientset
-	clusterSet       *clusterv1alpha1.ManagedClusterSet
+	clusterSet       *clusterv1beta1.ManagedClusterSet
 	stop             context.CancelFunc
 }
 
@@ -150,7 +150,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 	t := &brokerControllerTestDriver{}
 
 	BeforeEach(func() {
-		t.clusterSet = &clusterv1alpha1.ManagedClusterSet{
+		t.clusterSet = &clusterv1beta1.ManagedClusterSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "east",
 			},
@@ -171,8 +171,8 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 			t.justBeforeRun()
 		}
 
-		controller := submarinerbroker.NewController(t.clusterSetClient.ClusterV1alpha1().ManagedClusterSets(),
-			t.kubeClient, informerFactory.Cluster().V1alpha1().ManagedClusterSets(),
+		controller := submarinerbroker.NewController(t.clusterSetClient.ClusterV1beta1().ManagedClusterSets(),
+			t.kubeClient, informerFactory.Cluster().V1beta1().ManagedClusterSets(),
 			events.NewLoggingEventRecorder("test"))
 
 		var ctx context.Context
@@ -181,7 +181,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 
 		informerFactory.Start(ctx.Done())
 
-		cache.WaitForCacheSync(ctx.Done(), informerFactory.Cluster().V1alpha1().ManagedClusterSets().Informer().HasSynced)
+		cache.WaitForCacheSync(ctx.Done(), informerFactory.Cluster().V1beta1().ManagedClusterSets().Informer().HasSynced)
 
 		go controller.Run(ctx, 1)
 	})

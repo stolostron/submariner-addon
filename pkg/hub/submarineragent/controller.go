@@ -21,9 +21,9 @@ import (
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterinformerv1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1"
-	clusterinformerv1alpha1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
+	clusterinformerv1beta1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta1"
 	clusterlisterv1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
-	clusterlisterv1alpha1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
+	clusterlisterv1beta1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta1"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 	workinformer "open-cluster-management.io/api/client/work/informers/externalversions/work/v1"
 	worklister "open-cluster-management.io/api/client/work/listers/work/v1"
@@ -96,7 +96,7 @@ type submarinerAgentController struct {
 	configClient         configclient.Interface
 	addOnClient          addonclient.Interface
 	clusterLister        clusterlisterv1.ManagedClusterLister
-	clusterSetLister     clusterlisterv1alpha1.ManagedClusterSetLister
+	clusterSetLister     clusterlisterv1beta1.ManagedClusterSetLister
 	manifestWorkLister   worklister.ManifestWorkLister
 	configLister         configlister.SubmarinerConfigLister
 	addOnLister          addonlisterv1alpha1.ManagedClusterAddOnLister
@@ -113,7 +113,7 @@ func NewSubmarinerAgentController(
 	configClient configclient.Interface,
 	addOnClient addonclient.Interface,
 	clusterInformer clusterinformerv1.ManagedClusterInformer,
-	clusterSetInformer clusterinformerv1alpha1.ManagedClusterSetInformer,
+	clusterSetInformer clusterinformerv1beta1.ManagedClusterSetInformer,
 	manifestWorkInformer workinformer.ManifestWorkInformer,
 	configInformer configinformer.SubmarinerConfigInformer,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,

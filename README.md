@@ -74,7 +74,7 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
 1. Create a `ManagedClusterSet`.
 
    ```
-   apiVersion: cluster.open-cluster-management.io/v1alpha1
+   apiVersion: cluster.open-cluster-management.io/v1beta1
    kind: ManagedClusterSet
    metadata:
      name: pro

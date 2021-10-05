@@ -20,7 +20,7 @@ There are some prerequisites for the managed clusters which are going to run `Su
 1. Create a `ManagedClusterSet`.
 
    ```yaml
-   apiVersion: cluster.open-cluster-management.io/v1alpha1
+   apiVersion: cluster.open-cluster-management.io/v1beta1
    kind: ManagedClusterSet
    metadata:
      name: <mangedClusterSet-name>

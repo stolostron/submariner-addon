@@ -68,7 +68,7 @@ var _ = BeforeSuite(func(done Done) {
 		ErrorIfCRDPathMissing: true,
 		CRDDirectoryPaths: []string{
 			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "cluster", "v1"),
-			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "cluster", "v1alpha1", clustersetCRD),
+			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "cluster", "v1beta1", clustersetCRD),
 			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "work", "v1", workCRD),
 			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "addon", "v1alpha1"),
 			filepath.Join(".", "pkg", "apis", "submarinerconfig", "v1alpha1"),

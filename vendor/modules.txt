@@ -1194,7 +1194,7 @@ open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/certific
 open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/registration
 open-cluster-management.io/addon-framework/pkg/agent
 open-cluster-management.io/addon-framework/pkg/lease
-# open-cluster-management.io/api v0.0.0-20210727123024-41c7397e9f2d
+# open-cluster-management.io/api v0.0.0-20210927063308-2c6896161c48
 ## explicit
 open-cluster-management.io/api/addon/v1alpha1
 open-cluster-management.io/api/client/addon/clientset/versioned
@@ -1214,13 +1214,17 @@ open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/
 open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1/fake
 open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1
 open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1/fake
+open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta1
+open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta1/fake
 open-cluster-management.io/api/client/cluster/informers/externalversions
 open-cluster-management.io/api/client/cluster/informers/externalversions/cluster
 open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1
 open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1
+open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta1
 open-cluster-management.io/api/client/cluster/informers/externalversions/internalinterfaces
 open-cluster-management.io/api/client/cluster/listers/cluster/v1
 open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1
+open-cluster-management.io/api/client/cluster/listers/cluster/v1beta1
 open-cluster-management.io/api/client/work/clientset/versioned
 open-cluster-management.io/api/client/work/clientset/versioned/fake
 open-cluster-management.io/api/client/work/clientset/versioned/scheme
@@ -1233,6 +1237,7 @@ open-cluster-management.io/api/client/work/informers/externalversions/work/v1
 open-cluster-management.io/api/client/work/listers/work/v1
 open-cluster-management.io/api/cluster/v1
 open-cluster-management.io/api/cluster/v1alpha1
+open-cluster-management.io/api/cluster/v1beta1
 open-cluster-management.io/api/work/v1
 # sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client

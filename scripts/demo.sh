@@ -22,7 +22,7 @@ kubectl get managedclusters --show-labels
 
 echo "Apply a clusterset that contains managed cluster cluster1 and cluster2 ..."
 cat << EOF | kubectl apply -f -
-apiVersion: cluster.open-cluster-management.io/v1alpha1
+apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: ManagedClusterSet
 metadata:
   name: clusterset1
