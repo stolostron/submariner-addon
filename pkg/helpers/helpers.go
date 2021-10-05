@@ -9,7 +9,6 @@ import (
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	"github.com/openshift/api"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
@@ -20,6 +19,7 @@ import (
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -66,7 +66,9 @@ var (
 )
 
 func init() {
-	utilruntime.Must(api.InstallKube(genericScheme))
+	utilruntime.Must(appsv1.AddToScheme(genericScheme))
+	utilruntime.Must(corev1.AddToScheme(genericScheme))
+	utilruntime.Must(rbacv1.AddToScheme(genericScheme))
 	utilruntime.Must(apiextensionsv1beta1.AddToScheme(genericScheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(genericScheme))
 }

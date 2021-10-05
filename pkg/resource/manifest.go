@@ -5,12 +5,12 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/openshift/api"
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -29,7 +29,9 @@ var (
 )
 
 func init() {
-	utilruntime.Must(api.InstallKube(genericScheme))
+	utilruntime.Must(appsv1.AddToScheme(genericScheme))
+	utilruntime.Must(corev1.AddToScheme(genericScheme))
+	utilruntime.Must(rbacv1.AddToScheme(genericScheme))
 	utilruntime.Must(apiextensionsv1beta1.AddToScheme(genericScheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(genericScheme))
 }
