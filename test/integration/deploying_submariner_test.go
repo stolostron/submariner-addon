@@ -267,10 +267,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			Eventually(func() bool {
 				_, err := configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Get(context.Background(), "submariner",
 					metav1.GetOptions{})
-				if errors.IsNotFound(err) {
-					return true
-				}
-				return false
+				return errors.IsNotFound(err)
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
 	})

@@ -89,17 +89,11 @@ func NewSubmarinerConfigController(input SubmarinerConfigControllerInput) factor
 	return factory.New().
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
-			if metaObj.GetName() == helpers.SubmarinerAddOnName {
-				return true
-			}
-			return false
+			return metaObj.GetName() == helpers.SubmarinerAddOnName
 		}, input.AddOnInformer.Informer()).
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
-			if metaObj.GetName() == helpers.SubmarinerConfigName {
-				return true
-			}
-			return false
+			return metaObj.GetName() == helpers.SubmarinerConfigName
 		}, input.ConfigInformer.Informer()).
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)

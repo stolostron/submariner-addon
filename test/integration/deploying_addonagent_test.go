@@ -125,10 +125,7 @@ var _ = Describe("Deploy a submariner-addon agent", func() {
 				addOn, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(context.TODO(), "submariner",
 					metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
-				if meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded") {
-					return false
-				}
-				return true
+				return !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded")
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
 	})
