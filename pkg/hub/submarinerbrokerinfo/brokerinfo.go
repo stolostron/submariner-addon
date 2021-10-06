@@ -233,7 +233,7 @@ func getBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
 		return "", fmt.Errorf("failed to get apiServerURL in infrastructures cluster: %v,%v", found, err)
 	}
 
-	return strings.Trim(apiServer, "https://"), nil
+	return strings.Trim(apiServer, "/:hpst"), nil
 }
 
 func getKubeAPIServerCA(kubeAPIServer string, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) ([]byte, error) {
