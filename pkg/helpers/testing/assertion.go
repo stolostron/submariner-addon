@@ -78,7 +78,6 @@ func AwaitFinalizer(finalizer string, get func() (metav1.Object, error)) {
 		Expect(err).To(Succeed())
 
 		return obj.GetFinalizers()
-
 	}).Should(ContainElement(finalizer))
 }
 
@@ -88,7 +87,6 @@ func AwaitNoFinalizer(finalizer string, get func() (metav1.Object, error)) {
 		Expect(err).To(Succeed())
 
 		return obj.GetFinalizers()
-
 	}).ShouldNot(ContainElement(finalizer))
 }
 
