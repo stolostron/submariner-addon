@@ -270,8 +270,8 @@ func SetSubmarinerDeployedStatus(submariner *unstructured.Unstructured) {
 	}
 }
 
-func NewIntegrationTestEventRecorder(componet string) events.Recorder {
-	return &IntegrationTestEventRecorder{component: componet}
+func NewIntegrationTestEventRecorder(comp string) events.Recorder {
+	return &IntegrationTestEventRecorder{component: comp}
 }
 
 type IntegrationTestEventRecorder struct {

@@ -60,7 +60,7 @@ func (o *AddOnOptions) Complete(kubeClient kubernetes.Interface) error {
 	namespace := helpers.GetCurrentNamespace(defaultNamespace)
 	podName := os.Getenv("POD_NAME")
 	if len(podName) == 0 {
-		return fmt.Errorf("The pod enviroment POD_NAME is required")
+		return fmt.Errorf("The pod environment POD_NAME is required")
 	}
 
 	pod, err := kubeClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
