@@ -54,7 +54,7 @@ linters:
     # - unparam
     # - unused
     - varcheck
-    # - whitespace
+    - whitespace
     - wsl
 issues:
   exclude-rules:
