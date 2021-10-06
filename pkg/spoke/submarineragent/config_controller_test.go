@@ -673,16 +673,6 @@ func (t *configControllerTestDriver) awaitSubmarinerConfigStatusCondition(expCon
 	})
 }
 
-func (t *configControllerTestDriver) ensureNoSubmarinerConfigStatusCondition(condType string) {
-	Consistently(func() *metav1.Condition {
-		config, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(clusterName).Get(context.TODO(),
-			helpers.SubmarinerConfigName, metav1.GetOptions{})
-		Expect(err).To(Succeed())
-
-		return meta.FindStatusCondition(config.Status.Conditions, condType)
-	}, 300*time.Millisecond).Should(BeNil())
-}
-
 func (t *configControllerTestDriver) getLabeledWorkerNodes() []*corev1.Node {
 	foundNodes := []*corev1.Node{}
 
