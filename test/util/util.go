@@ -112,11 +112,8 @@ func FindSubmarinerBrokerResources(kubeClient kubernetes.Interface, brokerNamesp
 	}
 
 	_, err = kubeClient.CoreV1().Secrets(brokerNamespace).Get(context.Background(), expectedIPSECSecret, metav1.GetOptions{})
-	if err != nil {
-		return false
-	}
 
-	return true
+	return err == nil
 }
 
 func FindManifestWorks(workClient workclientset.Interface, managedClusterName string, works ...string) bool {
@@ -307,5 +304,4 @@ func (r *IntegrationTestEventRecorder) Warningf(reason, messageFmt string, args 
 }
 
 func (r *IntegrationTestEventRecorder) Shutdown() {
-	return
 }
