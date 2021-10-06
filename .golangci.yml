@@ -7,7 +7,7 @@ linters-settings:
     enabled-tags:
       - diagnostic
       - opinionated
-      # - performance
+      - performance
       - style
     disabled-checks:
       - ifElseChain
@@ -36,7 +36,7 @@ linters:
     # - gocritic
     # - gocyclo
     - gofmt
-    # - goimports
+    - goimports
     - gosec
     # - gosimple
     - govet
@@ -44,16 +44,16 @@ linters:
     # - lll
     # - misspell
     - nakedret
-    # - prealloc
+    - prealloc
     # - staticcheck
     - structcheck
     # - stylecheck  # instead of golint
     # - testpackage
     - typecheck
-    # - unconvert
+    - unconvert
     # - unparam
     # - unused
-    # - varcheck
+    - varcheck
     # - whitespace
     - wsl
 issues:
