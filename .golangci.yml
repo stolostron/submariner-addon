@@ -45,7 +45,7 @@ linters:
     - misspell
     - nakedret
     - prealloc
-    # - staticcheck
+    - staticcheck
     - structcheck
     # - stylecheck  # instead of golint
     # - testpackage
