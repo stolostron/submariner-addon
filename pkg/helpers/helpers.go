@@ -121,7 +121,8 @@ func UpdateSubmarinerConfigConditionFn(cond metav1.Condition) UpdateSubmarinerCo
 	}
 }
 
-func UpdateSubmarinerConfigStatusFn(cond *metav1.Condition, managedClusterInfo configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
+func UpdateSubmarinerConfigStatusFn(cond *metav1.Condition,
+	managedClusterInfo configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
 	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
 		oldStatus.ManagedClusterInfo = managedClusterInfo
 
@@ -303,7 +304,8 @@ func GenerateBrokerName(clusterSetName string) string {
 	return name
 }
 
-func RemoveConfigFinalizer(ctx context.Context, configClient configclient.Interface, config *configv1alpha1.SubmarinerConfig, finalizer string) error {
+func RemoveConfigFinalizer(ctx context.Context, configClient configclient.Interface, config *configv1alpha1.SubmarinerConfig,
+	finalizer string) error {
 	copiedFinalizers := []string{}
 
 	for i := range config.Finalizers {
@@ -326,7 +328,8 @@ func RemoveConfigFinalizer(ctx context.Context, configClient configclient.Interf
 }
 
 // RemoveAddOnFinalizer removes the addon finalizer from a submariner-addon
-func RemoveAddOnFinalizer(ctx context.Context, addOnClient addonclient.Interface, addOn *addonv1alpha1.ManagedClusterAddOn, finalizer string) error {
+func RemoveAddOnFinalizer(ctx context.Context, addOnClient addonclient.Interface, addOn *addonv1alpha1.ManagedClusterAddOn,
+	finalizer string) error {
 	copiedFinalizers := []string{}
 
 	for i := range addOn.Finalizers {

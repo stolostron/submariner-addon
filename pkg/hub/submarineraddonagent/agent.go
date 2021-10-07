@@ -146,7 +146,8 @@ func (a *addOnAgent) GetAgentAddonOptions() agent.AgentAddonOptions {
 // 1. if the signer name in csr request is valid.
 // 2. if organization field and commonName field in csr request is valid.
 // 3. if user name in csr is the same as commonName field in csr request.
-func (a *addOnAgent) csrApproveCheck(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn, csr *certificatesv1.CertificateSigningRequest) bool {
+func (a *addOnAgent) csrApproveCheck(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn,
+	csr *certificatesv1.CertificateSigningRequest) bool {
 	if csr.Spec.SignerName != certificatesv1.KubeAPIServerClientSignerName {
 		return false
 	}

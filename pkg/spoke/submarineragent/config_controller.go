@@ -9,7 +9,7 @@ import (
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
+	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1" //nolint:lll
 	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
@@ -266,7 +266,8 @@ func (c *submarinerConfigController) updateSubmarinerConfigStatus(recorder event
 	return err
 }
 
-func (c *submarinerConfigController) ensureGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig) (metav1.Condition, error) {
+func (c *submarinerConfigController) ensureGateways(ctx context.Context,
+	config *configv1alpha1.SubmarinerConfig) (metav1.Condition, error) {
 	if config.Spec.Gateways < 1 {
 		return metav1.Condition{
 			Type:    submarinerGatewayCondition,

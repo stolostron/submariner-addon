@@ -10,7 +10,7 @@ import (
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
+	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1" //nolint:lll
 	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
@@ -422,7 +422,8 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 }
 
 // clean up the submariner agent from this managedCluster
-func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedCluster *clusterv1.ManagedCluster, addOn *addonv1alpha1.ManagedClusterAddOn) error {
+func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedCluster *clusterv1.ManagedCluster,
+	addOn *addonv1alpha1.ManagedClusterAddOn) error {
 	if err := c.removeSubmarinerAgent(ctx, managedCluster.Name); err != nil {
 		return err
 	}

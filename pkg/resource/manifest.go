@@ -50,7 +50,8 @@ func ApplyManifests(kubeClient kubernetes.Interface, recorder events.Recorder, a
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func DeleteFromManifests(kubeClient kubernetes.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc, files ...string) error {
+func DeleteFromManifests(kubeClient kubernetes.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc,
+	files ...string) error {
 	errs := []error{}
 
 	for _, file := range files {

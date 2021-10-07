@@ -37,7 +37,7 @@ func init() {
 	buildInfo := metrics.NewGaugeVec(
 		&metrics.GaugeOpts{
 			Name: "open_cluster_management_submariner_addon_build_info",
-			Help: "A metric with a constant '1' value labeled by major, minor, git commit & git version from which Open Cluster Management submariner-addon was built.",
+			Help: "A metric with a constant '1' value labeled by major, minor, git commit & git version from which Open Cluster Management submariner-addon was built.", //nolint:lll
 		},
 		[]string{"major", "minor", "gitCommit", "gitVersion"},
 	)
