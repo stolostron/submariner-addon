@@ -44,7 +44,7 @@ var _ = Describe("Gateways Status Controller", func() {
 
 			Context("by setting to false", func() {
 				It("should update the ManagedClusterAddOn condition with status False", func() {
-					t.nodes[1].Labels["submariner.io/gateway"] = "false"
+					labelGateway(t.nodes[1], false)
 					_, err := t.kubeClient.CoreV1().Nodes().Update(context.TODO(), t.nodes[1], metav1.UpdateOptions{})
 					Expect(err).To(Succeed())
 
@@ -75,8 +75,7 @@ var _ = Describe("Gateways Status Controller", func() {
 
 		It("should update the ManagedClusterAddOn condition with status True", func() {
 			t.awaitGatwaysNotLabeledCondition()
-
-			t.nodes[0].Labels["submariner.io/gateway"] = "true"
+			labelGateway(t.nodes[0], true)
 			_, err := t.kubeClient.CoreV1().Nodes().Update(context.TODO(), t.nodes[0], metav1.UpdateOptions{})
 			Expect(err).To(Succeed())
 
@@ -171,7 +170,7 @@ func (t *gatewaysControllerTestDriver) awaitGatwaysLabeledCondition() {
 
 func newGatewayNode(name string) *corev1.Node {
 	node := newWorkerNode(name)
-	node.Labels["submariner.io/gateway"] = "true"
+	labelGateway(node, true)
 
 	return node
 }
