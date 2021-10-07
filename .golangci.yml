@@ -12,6 +12,16 @@ linters-settings:
     disabled-checks:
       - ifElseChain
       - unnamedResult
+      - assignOp
+      - commentFormatting
+      - deferUnlambda
+      - dupImport
+      - emptyStringTest
+      - exitAfterDefer
+      - hugeParam
+      - nestingReduce
+      - rangeValCopy
+      - whyNoLint
   gocyclo:
     min-complexity: 20
   govet:
@@ -33,7 +43,7 @@ linters:
     # - gochecknoglobals
     # - gochecknoinits
     # - goconst
-    # - gocritic
+    - gocritic
     # - gocyclo
     - gofmt
     - goimports
