@@ -29,6 +29,8 @@ import (
 )
 
 const (
+	aws                  = "AWS"
+	gcp                  = "GCP"
 	gatewayConditionType = "SubmarinerGatewaysLabeled"
 )
 
@@ -42,6 +44,10 @@ var _ = Describe("Config Controller", func() {
 	testManagedClusterAddOn(t)
 })
 
+func labelGateway(node *corev1.Node, isGateway bool) {
+	node.Labels["submariner.io/gateway"] = strconv.FormatBool(isGateway)
+}
+
 func testWorkerNodeLabeling(t *configControllerTestDriver) {
 	When("no existing worker nodes are labeled as gateways", func() {
 		It("should label the desired number of gateway nodes", func() {
@@ -52,7 +58,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 
 	When("the desired number of gateway nodes are already", func() {
 		BeforeEach(func() {
-			t.nodes[0].Labels["submariner.io/gateway"] = "true"
+			labelGateway(t.nodes[0], true)
 		})
 
 		Context("partially labeled", func() {
@@ -104,7 +110,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 
 	When("the desired number of gateway nodes is increased", func() {
 		BeforeEach(func() {
-			t.nodes[0].Labels["submariner.io/gateway"] = "true"
+			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
 		})
 
@@ -123,10 +129,10 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 	When("the desired number of gateway nodes is decreased", func() {
 		BeforeEach(func() {
 			t.config.Spec.Gateways = 2
-			t.nodes[0].Labels["submariner.io/gateway"] = "true"
+			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
 
-			t.nodes[1].Labels["submariner.io/gateway"] = "true"
+			labelGateway(t.nodes[1], true)
 			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
 		})
 
@@ -247,12 +253,12 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 	When("the SubmarinerConfig's Platform field is set to AWS", func() {
 		BeforeEach(func() {
-			t.config.Status.ManagedClusterInfo.Platform = "AWS"
+			t.config.Status.ManagedClusterInfo.Platform = aws
 		})
 
 		Context("and the number of labeled worker nodes matches the desired number", func() {
 			BeforeEach(func() {
-				t.nodes[0].Labels["submariner.io/gateway"] = "true"
+				labelGateway(t.nodes[0], true)
 			})
 
 			It("should update the SubmarinerConfig status with a success condition", func() {
@@ -273,7 +279,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 	When("the SubmarinerConfig's Platform field is set to GCP", func() {
 		BeforeEach(func() {
-			t.config.Status.ManagedClusterInfo.Platform = "GCP"
+			t.config.Status.ManagedClusterInfo.Platform = gcp
 		})
 
 		Context("", func() {
@@ -326,10 +332,10 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 	When("the SubmarinerConfig is being deleted", func() {
 		BeforeEach(func() {
 			t.config.Spec.Gateways = 2
-			t.nodes[0].Labels["submariner.io/gateway"] = "true"
+			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
 
-			t.nodes[1].Labels["submariner.io/gateway"] = "true"
+			labelGateway(t.nodes[1], true)
 			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
 
 			now := metav1.Now()
@@ -352,7 +358,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 		Context("the SubmarinerConfig's Platform field is set to AWS", func() {
 			BeforeEach(func() {
-				t.config.Status.ManagedClusterInfo.Platform = "AWS"
+				t.config.Status.ManagedClusterInfo.Platform = aws
 			})
 
 			It("should not unlabel the gateway nodes", func() {
@@ -362,7 +368,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 		Context("the SubmarinerConfig's Platform field is set to GCP", func() {
 			BeforeEach(func() {
-				t.config.Status.ManagedClusterInfo.Platform = "GCP"
+				t.config.Status.ManagedClusterInfo.Platform = gcp
 			})
 
 			Context("", func() {
@@ -426,10 +432,10 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 	When("the ManagedClusterAddOn is being deleted", func() {
 		BeforeEach(func() {
 			t.config.Spec.Gateways = 2
-			t.nodes[0].Labels["submariner.io/gateway"] = "true"
+			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
 
-			t.nodes[1].Labels["submariner.io/gateway"] = "true"
+			labelGateway(t.nodes[1], true)
 			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
 
 			now := metav1.Now()
@@ -468,7 +474,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 		Context("the SubmarinerConfig's Platform field is set to AWS", func() {
 			BeforeEach(func() {
-				t.config.Status.ManagedClusterInfo.Platform = "AWS"
+				t.config.Status.ManagedClusterInfo.Platform = aws
 			})
 
 			It("should not unlabel the gateway nodes", func() {
@@ -483,7 +489,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 		Context("the SubmarinerConfig's Platform field is set to GCP", func() {
 			BeforeEach(func() {
-				t.config.Status.ManagedClusterInfo.Platform = "GCP"
+				t.config.Status.ManagedClusterInfo.Platform = gcp
 			})
 
 			Context("", func() {

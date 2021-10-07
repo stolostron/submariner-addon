@@ -44,7 +44,7 @@ linters:
     # - gochecknoglobal # TODO: Do we want this?
     # - gochecknoinits # TODO: Do we want this?
     # - gocognit # Actually runs revive linter
-    # - goconst # TODO: Fix and enable
+    - goconst
     - gocritic
     # - gocyclo # TODO: Do we want this?
     # - godot # TODO: Do we want this?

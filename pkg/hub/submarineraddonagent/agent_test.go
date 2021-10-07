@@ -96,6 +96,7 @@ var _ = Describe("GetAgentAddonOptions", func() {
 	Context("CSRApproveCheck", func() {
 		var csr csrHolder
 		var result bool
+		const invalid string = "invalid"
 
 		BeforeEach(func() {
 			csr = csrHolder{
@@ -126,7 +127,7 @@ var _ = Describe("GetAgentAddonOptions", func() {
 
 		When("the signer name is invalid", func() {
 			BeforeEach(func() {
-				csr.SignerName = "invalid"
+				csr.SignerName = invalid
 			})
 
 			It("should return false", func() {
@@ -146,7 +147,7 @@ var _ = Describe("GetAgentAddonOptions", func() {
 
 		When("the authenticated group is missing from the orgs", func() {
 			BeforeEach(func() {
-				csr.Orgs[0] = "invalid"
+				csr.Orgs[0] = invalid
 			})
 
 			It("should return false", func() {
@@ -156,7 +157,7 @@ var _ = Describe("GetAgentAddonOptions", func() {
 
 		When("the addon group is missing from the orgs", func() {
 			BeforeEach(func() {
-				csr.Orgs[1] = "invalid"
+				csr.Orgs[1] = invalid
 			})
 
 			It("should return false", func() {
@@ -166,7 +167,7 @@ var _ = Describe("GetAgentAddonOptions", func() {
 
 		When("the cluster addon group is missing from the orgs", func() {
 			BeforeEach(func() {
-				csr.Orgs[2] = "invalid"
+				csr.Orgs[2] = invalid
 			})
 
 			It("should return false", func() {
@@ -186,7 +187,7 @@ var _ = Describe("GetAgentAddonOptions", func() {
 
 		When("the common name is invalid", func() {
 			BeforeEach(func() {
-				csr.CN = "invalid"
+				csr.CN = invalid
 			})
 
 			It("should return false", func() {
