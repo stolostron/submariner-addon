@@ -41,7 +41,7 @@ linters:
     # - gosimple
     - govet
     - ineffassign
-    # - lll
+    - lll
     - misspell
     - nakedret
     - prealloc
@@ -91,3 +91,8 @@ issues:
     - linters:
         - govet
       text: "pointer bytes could be"
+
+    # Ignore long line non-compliance warnings in auto-generated files
+    - linters:
+        - lll
+      path: "pkg/apis/submarinerconfig/v1alpha1/zz_generated.swagger_doc_generated.go"

@@ -198,7 +198,8 @@ func applySubmarinerConfig(
 	}
 
 	if updated {
-		recorder.Eventf("SubmarinerConfigApplied", "SubmarinerConfig %s was applied for manged cluster %s", submarinerConfig.Name, submarinerConfig.Namespace)
+		recorder.Eventf("SubmarinerConfigApplied", "SubmarinerConfig %s was applied for manged cluster %s", submarinerConfig.Name,
+			submarinerConfig.Namespace)
 	}
 
 	return nil

@@ -106,7 +106,8 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(dynamicClient).ToNot(BeNil())
 
 	// prepare open-cluster-management namespaces
-	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace("open-cluster-management"), metav1.CreateOptions{})
+	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace("open-cluster-management"),
+		metav1.CreateOptions{})
 	Expect(err).NotTo(HaveOccurred())
 
 	// start submariner broker and agent controller

@@ -50,11 +50,13 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Setup the managed cluster namespace")
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName), metav1.CreateOptions{})
+			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
+				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Create a submariner-addon")
-			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(), util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
+			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(),
+				util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Setup the serviceaccount")
@@ -89,11 +91,13 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Setup the managed cluster namespace")
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName), metav1.CreateOptions{})
+			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
+				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Create a submariner-addon")
-			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(), util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
+			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(),
+				util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Setup the serviceaccount")
@@ -209,16 +213,19 @@ var _ = Describe("Deploy a submariner on hub", func() {
 	Context("Create a SubmarinerConfig", func() {
 		It("Should add finalizer to created SubmarinerConfig", func() {
 			By("Setup the managed cluster namespace")
-			_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName), metav1.CreateOptions{})
+			_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
+				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Create SubmarinerConfig")
-			_, err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Create(context.Background(), util.NewSubmarinerConifg(managedClusterName), metav1.CreateOptions{})
+			_, err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Create(context.Background(),
+				util.NewSubmarinerConifg(managedClusterName), metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Check SubmarinerConfig finalizer")
 			Eventually(func() bool {
-				config, err := configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Get(context.Background(), "submariner", metav1.GetOptions{})
+				config, err := configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Get(context.Background(), "submariner",
+					metav1.GetOptions{})
 				if errors.IsNotFound(err) {
 					return false
 				}
@@ -242,20 +249,24 @@ var _ = Describe("Deploy a submariner on hub", func() {
 	Context("Delete a SubmarinerConfig", func() {
 		It("Should delete the created SubmarinerConfig", func() {
 			By("Setup the managed cluster namespace")
-			_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName), metav1.CreateOptions{})
+			_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
+				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Create SubmarinerConfig")
-			_, err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Create(context.Background(), util.NewSubmarinerConifg(managedClusterName), metav1.CreateOptions{})
+			_, err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Create(context.Background(),
+				util.NewSubmarinerConifg(managedClusterName), metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Delete the created SubmarinerConfig")
-			err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Delete(context.Background(), "submariner", metav1.DeleteOptions{})
+			err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Delete(context.Background(), "submariner",
+				metav1.DeleteOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Check if the SubmarinerConfig is deleted")
 			Eventually(func() bool {
-				_, err := configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Get(context.Background(), "submariner", metav1.GetOptions{})
+				_, err := configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Get(context.Background(), "submariner",
+					metav1.GetOptions{})
 				if errors.IsNotFound(err) {
 					return true
 				}
