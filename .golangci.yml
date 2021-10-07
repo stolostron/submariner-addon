@@ -15,7 +15,6 @@ linters-settings:
       - assignOp
       - commentFormatting
       - deferUnlambda
-      - dupImport
       - emptyStringTest
       - exitAfterDefer
       - hugeParam

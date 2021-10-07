@@ -13,11 +13,9 @@ import (
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
-	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	fakeclusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	fakeworkclient "open-cluster-management.io/api/client/work/clientset/versioned/fake"
-	workfake "open-cluster-management.io/api/client/work/clientset/versioned/fake"
 	workinformers "open-cluster-management.io/api/client/work/informers/externalversions"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
@@ -26,7 +24,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
@@ -304,7 +301,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			objects := []runtime.Object{}
 			objects = append(objects, c.clusters...)
 			objects = append(objects, c.clustersets...)
-			fakeClusterClient := clusterfake.NewSimpleClientset(objects...)
+			fakeClusterClient := fakeclusterclient.NewSimpleClientset(objects...)
 			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 5*time.Minute)
 			for _, cluster := range c.clusters {
 				clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore().Add(cluster)
@@ -313,7 +310,7 @@ func TestSyncManagedCluster(t *testing.T) {
 				clusterInformerFactory.Cluster().V1beta1().ManagedClusterSets().Informer().GetStore().Add(clusterset)
 			}
 
-			fakeWorkClient := workfake.NewSimpleClientset()
+			fakeWorkClient := fakeworkclient.NewSimpleClientset()
 			workInformerFactory := workinformers.NewSharedInformerFactory(fakeWorkClient, 5*time.Minute)
 
 			configClient := fakeconfigclient.NewSimpleClientset()
@@ -475,7 +472,7 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 						Finalizers: []string{"submarineraddon.open-cluster-management.io/config-cleanup"},
 					},
 					Spec: configv1alpha1.SubmarinerConfigSpec{
-						CredentialsSecret: &v1.LocalObjectReference{
+						CredentialsSecret: &corev1.LocalObjectReference{
 							Name: "test",
 						},
 					},
