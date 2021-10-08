@@ -494,10 +494,10 @@ func (c *submarinerConfigController) findGatewaysWithZone(expected int, zoneLabe
 			}
 
 			gateways = append(gateways, nodes[nodeIndex])
-			count = count + 1
+			count++
 		}
 
-		nodeIndex = nodeIndex + 1
+		nodeIndex++
 	}
 
 	return gateways, nil

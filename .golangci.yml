@@ -12,7 +12,6 @@ linters-settings:
     disabled-checks:
       - ifElseChain
       - unnamedResult
-      - assignOp
       - commentFormatting
       - deferUnlambda
       - emptyStringTest
