@@ -60,7 +60,7 @@ linters:
     # - testpackage
     - typecheck
     - unconvert
-    # - unparam
+    - unparam
     - unused
     - varcheck
     - whitespace

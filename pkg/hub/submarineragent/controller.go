@@ -365,7 +365,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	// config is deleting, we remove its related resources
 	if !config.DeletionTimestamp.IsZero() {
 		if config.Status.ManagedClusterInfo.Platform != "GCP" {
-			if err := c.cleanUpSubmarinerClusterEnv(ctx, config); err != nil {
+			if err := c.cleanUpSubmarinerClusterEnv(config); err != nil {
 				return err
 			}
 		}
@@ -584,7 +584,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 	)
 }
 
-func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
+func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(config *configv1alpha1.SubmarinerConfig) error {
 	cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, c.eventRecorder)
 	if err != nil {
 		//TODO handle the error gracefully in the future
