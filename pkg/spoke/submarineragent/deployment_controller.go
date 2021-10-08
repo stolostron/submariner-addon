@@ -152,7 +152,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	//TODO check globalnet daemonset status, if global is enabled
+	// TODO check globalnet daemonset status, if global is enabled
 
 	submarinerAgentCondtion := metav1.Condition{
 		Type:    submarinerAgentDegraded,
