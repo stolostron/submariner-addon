@@ -193,22 +193,22 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 	return t
 }
 
-func (t *brokerControllerTestDriver) awaitSecret() bool {
-	return Eventually(func() error {
+func (t *brokerControllerTestDriver) awaitSecret() {
+	Eventually(func() error {
 		_, err := t.kubeClient.CoreV1().Secrets(brokerNS).Get(context.TODO(), "submariner-ipsec-psk", metav1.GetOptions{})
 		return err
 	}).Should(Succeed(), "IPsec PSK Secret not found")
 }
 
-func (t *brokerControllerTestDriver) awaitNamespace() bool {
-	return Eventually(func() error {
+func (t *brokerControllerTestDriver) awaitNamespace() {
+	Eventually(func() error {
 		_, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), brokerNS, metav1.GetOptions{})
 		return err
 	}).Should(Succeed(), "Broker Namespace not found")
 }
 
-func (t *brokerControllerTestDriver) awaitNoNamespace() bool {
-	return Eventually(func() bool {
+func (t *brokerControllerTestDriver) awaitNoNamespace() {
+	Eventually(func() bool {
 		_, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), brokerNS, metav1.GetOptions{})
 		return errors.IsNotFound(err)
 	}).Should(BeTrue(), "Broker Namespace still exists")

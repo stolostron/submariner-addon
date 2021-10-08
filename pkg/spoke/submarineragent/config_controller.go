@@ -248,7 +248,7 @@ func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Conte
 	}
 
 	if config.Status.ManagedClusterInfo.Platform != "AWS" {
-		return errors.WithMessagef(c.removeAllGateways(ctx, config), "Failed to unlabel the gateway nodes")
+		return errors.WithMessagef(c.removeAllGateways(ctx), "Failed to unlabel the gateway nodes")
 	}
 
 	return nil
@@ -310,7 +310,7 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context,
 		// gateways decreased, need to unlabel some
 		var removed []string
 
-		removed, err = c.removeGateways(ctx, config, currentGateways, -requiredGateways)
+		removed, err = c.removeGateways(ctx, currentGateways, -requiredGateways)
 
 		removedNames := sets.NewString(removed...)
 
@@ -392,7 +392,7 @@ func (c *submarinerConfigController) updateNode(ctx context.Context, node *corev
 	})
 }
 
-func (c *submarinerConfigController) unlabelNode(ctx context.Context, config *configv1alpha1.SubmarinerConfig, node *corev1.Node) error {
+func (c *submarinerConfigController) unlabelNode(ctx context.Context, node *corev1.Node) error {
 	_, hasGatewayLabel := node.Labels[submarinerGatewayLabel]
 	_, hasPortLabel := node.Labels[submarinerUDPPortLabel]
 	if !hasGatewayLabel && !hasPortLabel {
@@ -426,8 +426,7 @@ func (c *submarinerConfigController) addGateways(ctx context.Context, config *co
 	return names, operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (c *submarinerConfigController) removeGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
-	gateways []*corev1.Node, removedGateways int) ([]string, error) {
+func (c *submarinerConfigController) removeGateways(ctx context.Context, gateways []*corev1.Node, removedGateways int) ([]string, error) {
 	if len(gateways) < removedGateways {
 		removedGateways = len(gateways)
 	}
@@ -437,19 +436,19 @@ func (c *submarinerConfigController) removeGateways(ctx context.Context, config 
 
 	for i := 0; i < removedGateways; i++ {
 		removed = append(removed, gateways[i].Name)
-		errs = append(errs, c.unlabelNode(ctx, config, gateways[i]))
+		errs = append(errs, c.unlabelNode(ctx, gateways[i]))
 	}
 
 	return removed, operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (c *submarinerConfigController) removeAllGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig) error {
+func (c *submarinerConfigController) removeAllGateways(ctx context.Context) error {
 	gateways, err := c.getLabeledNodes(nodeLabelSelector{submarinerGatewayLabel, selection.Exists})
 	if err != nil {
 		return err
 	}
 
-	_, err = c.removeGateways(ctx, config, gateways, len(gateways))
+	_, err = c.removeGateways(ctx, gateways, len(gateways))
 
 	return err
 }

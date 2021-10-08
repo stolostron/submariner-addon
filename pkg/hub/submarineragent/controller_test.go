@@ -72,7 +72,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			name:        "No clusterset label on managed cluster",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{}, []string{agentFinalizer}, false),
+				newManagedCluster(map[string]string{}, []string{agentFinalizer}, false),
 			},
 			clustersets: []runtime.Object{},
 			addOns: []runtime.Object{
@@ -95,9 +95,9 @@ func TestSyncManagedCluster(t *testing.T) {
 		{
 			name:        "No submariner on managed cluster namesapce",
 			clusterName: "cluster1",
-			clusters:    []runtime.Object{newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{}, false)},
+			clusters:    []runtime.Object{newManagedCluster(map[string]string{clusterSetLabel: "set1"}, []string{}, false)},
 			clustersets: []runtime.Object{
-				newManagedClusterSet("set1"),
+				newManagedClusterSet(),
 			},
 			addOns:   []runtime.Object{},
 			kubeObjs: []runtime.Object{},
@@ -112,7 +112,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			name:        "Clusterset is not found by clusterset label",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{agentFinalizer}, false),
+				newManagedCluster(map[string]string{clusterSetLabel: "set1"}, []string{agentFinalizer}, false),
 			},
 			clustersets: []runtime.Object{},
 			addOns: []runtime.Object{
@@ -135,9 +135,9 @@ func TestSyncManagedCluster(t *testing.T) {
 			name:        "Sync a labeled managed cluster",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{}, false),
+				newManagedCluster(map[string]string{clusterSetLabel: "set1"}, []string{}, false),
 			},
-			clustersets: []runtime.Object{newManagedClusterSet("set1")},
+			clustersets: []runtime.Object{newManagedClusterSet()},
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
@@ -160,9 +160,9 @@ func TestSyncManagedCluster(t *testing.T) {
 			name:        "Sync submarienr-addon is created",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{agentFinalizer}, false),
+				newManagedCluster(map[string]string{clusterSetLabel: "set1"}, []string{agentFinalizer}, false),
 			},
-			clustersets: []runtime.Object{newManagedClusterSet("set1")},
+			clustersets: []runtime.Object{newManagedClusterSet()},
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
@@ -185,9 +185,9 @@ func TestSyncManagedCluster(t *testing.T) {
 			name:        "Deploy submariner agent",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{agentFinalizer}, false),
+				newManagedCluster(map[string]string{clusterSetLabel: "set1"}, []string{agentFinalizer}, false),
 			},
-			clustersets: []runtime.Object{newManagedClusterSet("set1")},
+			clustersets: []runtime.Object{newManagedClusterSet()},
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
@@ -216,9 +216,9 @@ func TestSyncManagedCluster(t *testing.T) {
 			name:        "Delete a mangaged cluster",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{"test", agentFinalizer}, true),
+				newManagedCluster(map[string]string{clusterSetLabel: "set1"}, []string{"test", agentFinalizer}, true),
 			},
-			clustersets: []runtime.Object{newManagedClusterSet("set1")},
+			clustersets: []runtime.Object{newManagedClusterSet()},
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
@@ -244,9 +244,9 @@ func TestSyncManagedCluster(t *testing.T) {
 			name:        "Delete the submariner-addon",
 			clusterName: "cluster1",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{"test", agentFinalizer}, false),
+				newManagedCluster(map[string]string{clusterSetLabel: "set1"}, []string{"test", agentFinalizer}, false),
 			},
-			clustersets: []runtime.Object{newManagedClusterSet("set1")},
+			clustersets: []runtime.Object{newManagedClusterSet()},
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
@@ -275,9 +275,9 @@ func TestSyncManagedCluster(t *testing.T) {
 			name:        "Sync all managed clusters",
 			clusterName: "key",
 			clusters: []runtime.Object{
-				newManagedCluster("cluster1", map[string]string{clusterSetLabel: "set1"}, []string{}, false),
+				newManagedCluster(map[string]string{clusterSetLabel: "set1"}, []string{}, false),
 			},
-			clustersets: []runtime.Object{newManagedClusterSet("set1")},
+			clustersets: []runtime.Object{newManagedClusterSet()},
 			addOns: []runtime.Object{
 				&addonv1alpha1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
@@ -565,10 +565,10 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 	}
 }
 
-func newManagedCluster(name string, labels map[string]string, finalizers []string, terminating bool) *clusterv1.ManagedCluster {
+func newManagedCluster(labels map[string]string, finalizers []string, terminating bool) *clusterv1.ManagedCluster {
 	cluster := &clusterv1.ManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       name,
+			Name:       "cluster1",
 			Labels:     labels,
 			Finalizers: finalizers,
 		},
@@ -582,10 +582,10 @@ func newManagedCluster(name string, labels map[string]string, finalizers []strin
 	return cluster
 }
 
-func newManagedClusterSet(name string) *clusterv1beta1.ManagedClusterSet {
+func newManagedClusterSet() *clusterv1beta1.ManagedClusterSet {
 	clusterSet := &clusterv1beta1.ManagedClusterSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name: "set1",
 		},
 	}
 
