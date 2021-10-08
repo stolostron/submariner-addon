@@ -504,7 +504,7 @@ func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, c
 
 	switch {
 	case errors.IsNotFound(err):
-		//there is no submariner manifestworks, do noting
+		// there is no submariner manifestworks, do noting
 	case err == nil:
 		c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q", fmt.Sprintf("%s/%s", clusterName, manifestWorkName))
 	case err != nil:
@@ -587,13 +587,13 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(config *configv1alpha1.SubmarinerConfig) error {
 	cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, c.eventRecorder)
 	if err != nil {
-		//TODO handle the error gracefully in the future
+		// TODO handle the error gracefully in the future
 		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to get cloud provider: %v", err)
 		return nil
 	}
 
 	if err := cloudProvider.CleanUpSubmarinerClusterEnv(); err != nil {
-		//TODO handle the error gracefully in the future
+		// TODO handle the error gracefully in the future
 		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to clean up cloud environment: %v", err)
 		return nil
 	}

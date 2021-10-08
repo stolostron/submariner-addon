@@ -11,7 +11,6 @@ linters-settings:
       - style
     disabled-checks:
       - ifElseChain # TODO: Do we want this?
-      - commentFormatting # TODO: Fix and enable
       - emptyStringTest # TODO: Fix and enable
       - exitAfterDefer # TODO: Do we want this?
       - hugeParam # TODO: Do we want this?

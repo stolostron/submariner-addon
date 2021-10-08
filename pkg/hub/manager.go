@@ -47,7 +47,7 @@ func NewAddOnOptions() *AddOnOptions {
 
 func (o *AddOnOptions) AddFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
-	//TODO if downstream building supports to set downstream image, we could use this flag
+	// TODO if downstream building supports to set downstream image, we could use this flag
 	// to set agent image on building phase
 	flags.StringVar(&o.AgentImage, "agent-image", o.AgentImage, "The image of addon agent.")
 }
