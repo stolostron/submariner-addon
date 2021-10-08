@@ -17,6 +17,8 @@ import (
 
 // AssertActions asserts the actual actions have the expected action verb
 func AssertActions(t *testing.T, actualActions []clienttesting.Action, expectedVerbs ...string) {
+	t.Helper()
+
 	if len(actualActions) != len(expectedVerbs) {
 		t.Errorf("expected %d call but got: %#v", len(expectedVerbs), actualActions)
 	}
@@ -30,11 +32,15 @@ func AssertActions(t *testing.T, actualActions []clienttesting.Action, expectedV
 
 // AssertNoActions asserts no actions are happened
 func AssertNoActions(t *testing.T, actualActions []clienttesting.Action) {
+	t.Helper()
+
 	AssertActions(t, actualActions)
 }
 
 // AssertFinalizers asserts the given runtime object has the expected finalizers
 func AssertFinalizers(t *testing.T, obj runtime.Object, finalizers []string) {
+	t.Helper()
+
 	accessor, _ := meta.Accessor(obj)
 	actual := accessor.GetFinalizers()
 	if len(actual) == 0 && len(finalizers) == 0 {
@@ -47,6 +53,8 @@ func AssertFinalizers(t *testing.T, obj runtime.Object, finalizers []string) {
 }
 
 func AssertActionResource(t *testing.T, action clienttesting.Action, expectedResource string) {
+	t.Helper()
+
 	if action == nil {
 		t.Fatal("action is nil")
 	}

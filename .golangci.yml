@@ -49,6 +49,7 @@ linters:
     - structcheck
     # - stylecheck  # instead of golint
     # - testpackage
+    - thelper
     - typecheck
     - unconvert
     # - unparam

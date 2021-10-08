@@ -23,6 +23,8 @@ func (f fakeSyncContext) QueueKey() string                       { return f.key 
 func (f fakeSyncContext) Recorder() events.Recorder              { return f.recorder }
 
 func NewFakeSyncContext(t *testing.T, key string) *fakeSyncContext {
+	t.Helper()
+
 	return &fakeSyncContext{
 		key:      key,
 		queue:    workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),

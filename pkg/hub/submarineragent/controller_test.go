@@ -62,6 +62,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns:      []runtime.Object{},
 			kubeObjs:    []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertNoActions(t, clusterActions)
 				testinghelpers.AssertNoActions(t, workActions)
@@ -86,6 +88,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			},
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertActions(t, kubeActions, "list")
 				testinghelpers.AssertActions(t, clusterActions, "update")
 				testinghelpers.AssertActions(t, workActions, "delete")
@@ -102,6 +106,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOns:   []runtime.Object{},
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertNoActions(t, clusterActions)
 				testinghelpers.AssertNoActions(t, workActions)
@@ -125,6 +131,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			},
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertActions(t, kubeActions, "list")
 				testinghelpers.AssertActions(t, clusterActions, "update")
 				testinghelpers.AssertActions(t, workActions, "delete")
@@ -148,6 +156,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			},
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertActions(t, clusterActions, "update")
 				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
@@ -173,6 +183,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			},
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertNoActions(t, clusterActions)
 				testinghelpers.AssertNoActions(t, workActions)
@@ -203,6 +215,8 @@ func TestSyncManagedCluster(t *testing.T) {
 				newServiceAccount("set1-broker", "cluster1", "cluster1-token-5pw5c", map[string]string{}),
 			},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertNoActions(t, clusterActions)
 				testinghelpers.AssertActions(t, workActions, "get", "create")
 				work := (workActions[1].(clienttesting.CreateActionImpl).Object).(*workv1.ManifestWork)
@@ -232,6 +246,8 @@ func TestSyncManagedCluster(t *testing.T) {
 				newServiceAccount("cluster1", "cluster1", "cluster1", map[string]string{serviceAccountLabel: "cluster1"}),
 			},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertActions(t, kubeActions, "list", "delete", "delete")
 				testinghelpers.AssertActions(t, clusterActions, "update")
 				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
@@ -261,6 +277,8 @@ func TestSyncManagedCluster(t *testing.T) {
 				newServiceAccount("cluster1", "cluster1", "cluster1", map[string]string{serviceAccountLabel: "cluster1"}),
 			},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertActions(t, kubeActions, "list", "delete", "delete")
 				testinghelpers.AssertActions(t, clusterActions, "update")
 				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
@@ -288,6 +306,8 @@ func TestSyncManagedCluster(t *testing.T) {
 			},
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertNoActions(t, kubeActions)
 				testinghelpers.AssertNoActions(t, clusterActions)
 				testinghelpers.AssertNoActions(t, workActions)
@@ -373,6 +393,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertNoActions(t, configActions)
 			},
 		},
@@ -401,6 +423,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertNoActions(t, configActions)
 			},
 		},
@@ -423,6 +447,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertActions(t, configActions, "update")
 				updatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
 				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
@@ -453,6 +479,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertActions(t, configActions, "update")
 				updatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
 				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
@@ -483,6 +511,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 			},
 			clusters: []runtime.Object{},
 			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertNoActions(t, configActions)
 			},
 		},
@@ -514,6 +544,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
+				t.Helper()
+
 				testinghelpers.AssertActions(t, configActions, "update")
 				workUpdatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
 				config := workUpdatedObj.(*configv1alpha1.SubmarinerConfig)
