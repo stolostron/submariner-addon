@@ -10,16 +10,15 @@ linters-settings:
       - performance
       - style
     disabled-checks:
-      - ifElseChain
-      - unnamedResult
-      - commentFormatting
-      - deferUnlambda
-      - emptyStringTest
-      - exitAfterDefer
-      - hugeParam
-      - nestingReduce
-      - rangeValCopy
-      - whyNoLint
+      - ifElseChain # TODO: Do we want this?
+      - commentFormatting # TODO: Fix and enable
+      - deferUnlambda # TODO: Fix and enable
+      - emptyStringTest # TODO: Fix and enable
+      - exitAfterDefer # TODO: Do we want this?
+      - hugeParam # TODO: Do we want this?
+      - nestingReduce # TODO: Fix and enable
+      - rangeValCopy # TODO: Do we want this?
+      - whyNoLint # TODO: Fix and enable
   gocyclo:
     min-complexity: 20
   govet:
@@ -30,39 +29,82 @@ linters-settings:
 linters:
   disable-all: true
   enable:
+    - asciicheck
     - bodyclose
+    # - cyclop # TODO: Do we want this?
     - deadcode
     - depguard
     - dogsled
-    # - dupl
-    # - errcheck
+    # - dupl # TODO: Fix and enable
+    - durationcheck
+    # - errcheck # TODO: Fix and enable
+    # - errname # Not supported with our version of golangci-lint
+    # - errorlint # TODO: Fix and enable
+    - exhaustive
+    # - exhaustivestruct # TODO: Do we want this?
     - exportloopref
-    # - funlen
-    # - gochecknoglobals
-    # - gochecknoinits
-    # - goconst
+    # - forbidigo # We don't forbid any statements
+    # - forcetypeassert # TODO: Fix and enable
+    # - funlen # TODO: Do we want this?
+    # - gci # TODO: Do we want this?
+    # - gochecknoglobal # TODO: Do we want this?
+    # - gochecknoinits # TODO: Do we want this?
+    # - gocognit # Actually runs revive linter
+    # - goconst # TODO: Fix and enable
     - gocritic
-    # - gocyclo
+    # - gocyclo # TODO: Do we want this?
+    # - godot # TODO: Do we want this?
+    # - godox # TODO: Do we want this?
+    # - goerr113 # TODO: Fix and enable
     - gofmt
+    # - gofumpt # TODO: Do we want this?
+    # - goheader # We do license header linting another way
     - goimports
+    # - golint # Deprecated since v1.41.0
+    # - gomnd # TODO: Do we want this?
+    # - gomoddirectives # Actually runs revive linter
+    # - gomodguard # We don't block any modules
+    # - goprintffuncname # This doesn't seem useful at all
     - gosec
     - gosimple
     - govet
+    # - ifshort # TODO: Fix and enable
+    # - importas # Not supported with our version of golangci-lint
     - ineffassign
+    # - interfacer # Deprecated since v1.38.0
     - lll
+    - makezero
+    # - maligned # Deprecated since v1.38.0
     - misspell
     - nakedret
+    # - nestif # Actually runs revive linter
+    # - nilerr # TODO: Fix and enable
+    # - nlreturn # TODO: Do we want this?
+    # - noctx # We don't send HTTP requests
+    - nolintlint
+    # - paralleltest # TODO: Do we want this?
     - prealloc
+    - predeclared
+    # - promlinter # Not supported with our version of golangci-lint
+    # - revive # TODO: Do we want this?
+    # - rowserrcheck # We don't use SQL
+    # - scopelint # Deprecated since v1.39.0
+    # - sqlclosecheck # We don't use SQL
     - staticcheck
     - structcheck
-    # - stylecheck  # instead of golint
-    # - testpackage
+    # - stylecheck # TODO: Fix and enable
+    # - tagliatelle # TODO: Do we want this?
+    # - testpackage # TODO: Fix and enable
+    # - thelper # Not relevant for our Ginkgo UTs
+    - tparallel
     - typecheck
     - unconvert
     - unparam
     - unused
     - varcheck
+    # - wastedassign # Not supported with our version of golangci-lint
     - whitespace
+    # - wrapcheck # TODO: Do we want this?
     - wsl
 issues:
   exclude-rules:
