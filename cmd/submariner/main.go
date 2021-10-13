@@ -47,7 +47,7 @@ func newSubmarinerControllerCommand() *cobra.Command {
 		},
 	}
 
-	if v := version.Get().String(); len(v) == 0 {
+	if v := version.Get().String(); v == "" {
 		cmd.Version = "<unknown>"
 	} else {
 		cmd.Version = v

@@ -53,13 +53,13 @@ func (o *AddOnOptions) AddFlags(cmd *cobra.Command) {
 }
 
 func (o *AddOnOptions) Complete(kubeClient kubernetes.Interface) error {
-	if len(o.AgentImage) != 0 {
+	if o.AgentImage != "" {
 		return nil
 	}
 
 	namespace := helpers.GetCurrentNamespace(defaultNamespace)
 	podName := os.Getenv("POD_NAME")
-	if len(podName) == 0 {
+	if podName == "" {
 		return fmt.Errorf("The pod environment POD_NAME is required")
 	}
 

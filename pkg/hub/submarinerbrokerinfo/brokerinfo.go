@@ -95,7 +95,7 @@ func Get(
 		InstallationNamespace:  defaultInstallationNamespace,
 	}
 
-	if len(installationNamespace) != 0 {
+	if installationNamespace != "" {
 		brokerInfo.InstallationNamespace = installationNamespace
 	}
 
