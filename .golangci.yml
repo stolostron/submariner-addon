@@ -16,7 +16,6 @@ linters-settings:
       - emptyStringTest # TODO: Fix and enable
       - exitAfterDefer # TODO: Do we want this?
       - hugeParam # TODO: Do we want this?
-      - nestingReduce # TODO: Fix and enable
       - rangeValCopy # TODO: Do we want this?
       - whyNoLint # TODO: Fix and enable
   gocyclo:

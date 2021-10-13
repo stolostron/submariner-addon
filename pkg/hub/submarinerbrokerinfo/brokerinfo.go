@@ -260,24 +260,26 @@ func getKubeAPIServerCA(kubeAPIServer string, kubeClient kubernetes.Interface, d
 
 	for _, namedCert := range apiServer.Spec.ServingCerts.NamedCertificates {
 		for _, name := range namedCert.Names {
-			if strings.EqualFold(name, kubeAPIServerURL.Hostname()) {
-				secretName := namedCert.ServingCertificate.Name
-				secret, err := kubeClient.CoreV1().Secrets(ocpConfigNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
-				if err != nil {
-					return nil, err
-				}
-
-				if secret.Type != corev1.SecretTypeTLS {
-					return nil, fmt.Errorf("secret %s/%s should have type=kubernetes.io/tls", ocpConfigNamespace, secretName)
-				}
-
-				ca, ok := secret.Data["tls.crt"]
-				if !ok {
-					return nil, fmt.Errorf("failed to find data[tls.crt] in secret %s/%s", ocpConfigNamespace, secretName)
-				}
-
-				return ca, nil
+			if !strings.EqualFold(name, kubeAPIServerURL.Hostname()) {
+				continue
 			}
+
+			secretName := namedCert.ServingCertificate.Name
+			secret, err := kubeClient.CoreV1().Secrets(ocpConfigNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+			if err != nil {
+				return nil, err
+			}
+
+			if secret.Type != corev1.SecretTypeTLS {
+				return nil, fmt.Errorf("secret %s/%s should have type=kubernetes.io/tls", ocpConfigNamespace, secretName)
+			}
+
+			ca, ok := secret.Data["tls.crt"]
+			if !ok {
+				return nil, fmt.Errorf("failed to find data[tls.crt] in secret %s/%s", ocpConfigNamespace, secretName)
+			}
+
+			return ca, nil
 		}
 	}
 
