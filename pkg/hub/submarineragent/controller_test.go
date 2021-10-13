@@ -38,9 +38,7 @@ func TestSyncManagedCluster(t *testing.T) {
 		t.Fatalf("cannot set env BROKER_API_SERVER")
 	}
 
-	defer func() {
-		os.Unsetenv("BROKER_API_SERVER")
-	}()
+	defer os.Unsetenv("BROKER_API_SERVER")
 
 	cases := []struct {
 		name            string
