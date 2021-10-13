@@ -89,7 +89,7 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 	// if the installation namespace is not set, to keep consistent with addon-framework,
 	// using open-cluster-management-agent-addon namespace as default namespace.
 	installNamespace := addon.Spec.InstallNamespace
-	if len(installNamespace) == 0 {
+	if installNamespace == "" {
 		installNamespace = defaultInstallationNamespace
 	}
 

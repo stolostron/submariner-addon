@@ -83,14 +83,14 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	if len(sub.Status.InstalledCSV) == 0 {
+	if sub.Status.InstalledCSV == "" {
 		startingCSV := sub.Spec.StartingCSV
-		if len(startingCSV) == 0 {
+		if startingCSV == "" {
 			startingCSV = "default"
 		}
 
 		channel := sub.Spec.Channel
-		if len(channel) == 0 {
+		if channel == "" {
 			channel = "default"
 		}
 
