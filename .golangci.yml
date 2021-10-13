@@ -18,7 +18,6 @@ linters-settings:
       - hugeParam # TODO: Do we want this?
       - nestingReduce # TODO: Fix and enable
       - rangeValCopy # TODO: Do we want this?
-      - whyNoLint # TODO: Fix and enable
   gocyclo:
     min-complexity: 20
   govet:
