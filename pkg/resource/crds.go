@@ -18,12 +18,14 @@ func ApplyCRDs(client apiextensionsClient.Interface, recorder events.Recorder, a
 		objectRaw, err := assetFunc(file)
 		if err != nil {
 			errs = append(errs, err)
+
 			continue
 		}
 
 		object, _, err := genericCodec.Decode(objectRaw, nil, nil)
 		if err != nil {
 			errs = append(errs, err)
+
 			continue
 		}
 

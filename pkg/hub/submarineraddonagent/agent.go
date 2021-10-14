@@ -155,12 +155,14 @@ func (a *addOnAgent) csrApproveCheck(cluster *clusterv1.ManagedCluster, addon *a
 	block, _ := pem.Decode(csr.Spec.Request)
 	if block == nil || block.Type != "CERTIFICATE REQUEST" {
 		klog.V(4).Infof("csr %q was not recognized: PEM block type is not CERTIFICATE REQUEST", csr.Name)
+
 		return false
 	}
 
 	x509cr, err := x509.ParseCertificateRequest(block.Bytes)
 	if err != nil {
 		klog.V(4).Infof("csr %q was not recognized: %v", csr.Name, err)
+
 		return false
 	}
 
@@ -202,6 +204,7 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, addon *
 			if err != nil {
 				return nil, err
 			}
+
 			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
 		},
 		agentHubPermissionFiles...,

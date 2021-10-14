@@ -63,6 +63,7 @@ func NewController(
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
+
 			return accessor.GetName()
 		}, clusterSetInformer.Informer()).
 		WithSync(c.sync).

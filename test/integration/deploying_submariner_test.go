@@ -125,6 +125,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 						return false
 					}
 				}
+
 				return true
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
@@ -146,6 +147,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 						return false
 					}
 				}
+
 				return true
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
@@ -166,6 +168,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 						return false
 					}
 				}
+
 				return true
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
@@ -205,6 +208,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 					!util.FindExpectedFinalizer(ns.Finalizers, "cluster.open-cluster-management.io/submariner-cleanup") {
 					return true
 				}
+
 				return false
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
@@ -267,6 +271,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			Eventually(func() bool {
 				_, err := configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Get(context.Background(), "submariner",
 					metav1.GetOptions{})
+
 				return errors.IsNotFound(err)
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})

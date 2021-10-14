@@ -28,6 +28,7 @@ func Apply(ctx context.Context, client workclient.Interface, toApply *workv1.Man
 
 	result, err := util.CreateOrUpdate(ctx, resourceInterface, toApply, func(existing runtime.Object) (runtime.Object, error) {
 		existing.(*workv1.ManifestWork).Spec = toApply.Spec
+
 		return existing, nil
 	})
 

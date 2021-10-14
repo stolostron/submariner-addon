@@ -47,6 +47,7 @@ func Remove(ctx context.Context, client resource.Interface, obj runtime.Object, 
 		}
 
 		objMeta.SetFinalizers(newFinalizers)
+
 		return existing, nil
 	})
 }

@@ -299,6 +299,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(errors.New("fake error")).Times(1),
 					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().DoAndReturn(func() error {
 						<-waitCh
+
 						return nil
 					}).AnyTimes(),
 				)
@@ -381,6 +382,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 					invoked = make(chan bool)
 					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().DoAndReturn(func() error {
 						invoked <- true
+
 						return nil
 					}).Times(1)
 				})
@@ -517,6 +519,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(errors.New("fake error")).Times(1),
 						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().DoAndReturn(func() error {
 							<-waitCh
+
 							return nil
 						}).AnyTimes(),
 					)
