@@ -45,12 +45,14 @@ var testEnv *envtest.Environment
 
 var cfg *rest.Config
 
-var kubeClient kubernetes.Interface
-var clusterClient clusterclientset.Interface
-var workClient workclientset.Interface
-var configClinet configclientset.Interface
-var addOnClient addonclientset.Interface
-var dynamicClient dynamic.Interface
+var (
+	kubeClient    kubernetes.Interface
+	clusterClient clusterclientset.Interface
+	workClient    workclientset.Interface
+	configClinet  configclientset.Interface
+	addOnClient   addonclientset.Interface
+	dynamicClient dynamic.Interface
+)
 
 var _ = BeforeSuite(func(done Done) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))

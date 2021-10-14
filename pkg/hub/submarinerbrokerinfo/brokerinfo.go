@@ -239,7 +239,6 @@ func getBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
 
 func getKubeAPIServerCA(kubeAPIServer string, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) ([]byte, error) {
 	kubeAPIServerURL, err := url.Parse(fmt.Sprintf("https://%s", kubeAPIServer))
-
 	if err != nil {
 		return nil, err
 	}

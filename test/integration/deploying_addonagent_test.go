@@ -72,7 +72,7 @@ var _ = Describe("Deploy a submariner-addon agent", func() {
 	})
 
 	Context("Run submariner-addon agent on the managed cluster", func() {
-		var submarinerGVR, _ = schema.ParseResourceArg("submariners.v1alpha1.submariner.io")
+		submarinerGVR, _ := schema.ParseResourceArg("submariners.v1alpha1.submariner.io")
 
 		BeforeEach(func() {
 			By("Setup the managed cluster namespace")
@@ -130,5 +130,4 @@ var _ = Describe("Deploy a submariner-addon agent", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
 	})
-
 })
