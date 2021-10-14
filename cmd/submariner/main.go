@@ -28,13 +28,18 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
 	logs.InitLogs()
-	defer logs.FlushLogs()
 
+	exitCode := 0
 	command := newSubmarinerControllerCommand()
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+
+		exitCode = 1
 	}
+
+	logs.FlushLogs()
+
+	os.Exit(exitCode)
 }
 
 func newSubmarinerControllerCommand() *cobra.Command {
