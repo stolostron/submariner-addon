@@ -44,6 +44,7 @@ func NewConnectionsStatusController(clusterName string, addOnClient addonclient.
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			key, _ := cache.MetaNamespaceKeyFunc(obj)
+
 			return key
 		}, submarinerInformer.Informer()).
 		WithSync(c.sync).

@@ -97,6 +97,7 @@ func UpdateSubmarinerConfigStatus(
 		if equality.Semantic.DeepEqual(oldStatus, newStatus) {
 			// We return the newStatus which is a deep copy of oldStatus but with all update funcs applied.
 			updatedStatus = newStatus
+
 			return nil
 		}
 
@@ -108,6 +109,7 @@ func UpdateSubmarinerConfigStatus(
 		}
 		updatedStatus = &updatedConfig.Status
 		updated = err == nil
+
 		return err
 	})
 
@@ -117,6 +119,7 @@ func UpdateSubmarinerConfigStatus(
 func UpdateSubmarinerConfigConditionFn(cond metav1.Condition) UpdateSubmarinerConfigStatusFunc {
 	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
 		meta.SetStatusCondition(&oldStatus.Conditions, cond)
+
 		return nil
 	}
 }
@@ -161,6 +164,7 @@ func UpdateManagedClusterAddOnStatus(ctx context.Context, client addonclient.Int
 		if equality.Semantic.DeepEqual(oldStatus, newStatus) {
 			// We return the newStatus which is a deep copy of oldStatus but with all update funcs applied.
 			updatedAddOnStatus = newStatus
+
 			return nil
 		}
 
@@ -171,6 +175,7 @@ func UpdateManagedClusterAddOnStatus(ctx context.Context, client addonclient.Int
 		}
 		updatedAddOnStatus = &updatedAddOn.Status
 		updated = err == nil
+
 		return err
 	})
 
@@ -180,6 +185,7 @@ func UpdateManagedClusterAddOnStatus(ctx context.Context, client addonclient.Int
 func UpdateManagedClusterAddOnStatusFn(cond metav1.Condition) UpdateManagedClusterAddOnStatusFunc {
 	return func(oldStatus *addonv1alpha1.ManagedClusterAddOnStatus) error {
 		meta.SetStatusCondition(&oldStatus.Conditions, cond)
+
 		return nil
 	}
 }
@@ -197,12 +203,14 @@ func CleanUpSubmarinerManifests(
 		objectRaw, err := assetFunc(file)
 		if err != nil {
 			errs = append(errs, err)
+
 			continue
 		}
 
 		object, _, err := genericCodec.Decode(objectRaw, nil, nil)
 		if err != nil {
 			errs = append(errs, err)
+
 			continue
 		}
 
@@ -225,6 +233,7 @@ func CleanUpSubmarinerManifests(
 
 		if err != nil {
 			errs = append(errs, err)
+
 			continue
 		}
 
@@ -298,6 +307,7 @@ func GenerateBrokerName(clusterSetName string) string {
 	name := fmt.Sprintf("%s-%s", clusterSetName, brokerSuffix)
 	if len(name) > namespaceMaxLength {
 		truncatedClusterSetName := clusterSetName[(len(brokerSuffix) - 1):]
+
 		return fmt.Sprintf("%s-%s", truncatedClusterSetName, brokerSuffix)
 	}
 

@@ -51,6 +51,7 @@ func NewCRDsController(
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
+
 			return accessor.GetName()
 		}, crdInformer.Informer()).
 		WithSync(c.sync).

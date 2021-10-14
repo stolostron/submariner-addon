@@ -45,6 +45,7 @@ var _ = Describe("Controller", func() {
 		It("should create the broker Role resource", func() {
 			Eventually(func() error {
 				_, err := t.kubeClient.RbacV1().Roles(brokerNS).Get(context.TODO(), brokerRoleName, metav1.GetOptions{})
+
 				return err
 			}).Should(Succeed(), "Broker Role not found")
 		})
@@ -119,6 +120,7 @@ var _ = Describe("Controller", func() {
 		It("should delete the broker Role resource", func() {
 			Eventually(func() bool {
 				_, err := t.kubeClient.RbacV1().Roles(brokerNS).Get(context.TODO(), brokerRoleName, metav1.GetOptions{})
+
 				return errors.IsNotFound(err)
 			}).Should(BeTrue(), "Broker Role still exists")
 		})
@@ -196,6 +198,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 func (t *brokerControllerTestDriver) awaitSecret() {
 	Eventually(func() error {
 		_, err := t.kubeClient.CoreV1().Secrets(brokerNS).Get(context.TODO(), "submariner-ipsec-psk", metav1.GetOptions{})
+
 		return err
 	}).Should(Succeed(), "IPsec PSK Secret not found")
 }
@@ -203,6 +206,7 @@ func (t *brokerControllerTestDriver) awaitSecret() {
 func (t *brokerControllerTestDriver) awaitNamespace() {
 	Eventually(func() error {
 		_, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), brokerNS, metav1.GetOptions{})
+
 		return err
 	}).Should(Succeed(), "Broker Namespace not found")
 }
@@ -210,6 +214,7 @@ func (t *brokerControllerTestDriver) awaitNamespace() {
 func (t *brokerControllerTestDriver) awaitNoNamespace() {
 	Eventually(func() bool {
 		_, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), brokerNS, metav1.GetOptions{})
+
 		return errors.IsNotFound(err)
 	}).Should(BeTrue(), "Broker Namespace still exists")
 }

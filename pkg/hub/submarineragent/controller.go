@@ -138,6 +138,7 @@ func NewSubmarinerAgentController(
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
+
 			return accessor.GetName()
 		}, clusterInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
@@ -147,6 +148,7 @@ func NewSubmarinerAgentController(
 			if accessor.GetName() != manifestWorkName {
 				return ""
 			}
+
 			return accessor.GetNamespace()
 		}, manifestWorkInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
@@ -156,6 +158,7 @@ func NewSubmarinerAgentController(
 			if accessor.GetName() != helpers.SubmarinerConfigName {
 				return ""
 			}
+
 			return accessor.GetNamespace() + "/" + accessor.GetName()
 		}, configInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
@@ -163,6 +166,7 @@ func NewSubmarinerAgentController(
 			if accessor.GetName() != helpers.SubmarinerAddOnName {
 				return ""
 			}
+
 			return accessor.GetNamespace()
 		}, addOnInformer.Informer()).
 		WithInformers(clusterSetInformer.Informer()).
@@ -277,6 +281,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		for i := range managedCluster.Finalizers {
 			if managedCluster.Finalizers[i] == agentFinalizer {
 				hasFinalizer = true
+
 				break
 			}
 		}
@@ -319,6 +324,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		for i := range addOn.Finalizers {
 			if addOn.Finalizers[i] == addOnFinalizer {
 				hasFinalizer = true
+
 				break
 			}
 		}
@@ -350,6 +356,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 		for i := range config.Finalizers {
 			if config.Finalizers[i] == submarinerConfigFinalizer {
 				hasFinalizer = true
+
 				break
 			}
 		}
@@ -533,6 +540,7 @@ func (c *submarinerAgentController) applyClusterRBACFiles(brokerNamespace, manag
 			if err != nil {
 				return nil, err
 			}
+
 			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
 		},
 		clusterRBACFiles...,
@@ -578,6 +586,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 			if err != nil {
 				return nil, err
 			}
+
 			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
 		},
 		clusterRBACFiles...,
@@ -589,12 +598,14 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(config *configv1
 	if err != nil {
 		// TODO handle the error gracefully in the future
 		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to get cloud provider: %v", err)
+
 		return nil
 	}
 
 	if err := cloudProvider.CleanUpSubmarinerClusterEnv(); err != nil {
 		// TODO handle the error gracefully in the future
 		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to clean up cloud environment: %v", err)
+
 		return nil
 	}
 

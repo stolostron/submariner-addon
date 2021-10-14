@@ -49,6 +49,7 @@ func NewGatewaysStatusController(
 			if _, has := metaObj.GetLabels()[workerNodeLabel]; has {
 				return true
 			}
+
 			return false
 		}, nodeInformer.Informer()).
 		WithSync(c.sync).

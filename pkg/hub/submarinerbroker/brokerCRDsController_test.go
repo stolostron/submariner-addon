@@ -92,6 +92,7 @@ func (t *brokerCRDsControllerTestDriver) awaitSubmarinerCRDs() {
 func (t *brokerCRDsControllerTestDriver) awaitCRD(name string) {
 	Eventually(func() error {
 		_, err := t.crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), name, metav1.GetOptions{})
+
 		return err
 	}).Should(Succeed(), "CRD %q not found", name)
 }

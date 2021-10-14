@@ -96,6 +96,7 @@ func UpdateManagedClusterLabels(clusterClient clusterclientset.Interface, manage
 		managedCluster.Labels = labels
 
 		_, err = clusterClient.ClusterV1().ManagedClusters().Update(context.Background(), managedCluster, metav1.UpdateOptions{})
+
 		return err
 	})
 }

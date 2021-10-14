@@ -77,6 +77,7 @@ func ConflictOnUpdateReactor(f *testing.Fake, resource string) {
 			_, ok := state.Load(m.GetName())
 			if !ok {
 				state.Store(m.GetName(), true)
+
 				return true, nil, apierrors.NewConflict(schema.GroupResource{}, "", errors.New("fake conflict"))
 			}
 

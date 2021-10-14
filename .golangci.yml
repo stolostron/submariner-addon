@@ -75,7 +75,7 @@ linters:
     - nakedret
     # - nestif # Actually runs revive linter
     # - nilerr # TODO: Fix and enable
-    # - nlreturn # TODO: Do we want this?
+    - nlreturn
     # - noctx # We don't send HTTP requests
     - nolintlint
     # - paralleltest # TODO: Do we want this?

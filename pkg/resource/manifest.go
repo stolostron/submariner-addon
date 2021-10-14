@@ -58,12 +58,14 @@ func DeleteFromManifests(kubeClient kubernetes.Interface, recorder events.Record
 		objectRaw, err := assetFunc(file)
 		if err != nil {
 			errs = append(errs, err)
+
 			continue
 		}
 
 		object, _, err := genericCodec.Decode(objectRaw, nil, nil)
 		if err != nil {
 			errs = append(errs, err)
+
 			continue
 		}
 
@@ -86,6 +88,7 @@ func DeleteFromManifests(kubeClient kubernetes.Interface, recorder events.Record
 
 		if err != nil {
 			errs = append(errs, err)
+
 			continue
 		}
 

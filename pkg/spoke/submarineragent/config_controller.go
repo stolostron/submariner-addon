@@ -89,10 +89,12 @@ func NewSubmarinerConfigController(input SubmarinerConfigControllerInput) factor
 	return factory.New().
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
+
 			return metaObj.GetName() == helpers.SubmarinerAddOnName
 		}, input.AddOnInformer.Informer()).
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
+
 			return metaObj.GetName() == helpers.SubmarinerConfigName
 		}, input.ConfigInformer.Informer()).
 		WithFilteredEventsInformers(func(obj interface{}) bool {
@@ -101,6 +103,7 @@ func NewSubmarinerConfigController(input SubmarinerConfigControllerInput) factor
 			if _, has := metaObj.GetLabels()[workerNodeLabel]; has {
 				return true
 			}
+
 			return false
 		}, input.NodeInformer.Informer()).
 		WithSync(c.sync).
@@ -472,6 +475,7 @@ func (c *submarinerConfigController) findGatewaysWithZone(expected int, zoneLabe
 		nodes, has := zoneNodes[zone]
 		if !has {
 			zoneNodes[zone] = []*corev1.Node{worker}
+
 			continue
 		}
 
