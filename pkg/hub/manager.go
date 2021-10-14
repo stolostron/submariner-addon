@@ -59,7 +59,7 @@ func (o *AddOnOptions) Complete(kubeClient kubernetes.Interface) error {
 	namespace := helpers.GetCurrentNamespace(defaultNamespace)
 	podName := os.Getenv("POD_NAME")
 	if podName == "" {
-		return fmt.Errorf("The pod environment POD_NAME is required")
+		return fmt.Errorf("the pod environment POD_NAME is required")
 	}
 
 	pod, err := kubeClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
@@ -76,7 +76,7 @@ func (o *AddOnOptions) Complete(kubeClient kubernetes.Interface) error {
 		}
 	}
 
-	return fmt.Errorf("The agent image cannot be found from the container %q of the pod %q", containerName, podName)
+	return fmt.Errorf("the agent image cannot be found from the container %q of the pod %q", containerName, podName)
 }
 
 // RunControllerManager starts the controllers on hub to manage submariner deployment.

@@ -82,7 +82,7 @@ linters:
     # - sqlclosecheck # We don't use SQL
     - staticcheck
     - structcheck
-    # - stylecheck # TODO: Fix and enable
+    - stylecheck
     # - tagliatelle # TODO: Do we want this?
     # - testpackage # TODO: Fix and enable
     # - thelper # Not relevant for our Ginkgo UTs
@@ -136,3 +136,13 @@ issues:
     - linters:
         - lll
       path: "pkg/apis/submarinerconfig/v1alpha1/zz_generated.swagger_doc_generated.go"
+
+    # Ignore underscores in var names in auto-generated files
+    - linters:
+        - stylecheck
+      path: "pkg/apis/submarinerconfig/v1alpha1/zz_generated.swagger_doc_generated.go"
+
+    # This needs to be changed in the main submariner-io/submariner repo first
+    - linters:
+        - stylecheck
+      text: "struct field InfraId should be InfraID"
