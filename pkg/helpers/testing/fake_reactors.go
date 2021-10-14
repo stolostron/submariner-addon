@@ -42,7 +42,8 @@ func FailOnAction(f *testing.Fake, resource, verb string, customErr error, autoR
 			}
 
 			return false, nil, nil
-		}}}
+		},
+	}}
 	f.ReactionChain = append(chain, f.ReactionChain...)
 
 	return r
@@ -67,7 +68,8 @@ func ConflictOnUpdateReactor(f *testing.Fake, resource string) {
 			}
 
 			return true, obj, err
-		}}, &testing.SimpleReactor{
+		},
+	}, &testing.SimpleReactor{
 		Verb:     "update",
 		Resource: resource,
 		Reaction: func(action testing.Action) (bool, runtime.Object, error) {
@@ -88,7 +90,8 @@ func ConflictOnUpdateReactor(f *testing.Fake, resource string) {
 			state.Delete(m.GetName())
 
 			return false, nil, nil
-		}}}
+		},
+	}}
 	f.ReactionChain = append(chain, f.ReactionChain...)
 }
 

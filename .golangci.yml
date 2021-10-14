@@ -53,7 +53,7 @@ linters:
     # - godox # TODO: Do we want this?
     # - goerr113 # TODO: Fix and enable
     - gofmt
-    # - gofumpt # TODO: Do we want this?
+    - gofumpt
     # - goheader # We do license header linting another way
     - goimports
     # - golint # Deprecated since v1.41.0

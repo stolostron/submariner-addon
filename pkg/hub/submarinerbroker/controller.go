@@ -27,12 +27,10 @@ const (
 	ipSecPSKSecretLength = 48
 )
 
-var (
-	staticResourceFiles = []string{
-		"manifests/broker-namespace.yaml",
-		"manifests/broker-cluster-role.yaml",
-	}
-)
+var staticResourceFiles = []string{
+	"manifests/broker-namespace.yaml",
+	"manifests/broker-cluster-role.yaml",
+}
 
 //go:embed manifests
 var manifestFiles embed.FS
