@@ -206,7 +206,7 @@ spec:
 EOF
 
     submrepo="quay.io/submariner"
-    submver="0.9.1"
+    submver=0.11.0-rc1
     kubectl patch submarinerconfigs submariner -n ${cluster} --type "json" -p '[
 {"op":"add","path":"/spec/imagePullSpecs/submarinerImagePullSpec","value":"'${submrepo}'/submariner-gateway:'${submver}'"},
 {"op":"add","path":"/spec/imagePullSpecs/submarinerRouteAgentImagePullSpec","value":"'${submrepo}'/submariner-route-agent:'${submver}'"},
