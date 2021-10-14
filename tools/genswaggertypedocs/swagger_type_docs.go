@@ -42,18 +42,6 @@ func main() {
 		klog.Fatalf("Please define -s flag as it is the source file")
 	}
 
-	var funcOut io.Writer
-	if *functionDest == "-" {
-		funcOut = os.Stdout
-	} else {
-		file, err := os.Create(*functionDest)
-		if err != nil {
-			klog.Fatalf("Couldn't open %v: %v", *functionDest, err)
-		}
-		defer file.Close()
-		funcOut = file
-	}
-
 	var docsForTypes []kruntime.KubeTypes
 	if fi, err := os.Stat(*typeSrc); err == nil && !fi.IsDir() {
 		docsForTypes = kruntime.ParseDocumentationFrom(*typeSrc)
@@ -72,19 +60,43 @@ func main() {
 		}
 	}
 
-	if *verify {
-		rc, err := kruntime.VerifySwaggerDocsExist(docsForTypes, funcOut)
+	var funcOut io.Writer
+	var closeFile func() error
+	if *functionDest == "-" {
+		funcOut = os.Stdout
+		closeFile = func() error { return nil }
+	} else {
+		file, err := os.Create(*functionDest)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error in verification process: %s\n", err)
+			klog.Fatalf("Couldn't open %v: %v", *functionDest, err)
 		}
 
-		os.Exit(rc)
+		closeFile = file.Close
+		funcOut = file
 	}
 
-	if len(docsForTypes) > 0 {
-		if err := kruntime.WriteSwaggerDocFunc(docsForTypes, funcOut); err != nil {
-			fmt.Fprintf(os.Stderr, "Error when writing swagger documentation functions: %s\n", err)
-			os.Exit(-1)
+	exitCode := func() int {
+		if *verify {
+			rc, err := kruntime.VerifySwaggerDocsExist(docsForTypes, funcOut)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error in verification process: %s\n", err)
+			}
+
+			return rc
 		}
-	}
+
+		if len(docsForTypes) > 0 {
+			if err := kruntime.WriteSwaggerDocFunc(docsForTypes, funcOut); err != nil {
+				fmt.Fprintf(os.Stderr, "Error when writing swagger documentation functions: %s\n", err)
+
+				return -1
+			}
+		}
+
+		return 0
+	}()
+
+	_ = closeFile()
+
+	os.Exit(exitCode)
 }
