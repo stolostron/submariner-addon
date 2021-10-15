@@ -13,15 +13,11 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 	errorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -31,6 +27,9 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 const (

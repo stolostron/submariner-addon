@@ -10,6 +10,13 @@ import (
 	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
+	kubefake "k8s.io/client-go/kubernetes/fake"
+	clienttesting "k8s.io/client-go/testing"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
@@ -20,15 +27,6 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	workv1 "open-cluster-management.io/api/work/v1"
-
-	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
-
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
-	kubefake "k8s.io/client-go/kubernetes/fake"
-	clienttesting "k8s.io/client-go/testing"
 )
 
 var now = metav1.Now()

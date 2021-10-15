@@ -6,20 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
-	"github.com/spf13/cobra"
-	"open-cluster-management.io/addon-framework/pkg/lease"
-	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
-
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
+	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
-
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
-
+	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -30,6 +23,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	"open-cluster-management.io/addon-framework/pkg/lease"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
+	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 )
 
 const defaultInstallationNamespace = "submariner-operator"

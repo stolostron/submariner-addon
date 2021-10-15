@@ -7,15 +7,10 @@ import (
 	"fmt"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"open-cluster-management.io/addon-framework/pkg/agent"
-	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
-
 	certificatesv1 "k8s.io/api/certificates/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -23,6 +18,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
+	"open-cluster-management.io/addon-framework/pkg/agent"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 var (

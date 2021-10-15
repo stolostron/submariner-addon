@@ -13,16 +13,15 @@ import (
 	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 func TestUpdateStatusCondition(t *testing.T) {

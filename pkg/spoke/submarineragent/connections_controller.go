@@ -6,18 +6,16 @@ import (
 	"strings"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
-	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
-
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
+	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 )
 
 const (
