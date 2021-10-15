@@ -392,7 +392,7 @@ func TestGetManagedClusterInfo(t *testing.T) {
 				Vendor:      "OpenShift",
 				Platform:    "AWS",
 				Region:      "us-east-1",
-				InfraId:     "cluster-1234",
+				InfraID:     "cluster-1234",
 			},
 		},
 	}

@@ -41,7 +41,7 @@ type awsProvider struct {
 func NewAWSProvider(
 	kubeClient kubernetes.Interface, workClient workclient.Interface,
 	eventRecorder events.Recorder,
-	region, infraId, clusterName, credentialsSecretName string,
+	region, infraID, clusterName, credentialsSecretName string,
 	instanceType string,
 	nattPort, nattDiscoveryPort int,
 	gateways int) (*awsProvider, error) {
@@ -49,8 +49,8 @@ func NewAWSProvider(
 		return nil, fmt.Errorf("cluster region is empty")
 	}
 
-	if infraId == "" {
-		return nil, fmt.Errorf("cluster infraId is empty")
+	if infraID == "" {
+		return nil, fmt.Errorf("cluster infraID is empty")
 	}
 
 	if gateways < 1 {
@@ -87,7 +87,7 @@ func NewAWSProvider(
 		return nil, err
 	}
 
-	cloudPrepare := cpaws.NewCloud(awsClient, infraId, region)
+	cloudPrepare := cpaws.NewCloud(awsClient, infraID, region)
 	machineSetDeployer := manifestwork.NewMachineSetDeployer(workClient, workName, clusterName, eventRecorder)
 	gwDeployer, err := cpaws.NewOcpGatewayDeployer(cloudPrepare, machineSetDeployer, instanceType)
 	if err != nil {
