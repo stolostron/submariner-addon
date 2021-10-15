@@ -100,12 +100,14 @@ func (c *connectionsStatusController) checkSubmarinerConnections(submariner *sub
 
 	connectedMessages := []string{}
 	unconnectedMessages := []string{}
-	for _, gateway := range gateways {
+	for i := range gateways {
+		gateway := &gateways[i]
 		if gateway.HAStatus != submarinermv1.HAStatusActive {
 			continue
 		}
 
-		for _, connection := range gateway.Connections {
+		for i := range gateway.Connections {
+			connection := &gateway.Connections[i]
 			if connection.Status != submarinermv1.Connected {
 				unconnectedMessages = append(unconnectedMessages,
 					fmt.Sprintf("The connection between clusters %q and %q is not established (status=%s)", c.clusterName,

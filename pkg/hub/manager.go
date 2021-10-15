@@ -67,7 +67,9 @@ func (o *AddOnOptions) Complete(kubeClient kubernetes.Interface) error {
 	if err != nil {
 		return err
 	}
-	for _, container := range pod.Spec.Containers {
+
+	for i := range pod.Spec.Containers {
+		container := &pod.Spec.Containers[i]
 		if container.Name == containerName {
 			o.AgentImage = pod.Spec.Containers[0].Image
 
