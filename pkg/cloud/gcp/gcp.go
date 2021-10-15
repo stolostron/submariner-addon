@@ -32,7 +32,7 @@ const (
 )
 
 type gcpProvider struct {
-	infraId           string
+	infraID           string
 	nattPort          uint16
 	routePort         string
 	metricsPort       uint16
@@ -49,10 +49,10 @@ func NewGCPProvider(
 	dynamicClient dynamic.Interface,
 	hubKubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
-	region, infraId, clusterName, credentialsSecretName, instanceType string,
+	region, infraID, clusterName, credentialsSecretName, instanceType string,
 	nattPort, nattDiscoveryPort, gateways int) (*gcpProvider, error) {
-	if infraId == "" {
-		return nil, fmt.Errorf("cluster infraId is empty")
+	if infraID == "" {
+		return nil, fmt.Errorf("cluster infraID is empty")
 	}
 
 	if nattPort == 0 {
@@ -77,7 +77,7 @@ func NewGCPProvider(
 		return nil, err
 	}
 
-	cloudPrepare := cloudpreparegcp.NewCloud(projectId, infraId, region, gcpClient)
+	cloudPrepare := cloudpreparegcp.NewCloud(projectId, infraID, region, gcpClient)
 
 	msDeployer := ocp.NewK8sMachinesetDeployer(restMapper, dynamicClient)
 
@@ -90,7 +90,7 @@ func NewGCPProvider(
 	}
 
 	return &gcpProvider{
-		infraId:           infraId,
+		infraID:           infraID,
 		nattPort:          uint16(nattPort),
 		routePort:         strconv.Itoa(helpers.SubmarinerRoutePort),
 		metricsPort:       helpers.SubmarinerMetricsPort,

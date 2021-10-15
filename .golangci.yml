@@ -141,8 +141,3 @@ issues:
     - linters:
         - stylecheck
       path: "pkg/apis/submarinerconfig/v1alpha1/zz_generated.swagger_doc_generated.go"
-
-    # This needs to be changed in the main submariner-io/submariner repo first
-    - linters:
-        - stylecheck
-      text: "struct field InfraId should be InfraID"

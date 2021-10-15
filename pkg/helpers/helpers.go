@@ -283,7 +283,7 @@ func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 		if claim.Name == "infrastructure.openshift.io" {
 			var infraInfo map[string]interface{}
 			if err := json.Unmarshal([]byte(claim.Value), &infraInfo); err == nil {
-				clusterInfo.InfraId = fmt.Sprintf("%v", infraInfo["infraName"])
+				clusterInfo.InfraID = fmt.Sprintf("%v", infraInfo["infraName"])
 			}
 		}
 	}

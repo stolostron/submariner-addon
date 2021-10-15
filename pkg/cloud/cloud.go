@@ -52,7 +52,7 @@ func (f *providerFactory) Get(managedClusterInfo configv1alpha1.ManagedClusterIn
 	eventsRecorder events.Recorder) (Provider, error) {
 	platform := managedClusterInfo.Platform
 	region := managedClusterInfo.Region
-	infraId := managedClusterInfo.InfraId
+	infraID := managedClusterInfo.InfraID
 	clusterName := managedClusterInfo.ClusterName
 	vendor := managedClusterInfo.Vendor
 
@@ -64,17 +64,17 @@ func (f *providerFactory) Get(managedClusterInfo configv1alpha1.ManagedClusterIn
 		return nil, fmt.Errorf("unsupported vendor %q of cluster %q", vendor, clusterName)
 	}
 
-	klog.V(4).Infof("get cloud provider: platform=%s,region=%s,infraId=%s,clusterName=%s,config=%s", platform,
-		region, infraId, clusterName, config.Name)
+	klog.V(4).Infof("get cloud provider: platform=%s,region=%s,infraID=%s,clusterName=%s,config=%s", platform,
+		region, infraID, clusterName, config.Name)
 
 	switch platform {
 	case "AWS":
-		return aws.NewAWSProvider(f.kubeClient, f.workClient, eventsRecorder, region, infraId, clusterName,
+		return aws.NewAWSProvider(f.kubeClient, f.workClient, eventsRecorder, region, infraID, clusterName,
 			config.Spec.CredentialsSecret.Name, config.Spec.GatewayConfig.AWS.InstanceType,
 			config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
 	case "GCP":
 		return gcp.NewGCPProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
-			region, infraId, clusterName, config.Spec.CredentialsSecret.Name,
+			region, infraID, clusterName, config.Spec.CredentialsSecret.Name,
 			"", config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
 	}
 

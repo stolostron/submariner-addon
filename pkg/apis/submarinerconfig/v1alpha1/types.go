@@ -178,7 +178,7 @@ type ManagedClusterInfo struct {
 	Region string `json:"region,omitempty"`
 	// InfraId represents the infrastructure id of the managed cluster.
 	// +optional
-	InfraId string `json:"infraId,omitempty"`
+	InfraID string `json:"infraId,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
