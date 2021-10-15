@@ -9,8 +9,6 @@ linters-settings:
       - opinionated
       - performance
       - style
-    disabled-checks:
-      - ifElseChain # TODO: Do we want this?
   gocyclo:
     min-complexity: 20
   govet:
