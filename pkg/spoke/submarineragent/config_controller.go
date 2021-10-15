@@ -76,7 +76,7 @@ type SubmarinerConfigControllerInput struct {
 }
 
 // NewSubmarinerConfigController returns an instance of submarinerAgentConfigController
-func NewSubmarinerConfigController(input SubmarinerConfigControllerInput) factory.Controller {
+func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) factory.Controller {
 	c := &submarinerConfigController{
 		kubeClient:           input.KubeClient,
 		configClient:         input.ConfigClient,
@@ -157,7 +157,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 			condition = failedCondition(err.Error())
 		}
 
-		updateErr := c.updateSubmarinerConfigStatus(syncCtx.Recorder(), config, condition)
+		updateErr := c.updateSubmarinerConfigStatus(syncCtx.Recorder(), config, &condition)
 
 		if err != nil {
 			return err
@@ -202,7 +202,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 			}
 
 			_, updated, updatedErr := helpers.UpdateSubmarinerConfigStatus(c.configClient, config.Namespace, config.Name,
-				helpers.UpdateSubmarinerConfigConditionFn(condition))
+				helpers.UpdateSubmarinerConfigConditionFn(&condition))
 
 			if updatedErr != nil {
 				errs = append(errs, updatedErr)
@@ -224,7 +224,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	// ensure the expected count of gateways
 	condition, err := c.ensureGateways(ctx, config)
 
-	updateErr := c.updateSubmarinerConfigStatus(syncCtx.Recorder(), config, condition)
+	updateErr := c.updateSubmarinerConfigStatus(syncCtx.Recorder(), config, &condition)
 
 	if err != nil {
 		return err
@@ -254,7 +254,7 @@ func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Conte
 }
 
 func (c *submarinerConfigController) updateSubmarinerConfigStatus(recorder events.Recorder, config *configv1alpha1.SubmarinerConfig,
-	condition metav1.Condition) error {
+	condition *metav1.Condition) error {
 	updatedStatus, updated, err := helpers.UpdateSubmarinerConfigStatus(c.configClient, config.Namespace, config.Name,
 		helpers.UpdateSubmarinerConfigConditionFn(condition))
 
@@ -537,7 +537,7 @@ func (c *submarinerConfigController) updateGatewayStatus(recorder events.Recorde
 		condition = successCondition(gatewayNames)
 	}
 
-	return c.updateSubmarinerConfigStatus(recorder, config, condition)
+	return c.updateSubmarinerConfigStatus(recorder, config, &condition)
 }
 
 func failedCondition(formatMsg string, args ...interface{}) metav1.Condition {

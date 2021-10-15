@@ -153,7 +153,7 @@ func newGatewaysControllerTestDriver() *gatewaysControllerTestDriver {
 }
 
 func (t *gatewaysControllerTestDriver) awaitStatusCondition(status metav1.ConditionStatus, reason string) {
-	t.awaitManagedClusterAddOnStatusCondition(metav1.Condition{
+	t.awaitManagedClusterAddOnStatusCondition(&metav1.Condition{
 		Type:   gatewayNodesLabeledType,
 		Status: status,
 		Reason: reason,

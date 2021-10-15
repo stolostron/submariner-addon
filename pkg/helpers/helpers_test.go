@@ -98,7 +98,7 @@ func TestUpdateStatusCondition(t *testing.T) {
 			status, updated, err := UpdateSubmarinerConfigStatus(
 				fakeClusterClient,
 				"cluster1", "testconfig",
-				UpdateSubmarinerConfigConditionFn(c.newCondition),
+				UpdateSubmarinerConfigConditionFn(&c.newCondition),
 			)
 			if err != nil {
 				t.Errorf("unexpected err: %v", err)
@@ -189,7 +189,7 @@ func TestUpdateManagedClusterAddOnStatus(t *testing.T) {
 			})
 
 			status, updated, err := UpdateManagedClusterAddOnStatus(context.TODO(), fakeAddOnClient, "test",
-				UpdateManagedClusterAddOnStatusFn(c.newCondition))
+				UpdateManagedClusterAddOnStatusFn(&c.newCondition))
 			if err != nil {
 				t.Errorf("unexpected err: %v", err)
 			}

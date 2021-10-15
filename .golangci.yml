@@ -11,7 +11,6 @@ linters-settings:
       - style
     disabled-checks:
       - ifElseChain # TODO: Do we want this?
-      - hugeParam # TODO: Do we want this?
       - rangeValCopy # TODO: Do we want this?
   gocyclo:
     min-complexity: 20

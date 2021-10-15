@@ -284,7 +284,7 @@ func (t *deploymentControllerTestDriver) updateDaemonSet(d *appsv1.DaemonSet) {
 }
 
 func (t *deploymentControllerTestDriver) awaitStatusCondition(status metav1.ConditionStatus, reason string) {
-	t.awaitManagedClusterAddOnStatusCondition(metav1.Condition{
+	t.awaitManagedClusterAddOnStatusCondition(&metav1.Condition{
 		Type:   deploymentDegradedType,
 		Status: status,
 		Reason: reason,

@@ -44,7 +44,7 @@ func (t *managedClusterAddOnTestBase) run() {
 	t.addOnClient.ClearActions()
 }
 
-func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(expCond metav1.Condition) {
+func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(expCond *metav1.Condition) {
 	testingHelpers.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
 		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.TODO(),
 			helpers.SubmarinerAddOnName, metav1.GetOptions{})

@@ -115,18 +115,18 @@ func UpdateSubmarinerConfigStatus(
 	return updatedStatus, updated, err
 }
 
-func UpdateSubmarinerConfigConditionFn(cond metav1.Condition) UpdateSubmarinerConfigStatusFunc {
+func UpdateSubmarinerConfigConditionFn(cond *metav1.Condition) UpdateSubmarinerConfigStatusFunc {
 	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
-		meta.SetStatusCondition(&oldStatus.Conditions, cond)
+		meta.SetStatusCondition(&oldStatus.Conditions, *cond)
 
 		return nil
 	}
 }
 
 func UpdateSubmarinerConfigStatusFn(cond *metav1.Condition,
-	managedClusterInfo configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
+	managedClusterInfo *configv1alpha1.ManagedClusterInfo) UpdateSubmarinerConfigStatusFunc {
 	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) error {
-		oldStatus.ManagedClusterInfo = managedClusterInfo
+		oldStatus.ManagedClusterInfo = *managedClusterInfo
 
 		if cond != nil {
 			meta.SetStatusCondition(&oldStatus.Conditions, *cond)
@@ -181,9 +181,9 @@ func UpdateManagedClusterAddOnStatus(ctx context.Context, client addonclient.Int
 	return updatedAddOnStatus, updated, err
 }
 
-func UpdateManagedClusterAddOnStatusFn(cond metav1.Condition) UpdateManagedClusterAddOnStatusFunc {
+func UpdateManagedClusterAddOnStatusFn(cond *metav1.Condition) UpdateManagedClusterAddOnStatusFunc {
 	return func(oldStatus *addonv1alpha1.ManagedClusterAddOnStatus) error {
-		meta.SetStatusCondition(&oldStatus.Conditions, cond)
+		meta.SetStatusCondition(&oldStatus.Conditions, *cond)
 
 		return nil
 	}

@@ -205,7 +205,7 @@ func newConnStatusControllerTestDriver() *connStatusControllerTestDriver {
 }
 
 func (t *connStatusControllerTestDriver) awaitStatusCondition(status metav1.ConditionStatus, reason string) {
-	t.awaitManagedClusterAddOnStatusCondition(metav1.Condition{
+	t.awaitManagedClusterAddOnStatusCondition(&metav1.Condition{
 		Type:   connectionDegradedType,
 		Status: status,
 		Reason: reason,

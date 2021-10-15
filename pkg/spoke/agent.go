@@ -134,7 +134,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	dynamicInformers := dynamicinformer.NewFilteredDynamicSharedInformerFactory(spokeDynamicClient, 10*time.Minute, o.InstallationNamespace,
 		nil)
 
-	submarinerConfigController := submarineragent.NewSubmarinerConfigController(submarineragent.SubmarinerConfigControllerInput{
+	submarinerConfigController := submarineragent.NewSubmarinerConfigController(&submarineragent.SubmarinerConfigControllerInput{
 		ClusterName:          o.ClusterName,
 		KubeClient:           spokeKubeClient,
 		ConfigClient:         configHubKubeClient,

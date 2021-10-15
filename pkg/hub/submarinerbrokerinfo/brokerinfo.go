@@ -191,7 +191,7 @@ func applySubmarinerConfig(
 	_, updated, err := helpers.UpdateSubmarinerConfigStatus(
 		configClient,
 		submarinerConfig.Namespace, submarinerConfig.Name,
-		helpers.UpdateSubmarinerConfigConditionFn(condition),
+		helpers.UpdateSubmarinerConfigConditionFn(&condition),
 	)
 	if err != nil {
 		return err
