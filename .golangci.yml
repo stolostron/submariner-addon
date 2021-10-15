@@ -40,7 +40,7 @@ linters:
     # - forbidigo # We don't forbid any statements
     # - forcetypeassert # TODO: Fix and enable
     # - funlen # TODO: Do we want this?
-    # - gci # TODO: Do we want this?
+    - gci
     # - gochecknoglobal # TODO: Do we want this?
     # - gochecknoinits # TODO: Do we want this?
     # - gocognit # Actually runs revive linter

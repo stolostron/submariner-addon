@@ -1,12 +1,10 @@
 package spoke
 
 import (
-	"github.com/spf13/cobra"
-
-	"github.com/openshift/library-go/pkg/controller/controllercmd"
-
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke"
 	"github.com/open-cluster-management/submariner-addon/pkg/version"
+	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"github.com/spf13/cobra"
 )
 
 func NewAgent() *cobra.Command {

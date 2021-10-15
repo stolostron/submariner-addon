@@ -9,12 +9,11 @@ import (
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	corev1lister "k8s.io/client-go/listers/core/v1"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 )
 
 const (

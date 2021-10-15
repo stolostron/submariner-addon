@@ -9,8 +9,6 @@ import (
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,6 +16,7 @@ import (
 	appsv1informers "k8s.io/client-go/informers/apps/v1"
 	appsv1lister "k8s.io/client-go/listers/apps/v1"
 	"k8s.io/client-go/tools/cache"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 )
 
 const (
