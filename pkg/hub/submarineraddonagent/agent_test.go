@@ -77,11 +77,11 @@ var _ = Describe("GetAgentAddonOptions", func() {
 
 	Context("PermissionConfig", func() {
 		It("should create the hub permission resources", func() {
-			options.Registration.PermissionConfig(&clusterv1.ManagedCluster{
+			Expect(options.Registration.PermissionConfig(&clusterv1.ManagedCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: clusterName,
 				},
-			}, &addonapiv1alpha1.ManagedClusterAddOn{})
+			}, &addonapiv1alpha1.ManagedClusterAddOn{})).To(Succeed())
 
 			_, err := t.kubeClient.RbacV1().Roles(clusterName).Get(context.TODO(),
 				"open-cluster-management:submariner-addon:agent", metav1.GetOptions{})

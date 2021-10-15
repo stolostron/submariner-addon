@@ -252,7 +252,7 @@ var _ = Describe("Function Get", func() {
 					},
 				}
 
-				apiconfigv1.Install(scheme.Scheme)
+				Expect(apiconfigv1.Install(scheme.Scheme)).To(Succeed())
 				obj := &unstructured.Unstructured{}
 				Expect(scheme.Scheme.Convert(apiServer, obj, nil)).To(Succeed())
 
@@ -288,7 +288,7 @@ var _ = Describe("Function Get", func() {
 
 	When("the Infrastructure resource is missing the apiServerURL field", func() {
 		BeforeEach(func() {
-			unstructured.SetNestedMap(infrastructure.Object, map[string]interface{}{}, "status")
+			Expect(unstructured.SetNestedMap(infrastructure.Object, map[string]interface{}{}, "status")).To(Succeed())
 		})
 
 		It("should return an error", func() {

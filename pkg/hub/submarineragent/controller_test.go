@@ -300,10 +300,10 @@ func TestSyncManagedCluster(t *testing.T) {
 			fakeClusterClient := fakeclusterclient.NewSimpleClientset(objects...)
 			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 5*time.Minute)
 			for _, cluster := range c.clusters {
-				clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore().Add(cluster)
+				_ = clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore().Add(cluster)
 			}
 			for _, clusterset := range c.clustersets {
-				clusterInformerFactory.Cluster().V1beta1().ManagedClusterSets().Informer().GetStore().Add(clusterset)
+				_ = clusterInformerFactory.Cluster().V1beta1().ManagedClusterSets().Informer().GetStore().Add(clusterset)
 			}
 
 			fakeWorkClient := fakeworkclient.NewSimpleClientset()
@@ -316,7 +316,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			addOnInformerFactory := addoninformers.NewSharedInformerFactory(addOnClient, time.Minute*10)
 			addOnStroe := addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().GetStore()
 			for _, addOn := range c.addOns {
-				addOnStroe.Add(addOn)
+				_ = addOnStroe.Add(addOn)
 			}
 
 			ctrl := &submarinerAgentController{
@@ -522,13 +522,13 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 			configClient := fakeconfigclient.NewSimpleClientset(c.configs...)
 			configInformerFactory := configinformers.NewSharedInformerFactory(configClient, 5*time.Minute)
 			for _, config := range c.configs {
-				configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer().GetStore().Add(config)
+				_ = configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer().GetStore().Add(config)
 			}
 
 			clusterClient := fakeclusterclient.NewSimpleClientset(c.clusters...)
 			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 5*time.Minute)
 			for _, cluster := range c.clusters {
-				clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore().Add(cluster)
+				_ = clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore().Add(cluster)
 			}
 
 			addOnClient := addonfake.NewSimpleClientset()

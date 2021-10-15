@@ -30,7 +30,10 @@ var (
 )
 
 func init() {
-	scheme.AddToScheme(genericScheme)
+	err := scheme.AddToScheme(genericScheme)
+	if err != nil {
+		panic(err)
+	}
 }
 
 const (
