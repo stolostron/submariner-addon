@@ -27,7 +27,7 @@ linters:
     - dogsled
     # - dupl # TODO: Fix and enable
     - durationcheck
-    # - errcheck # TODO: Fix and enable
+    - errcheck
     # - errname # Not supported with our version of golangci-lint
     # - errorlint # TODO: Fix and enable
     - exhaustive

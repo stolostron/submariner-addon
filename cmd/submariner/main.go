@@ -44,7 +44,7 @@ func newSubmarinerControllerCommand() *cobra.Command {
 		Use:   "submariner",
 		Short: "submariner-addon",
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
+			_ = cmd.Help()
 			os.Exit(1)
 		},
 	}

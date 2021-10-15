@@ -21,6 +21,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
@@ -175,7 +176,12 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
-	go mgr.Start(ctx)
+	go func() {
+		err := mgr.Start(ctx)
+		if err != nil {
+			klog.Fatalf("Error starting the manager: %v", err)
+		}
+	}()
 
 	<-ctx.Done()
 
