@@ -90,7 +90,7 @@ func AwaitNoFinalizer(finalizer string, get func() (metav1.Object, error)) {
 	}).ShouldNot(ContainElement(finalizer))
 }
 
-func AwaitStatusCondition(expCond metav1.Condition, get func() ([]metav1.Condition, error)) {
+func AwaitStatusCondition(expCond *metav1.Condition, get func() ([]metav1.Condition, error)) {
 	var found *metav1.Condition
 
 	err := wait.PollImmediate(50*time.Millisecond, 5*time.Second, func() (bool, error) {

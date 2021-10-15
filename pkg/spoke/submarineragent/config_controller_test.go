@@ -80,7 +80,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 		})
 
 		It("should eventually label the desired number of gateway nodes", func() {
-			t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+			t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 				Type:   gatewayConditionType,
 				Status: metav1.ConditionFalse,
 				Reason: "InsufficientNodes",
@@ -262,7 +262,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 		Context("and the number of labeled worker nodes does not match the desired number", func() {
 			It("should update the SubmarinerConfig status appropriately", func() {
-				t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+				t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 					Type:   gatewayConditionType,
 					Status: metav1.ConditionFalse,
 					Reason: "InsufficientNodes",
@@ -282,7 +282,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 			})
 
 			It("should invoke the cloud provider and update the SubmarinerConfig status condition", func() {
-				t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+				t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 					Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
 					Status: metav1.ConditionTrue,
 					Reason: "SubmarinerClusterEnvPrepared",
@@ -306,7 +306,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 			})
 
 			It("should initially set a failure status condition", func() {
-				t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+				t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 					Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
 					Status: metav1.ConditionFalse,
 					Reason: "SubmarinerClusterEnvPreparationFailed",
@@ -314,7 +314,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 				close(waitCh)
 
-				t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+				t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 					Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
 					Status: metav1.ConditionTrue,
 					Reason: "SubmarinerClusterEnvPrepared",
@@ -438,7 +438,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 		It("should unlabel the gateway nodes", func() {
 			t.awaitNoLabeledNodes()
-			t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+			t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 				Type:   gatewayConditionType,
 				Status: metav1.ConditionFalse,
 				Reason: "ManagedClusterAddOnDeleted",
@@ -458,7 +458,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 				reactor.Fail(false)
 
 				t.awaitNoLabeledNodes()
-				t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+				t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 					Type:   gatewayConditionType,
 					Status: metav1.ConditionFalse,
 					Reason: "ManagedClusterAddOnDeleted",
@@ -473,7 +473,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 			It("should not unlabel the gateway nodes", func() {
 				t.ensureLabeledNodes()
-				t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+				t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 					Type:   gatewayConditionType,
 					Status: metav1.ConditionFalse,
 					Reason: "ManagedClusterAddOnDeleted",
@@ -492,7 +492,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 				})
 
 				It("should invoke the cloud provider to clean up", func() {
-					t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+					t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 						Type:   gatewayConditionType,
 						Status: metav1.ConditionFalse,
 						Reason: "ManagedClusterAddOnDeleted",
@@ -531,7 +531,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 					close(waitCh)
 
 					t.ensureLabeledNodes()
-					t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+					t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 						Type:   gatewayConditionType,
 						Status: metav1.ConditionFalse,
 						Reason: "ManagedClusterAddOnDeleted",
@@ -613,7 +613,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 			providerFactory.EXPECT().Get(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).Return(t.cloudProvider, nil).AnyTimes()
 		}
 
-		t.controller = submarineragent.NewSubmarinerConfigController(submarineragent.SubmarinerConfigControllerInput{
+		t.controller = submarineragent.NewSubmarinerConfigController(&submarineragent.SubmarinerConfigControllerInput{
 			ClusterName:          clusterName,
 			KubeClient:           t.kubeClient,
 			ConfigClient:         t.configClient,
@@ -649,7 +649,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 }
 
 func (t *configControllerTestDriver) awaitSuccessStatusCondition() {
-	t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+	t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 		Type:   gatewayConditionType,
 		Status: metav1.ConditionTrue,
 		Reason: "Success",
@@ -657,14 +657,14 @@ func (t *configControllerTestDriver) awaitSuccessStatusCondition() {
 }
 
 func (t *configControllerTestDriver) awaitFailureStatusCondition() {
-	t.awaitSubmarinerConfigStatusCondition(metav1.Condition{
+	t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 		Type:   gatewayConditionType,
 		Status: metav1.ConditionFalse,
 		Reason: "Failure",
 	})
 }
 
-func (t *configControllerTestDriver) awaitSubmarinerConfigStatusCondition(expCond metav1.Condition) {
+func (t *configControllerTestDriver) awaitSubmarinerConfigStatusCondition(expCond *metav1.Condition) {
 	testing.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
 		config, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(clusterName).Get(context.TODO(),
 			helpers.SubmarinerConfigName, metav1.GetOptions{})

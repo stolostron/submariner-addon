@@ -413,7 +413,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	_, updated, updatedErr := helpers.UpdateSubmarinerConfigStatus(
 		c.configClient,
 		config.Namespace, config.Name,
-		helpers.UpdateSubmarinerConfigStatusFn(condition, managedClusterInfo),
+		helpers.UpdateSubmarinerConfigStatusFn(condition, &managedClusterInfo),
 	)
 
 	if updatedErr != nil {

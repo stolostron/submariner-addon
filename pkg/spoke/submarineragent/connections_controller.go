@@ -88,8 +88,8 @@ func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.
 	return nil
 }
 
-func (c *connectionsStatusController) checkSubmarinerConnections(submariner *submarinerv1alpha1.Submariner) metav1.Condition {
-	condition := metav1.Condition{
+func (c *connectionsStatusController) checkSubmarinerConnections(submariner *submarinerv1alpha1.Submariner) *metav1.Condition {
+	condition := &metav1.Condition{
 		Type: submarinerConnectionDegraded,
 	}
 
