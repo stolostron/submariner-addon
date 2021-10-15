@@ -43,10 +43,14 @@ func main() {
 	}
 
 	var docsForTypes []kruntime.KubeTypes
-	if fi, err := os.Stat(*typeSrc); err == nil && !fi.IsDir() {
-		docsForTypes = kruntime.ParseDocumentationFrom(*typeSrc)
-	} else if err == nil && fi.IsDir() {
+
+	fi, err := os.Stat(*typeSrc)
+	if err == nil && fi.IsDir() {
 		klog.Fatalf("-s must be a valid file or file glob pattern, not a directory")
+	}
+
+	if err == nil && !fi.IsDir() {
+		docsForTypes = kruntime.ParseDocumentationFrom(*typeSrc)
 	} else {
 		m, err := filepath.Glob(*typeSrc)
 		if err != nil {
