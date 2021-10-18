@@ -185,12 +185,12 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 func buildRestMapper(restConfig *rest.Config) (meta.RESTMapper, error) {
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("error creating discovery client: %v", err)
+		return nil, fmt.Errorf("error creating discovery client: %w", err)
 	}
 
 	groupResources, err := restmapper.GetAPIGroupResources(discoveryClient)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving API group resources: %v", err)
+		return nil, fmt.Errorf("error retrieving API group resources: %w", err)
 	}
 
 	return restmapper.NewDiscoveryRESTMapper(groupResources), nil

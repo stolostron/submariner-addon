@@ -29,7 +29,7 @@ linters:
     - durationcheck
     - errcheck
     # - errname # Not supported with our version of golangci-lint
-    # - errorlint # TODO: Fix and enable
+    - errorlint
     - exhaustive
     # - exhaustivestruct # TODO: Do we want this?
     - exportloopref

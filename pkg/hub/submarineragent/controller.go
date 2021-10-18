@@ -487,7 +487,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		managedClusterAddOn.Spec.InstallNamespace,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create submariner brokerInfo of cluster %v : %v", managedCluster.Name, err)
+		return fmt.Errorf("failed to create submariner brokerInfo of cluster %v : %w", managedCluster.Name, err)
 	}
 
 	// apply submariner operator manifest work
@@ -514,7 +514,7 @@ func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, c
 	case err == nil:
 		c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q", fmt.Sprintf("%s/%s", clusterName, manifestWorkName))
 	case err != nil:
-		errs = append(errs, fmt.Errorf("failed to remove submariner agent from managed cluster %v: %v", clusterName, err))
+		errs = append(errs, fmt.Errorf("failed to remove submariner agent from managed cluster %v: %w", clusterName, err))
 	}
 
 	// remove service account and its rolebinding from broker namespace
@@ -547,7 +547,7 @@ func (c *submarinerAgentController) applyClusterRBACFiles(brokerNamespace, manag
 	errs := []error{}
 	for _, result := range applyResults {
 		if result.Error != nil {
-			errs = append(errs, fmt.Errorf("%q (%T): %v", result.File, result.Type, result.Error))
+			errs = append(errs, fmt.Errorf("%q (%T): %w", result.File, result.Type, result.Error))
 		}
 	}
 

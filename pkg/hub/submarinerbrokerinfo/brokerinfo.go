@@ -208,7 +208,7 @@ func applySubmarinerConfig(
 func getIPSecPSK(client kubernetes.Interface, brokerNamespace string) (string, error) {
 	secret, err := client.CoreV1().Secrets(brokerNamespace).Get(context.TODO(), helpers.IPSecPSKSecretName, metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get broker IPSEC PSK secret %v/%v: %v", brokerNamespace, helpers.IPSecPSKSecretName, err)
+		return "", fmt.Errorf("failed to get broker IPSEC PSK secret %v/%v: %w", brokerNamespace, helpers.IPSecPSKSecretName, err)
 	}
 
 	return base64.StdEncoding.EncodeToString(secret.Data["psk"]), nil
@@ -226,12 +226,12 @@ func getBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
 			return apiServer, nil
 		}
 
-		return "", fmt.Errorf("failed to get infrastructures cluster: %v", err)
+		return "", fmt.Errorf("failed to get infrastructures cluster: %w", err)
 	}
 
 	apiServer, found, err := unstructured.NestedString(infrastructureConfig.Object, "status", "apiServerURL")
 	if err != nil || !found {
-		return "", fmt.Errorf("failed to get apiServerURL in infrastructures cluster: %v,%v", found, err)
+		return "", fmt.Errorf("failed to get apiServerURL in infrastructures cluster: %v: %w", found, err)
 	}
 
 	return strings.Trim(apiServer, "/:hpst"), nil
@@ -289,7 +289,7 @@ func getBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.
 	kubeAPIServer string) (token, ca string, err error) {
 	sa, err := kubeClient.CoreV1().ServiceAccounts(brokerNS).Get(context.TODO(), clusterName, metav1.GetOptions{})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get agent ServiceAccount %v/%v: %v", brokerNS, clusterName, err)
+		return "", "", fmt.Errorf("failed to get agent ServiceAccount %v/%v: %w", brokerNS, clusterName, err)
 	}
 
 	if len(sa.Secrets) < 1 {
@@ -302,7 +302,7 @@ func getBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.
 		if strings.HasPrefix(secret.Name, brokerTokenPrefix) {
 			tokenSecret, err := kubeClient.CoreV1().Secrets(brokerNS).Get(context.TODO(), secret.Name, metav1.GetOptions{})
 			if err != nil {
-				return "", "", fmt.Errorf("failed to get secret %v of agent ServiceAccount %v/%v: %v", secret.Name, brokerNS, clusterName, err)
+				return "", "", fmt.Errorf("failed to get secret %v of agent ServiceAccount %v/%v: %w", secret.Name, brokerNS, clusterName, err)
 			}
 
 			if tokenSecret.Type == corev1.SecretTypeServiceAccountToken {
