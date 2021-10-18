@@ -1,6 +1,7 @@
 package testing
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -107,7 +108,7 @@ func AwaitStatusCondition(expCond *metav1.Condition, get func() ([]metav1.Condit
 		return found.Status == expCond.Status && found.Reason == expCond.Reason, nil
 	})
 
-	if err == wait.ErrWaitTimeout {
+	if errors.Is(err, wait.ErrWaitTimeout) {
 		Expect(found).ToNot(BeNil(), "Status condition not found")
 		Expect(found.Type).To(Equal(expCond.Type))
 		Expect(found.Status).To(Equal(expCond.Status))

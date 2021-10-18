@@ -43,7 +43,7 @@ func ApplyManifests(kubeClient kubernetes.Interface, recorder events.Recorder, a
 
 	for _, result := range applyResults {
 		if result.Error != nil {
-			errs = append(errs, fmt.Errorf("error applying %q (%T): %v", result.File, result.Type, result.Error))
+			errs = append(errs, fmt.Errorf("error applying %q (%T): %w", result.File, result.Type, result.Error))
 		}
 	}
 
