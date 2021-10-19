@@ -43,7 +43,7 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    # - godot # TODO: Do we want this?
+    - godot
     # - godox # TODO: Do we want this?
     # - goerr113 # TODO: Fix and enable
     - gofmt
@@ -137,7 +137,8 @@ issues:
         - lll
       path: "pkg/apis/submarinerconfig/v1alpha1/zz_generated.swagger_doc_generated.go"
 
-    # Ignore underscores in var names in auto-generated files
+    # Ignore any failures in auto-generated files
     - linters:
         - stylecheck
+        - godot
       path: "pkg/apis/submarinerconfig/v1alpha1/zz_generated.swagger_doc_generated.go"

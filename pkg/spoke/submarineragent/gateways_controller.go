@@ -22,14 +22,14 @@ const (
 )
 
 // gatewaysStatusController watches the worker nodes on the managed cluster and reports
-// whether the nodes are labeled with gateway to the submariner-addon on the hub cluster
+// whether the nodes are labeled with gateway to the submariner-addon on the hub cluster.
 type gatewaysStatusController struct {
 	addOnClient addonclient.Interface
 	nodeLister  corev1lister.NodeLister
 	clusterName string
 }
 
-// NewGatewaysStatusController returns an instance of gatewaysStatusController
+// NewGatewaysStatusController returns an instance of gatewaysStatusController.
 func NewGatewaysStatusController(
 	clusterName string,
 	addOnClient addonclient.Interface,

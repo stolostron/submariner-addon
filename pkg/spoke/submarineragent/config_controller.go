@@ -34,7 +34,7 @@ import (
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 )
 
-// TODO expose this as a flag to allow user to specify their zone label
+// TODO expose this as a flag to allow user to specify their zone label.
 var defaultZoneLabel = ""
 
 const submarinerGatewayCondition = "SubmarinerGatewaysLabeled"
@@ -50,7 +50,7 @@ type nodeLabelSelector struct {
 }
 
 // submarinerConfigController watches the SubmarinerConfigs API on the hub cluster and apply
-// the related configuration on the manged cluster
+// the related configuration on the manged cluster.
 type submarinerConfigController struct {
 	kubeClient           kubernetes.Interface
 	configClient         configclient.Interface
@@ -75,7 +75,7 @@ type SubmarinerConfigControllerInput struct {
 	OnSyncDefer func()
 }
 
-// NewSubmarinerConfigController returns an instance of submarinerAgentConfigController
+// NewSubmarinerConfigController returns an instance of submarinerAgentConfigController.
 func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) factory.Controller {
 	c := &submarinerConfigController{
 		kubeClient:           input.KubeClient,

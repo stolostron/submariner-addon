@@ -189,7 +189,7 @@ func UpdateManagedClusterAddOnStatusFn(cond *metav1.Condition) UpdateManagedClus
 	}
 }
 
-// CleanUpSubmarinerManifests clean up submariner resources from its manifest files
+// CleanUpSubmarinerManifests clean up submariner resources from its manifest files.
 func CleanUpSubmarinerManifests(
 	ctx context.Context,
 	client kubernetes.Interface,
@@ -292,7 +292,7 @@ func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 }
 
 // GetCurrentNamespace returns the current namesapce from file system,
-// if the namespace is not found, it returns the defaultNamespace
+// if the namespace is not found, it returns the defaultNamespace.
 func GetCurrentNamespace(defaultNamespace string) string {
 	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
@@ -336,7 +336,7 @@ func RemoveConfigFinalizer(ctx context.Context, configClient configclient.Interf
 	return nil
 }
 
-// RemoveAddOnFinalizer removes the addon finalizer from a submariner-addon
+// RemoveAddOnFinalizer removes the addon finalizer from a submariner-addon.
 func RemoveAddOnFinalizer(ctx context.Context, addOnClient addonclient.Interface, addOn *addonv1alpha1.ManagedClusterAddOn,
 	finalizer string) error {
 	copiedFinalizers := []string{}

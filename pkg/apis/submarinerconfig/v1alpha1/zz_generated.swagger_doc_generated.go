@@ -61,7 +61,7 @@ func (SubmarinerConfigList) SwaggerDoc() map[string]string {
 }
 
 var map_SubmarinerConfigSpec = map[string]string{
-	"":                   "SubmarinerConfigSpec describes the configuration of the Submariner",
+	"":                   "SubmarinerConfigSpec describes the configuration of the Submariner.",
 	"cableDriver":        "CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, wireguard, and vxlan.",
 	"IPSecIKEPort":       "IPSecIKEPort represents IPsec IKE port (default 500).",
 	"IPSecNATTPort":      "IPSecNATTPort represents IPsec NAT-T port (default 4500).",
