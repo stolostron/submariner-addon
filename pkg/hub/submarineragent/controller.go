@@ -13,9 +13,11 @@ import (
 	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
 	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
+	"github.com/open-cluster-management/submariner-addon/pkg/finalizer"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	brokerinfo "github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	"github.com/open-cluster-management/submariner-addon/pkg/manifestwork"
+	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -178,16 +180,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 
 	// if the sync is triggered by change of ManagedClusterSet, reconcile all managed clusters
 	if key == factory.DefaultQueueKey {
-		managedClusters, err := c.clusterLister.List(labels.Everything())
-		if err != nil {
-			return err
-		}
-		for _, managedCluster := range managedClusters {
-			// enqueue the managed cluster to reconcile
-			syncCtx.Queue().Add(managedCluster.Name)
-		}
-
-		return nil
+		return c.onManagedClusterSetChange(syncCtx)
 	}
 
 	klog.V(4).Infof("Submariner agent controller is reconciling, queue key: %s", key)
@@ -257,6 +250,19 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 	return c.syncSubmarinerConfig(ctx, managedCluster.DeepCopy(), config.DeepCopy())
 }
 
+func (c *submarinerAgentController) onManagedClusterSetChange(syncCtx factory.SyncContext) error {
+	managedClusters, err := c.clusterLister.List(labels.Everything())
+	if err != nil {
+		return err
+	}
+	for _, managedCluster := range managedClusters {
+		// enqueue the managed cluster to reconcile
+		syncCtx.Queue().Add(managedCluster.Name)
+	}
+
+	return nil
+}
+
 // syncManagedCluster syncs one managed cluster
 func (c *submarinerAgentController) syncManagedCluster(
 	ctx context.Context,
@@ -274,23 +280,9 @@ func (c *submarinerAgentController) syncManagedCluster(
 	}
 
 	// add a submariner agent finalizer to a managed cluster
-	if managedCluster.DeletionTimestamp.IsZero() {
-		hasFinalizer := false
-
-		for i := range managedCluster.Finalizers {
-			if managedCluster.Finalizers[i] == agentFinalizer {
-				hasFinalizer = true
-
-				break
-			}
-		}
-
-		if !hasFinalizer {
-			managedCluster.Finalizers = append(managedCluster.Finalizers, agentFinalizer)
-			_, err := c.clusterClient.ClusterV1().ManagedClusters().Update(ctx, managedCluster, metav1.UpdateOptions{})
-
-			return err
-		}
+	added, err := finalizer.Add(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster, agentFinalizer)
+	if added {
+		return err
 	}
 
 	// managed cluster is deleting, we remove its related resources
@@ -317,23 +309,10 @@ func (c *submarinerAgentController) syncManagedCluster(
 	}
 
 	// add a finalizer to the submariner-addon
-	if addOn.DeletionTimestamp.IsZero() {
-		hasFinalizer := false
-
-		for i := range addOn.Finalizers {
-			if addOn.Finalizers[i] == addOnFinalizer {
-				hasFinalizer = true
-
-				break
-			}
-		}
-
-		if !hasFinalizer {
-			addOn.Finalizers = append(addOn.Finalizers, addOnFinalizer)
-			_, err := c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name).Update(ctx, addOn, metav1.UpdateOptions{})
-
-			return err
-		}
+	added, err = finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
+		addOn, addOnFinalizer)
+	if added {
+		return err
 	}
 
 	// submariner-addon is deleting, we remove its related resources

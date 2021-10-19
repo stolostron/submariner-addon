@@ -99,55 +99,18 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 				startingCSV, channel, sub.Spec.CatalogSourceNamespace, sub.Spec.CatalogSource))
 	}
 
-	operator, err := c.deploymentLister.Deployments(c.namespace).Get(operatorName)
-
-	switch {
-	case errors.IsNotFound(err):
-		degradedConditionReasons = append(degradedConditionReasons, "NoOperatorDeployment")
-		degradedConditionMessages = append(degradedConditionMessages, "The submariner operator deployment does not exist")
-	case err == nil:
-		if operator.Status.AvailableReplicas == 0 {
-			degradedConditionReasons = append(degradedConditionReasons, "NoOperatorAvailable")
-			degradedConditionMessages = append(degradedConditionMessages, "There is no submariner operator replica available")
-		}
-	case err != nil:
+	err = c.checkOperatorDeployment(&degradedConditionReasons, &degradedConditionMessages)
+	if err != nil {
 		return err
 	}
 
-	gateways, err := c.daemonSetLister.DaemonSets(c.namespace).Get(gatewayName)
-
-	switch {
-	case errors.IsNotFound(err):
-		degradedConditionReasons = append(degradedConditionReasons, "NoGatewayDaemonSet")
-		degradedConditionMessages = append(degradedConditionMessages, "The gateway daemon set does not exist")
-	case err == nil:
-		if gateways.Status.DesiredNumberScheduled == 0 {
-			degradedConditionReasons = append(degradedConditionReasons, "NoScheduledGateways")
-			degradedConditionMessages = append(degradedConditionMessages, "There are no nodes to run the gateways")
-		}
-
-		if gateways.Status.NumberUnavailable != 0 {
-			degradedConditionReasons = append(degradedConditionReasons, "GatewaysUnavailable")
-			degradedConditionMessages = append(degradedConditionMessages,
-				fmt.Sprintf("There are %d unavailable gateways", gateways.Status.NumberUnavailable))
-		}
-	case err != nil:
+	err = c.checkGatewayDaemonSet(&degradedConditionReasons, &degradedConditionMessages)
+	if err != nil {
 		return err
 	}
 
-	routeAgent, err := c.daemonSetLister.DaemonSets(c.namespace).Get(routeAgentName)
-
-	switch {
-	case errors.IsNotFound(err):
-		degradedConditionReasons = append(degradedConditionReasons, "NoRouteAgentDaemonSet")
-		degradedConditionMessages = append(degradedConditionMessages, "The route agents are not found")
-	case err == nil:
-		if routeAgent.Status.NumberUnavailable != 0 {
-			degradedConditionReasons = append(degradedConditionReasons, "RouteAgentsUnavailable")
-			degradedConditionMessages = append(degradedConditionMessages,
-				fmt.Sprintf("There are %d unavailable route agents", routeAgent.Status.NumberUnavailable))
-		}
-	case err != nil:
+	err = c.checkRouteAgentDaemonSet(&degradedConditionReasons, &degradedConditionMessages)
+	if err != nil {
 		return err
 	}
 
@@ -176,6 +139,70 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	if updated {
 		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "Updated status conditions:  %#v",
 			updatedStatus.Conditions)
+	}
+
+	return nil
+}
+
+func (c *deploymentStatusController) checkOperatorDeployment(degradedConditionReasons, degradedConditionMessages *[]string) error {
+	operator, err := c.deploymentLister.Deployments(c.namespace).Get(operatorName)
+
+	switch {
+	case errors.IsNotFound(err):
+		*degradedConditionReasons = append(*degradedConditionReasons, "NoOperatorDeployment")
+		*degradedConditionMessages = append(*degradedConditionMessages, "The submariner operator deployment does not exist")
+	case err == nil:
+		if operator.Status.AvailableReplicas == 0 {
+			*degradedConditionReasons = append(*degradedConditionReasons, "NoOperatorAvailable")
+			*degradedConditionMessages = append(*degradedConditionMessages, "There is no submariner operator replica available")
+		}
+	case err != nil:
+		return err
+	}
+
+	return nil
+}
+
+func (c *deploymentStatusController) checkGatewayDaemonSet(degradedConditionReasons, degradedConditionMessages *[]string) error {
+	gateways, err := c.daemonSetLister.DaemonSets(c.namespace).Get(gatewayName)
+
+	switch {
+	case errors.IsNotFound(err):
+		*degradedConditionReasons = append(*degradedConditionReasons, "NoGatewayDaemonSet")
+		*degradedConditionMessages = append(*degradedConditionMessages, "The gateway daemon set does not exist")
+	case err == nil:
+		if gateways.Status.DesiredNumberScheduled == 0 {
+			*degradedConditionReasons = append(*degradedConditionReasons, "NoScheduledGateways")
+			*degradedConditionMessages = append(*degradedConditionMessages, "There are no nodes to run the gateways")
+		}
+
+		if gateways.Status.NumberUnavailable != 0 {
+			*degradedConditionReasons = append(*degradedConditionReasons, "GatewaysUnavailable")
+			*degradedConditionMessages = append(*degradedConditionMessages,
+				fmt.Sprintf("There are %d unavailable gateways", gateways.Status.NumberUnavailable))
+		}
+	case err != nil:
+		return err
+	}
+
+	return nil
+}
+
+func (c *deploymentStatusController) checkRouteAgentDaemonSet(degradedConditionReasons, degradedConditionMessages *[]string) error {
+	routeAgent, err := c.daemonSetLister.DaemonSets(c.namespace).Get(routeAgentName)
+
+	switch {
+	case errors.IsNotFound(err):
+		*degradedConditionReasons = append(*degradedConditionReasons, "NoRouteAgentDaemonSet")
+		*degradedConditionMessages = append(*degradedConditionMessages, "The route agents are not found")
+	case err == nil:
+		if routeAgent.Status.NumberUnavailable != 0 {
+			*degradedConditionReasons = append(*degradedConditionReasons, "RouteAgentsUnavailable")
+			*degradedConditionMessages = append(*degradedConditionMessages,
+				fmt.Sprintf("There are %d unavailable route agents", routeAgent.Status.NumberUnavailable))
+		}
+	case err != nil:
+		return err
 	}
 
 	return nil
