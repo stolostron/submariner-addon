@@ -10,19 +10,16 @@ var (
 	GroupName     = "submarineraddon.open-cluster-management.io"
 	GroupVersion  = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	// Install is a function which adds this version to a scheme
+	// Install is a function which adds this version to a scheme.
 	Install = schemeBuilder.AddToScheme
 
-	// SchemeGroupVersion generated code relies on this name
-	// Deprecated
+	// Deprecated: generated code relies on SchemeGroupVersion.
 	SchemeGroupVersion = GroupVersion
-	// AddToScheme exists solely to keep the old generators creating valid code
-	// DEPRECATED
+	// Deprecated: AddToScheme exists solely to keep the old generators creating valid code.
 	AddToScheme = schemeBuilder.AddToScheme
 )
 
-// Resource generated code relies on this being here, but it logically belongs to the group
-// DEPRECATED
+// Deprecated: generated code relies on Resource being present, but it logically belongs to the group.
 func Resource(resource string) schema.GroupResource {
 	return schema.GroupResource{Group: GroupName, Resource: resource}
 }

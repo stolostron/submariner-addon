@@ -24,7 +24,7 @@ type SubmarinerConfig struct {
 	Status SubmarinerConfigStatus `json:"status,omitempty"`
 }
 
-// SubmarinerConfigSpec describes the configuration of the Submariner
+// SubmarinerConfigSpec describes the configuration of the Submariner.
 type SubmarinerConfigSpec struct {
 	// CableDriver represents the submariner cable driver implementation.
 	// Available options are libreswan (default) strongswan, wireguard, and vxlan.

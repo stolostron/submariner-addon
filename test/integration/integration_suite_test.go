@@ -35,7 +35,7 @@ const (
 )
 
 const (
-	// fixed a specified crd to avoid conflict error when set up test env
+	// fixed a specified crd to avoid conflict error when set up test env.
 	clustersetCRD = "0000_00_clusters.open-cluster-management.io_managedclustersets.crd.yaml"
 	workCRD       = "0000_00_work.open-cluster-management.io_manifestworks.crd.yaml"
 )

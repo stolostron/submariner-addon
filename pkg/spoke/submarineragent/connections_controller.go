@@ -23,14 +23,14 @@ const (
 )
 
 // connectionsStatusController watches the status of submariner CR and reflect the status
-// to submariner-addon on the hub cluster
+// to submariner-addon on the hub cluster.
 type connectionsStatusController struct {
 	addOnClient      addonclient.Interface
 	submarinerLister cache.GenericLister
 	clusterName      string
 }
 
-// NewConnectionsStatusController returns an instance of submarinerAgentStatusController
+// NewConnectionsStatusController returns an instance of submarinerAgentStatusController.
 func NewConnectionsStatusController(clusterName string, addOnClient addonclient.Interface, submarinerInformer informers.GenericInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &connectionsStatusController{

@@ -67,14 +67,14 @@ var agentHubPermissionFiles = []string{
 //go:embed manifests
 var manifestFiles embed.FS
 
-// addOnAgent monitors the Submariner agent status and configure Submariner cluster environment on the managed cluster
+// addOnAgent monitors the Submariner agent status and configure Submariner cluster environment on the managed cluster.
 type addOnAgent struct {
 	kubeClient kubernetes.Interface
 	recorder   events.Recorder
 	agentImage string
 }
 
-// NewAddOnAgent returns an instance of addOnAgent
+// NewAddOnAgent returns an instance of addOnAgent.
 func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, agentImage string) *addOnAgent {
 	return &addOnAgent{
 		kubeClient: kubeClient,
@@ -83,7 +83,7 @@ func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, ag
 	}
 }
 
-// Manifests generates manifestworks to deploy the submariner-addon agent on the managed cluster
+// Manifests generates manifestworks to deploy the submariner-addon agent on the managed cluster.
 func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) ([]runtime.Object, error) {
 	objects := []runtime.Object{}
 
@@ -131,7 +131,7 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 	return objects, nil
 }
 
-// GetAgentAddonOptions returns the options of submariner-addon agent
+// GetAgentAddonOptions returns the options of submariner-addon agent.
 func (a *addOnAgent) GetAgentAddonOptions() agent.AgentAddonOptions {
 	return agent.AgentAddonOptions{
 		AddonName: helpers.SubmarinerAddOnName,
@@ -187,7 +187,7 @@ func (a *addOnAgent) csrApproveCheck(cluster *clusterv1.ManagedCluster, addon *a
 	return fmt.Sprintf(agentUserName, cluster.Name) == x509cr.Subject.CommonName
 }
 
-// Generates manifestworks to deploy the required roles of submariner-addon agent
+// Generates manifestworks to deploy the required roles of submariner-addon agent.
 func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) error {
 	config := struct {
 		ClusterName string

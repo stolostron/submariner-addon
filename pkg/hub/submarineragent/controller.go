@@ -88,7 +88,7 @@ type clusterRBACConfig struct {
 }
 
 // submarinerAgentController reconciles instances of ManagedCluster on the hub to deploy/remove
-// corresponding submariner agent manifestworks
+// corresponding submariner agent manifestworks.
 type submarinerAgentController struct {
 	kubeClient           kubernetes.Interface
 	dynamicClient        dynamic.Interface
@@ -105,7 +105,7 @@ type submarinerAgentController struct {
 	eventRecorder        events.Recorder
 }
 
-// NewSubmarinerAgentController returns a submarinerAgentController instance
+// NewSubmarinerAgentController returns a submarinerAgentController instance.
 func NewSubmarinerAgentController(
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
@@ -263,7 +263,7 @@ func (c *submarinerAgentController) onManagedClusterSetChange(syncCtx factory.Sy
 	return nil
 }
 
-// syncManagedCluster syncs one managed cluster
+// syncManagedCluster syncs one managed cluster.
 func (c *submarinerAgentController) syncManagedCluster(
 	ctx context.Context,
 	managedCluster *clusterv1.ManagedCluster,
@@ -323,7 +323,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster, addOn, config)
 }
 
-// syncSubmarinerConfig syncs submariner configuration
+// syncSubmarinerConfig syncs submariner configuration.
 func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	managedCluster *clusterv1.ManagedCluster,
 	config *configv1alpha1.SubmarinerConfig) error {
@@ -406,7 +406,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-// clean up the submariner agent from this managedCluster
+// clean up the submariner agent from this managedCluster.
 func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedCluster *clusterv1.ManagedCluster,
 	addOn *addonv1alpha1.ManagedClusterAddOn) error {
 	if err := c.removeSubmarinerAgent(ctx, managedCluster.Name); err != nil {
@@ -420,7 +420,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 	return helpers.RemoveAddOnFinalizer(ctx, c.addOnClient, addOn, addOnFinalizer)
 }
 
-// removeAgentFinalizer removes the agent finalizer from a clusterset
+// removeAgentFinalizer removes the agent finalizer from a clusterset.
 func (c *submarinerAgentController) removeAgentFinalizer(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
 	copiedFinalizers := []string{}
 

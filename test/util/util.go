@@ -35,7 +35,7 @@ const (
 
 var HubKubeConfigPath = path.Join("/tmp", "submaddon-integration-test", "kubeconfig")
 
-// on prow env, the /var/run/secrets/kubernetes.io/serviceaccount/namespace can be found
+// on prow env, the /var/run/secrets/kubernetes.io/serviceaccount/namespace can be found.
 func GetCurrentNamespace(kubeClient kubernetes.Interface, defaultNamespace string) (string, error) {
 	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
