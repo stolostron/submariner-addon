@@ -179,46 +179,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "GCP" {
-		if !meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
-			errs := []error{}
-
-			cloudProvider, preparedErr := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, syncCtx.Recorder())
-			if preparedErr == nil {
-				preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
-			}
-
-			condition := metav1.Condition{
-				Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
-				Status:  metav1.ConditionTrue,
-				Reason:  "SubmarinerClusterEnvPrepared",
-				Message: "Submariner cluster environment was prepared",
-			}
-
-			if preparedErr != nil {
-				condition.Status = metav1.ConditionFalse
-				condition.Reason = "SubmarinerClusterEnvPreparationFailed"
-				condition.Message = fmt.Sprintf("Failed to prepare submariner cluster environment: %v", preparedErr)
-				errs = append(errs, preparedErr)
-			}
-
-			_, updated, updatedErr := helpers.UpdateSubmarinerConfigStatus(c.configClient, config.Namespace, config.Name,
-				helpers.UpdateSubmarinerConfigConditionFn(&condition))
-
-			if updatedErr != nil {
-				errs = append(errs, updatedErr)
-			}
-
-			if updated {
-				syncCtx.Recorder().Eventf("SubmarinerClusterEnvPrepared",
-					"submariner cluster environment was prepared for managed cluster %s", config.Namespace)
-			}
-
-			if len(errs) > 0 {
-				return operatorhelpers.NewMultiLineAggregate(errs)
-			}
-		}
-
-		return c.updateGatewayStatus(syncCtx.Recorder(), config)
+		return c.prepareForGCP(config, syncCtx)
 	}
 
 	// ensure the expected count of gateways
@@ -231,6 +192,49 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	return updateErr
+}
+
+func (c *submarinerConfigController) prepareForGCP(config *configv1alpha1.SubmarinerConfig, syncCtx factory.SyncContext) error {
+	if !meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
+		errs := []error{}
+
+		cloudProvider, preparedErr := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, syncCtx.Recorder())
+		if preparedErr == nil {
+			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
+		}
+
+		condition := metav1.Condition{
+			Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+			Status:  metav1.ConditionTrue,
+			Reason:  "SubmarinerClusterEnvPrepared",
+			Message: "Submariner cluster environment was prepared",
+		}
+
+		if preparedErr != nil {
+			condition.Status = metav1.ConditionFalse
+			condition.Reason = "SubmarinerClusterEnvPreparationFailed"
+			condition.Message = fmt.Sprintf("Failed to prepare submariner cluster environment: %v", preparedErr)
+			errs = append(errs, preparedErr)
+		}
+
+		_, updated, updatedErr := helpers.UpdateSubmarinerConfigStatus(c.configClient, config.Namespace, config.Name,
+			helpers.UpdateSubmarinerConfigConditionFn(&condition))
+
+		if updatedErr != nil {
+			errs = append(errs, updatedErr)
+		}
+
+		if updated {
+			syncCtx.Recorder().Eventf("SubmarinerClusterEnvPrepared",
+				"submariner cluster environment was prepared for managed cluster %s", config.Namespace)
+		}
+
+		if len(errs) > 0 {
+			return operatorhelpers.NewMultiLineAggregate(errs)
+		}
+	}
+
+	return c.updateGatewayStatus(syncCtx.Recorder(), config)
 }
 
 func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Context, config *configv1alpha1.SubmarinerConfig,

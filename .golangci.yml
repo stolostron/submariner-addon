@@ -10,7 +10,7 @@ linters-settings:
       - performance
       - style
   gocyclo:
-    min-complexity: 20
+    min-complexity: 15
   govet:
     enable:
       - fieldalignment
@@ -21,7 +21,7 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    # - cyclop # TODO: Do we want this?
+    # - cyclop # This is equivalent to gocyclo
     - deadcode
     - depguard
     - dogsled
@@ -42,7 +42,7 @@ linters:
     # - gocognit # Actually runs revive linter
     - goconst
     - gocritic
-    # - gocyclo # TODO: Do we want this?
+    - gocyclo
     # - godot # TODO: Do we want this?
     # - godox # TODO: Do we want this?
     # - goerr113 # TODO: Fix and enable
