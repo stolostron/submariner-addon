@@ -70,7 +70,7 @@ linters:
     - misspell
     - nakedret
     # - nestif # This calculates cognitive complexity but we're doing that elsewhere
-    # - nilerr # TODO: Fix and enable
+    - nilerr
     - nlreturn
     # - noctx # We don't send HTTP requests
     - nolintlint
