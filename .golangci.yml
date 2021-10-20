@@ -78,7 +78,7 @@ linters:
     - prealloc
     - predeclared
     # - promlinter # Not supported with our version of golangci-lint
-    # - revive # TODO: Do we want this?
+    - revive
     # - rowserrcheck # We don't use SQL
     # - scopelint # Deprecated since v1.39.0
     # - sqlclosecheck # We don't use SQL
@@ -117,16 +117,19 @@ issues:
         - wsl
       text: "only one cuddle assignment allowed before range statement"
 
-    # Allow dot imports for `fake` directory and e2e tests
+    # Allow dot imports for gomega
     - linters:
+        - revive
         - stylecheck
-      text: "ST1001: "
-      path: /fake
+      text: "dot imports"
+      source: "gomega"
 
+    # Allow dot imports for ginkgo
     - linters:
+        - revive
         - stylecheck
-      text: "ST1001: "
-      path: test
+      text: "dot imports"
+      source: "ginkgo"
 
     # Ignore pointer bytes in struct alignment tests (this is a very
     # minor optimisation)
@@ -134,19 +137,10 @@ issues:
         - govet
       text: "pointer bytes could be"
 
-    # Ignore long line non-compliance warnings in auto-generated files
-    - linters:
+    # Ignore any failures in auto-generated files
+    - path: swagger_doc_generated\.go
+      linters:
         - lll
-      path: "pkg/apis/submarinerconfig/v1alpha1/zz_generated.swagger_doc_generated.go"
-
-    # Ignore any failures in auto-generated files
-    - linters:
         - stylecheck
         - godot
-      path: "pkg/apis/submarinerconfig/v1alpha1/zz_generated.swagger_doc_generated.go"
-
-    # Ignore any failures in auto-generated files
-    - linters:
-        - stylecheck
-        - godot
-      path: "pkg/apis/submarinerdiagnoseconfig/v1alpha1/zz_generated.swagger_doc_generated.go"
+        - revive  

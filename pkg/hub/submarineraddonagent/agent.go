@@ -77,7 +77,7 @@ type addOnAgent struct {
 }
 
 // NewAddOnAgent returns an instance of addOnAgent.
-func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, agentImage string) *addOnAgent {
+func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, agentImage string) agent.AgentAddon {
 	return &addOnAgent{
 		kubeClient:    kubeClient,
 		recorder:      recorder,
