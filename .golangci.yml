@@ -68,7 +68,7 @@ linters:
     - misspell
     - nakedret
     # - nestif # Actually runs revive linter
-    # - nilerr # TODO: Fix and enable
+    - nilerr
     - nlreturn
     # - noctx # We don't send HTTP requests
     - nolintlint

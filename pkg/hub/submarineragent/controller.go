@@ -160,7 +160,9 @@ func NewSubmarinerAgentController(
 				return ""
 			}
 
-			return accessor.GetNamespace() + "/" + accessor.GetName()
+			key, _ := cache.MetaNamespaceKeyFunc(obj)
+
+			return key
 		}, configInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
@@ -187,8 +189,8 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		// ignore bad format key
-		return nil
+		// bad format key - shouldn't happen
+		panic(err)
 	}
 
 	// if the sync is triggered by change of ManagedCluster, ManifestWork or ManagedClusterAddOn, reconcile the managed cluster
