@@ -16,7 +16,7 @@ require (
 	github.com/prometheus/procfs v0.7.2 // indirect
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.11.0-rc1
+	github.com/submariner-io/admiral v0.11.0-rc2
 	github.com/submariner-io/cloud-prepare v0.11.0-m2.0.20210920144917-0b33718646a7
 	github.com/submariner-io/submariner-operator/apis v0.0.0-20210817145008-861856b068a1
 	github.com/submariner-io/submariner/pkg/apis v0.0.0-20210817085048-59f656555db0
