@@ -317,7 +317,7 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit
 github.com/spf13/pflag
-# github.com/submariner-io/admiral v0.11.0-rc1
+# github.com/submariner-io/admiral v0.11.0-rc2
 ## explicit
 github.com/submariner-io/admiral/pkg/log
 github.com/submariner-io/admiral/pkg/resource
@@ -1249,7 +1249,6 @@ sigs.k8s.io/controller-runtime/pkg/client
 sigs.k8s.io/controller-runtime/pkg/client/apiutil
 sigs.k8s.io/controller-runtime/pkg/client/config
 sigs.k8s.io/controller-runtime/pkg/envtest
-sigs.k8s.io/controller-runtime/pkg/envtest/printer
 sigs.k8s.io/controller-runtime/pkg/internal/log
 sigs.k8s.io/controller-runtime/pkg/internal/testing/integration
 sigs.k8s.io/controller-runtime/pkg/internal/testing/integration/addr
