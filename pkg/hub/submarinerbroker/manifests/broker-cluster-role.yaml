@@ -14,5 +14,5 @@ rules:
   resources: ["*"]
   verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]
 - apiGroups: ["discovery.k8s.io"]
-  resources: ["endpointslices"]
+  resources: ["endpointslices", "endpointslices/restricted"]
   verbs: ["create", "get", "list", "watch","patch", "update", "delete"]
