@@ -1,3 +1,4 @@
+//nolint:dupl // Lines are similar but not duplicated and can't be refactored to avloid this error.
 package resource
 
 import (

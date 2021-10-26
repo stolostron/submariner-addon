@@ -24,6 +24,7 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
+//nolint:dupl // These tests will either be removed or converted to Gingko.
 func TestUpdateStatusCondition(t *testing.T) {
 	nowish := metav1.Now()
 	beforeish := metav1.Time{Time: nowish.Add(-10 * time.Second)}
@@ -120,6 +121,7 @@ func TestUpdateStatusCondition(t *testing.T) {
 	}
 }
 
+//nolint:dupl // These tests will either be removed or converted to Gingko.
 func TestUpdateManagedClusterAddOnStatus(t *testing.T) {
 	nowish := metav1.Now()
 	beforeish := metav1.Time{Time: nowish.Add(-10 * time.Second)}

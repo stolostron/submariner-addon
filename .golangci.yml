@@ -25,7 +25,7 @@ linters:
     - deadcode
     - depguard
     - dogsled
-    # - dupl # TODO: Fix and enable
+    - dupl
     - durationcheck
     - errcheck
     # - errname # Not supported with our version of golangci-lint
