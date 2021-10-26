@@ -1,3 +1,4 @@
+//nolint:testpackage // These tests will either be removed or converted to Gingko.
 package helpers
 
 import (

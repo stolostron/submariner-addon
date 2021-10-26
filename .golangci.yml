@@ -86,7 +86,7 @@ linters:
     - structcheck
     - stylecheck
     # - tagliatelle # Inconsistent with stylecheck and not as good
-    # - testpackage # TODO: Fix and enable
+    - testpackage
     # - thelper # Not relevant for our Ginkgo UTs
     - tparallel
     - typecheck

@@ -1,3 +1,4 @@
+//nolint:testpackage // These tests will be converted to Gingko.
 package submarineragent
 
 import (
