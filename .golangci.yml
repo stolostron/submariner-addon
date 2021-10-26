@@ -16,6 +16,8 @@ linters-settings:
       - fieldalignment
   lll:
     line-length: 140
+  nlreturn:
+    block-size: 2
 linters:
   disable-all: true
   enable:
@@ -28,37 +30,37 @@ linters:
     # - dupl # TODO: Fix and enable
     - durationcheck
     - errcheck
-    # - errname # Not supported with our version of golangci-lint
+    # - errname # TODO: Not supported with our version of golangci-lint
     - errorlint
     - exhaustive
-    # - exhaustivestruct # TODO: Do we want this?
+    # - exhaustivestruct # Not recommended for general use - meant to be used only for special cases
     - exportloopref
     # - forbidigo # We don't forbid any statements
     # - forcetypeassert # TODO: Fix and enable
-    # - funlen # TODO: Do we want this?
+    # - funlen # gocyclo is enabled which is generally a better metric than simply LOC
     - gci
-    # - gochecknoglobal # TODO: Do we want this?
-    # - gochecknoinits # TODO: Do we want this?
-    # - gocognit # Actually runs revive linter
+    # - gochecknoglobal # We don't want to forbid global variable constants
+    # - gochecknoinits # We have valid uses for init functions
+    - gocognit
     - goconst
     - gocritic
     - gocyclo
     - godot
-    # - godox # TODO: Do we want this?
+    # - godox # Let's not forbid inline TODOs, FIXMEs et al
     # - goerr113 # TODO: Fix and enable
     - gofmt
     - gofumpt
     # - goheader # We do license header linting another way
     - goimports
     # - golint # Deprecated since v1.41.0
-    # - gomnd # TODO: Do we want this?
-    # - gomoddirectives # Actually runs revive linter
+    # - gomnd # It doesn't seem useful in general to enforce constants for all numeric value
+    # - gomoddirectives # We don't want to forbid the 'replace' directive
     # - gomodguard # We don't block any modules
     # - goprintffuncname # This doesn't seem useful at all
     - gosec
     - gosimple
     - govet
-    # - ifshort # TODO: Fix and enable
+    # - ifshort # This is a style preference and doesn't seem compelling
     # - importas # Not supported with our version of golangci-lint
     - ineffassign
     # - interfacer # Deprecated since v1.38.0
@@ -67,12 +69,12 @@ linters:
     # - maligned # Deprecated since v1.38.0
     - misspell
     - nakedret
-    # - nestif # Actually runs revive linter
+    # - nestif # This calculates cognitive complexity but we're doing that elsewhere
     # - nilerr # TODO: Fix and enable
     - nlreturn
     # - noctx # We don't send HTTP requests
     - nolintlint
-    # - paralleltest # TODO: Do we want this?
+    # - paralleltest # Not relevant for Ginkgo UT
     - prealloc
     - predeclared
     # - promlinter # Not supported with our version of golangci-lint
@@ -83,7 +85,7 @@ linters:
     - staticcheck
     - structcheck
     - stylecheck
-    # - tagliatelle # TODO: Do we want this?
+    # - tagliatelle # Inconsistent with stylecheck and not as good
     # - testpackage # TODO: Fix and enable
     # - thelper # Not relevant for our Ginkgo UTs
     - tparallel
@@ -94,7 +96,7 @@ linters:
     - varcheck
     # - wastedassign # Not supported with our version of golangci-lint
     - whitespace
-    # - wrapcheck # TODO: Do we want this?
+    # - wrapcheck # Fix and enable
     - wsl
 issues:
   exclude-rules:
