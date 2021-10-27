@@ -72,6 +72,7 @@ type SubmarinerBrokerInfo struct {
 	SubmarinerRouteAgentImage string
 	LighthouseAgentImage      string
 	LighthouseCoreDNSImage    string
+	LoadBalancerEnabled       bool
 }
 
 // Get retrieves submariner broker information consolidated with hub information.
@@ -137,6 +138,7 @@ func applySubmarinerConfig(
 	}
 
 	brokerInfo.NATEnabled = submarinerConfig.Spec.NATTEnable
+	brokerInfo.LoadBalancerEnabled = submarinerConfig.Spec.LoadBalancerEnable
 
 	if submarinerConfig.Spec.CableDriver != "" {
 		brokerInfo.CableDriver = submarinerConfig.Spec.CableDriver

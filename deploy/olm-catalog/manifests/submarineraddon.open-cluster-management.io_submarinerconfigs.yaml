@@ -88,6 +88,10 @@ spec:
                     description: SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.
                     type: string
                 type: object
+              loadBalancerEnable:
+                default: false
+                description: LoadBalancerEnable Enable load-balancer mode. Once enabled, creates the LoadBalancer in the submariner-operator namespace (default false).
+                type: boolean
               subscriptionConfig:
                 description: SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.
                 properties:

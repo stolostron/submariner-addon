@@ -42,7 +42,7 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=4500
 	IPSecNATTPort int `json:"IPSecNATTPort,omitempty"`
 
-	// NATTDiscoveryPort represents NAT Discovery port (default UDP/4900).
+	// NATTDiscoveryPort represents NAT-T Discovery port (default UDP/4900).
 	// +optional
 	// +kubebuilder:default=4900
 	NATTDiscoveryPort int `json:"NATTDiscoveryPort,omitempty"`
@@ -73,6 +73,12 @@ type SubmarinerConfigSpec struct {
 	// GatewayConfig represents the gateways configuration of the Submariner.
 	// +optional
 	GatewayConfig `json:"gatewayConfig,omitempty"`
+
+	// LoadBalancerEnable Enable load-balancer mode. Once enabled, creates the LoadBalancer in the
+	// submariner-operator namespace (default false).
+	// +optional
+	// +kubebuilder:default=false
+	LoadBalancerEnable bool `json:"loadBalancerEnable"`
 }
 
 // SubscriptionConfig contains configuration specified for a submariner subscription.
