@@ -169,6 +169,7 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.LighthouseAgentImage).To(BeEmpty())
 				Expect(brokerInfo.LighthouseCoreDNSImage).To(BeEmpty())
 				Expect(brokerInfo.NATEnabled).To(BeFalse())
+				Expect(brokerInfo.LoadBalancerEnabled).To(BeFalse())
 				Expect(brokerInfo.SubmarinerGatewayImage).To(BeEmpty())
 				Expect(brokerInfo.SubmarinerRouteAgentImage).To(BeEmpty())
 			})
@@ -190,10 +191,11 @@ var _ = Describe("Function Get", func() {
 							LighthouseCoreDNSImagePullSpec:    "quay.io/submariner/lighthouse-coredns:10.0.1",
 							SubmarinerRouteAgentImagePullSpec: "quay.io/submariner/submariner-route-agent:10.0.1",
 						},
-						CableDriver:   "wireguard",
-						IPSecIKEPort:  1234,
-						IPSecNATTPort: 5678,
-						NATTEnable:    true,
+						CableDriver:        "wireguard",
+						IPSecIKEPort:       1234,
+						IPSecNATTPort:      5678,
+						NATTEnable:         true,
+						LoadBalancerEnable: true,
 					},
 				}
 			})
@@ -210,6 +212,7 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.LighthouseAgentImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec))
 				Expect(brokerInfo.LighthouseCoreDNSImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec))
 				Expect(brokerInfo.NATEnabled).To(Equal(submarinerConfig.Spec.NATTEnable))
+				Expect(brokerInfo.LoadBalancerEnabled).To(Equal(submarinerConfig.Spec.LoadBalancerEnable))
 				Expect(brokerInfo.SubmarinerGatewayImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec))
 				Expect(brokerInfo.SubmarinerRouteAgentImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec))
 			})
