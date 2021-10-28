@@ -41,7 +41,7 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
 
 ### Setup of Cluster Manager and Klusterlet
 
-1. Prepare 3 OCP clusters (1 Hub cluster and 2 managed clusters) on AWS for Submariner. Please refer to [this section](https://submariner.io/getting_started/quickstart/openshift/aws/#prepare-aws-clusters-for-submariner) for detailed instructions.
+1. Prepare 3 OCP clusters (1 Hub cluster and 2 managed clusters) on AWS for Submariner. Please refer to [this section](https://submariner.io/getting-started/quickstart/openshift/aws/) for detailed instructions.
 
 2. On the Hub cluster, install `Cluster Manager` Operator and instance (version >= 0.2.0) from OperatorHub.
 
