@@ -317,7 +317,7 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit
 github.com/spf13/pflag
-# github.com/submariner-io/admiral v0.11.0-rc2
+# github.com/submariner-io/admiral v0.11.0
 ## explicit
 github.com/submariner-io/admiral/pkg/log
 github.com/submariner-io/admiral/pkg/resource
