@@ -65,13 +65,13 @@ var map_SubmarinerConfigSpec = map[string]string{
 	"cableDriver":        "CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, wireguard, and vxlan.",
 	"IPSecIKEPort":       "IPSecIKEPort represents IPsec IKE port (default 500).",
 	"IPSecNATTPort":      "IPSecNATTPort represents IPsec NAT-T port (default 4500).",
-	"NATTDiscoveryPort":  "NATTDiscoveryPort represents NAT-T Discovery port (default UDP/4900).",
+	"NATTDiscoveryPort":  "NATTDiscoveryPort specifies the port used for NAT-T Discovery (default UDP/4900).",
 	"NATTEnable":         "NATTEnable represents IPsec NAT-T enabled (default true).",
 	"credentialsSecret":  "CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.",
 	"subscriptionConfig": "SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.",
 	"imagePullSpecs":     "ImagePullSpecs represents the desired images of submariner components installed on the managed cluster. If not specified, the default submariner images that was defined by submariner operator will be used.",
 	"gatewayConfig":      "GatewayConfig represents the gateways configuration of the Submariner.",
-	"loadBalancerEnable": "LoadBalancerEnable Enable load-balancer mode. Once enabled, creates the LoadBalancer in the submariner-operator namespace (default false).",
+	"loadBalancerEnable": "LoadBalancerEnable enables or disables load balancer mode. When enabled, a LoadBalancer is created in the submariner-operator namespace (default false).",
 }
 
 func (SubmarinerConfigSpec) SwaggerDoc() map[string]string {
