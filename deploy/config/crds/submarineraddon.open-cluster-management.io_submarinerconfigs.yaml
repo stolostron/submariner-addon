@@ -41,7 +41,7 @@ spec:
                 type: integer
               NATTDiscoveryPort:
                 default: 4900
-                description: NATTDiscoveryPort represents NAT-T Discovery port (default UDP/4900).
+                description: NATTDiscoveryPort specifies the port used for NAT-T Discovery (default UDP/4900).
                 type: integer
               NATTEnable:
                 default: true
