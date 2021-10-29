@@ -74,7 +74,8 @@ type SubmarinerConfigSpec struct {
 	// +optional
 	GatewayConfig `json:"gatewayConfig,omitempty"`
 
-	// LoadBalancerEnable enables or disables load balancer mode. When enabled, a LoadBalancer is created in the submariner-operator namespace (default false).
+	// LoadBalancerEnable enables or disables load balancer mode. When enabled, a LoadBalancer is created in the
+	// submariner-operator namespace (default false).
 	// +optional
 	// +kubebuilder:default=false
 	LoadBalancerEnable bool `json:"loadBalancerEnable"`
