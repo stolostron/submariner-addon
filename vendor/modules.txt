@@ -332,9 +332,9 @@ github.com/submariner-io/cloud-prepare/pkg/gcp
 github.com/submariner-io/cloud-prepare/pkg/gcp/client
 github.com/submariner-io/cloud-prepare/pkg/k8s
 github.com/submariner-io/cloud-prepare/pkg/ocp
-# github.com/submariner-io/submariner-operator/apis v0.0.0-20210817145008-861856b068a1
+# github.com/submariner-io/submariner-operator/api v0.0.0-20211109163502-92bf6a97e565
 ## explicit
-github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1
+github.com/submariner-io/submariner-operator/api/submariner/v1alpha1
 # github.com/submariner-io/submariner/pkg/apis v0.0.0-20210817085048-59f656555db0
 ## explicit
 github.com/submariner-io/submariner/pkg/apis/submariner.io/v1

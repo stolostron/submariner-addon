@@ -18,7 +18,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/submariner-io/admiral v0.11.0
 	github.com/submariner-io/cloud-prepare v0.11.0-m2.0.20210920144917-0b33718646a7
-	github.com/submariner-io/submariner-operator/apis v0.0.0-20210817145008-861856b068a1
+	github.com/submariner-io/submariner-operator/api v0.0.0-20211109163502-92bf6a97e565
 	github.com/submariner-io/submariner/pkg/apis v0.0.0-20210817085048-59f656555db0
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
