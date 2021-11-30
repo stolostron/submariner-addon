@@ -48,16 +48,16 @@ import (
 	workv1 "open-cluster-management.io/api/work/v1"
 )
 
-const manifestWorkName = "submariner-operator"
+const ManifestWorkName = "submariner-operator"
 
 const (
-	clusterSetLabel     = "cluster.open-cluster-management.io/clusterset"
+	ClusterSetLabel     = "cluster.open-cluster-management.io/clusterset"
 	serviceAccountLabel = "cluster.open-cluster-management.io/submariner-cluster-sa"
 )
 
 const (
-	agentFinalizer            = "cluster.open-cluster-management.io/submariner-agent-cleanup"
-	addOnFinalizer            = "submarineraddon.open-cluster-management.io/submariner-addon-cleanup"
+	AgentFinalizer            = "cluster.open-cluster-management.io/submariner-agent-cleanup"
+	AddOnFinalizer            = "submarineraddon.open-cluster-management.io/submariner-addon-cleanup"
 	submarinerConfigFinalizer = "submarineraddon.open-cluster-management.io/config-cleanup"
 )
 
@@ -146,7 +146,7 @@ func NewSubmarinerAgentController(
 			// TODO: we may consider to use addon to deploy the submariner on the managed cluster instead of
 			// using manifestwork, one problem should be considered - how to get the IPSECPSK
 			accessor, _ := meta.Accessor(obj)
-			if accessor.GetName() != manifestWorkName {
+			if accessor.GetName() != ManifestWorkName {
 				return ""
 			}
 
@@ -280,7 +280,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 	}
 
 	// add a submariner agent finalizer to a managed cluster
-	added, err := finalizer.Add(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster, agentFinalizer)
+	added, err := finalizer.Add(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster, AgentFinalizer)
 	if added || err != nil {
 		return err
 	}
@@ -290,7 +290,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	}
 
-	clusterSetName, existed := managedCluster.Labels[clusterSetLabel]
+	clusterSetName, existed := managedCluster.Labels[ClusterSetLabel]
 	if !existed {
 		// the cluster does not have the clusterset label, try to clean up the submariner agent
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
@@ -310,7 +310,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 
 	// add a finalizer to the submariner-addon
 	added, err = finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
-		addOn, addOnFinalizer)
+		addOn, AddOnFinalizer)
 	if added || err != nil {
 		return err
 	}
@@ -402,12 +402,12 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 	}
 
 	if err := finalizer.Remove(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster,
-		agentFinalizer); err != nil {
+		AgentFinalizer); err != nil {
 		return err
 	}
 
 	return finalizer.Remove(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
-		addOn, addOnFinalizer)
+		addOn, AddOnFinalizer)
 }
 
 func (c *submarinerAgentController) deploySubmarinerAgent(
@@ -453,13 +453,13 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, clusterName string) error {
 	errs := []error{}
 	// remove submariner manifestworks
-	err := c.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Delete(ctx, manifestWorkName, metav1.DeleteOptions{})
+	err := c.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Delete(ctx, ManifestWorkName, metav1.DeleteOptions{})
 
 	switch {
 	case errors.IsNotFound(err):
 		// there is no submariner manifestworks, do noting
 	case err == nil:
-		c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q", fmt.Sprintf("%s/%s", clusterName, manifestWorkName))
+		c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q", fmt.Sprintf("%s/%s", clusterName, ManifestWorkName))
 	case err != nil:
 		errs = append(errs, fmt.Errorf("failed to remove submariner agent from managed cluster %v: %w", clusterName, err))
 	}
@@ -590,7 +590,7 @@ func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{
 	return &workv1.ManifestWork{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      manifestWorkName,
+			Name:      ManifestWorkName,
 			Namespace: managedCluster.Name,
 		},
 		Spec: workv1.ManifestWorkSpec{
