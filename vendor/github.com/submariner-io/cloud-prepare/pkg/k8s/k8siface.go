@@ -20,20 +20,23 @@ package k8s
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/pkg/errors"
+	"github.com/submariner-io/admiral/pkg/resource"
+	"github.com/submariner-io/admiral/pkg/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/util/retry"
 )
 
 const (
-	submarinerGatewayLabel = "submariner.io/gateway"
+	SubmarinerGatewayLabel = "submariner.io/gateway"
 )
 
-type K8sInterface interface {
-	ListWorkerNodes(labelSelector string) (*v1.NodeList, error)
+type Interface interface {
+	ListNodesWithLabel(labelSelector string) (*v1.NodeList, error)
+	ListGatewayNodes() (*v1.NodeList, error)
 	AddGWLabelOnNode(nodeName string) error
 	RemoveGWLabelFromWorkerNodes() error
 }
@@ -42,68 +45,77 @@ type k8sIface struct {
 	clientSet kubernetes.Interface
 }
 
-func NewK8sInterface(clientSet kubernetes.Interface) (K8sInterface, error) {
-	return &k8sIface{clientSet: clientSet}, nil
+func NewInterface(clientSet kubernetes.Interface) Interface {
+	return &k8sIface{clientSet: clientSet}
 }
 
-func (k *k8sIface) ListWorkerNodes(labelSelector string) (*v1.NodeList, error) {
+func (k *k8sIface) ListNodesWithLabel(labelSelector string) (*v1.NodeList, error) {
 	nodes, err := k.clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
-		return nil, fmt.Errorf("unable to list the nodes in the cluster, err: %s", err)
+		return nil, errors.Wrap(err, "unable to list the nodes in the cluster")
 	}
 
 	return nodes, nil
 }
 
-func (k *k8sIface) AddGWLabelOnNode(nodeName string) error {
-	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		node, err := k.clientSet.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("unable to get node info for node %v, err: %s", nodeName, err)
-		}
+func (k *k8sIface) ListGatewayNodes() (*v1.NodeList, error) {
+	labelSelector := SubmarinerGatewayLabel + "=true"
 
-		labels := node.GetLabels()
+	nodes, err := k.clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to list the Gateway nodes in the cluster")
+	}
+
+	return nodes, nil
+}
+
+func (k *k8sIface) updateLabel(nodeName string, mutate func(existing *v1.Node)) error {
+	// nolint:wrapcheck // Let the caller wrap these errors.
+	client := &resource.InterfaceFuncs{
+		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (runtime.Object, error) {
+			return k.clientSet.CoreV1().Nodes().Get(ctx, name, options)
+		},
+		UpdateFunc: func(ctx context.Context, obj runtime.Object, options metav1.UpdateOptions) (runtime.Object, error) {
+			return k.clientSet.CoreV1().Nodes().Update(ctx, obj.(*v1.Node), options)
+		},
+	}
+
+	return errors.Wrap(util.Update(context.TODO(), client, &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nodeName,
+		},
+	}, func(existing runtime.Object) (runtime.Object, error) {
+		mutate(existing.(*v1.Node))
+		return existing, nil
+	}), "error updating node")
+}
+
+func (k *k8sIface) AddGWLabelOnNode(nodeName string) error {
+	return k.updateLabel(nodeName, func(existing *v1.Node) {
+		labels := existing.GetLabels()
 		if labels == nil {
 			labels = map[string]string{}
 		}
-		labels[submarinerGatewayLabel] = "true"
-		node.SetLabels(labels)
-		_, updateErr := k.clientSet.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
-		return updateErr
+
+		labels[SubmarinerGatewayLabel] = "true"
+		existing.SetLabels(labels)
 	})
-
-	if retryErr != nil {
-		return fmt.Errorf("error updatating node %q, err: %s", nodeName, retryErr)
-	}
-
-	return nil
 }
 
 func (k *k8sIface) RemoveGWLabelFromWorkerNodes() error {
-	nodeList, err := k.clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
+	gwNodeList, err := k.clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: SubmarinerGatewayLabel})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error listing gateway nodes")
 	}
 
-	for _, node := range nodeList.Items {
-		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			node, err := k.clientSet.CoreV1().Nodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
-			if err != nil {
-				return fmt.Errorf("unable to get node info for node %v, err: %s", node.Name, err)
-			}
-
-			labels := node.GetLabels()
-			if labels == nil {
-				return nil
-			}
-			delete(labels, submarinerGatewayLabel)
-			node.SetLabels(labels)
-			_, updateErr := k.clientSet.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
-			return updateErr
+	for i := range gwNodeList.Items {
+		node := &gwNodeList.Items[i]
+		err = k.updateLabel(node.Name, func(existing *v1.Node) {
+			delete(existing.Labels, SubmarinerGatewayLabel)
 		})
 
-		if retryErr != nil {
-			return fmt.Errorf("error updatating node %q, err: %s", node.Name, retryErr)
+		if err != nil {
+			return err
 		}
 	}
 

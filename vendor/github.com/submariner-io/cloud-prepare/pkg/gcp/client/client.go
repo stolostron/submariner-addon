@@ -15,10 +15,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// nolint:wrapcheck // The functions are wrappers so let the caller wrap errors.
 package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -28,7 +31,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-//go:generate mockgen -source=./client.go -destination=./mock/client_generated.go -package=mock
+//go:generate mockgen -source=./client.go -destination=./fake/client.go -package=fake
 
 // Interface wraps an actual GCP library client to allow for easier testing.
 type Interface interface {
@@ -84,12 +87,12 @@ func NewClient(projectID string, options []option.ClientOption) (Interface, erro
 }
 
 func IsGCPNotFoundError(err error) bool {
-	gerr, ok := err.(*googleapi.Error)
-	if !ok {
-		return false
+	var gerr *googleapi.Error
+	if errors.As(err, &gerr) {
+		return gerr.Code == http.StatusNotFound
 	}
 
-	return gerr.Code == http.StatusNotFound
+	return false
 }
 
 func (g *gcpClient) GetInstance(zone, instance string) (*compute.Instance, error) {

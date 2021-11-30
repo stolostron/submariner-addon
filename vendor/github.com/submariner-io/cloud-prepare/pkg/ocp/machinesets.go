@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,15 +33,17 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-// MachineSetDeployer can deploy and delete machinesets from OCP
+//go:generate mockgen -source=./machinesets.go -destination=./fake/machineset.go -package=fake
+
+// MachineSetDeployer can deploy and delete machinesets from OCP.
 type MachineSetDeployer interface {
-	// Deploy makes sure to deploy the given machine set (creating or updating it)
+	// Deploy makes sure to deploy the given machine set (creating or updating it).
 	Deploy(machineSet *unstructured.Unstructured) error
 
-	// GetWorkerNodeImage returns the image used by OCP worker nodes
+	// GetWorkerNodeImage returns the image used by OCP worker nodes.
 	GetWorkerNodeImage(machineSet *unstructured.Unstructured, infraID string) (string, error)
 
-	// Delete will remove the given machineset
+	// Delete will remove the given machineset.
 	Delete(machineSet *unstructured.Unstructured) error
 }
 
@@ -49,22 +52,21 @@ type k8sMachineSetDeployer struct {
 	dynamicClient dynamic.Interface
 }
 
-// NewK8sMachinesetDeployer returns a MachineSetDeployer capable deploying directly to Kubernetes
+// NewK8sMachinesetDeployer returns a MachineSetDeployer capable deploying directly to Kubernetes.
 func NewK8sMachinesetDeployer(restMapper meta.RESTMapper, dynamicClient dynamic.Interface) MachineSetDeployer {
 	return &k8sMachineSetDeployer{
 		dynamicClient: dynamicClient,
-		restMapper:    restMapper}
+		restMapper:    restMapper,
+	}
 }
 
-func (msd *k8sMachineSetDeployer) clientFor(obj runtime.Object) (resource.Interface, error) {
+func (msd *k8sMachineSetDeployer) clientFor(obj runtime.Object) (dynamic.ResourceInterface, error) {
 	machineSet, gvr, err := util.ToUnstructuredResource(obj, msd.restMapper)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error converting to unstructured")
 	}
 
-	dynamicClient := msd.dynamicClient.Resource(*gvr).Namespace(machineSet.GetNamespace())
-
-	return resource.ForDynamic(dynamicClient), nil
+	return msd.dynamicClient.Resource(*gvr).Namespace(machineSet.GetNamespace()), nil
 }
 
 func (msd *k8sMachineSetDeployer) GetWorkerNodeImage(machineSet *unstructured.Unstructured, infraID string) (string, error) {
@@ -78,28 +80,26 @@ func (msd *k8sMachineSetDeployer) GetWorkerNodeImage(machineSet *unstructured.Un
 
 	for _, nodeName := range workerNodeList {
 		existing, err := machineSetClient.Get(context.TODO(), nodeName, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) || err != nil {
+		if apierrors.IsNotFound(err) {
 			continue
 		}
 
-		obj, err := resource.ToUnstructured(existing)
 		if err != nil {
-			continue
+			return "", errors.Wrapf(err, "error retrieving machine set %q", nodeName)
 		}
 
-		disks, ok, _ := unstructured.NestedSlice(obj.Object, "spec", "template", "spec", "providerSpec", "value", "disks")
-		if ok && len(disks) > 0 {
-			for _, o := range disks {
-				disk := o.(map[string]interface{})
-				image, _, _ := unstructured.NestedString(disk, "image")
-				if image != "" {
-					return image, nil
-				}
+		disks, _, _ := unstructured.NestedSlice(existing.Object, "spec", "template", "spec", "providerSpec", "value", "disks")
+		for _, o := range disks {
+			disk := o.(map[string]interface{}) // nolint:forcetypeassert // This is expected to be a map so just panic if not.
+
+			image, _, _ := unstructured.NestedString(disk, "image")
+			if image != "" {
+				return image, nil
 			}
 		}
 	}
 
-	return "", fmt.Errorf("could not retrieve the image of one of the worker nodes on gcp infra %q", infraID)
+	return "", fmt.Errorf("could not find the image of one of the worker nodes on GCP infra %q", infraID)
 }
 
 func (msd *k8sMachineSetDeployer) Deploy(machineSet *unstructured.Unstructured) error {
@@ -108,9 +108,9 @@ func (msd *k8sMachineSetDeployer) Deploy(machineSet *unstructured.Unstructured) 
 		return err
 	}
 
-	_, err = util.CreateOrUpdate(context.TODO(), machineSetClient, machineSet, util.Replace(machineSet))
+	_, err = util.CreateOrUpdate(context.TODO(), resource.ForDynamic(machineSetClient), machineSet, util.Replace(machineSet))
 
-	return err
+	return errors.Wrapf(err, "error creating machine set %#v", machineSet)
 }
 
 func (msd *k8sMachineSetDeployer) Delete(machineSet *unstructured.Unstructured) error {
@@ -124,5 +124,5 @@ func (msd *k8sMachineSetDeployer) Delete(machineSet *unstructured.Unstructured) 
 		return nil
 	}
 
-	return err
+	return errors.Wrapf(err, "error deleting machine set %q", machineSet.GetName())
 }

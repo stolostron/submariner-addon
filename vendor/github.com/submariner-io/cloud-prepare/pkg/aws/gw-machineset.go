@@ -32,7 +32,6 @@ spec:
       machine.openshift.io/cluster-api-machineset: {{.InfraID}}-submariner-gw-{{.AZ}}
   template:
     metadata:
-      creationTimestamp: null
       labels:
         machine.openshift.io/cluster-api-cluster: {{.InfraID}}
         machine.openshift.io/cluster-api-machine-role: worker

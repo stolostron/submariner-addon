@@ -17,18 +17,24 @@ limitations under the License.
 */
 package aws
 
-import "github.com/aws/aws-sdk-go/service/ec2"
+import (
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/pkg/errors"
+)
 
 func (ac *awsCloud) getVpcID() (string, error) {
 	vpcName := ac.withAWSInfo("{infraID}-vpc")
-	filters := []*ec2.Filter{
+	filters := []types.Filter{
 		ac.filterByName(vpcName),
 		ac.filterByCurrentCluster(),
 	}
 
-	result, err := ac.client.DescribeVpcs(&ec2.DescribeVpcsInput{Filters: filters})
+	result, err := ac.client.DescribeVpcs(context.TODO(), &ec2.DescribeVpcsInput{Filters: filters})
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "error describing AWS VPCs")
 	}
 
 	if len(result.Vpcs) == 0 {

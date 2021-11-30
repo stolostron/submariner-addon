@@ -77,17 +77,21 @@ func NewGCPProvider(
 		return nil, err
 	}
 
-	cloudPrepare := cloudpreparegcp.NewCloud(projectId, infraID, region, gcpClient)
+	cloudInfo := cloudpreparegcp.CloudInfo{
+		InfraID:   infraID,
+		Region:    region,
+		ProjectID: projectId,
+		Client:    gcpClient,
+	}
+
+	cloudPrepare := cloudpreparegcp.NewCloud(cloudInfo)
 
 	msDeployer := ocp.NewK8sMachinesetDeployer(restMapper, dynamicClient)
 
-	k8sClient, _ := k8s.NewK8sInterface(kubeClient)
+	k8sClient := k8s.NewInterface(kubeClient)
 
-	gwDeployer, err := cloudpreparegcp.NewOcpGatewayDeployer(cloudPrepare, msDeployer, instanceType,
+	gwDeployer := cloudpreparegcp.NewOcpGatewayDeployer(cloudInfo, msDeployer, instanceType,
 		"", false, k8sClient)
-	if err != nil {
-		return nil, err
-	}
 
 	return &gcpProvider{
 		infraID:           infraID,
@@ -182,5 +186,4 @@ func newClient(kubeClient kubernetes.Interface, secretNamespace, secretName stri
 	}
 
 	return creds.ProjectID, computeClient, nil
-
 }
