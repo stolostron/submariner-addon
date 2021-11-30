@@ -35,7 +35,7 @@ type awsCloud struct {
 	region  string
 }
 
-// NewCloud creates a new api.Cloud instance which can prepare AWS for Submariner to be deployed on it
+// NewCloud creates a new api.Cloud instance which can prepare AWS for Submariner to be deployed on it.
 func NewCloud(client awsClient.Interface, infraID, region string) api.Cloud {
 	return &awsCloud{
 		client:  client,
@@ -67,6 +67,7 @@ func (ac *awsCloud) PrepareForSubmariner(input api.PrepareForSubmarinerInput, re
 
 	for _, port := range input.InternalPorts {
 		reporter.Started("Opening port %v protocol %s for intra-cluster communications", port.Port, port.Protocol)
+
 		err = ac.allowPortInCluster(vpcID, port.Port, port.Protocol)
 		if err != nil {
 			reporter.Failed(err)

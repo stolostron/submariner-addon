@@ -21,29 +21,29 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
-func ec2Filter(name, value string) *ec2.Filter {
-	return &ec2.Filter{
+func ec2Filter(name, value string) types.Filter {
+	return types.Filter{
 		Name:   aws.String(name),
-		Values: []*string{aws.String(value)},
+		Values: []string{value},
 	}
 }
 
-func ec2Tag(key, value string) *ec2.Tag {
-	return &ec2.Tag{
+func ec2Tag(key, value string) types.Tag {
+	return types.Tag{
 		Key:   aws.String(key),
 		Value: aws.String(value),
 	}
 }
 
-func ec2FilterByTag(tag *ec2.Tag) *ec2.Filter {
+func ec2FilterByTag(tag types.Tag) types.Filter {
 	return ec2Filter(fmt.Sprintf("tag:%s", *tag.Key), *tag.Value)
 }
 
-func hasTag(tags []*ec2.Tag, desired *ec2.Tag) bool {
+func hasTag(tags []types.Tag, desired types.Tag) bool {
 	for _, tag := range tags {
 		if *tag.Key == *desired.Key {
 			return true
@@ -53,7 +53,7 @@ func hasTag(tags []*ec2.Tag, desired *ec2.Tag) bool {
 	return false
 }
 
-func extractName(tags []*ec2.Tag) string {
+func extractName(tags []types.Tag) string {
 	for _, tag := range tags {
 		if *tag.Key == "Name" {
 			return *tag.Value
@@ -68,10 +68,10 @@ func (ac *awsCloud) withAWSInfo(str string) string {
 	return r.Replace(str)
 }
 
-func (ac *awsCloud) filterByName(name string) *ec2.Filter {
+func (ac *awsCloud) filterByName(name string) types.Filter {
 	return ec2Filter("tag:Name", ac.withAWSInfo(name))
 }
 
-func (ac *awsCloud) filterByCurrentCluster() *ec2.Filter {
+func (ac *awsCloud) filterByCurrentCluster() types.Filter {
 	return ec2Filter(ac.withAWSInfo("tag:kubernetes.io/cluster/{infraID}"), "owned")
 }

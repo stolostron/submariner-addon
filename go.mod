@@ -16,8 +16,8 @@ require (
 	github.com/prometheus/procfs v0.7.2 // indirect
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.11.0
-	github.com/submariner-io/cloud-prepare v0.11.0-m2.0.20210920144917-0b33718646a7
+	github.com/submariner-io/admiral v0.12.0-m0
+	github.com/submariner-io/cloud-prepare v0.12.0-m0.0.20211123153104-4ea00fe8bf34
 	github.com/submariner-io/submariner-operator/api v0.0.0-20211109163502-92bf6a97e565
 	github.com/submariner-io/submariner/pkg/apis v0.0.0-20210817085048-59f656555db0
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
@@ -26,7 +26,7 @@ require (
 	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/api v0.57.0
+	google.golang.org/api v0.60.0
 	k8s.io/api v0.21.3
 	k8s.io/apiextensions-apiserver v0.21.3
 	k8s.io/apimachinery v0.21.3
