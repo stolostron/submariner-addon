@@ -15,8 +15,10 @@ import (
 	addonV1alpha1Client "open-cluster-management.io/api/client/addon/clientset/versioned/typed/addon/v1alpha1"
 	clusterV1Client "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1"
 	clusterV1beta1Client "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta1"
+	workclient "open-cluster-management.io/api/client/work/clientset/versioned/typed/work/v1"
 	clusterV1 "open-cluster-management.io/api/cluster/v1"
 	clusterV1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	workv1 "open-cluster-management.io/api/work/v1"
 )
 
 func ForManagedClusterSet(client clusterV1beta1Client.ManagedClusterSetInterface) resource.Interface {
@@ -80,6 +82,23 @@ func ForSubmarinerConfig(client configV1alpha1Client.SubmarinerConfigInterface) 
 		},
 		UpdateFunc: func(ctx context.Context, obj runtime.Object, options metav1.UpdateOptions) (runtime.Object, error) {
 			return client.Update(ctx, obj.(*configV1alpha1.SubmarinerConfig), options)
+		},
+		DeleteFunc: func(ctx context.Context, name string, options metav1.DeleteOptions) error {
+			return client.Delete(ctx, name, options)
+		},
+	}
+}
+
+func ForManifestWork(client workclient.ManifestWorkInterface) resource.Interface {
+	return &resource.InterfaceFuncs{
+		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (runtime.Object, error) {
+			return client.Get(ctx, name, options)
+		},
+		CreateFunc: func(ctx context.Context, obj runtime.Object, options metav1.CreateOptions) (runtime.Object, error) {
+			return client.Create(ctx, obj.(*workv1.ManifestWork), options)
+		},
+		UpdateFunc: func(ctx context.Context, obj runtime.Object, options metav1.UpdateOptions) (runtime.Object, error) {
+			return client.Update(ctx, obj.(*workv1.ManifestWork), options)
 		},
 		DeleteFunc: func(ctx context.Context, name string, options metav1.DeleteOptions) error {
 			return client.Delete(ctx, name, options)
