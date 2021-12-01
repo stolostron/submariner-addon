@@ -9,6 +9,8 @@ import (
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	fakereactor "github.com/submariner-io/admiral/pkg/fake"
+	"github.com/submariner-io/admiral/pkg/syncer/test"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
@@ -161,7 +163,7 @@ var _ = Describe("Deployment Status Controller", func() {
 	When("updating the ManagedClusterAddOn status initially fails", func() {
 		Context("", func() {
 			BeforeEach(func() {
-				testing.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
+				fakereactor.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
 			})
 
 			It("should eventually update it", func() {
@@ -171,7 +173,7 @@ var _ = Describe("Deployment Status Controller", func() {
 
 		Context("with a conflict error", func() {
 			BeforeEach(func() {
-				testing.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
+				fakereactor.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
 			})
 
 			It("should eventually update it", func() {
@@ -254,12 +256,12 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 }
 
 func (t *deploymentControllerTestDriver) createSubscription() {
-	_, err := t.subscriptionClient.Create(context.TODO(), testing.ToUnstructured(t.subscription), metav1.CreateOptions{})
+	_, err := t.subscriptionClient.Create(context.TODO(), test.ToUnstructured(t.subscription), metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
 func (t *deploymentControllerTestDriver) updateSubscription() {
-	_, err := t.subscriptionClient.Update(context.TODO(), testing.ToUnstructured(t.subscription), metav1.UpdateOptions{})
+	_, err := t.subscriptionClient.Update(context.TODO(), test.ToUnstructured(t.subscription), metav1.UpdateOptions{})
 	Expect(err).To(Succeed())
 }
 

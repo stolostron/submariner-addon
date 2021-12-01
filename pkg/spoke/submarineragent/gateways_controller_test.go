@@ -5,9 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/openshift/library-go/pkg/operator/events"
+	fakereactor "github.com/submariner-io/admiral/pkg/fake"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeInformers "k8s.io/client-go/informers"
@@ -86,7 +86,7 @@ var _ = Describe("Gateways Status Controller", func() {
 	When("updating the ManagedClusterAddOn status initially fails", func() {
 		Context("", func() {
 			BeforeEach(func() {
-				testing.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
+				fakereactor.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
 			})
 
 			It("should eventually update it", func() {
@@ -96,7 +96,7 @@ var _ = Describe("Gateways Status Controller", func() {
 
 		Context("with a conflict error", func() {
 			BeforeEach(func() {
-				testing.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
+				fakereactor.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
 			})
 
 			It("should eventually update it", func() {

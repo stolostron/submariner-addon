@@ -5,9 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	helpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker"
 	"github.com/openshift/library-go/pkg/operator/events"
+	fakereactor "github.com/submariner-io/admiral/pkg/fake"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apiextensionsInformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
@@ -27,7 +27,7 @@ var _ = Describe("CRDs Controller", func() {
 		Context("and CRD creation initially fails", func() {
 			BeforeEach(func() {
 				t.justBeforeRun = func() {
-					helpers.FailOnAction(&t.crdClient.Fake, "customresourcedefinitions", "create", nil, true)
+					fakereactor.FailOnAction(&t.crdClient.Fake, "customresourcedefinitions", "create", nil, true)
 				}
 			})
 

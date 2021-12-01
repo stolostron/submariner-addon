@@ -81,9 +81,9 @@ func TestSyncManagedCluster(t *testing.T) {
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list")
-				testinghelpers.AssertActions(t, clusterActions, "update")
+				testinghelpers.AssertActions(t, clusterActions, "get", "update")
 				testinghelpers.AssertActions(t, workActions, "delete")
-				testinghelpers.AssertActions(t, addonActions, "update")
+				testinghelpers.AssertActions(t, addonActions, "get", "update")
 			},
 		},
 		{
@@ -120,7 +120,7 @@ func TestSyncManagedCluster(t *testing.T) {
 			kubeObjs: []runtime.Object{},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list")
-				testinghelpers.AssertActions(t, clusterActions, "update")
+				testinghelpers.AssertActions(t, clusterActions, "get", "update")
 				testinghelpers.AssertActions(t, workActions, "delete")
 				testinghelpers.AssertNoActions(t, addonActions)
 			},
@@ -227,11 +227,11 @@ func TestSyncManagedCluster(t *testing.T) {
 			},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list", "delete", "delete")
-				testinghelpers.AssertActions(t, clusterActions, "update")
-				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertActions(t, clusterActions, "get", "update")
+				managedCluster := clusterActions[1].(clienttesting.UpdateActionImpl).Object
 				testinghelpers.AssertFinalizers(t, managedCluster, []string{"test"})
 				testinghelpers.AssertActions(t, workActions, "delete")
-				testinghelpers.AssertActions(t, addonActions, "update")
+				testinghelpers.AssertActions(t, addonActions, "get", "update")
 			},
 		},
 		{
@@ -256,12 +256,12 @@ func TestSyncManagedCluster(t *testing.T) {
 			},
 			validateActions: func(t *testing.T, kubeActions, clusterActions, workActions, addonActions []clienttesting.Action) {
 				testinghelpers.AssertActions(t, kubeActions, "list", "delete", "delete")
-				testinghelpers.AssertActions(t, clusterActions, "update")
-				managedCluster := clusterActions[0].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertActions(t, clusterActions, "get", "update")
+				managedCluster := clusterActions[1].(clienttesting.UpdateActionImpl).Object
 				testinghelpers.AssertFinalizers(t, managedCluster, []string{"test"})
 				testinghelpers.AssertActions(t, workActions, "delete")
-				testinghelpers.AssertActions(t, addonActions, "update")
-				addOn := addonActions[0].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertActions(t, addonActions, "get", "update")
+				addOn := addonActions[1].(clienttesting.UpdateActionImpl).Object
 				testinghelpers.AssertFinalizers(t, addOn, []string{})
 			},
 		},
@@ -417,8 +417,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, configActions, "update")
-				updatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertActions(t, configActions, "get", "update")
+				updatedObj := configActions[1].(clienttesting.UpdateActionImpl).Object
 				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
 				if len(config.Finalizers) != 1 {
 					t.Errorf("unexpect size of finalizers")
@@ -447,8 +447,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, configActions, "update")
-				updatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertActions(t, configActions, "get", "update")
+				updatedObj := configActions[1].(clienttesting.UpdateActionImpl).Object
 				config := updatedObj.(*configv1alpha1.SubmarinerConfig)
 				if len(config.Finalizers) != 1 {
 					t.Errorf("unexpect size of finalizers")
@@ -508,8 +508,8 @@ func TestSyncSubmarinerConfig(t *testing.T) {
 				},
 			},
 			validateActions: func(t *testing.T, configActions []clienttesting.Action) {
-				testinghelpers.AssertActions(t, configActions, "update")
-				workUpdatedObj := configActions[0].(clienttesting.UpdateActionImpl).Object
+				testinghelpers.AssertActions(t, configActions, "get", "update")
+				workUpdatedObj := configActions[1].(clienttesting.UpdateActionImpl).Object
 				config := workUpdatedObj.(*configv1alpha1.SubmarinerConfig)
 				if len(config.Finalizers) != 0 {
 					t.Errorf("unexpect size of finalizers")

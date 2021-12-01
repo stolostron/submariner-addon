@@ -13,7 +13,6 @@ import (
 	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
 	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
-	"github.com/open-cluster-management/submariner-addon/pkg/finalizer"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	brokerinfo "github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	"github.com/open-cluster-management/submariner-addon/pkg/manifestwork"
@@ -23,6 +22,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+	"github.com/submariner-io/admiral/pkg/finalizer"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -281,7 +281,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 
 	// add a submariner agent finalizer to a managed cluster
 	added, err := finalizer.Add(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster, agentFinalizer)
-	if added {
+	if added || err != nil {
 		return err
 	}
 
@@ -311,7 +311,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 	// add a finalizer to the submariner-addon
 	added, err = finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
 		addOn, addOnFinalizer)
-	if added {
+	if added || err != nil {
 		return err
 	}
 
@@ -327,24 +327,11 @@ func (c *submarinerAgentController) syncManagedCluster(
 func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	managedCluster *clusterv1.ManagedCluster,
 	config *configv1alpha1.SubmarinerConfig) error {
-	// add a finalizer to the submarinerconfig
-	if config.DeletionTimestamp.IsZero() {
-		hasFinalizer := false
-
-		for i := range config.Finalizers {
-			if config.Finalizers[i] == submarinerConfigFinalizer {
-				hasFinalizer = true
-
-				break
-			}
-		}
-
-		if !hasFinalizer {
-			config.Finalizers = append(config.Finalizers, submarinerConfigFinalizer)
-			_, err := c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace).Update(ctx, config, metav1.UpdateOptions{})
-
-			return err
-		}
+	// add a finalizer to the submarinerconfigfinalizer.Remove(ctx, resource.ForSubmarinerConfig(
+	added, err := finalizer.Add(ctx, resource.ForSubmarinerConfig(
+		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace)), config, submarinerConfigFinalizer)
+	if added || err != nil {
+		return err
 	}
 
 	// config is deleting, we remove its related resources
@@ -355,7 +342,8 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 			}
 		}
 
-		return helpers.RemoveConfigFinalizer(ctx, c.configClient, config, submarinerConfigFinalizer)
+		return finalizer.Remove(ctx, resource.ForSubmarinerConfig(
+			c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace)), config, submarinerConfigFinalizer)
 	}
 
 	if managedCluster == nil {
@@ -413,33 +401,13 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 		return err
 	}
 
-	if err := c.removeAgentFinalizer(ctx, managedCluster); err != nil {
+	if err := finalizer.Remove(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster,
+		agentFinalizer); err != nil {
 		return err
 	}
 
-	return helpers.RemoveAddOnFinalizer(ctx, c.addOnClient, addOn, addOnFinalizer)
-}
-
-// removeAgentFinalizer removes the agent finalizer from a clusterset.
-func (c *submarinerAgentController) removeAgentFinalizer(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
-	copiedFinalizers := []string{}
-
-	for i := range managedCluster.Finalizers {
-		if managedCluster.Finalizers[i] == agentFinalizer {
-			continue
-		}
-
-		copiedFinalizers = append(copiedFinalizers, managedCluster.Finalizers[i])
-	}
-
-	if len(managedCluster.Finalizers) != len(copiedFinalizers) {
-		managedCluster.Finalizers = copiedFinalizers
-		_, err := c.clusterClient.ClusterV1().ManagedClusters().Update(ctx, managedCluster, metav1.UpdateOptions{})
-
-		return err
-	}
-
-	return nil
+	return finalizer.Remove(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
+		addOn, addOnFinalizer)
 }
 
 func (c *submarinerAgentController) deploySubmarinerAgent(

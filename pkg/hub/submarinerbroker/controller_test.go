@@ -6,9 +6,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	helpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker"
+	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/openshift/library-go/pkg/operator/events"
+	fakereactor "github.com/submariner-io/admiral/pkg/fake"
+	"github.com/submariner-io/admiral/pkg/test"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -33,9 +35,8 @@ var _ = Describe("Controller", func() {
 
 	When("a ManagedClusterSet is created", func() {
 		It("should add the Finalizer", func() {
-			helpers.AwaitFinalizer(finalizerName, func() (metav1.Object, error) {
-				return t.clusterSetClient.ClusterV1beta1().ManagedClusterSets().Get(context.TODO(), clusterSetName, metav1.GetOptions{})
-			})
+			test.AwaitFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta1().ManagedClusterSets()),
+				clusterSetName, finalizerName)
 		})
 
 		It("should create the broker Namespace resource", func() {
@@ -57,7 +58,7 @@ var _ = Describe("Controller", func() {
 		Context("and creation of the broker Namespace resource initially fails", func() {
 			BeforeEach(func() {
 				t.justBeforeRun = func() {
-					helpers.FailOnAction(&t.kubeClient.Fake, "namespaces", "create", nil, true)
+					fakereactor.FailOnAction(&t.kubeClient.Fake, "namespaces", "create", nil, true)
 				}
 			})
 
@@ -69,7 +70,7 @@ var _ = Describe("Controller", func() {
 		Context("and creation of the IPsec PSK Secret resource initially fails", func() {
 			BeforeEach(func() {
 				t.justBeforeRun = func() {
-					helpers.FailOnAction(&t.kubeClient.Fake, "secrets", "create", nil, true)
+					fakereactor.FailOnAction(&t.kubeClient.Fake, "secrets", "create", nil, true)
 				}
 			})
 
@@ -108,9 +109,8 @@ var _ = Describe("Controller", func() {
 		})
 
 		It("should remove the Finalizer", func() {
-			helpers.AwaitNoFinalizer(finalizerName, func() (metav1.Object, error) {
-				return t.clusterSetClient.ClusterV1beta1().ManagedClusterSets().Get(context.TODO(), clusterSetName, metav1.GetOptions{})
-			})
+			test.AwaitNoFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta1().ManagedClusterSets()),
+				clusterSetName, finalizerName)
 		})
 
 		It("should delete the broker Namespace resource", func() {
@@ -128,7 +128,7 @@ var _ = Describe("Controller", func() {
 		Context("and deletion of the broker Namespace initially fails", func() {
 			BeforeEach(func() {
 				t.justBeforeRun = func() {
-					helpers.FailOnAction(&t.kubeClient.Fake, "namespaces", "delete", nil, true)
+					fakereactor.FailOnAction(&t.kubeClient.Fake, "namespaces", "delete", nil, true)
 				}
 			})
 

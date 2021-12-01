@@ -5,9 +5,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/open-cluster-management/submariner-addon/pkg/manifestwork"
 	"github.com/openshift/library-go/pkg/operator/events"
+	fakereactor "github.com/submariner-io/admiral/pkg/fake"
+	"github.com/submariner-io/admiral/pkg/test"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"open-cluster-management.io/api/client/work/clientset/versioned/fake"
@@ -66,7 +67,7 @@ var _ = Describe("Apply", func() {
 
 		Context("and creation fails", func() {
 			JustBeforeEach(func() {
-				testing.FailOnAction(&workClient.Fake, "manifestworks", "create", nil, false)
+				fakereactor.FailOnAction(&workClient.Fake, "manifestworks", "create", nil, false)
 			})
 
 			It("should return an error", func() {
@@ -92,7 +93,7 @@ var _ = Describe("Apply", func() {
 
 			Context("and update fails", func() {
 				JustBeforeEach(func() {
-					testing.FailOnAction(&workClient.Fake, "manifestworks", "update", nil, false)
+					fakereactor.FailOnAction(&workClient.Fake, "manifestworks", "update", nil, false)
 				})
 
 				It("should return an error", func() {
@@ -102,7 +103,7 @@ var _ = Describe("Apply", func() {
 
 			Context("and update initially fails with a conflict error", func() {
 				BeforeEach(func() {
-					testing.ConflictOnUpdateReactor(&workClient.Fake, "manifestworks")
+					fakereactor.ConflictOnUpdateReactor(&workClient.Fake, "manifestworks")
 				})
 
 				It("should eventually update it", func() {
@@ -128,7 +129,7 @@ var _ = Describe("Apply", func() {
 
 			Context("and update fails", func() {
 				JustBeforeEach(func() {
-					testing.FailOnAction(&workClient.Fake, "manifestworks", "update", nil, false)
+					fakereactor.FailOnAction(&workClient.Fake, "manifestworks", "update", nil, false)
 				})
 
 				It("should return an error", func() {
@@ -138,7 +139,7 @@ var _ = Describe("Apply", func() {
 
 			Context("and update initially fails with a conflict error", func() {
 				BeforeEach(func() {
-					testing.ConflictOnUpdateReactor(&workClient.Fake, "manifestworks")
+					fakereactor.ConflictOnUpdateReactor(&workClient.Fake, "manifestworks")
 				})
 
 				It("should eventually update it", func() {
@@ -151,7 +152,7 @@ var _ = Describe("Apply", func() {
 		Context("and the Work Spec has not changed", func() {
 			It("should not update it", func() {
 				Expect(doApply()).To(Succeed())
-				testing.EnsureNoActionsForResource(&workClient.Fake, "manifestworks", "update")
+				test.EnsureNoActionsForResource(&workClient.Fake, "manifestworks", "update")
 			})
 		})
 	})
