@@ -338,11 +338,16 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit
 github.com/spf13/pflag
-# github.com/submariner-io/admiral v0.12.0-m0
+# github.com/submariner-io/admiral v0.12.0-m0.0.20211201145404-74420c79f374
 ## explicit
+github.com/submariner-io/admiral/pkg/fake
+github.com/submariner-io/admiral/pkg/federate
+github.com/submariner-io/admiral/pkg/finalizer
 github.com/submariner-io/admiral/pkg/log
 github.com/submariner-io/admiral/pkg/resource
 github.com/submariner-io/admiral/pkg/stringset
+github.com/submariner-io/admiral/pkg/syncer/test
+github.com/submariner-io/admiral/pkg/test
 github.com/submariner-io/admiral/pkg/util
 # github.com/submariner-io/cloud-prepare v0.12.0-m0.0.20211123153104-4ea00fe8bf34
 ## explicit
