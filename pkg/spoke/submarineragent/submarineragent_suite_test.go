@@ -8,9 +8,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	testingHelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"github.com/submariner-io/admiral/pkg/test"
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonFake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 )
@@ -18,6 +21,11 @@ import (
 const (
 	clusterName = "test"
 )
+
+var _ = BeforeSuite(func() {
+	Expect(submarinerv1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(operatorsv1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
+})
 
 func TestSubmarinerAgent(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -45,7 +53,7 @@ func (t *managedClusterAddOnTestBase) run() {
 }
 
 func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(expCond *metav1.Condition) {
-	testingHelpers.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
+	test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
 		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.TODO(),
 			helpers.SubmarinerAddOnName, metav1.GetOptions{})
 		if err != nil {

@@ -5,11 +5,11 @@ import (
 	"crypto/rand"
 	"embed"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/finalizer"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/submariner-io/admiral/pkg/finalizer"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -86,7 +86,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 
 	// Update finalizer at first
 	added, err := finalizer.Add(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
-	if added {
+	if added || err != nil {
 		return err
 	}
 

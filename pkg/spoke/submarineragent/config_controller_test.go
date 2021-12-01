@@ -14,10 +14,11 @@ import (
 	configInformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	cloudFake "github.com/open-cluster-management/submariner-addon/pkg/cloud/fake"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/submariner-io/admiral/pkg/fake"
+	"github.com/submariner-io/admiral/pkg/test"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +75,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 			})
 
 			It("should not try to update them", func() {
-				testing.EnsureNoActionsForResource(&t.kubeClient.Fake, "nodes", "update")
+				test.EnsureNoActionsForResource(&t.kubeClient.Fake, "nodes", "update")
 			})
 		})
 	})
@@ -150,10 +151,10 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 		})
 
 		Context("and unlabeling a node initially fails", func() {
-			var reactor *testing.FailingReactor
+			var reactor *fake.FailOnActionReactor
 
 			BeforeEach(func() {
-				reactor = testing.FailOnAction(&t.kubeClient.Fake, "nodes", "update", nil, false)
+				reactor = fake.FailOnAction(&t.kubeClient.Fake, "nodes", "update", nil, false)
 			})
 
 			It("should eventually unlabel it", func() {
@@ -166,7 +167,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 
 		Context("and unlabeling a node initially fails with a conflict error", func() {
 			BeforeEach(func() {
-				testing.ConflictOnUpdateReactor(&t.kubeClient.Fake, "nodes")
+				fake.ConflictOnUpdateReactor(&t.kubeClient.Fake, "nodes")
 			})
 
 			It("should eventually unlabel it", func() {
@@ -176,10 +177,10 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 	})
 
 	When("labeling a node initially fails", func() {
-		var reactor *testing.FailingReactor
+		var reactor *fake.FailOnActionReactor
 
 		BeforeEach(func() {
-			reactor = testing.FailOnAction(&t.kubeClient.Fake, "nodes", "update", nil, false)
+			reactor = fake.FailOnAction(&t.kubeClient.Fake, "nodes", "update", nil, false)
 		})
 
 		It("should eventually label it", func() {
@@ -194,7 +195,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 
 	When("labeling a node initially fails with a conflict error", func() {
 		BeforeEach(func() {
-			testing.ConflictOnUpdateReactor(&t.kubeClient.Fake, "nodes")
+			fake.ConflictOnUpdateReactor(&t.kubeClient.Fake, "nodes")
 		})
 
 		It("should eventually label it", func() {
@@ -348,7 +349,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 		Context("and unlabeling a node initially fails", func() {
 			BeforeEach(func() {
-				testing.FailOnAction(&t.kubeClient.Fake, "nodes", "update", nil, true)
+				fake.FailOnAction(&t.kubeClient.Fake, "nodes", "update", nil, true)
 			})
 
 			It("should eventually unlabel it", func() {
@@ -402,7 +403,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 	When("updating the SubmarinerConfig status initially fails", func() {
 		BeforeEach(func() {
-			testing.FailOnAction(&t.configClient.Fake, "*", "update", nil, true)
+			fake.FailOnAction(&t.configClient.Fake, "*", "update", nil, true)
 		})
 
 		It("should eventually update it", func() {
@@ -452,10 +453,10 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 		})
 
 		Context("and unlabeling a node initially fails", func() {
-			var reactor *testing.FailingReactor
+			var reactor *fake.FailOnActionReactor
 
 			BeforeEach(func() {
-				reactor = testing.FailOnAction(&t.kubeClient.Fake, "nodes", "update", nil, false)
+				reactor = fake.FailOnAction(&t.kubeClient.Fake, "nodes", "update", nil, false)
 			})
 
 			It("should eventually unlabel it", func() {
@@ -671,7 +672,7 @@ func (t *configControllerTestDriver) awaitFailureStatusCondition() {
 }
 
 func (t *configControllerTestDriver) awaitSubmarinerConfigStatusCondition(expCond *metav1.Condition) {
-	testing.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
+	test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
 		config, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(clusterName).Get(context.TODO(),
 			helpers.SubmarinerConfigName, metav1.GetOptions{})
 		if err != nil {

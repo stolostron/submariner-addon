@@ -8,6 +8,8 @@ import (
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/openshift/library-go/pkg/operator/events"
+	fakereactor "github.com/submariner-io/admiral/pkg/fake"
+	"github.com/submariner-io/admiral/pkg/syncer/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
 	submv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +42,7 @@ var _ = Describe("Connections Status Controller", func() {
 				t.awaitConnectionsNotEstablishedStatusCondition()
 
 				t.submariner.Status.Gateways = origGateways
-				_, err := t.submarinerClient.Update(context.TODO(), testing.ToUnstructured(t.submariner), metav1.UpdateOptions{})
+				_, err := t.submarinerClient.Update(context.TODO(), test.ToUnstructured(t.submariner), metav1.UpdateOptions{})
 				Expect(err).To(Succeed())
 
 				t.awaitConnectionsEstablishedStatusCondition()
@@ -101,7 +103,7 @@ var _ = Describe("Connections Status Controller", func() {
 	When("updating the ManagedClusterAddOn status initially fails", func() {
 		Context("", func() {
 			BeforeEach(func() {
-				testing.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
+				fakereactor.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
 			})
 
 			It("should eventually update it", func() {
@@ -111,7 +113,7 @@ var _ = Describe("Connections Status Controller", func() {
 
 		Context("with a conflict error", func() {
 			BeforeEach(func() {
-				testing.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
+				fakereactor.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
 			})
 
 			It("should eventually update it", func() {
@@ -178,7 +180,7 @@ func newConnStatusControllerTestDriver() *connStatusControllerTestDriver {
 		submarinerClient, dynamicInformerFactory, submarinerInformer := testing.NewDynamicClientWithInformer(submarinerNS)
 		t.submarinerClient = submarinerClient
 
-		_, err := t.submarinerClient.Create(context.TODO(), testing.ToUnstructured(t.submariner), metav1.CreateOptions{})
+		_, err := t.submarinerClient.Create(context.TODO(), test.ToUnstructured(t.submariner), metav1.CreateOptions{})
 		Expect(err).To(Succeed())
 
 		t.managedClusterAddOnTestBase.run()

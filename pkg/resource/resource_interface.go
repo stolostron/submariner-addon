@@ -4,6 +4,10 @@ package resource
 import (
 	"context"
 
+	configV1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+
+	//nolint:lll // Can't split line
+	configV1alpha1Client "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
 	"github.com/submariner-io/admiral/pkg/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -59,6 +63,23 @@ func ForAddon(client addonV1alpha1Client.ManagedClusterAddOnInterface) resource.
 		},
 		UpdateFunc: func(ctx context.Context, obj runtime.Object, options metav1.UpdateOptions) (runtime.Object, error) {
 			return client.Update(ctx, obj.(*addonV1alpha1.ManagedClusterAddOn), options)
+		},
+		DeleteFunc: func(ctx context.Context, name string, options metav1.DeleteOptions) error {
+			return client.Delete(ctx, name, options)
+		},
+	}
+}
+
+func ForSubmarinerConfig(client configV1alpha1Client.SubmarinerConfigInterface) resource.Interface {
+	return &resource.InterfaceFuncs{
+		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (runtime.Object, error) {
+			return client.Get(ctx, name, options)
+		},
+		CreateFunc: func(ctx context.Context, obj runtime.Object, options metav1.CreateOptions) (runtime.Object, error) {
+			return client.Create(ctx, obj.(*configV1alpha1.SubmarinerConfig), options)
+		},
+		UpdateFunc: func(ctx context.Context, obj runtime.Object, options metav1.UpdateOptions) (runtime.Object, error) {
+			return client.Update(ctx, obj.(*configV1alpha1.SubmarinerConfig), options)
 		},
 		DeleteFunc: func(ctx context.Context, name string, options metav1.DeleteOptions) error {
 			return client.Delete(ctx, name, options)
