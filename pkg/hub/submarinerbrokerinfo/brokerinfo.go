@@ -51,6 +51,7 @@ var (
 
 type SubmarinerBrokerInfo struct {
 	NATEnabled                bool
+	LoadBalancerEnabled       bool
 	IPSecIKEPort              int
 	IPSecNATTPort             int
 	InstallationNamespace     string
@@ -62,6 +63,7 @@ type SubmarinerBrokerInfo struct {
 	CableDriver               string
 	ClusterName               string
 	ClusterCIDR               string
+	GlobalCIDR                string
 	ServiceCIDR               string
 	CatalogChannel            string
 	CatalogName               string
@@ -70,9 +72,9 @@ type SubmarinerBrokerInfo struct {
 	CatalogStartingCSV        string
 	SubmarinerGatewayImage    string
 	SubmarinerRouteAgentImage string
+	SubmarinerGlobalnetImage  string
 	LighthouseAgentImage      string
 	LighthouseCoreDNSImage    string
-	LoadBalancerEnabled       bool
 }
 
 // Get retrieves submariner broker information consolidated with hub information.
@@ -140,6 +142,10 @@ func applySubmarinerConfig(
 	brokerInfo.NATEnabled = submarinerConfig.Spec.NATTEnable
 	brokerInfo.LoadBalancerEnabled = submarinerConfig.Spec.LoadBalancerEnable
 
+	if submarinerConfig.Spec.GlobalCIDR != "" {
+		brokerInfo.GlobalCIDR = submarinerConfig.Spec.GlobalCIDR
+	}
+
 	if submarinerConfig.Spec.CableDriver != "" {
 		brokerInfo.CableDriver = submarinerConfig.Spec.CableDriver
 	}
@@ -168,21 +174,7 @@ func applySubmarinerConfig(
 		brokerInfo.CatalogStartingCSV = submarinerConfig.Spec.SubscriptionConfig.StartingCSV
 	}
 
-	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec != "" {
-		brokerInfo.SubmarinerGatewayImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec
-	}
-
-	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec != "" {
-		brokerInfo.SubmarinerRouteAgentImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec
-	}
-
-	if submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec != "" {
-		brokerInfo.LighthouseCoreDNSImage = submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec
-	}
-
-	if submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec != "" {
-		brokerInfo.LighthouseAgentImage = submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec
-	}
+	applySubmarinerImageConfig(brokerInfo, submarinerConfig)
 
 	condition := metav1.Condition{
 		Type:    configv1alpha1.SubmarinerConfigConditionApplied,
@@ -205,6 +197,28 @@ func applySubmarinerConfig(
 	}
 
 	return nil
+}
+
+func applySubmarinerImageConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig) {
+	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec != "" {
+		brokerInfo.SubmarinerGatewayImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec != "" {
+		brokerInfo.SubmarinerRouteAgentImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec != "" {
+		brokerInfo.LighthouseCoreDNSImage = submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec != "" {
+		brokerInfo.LighthouseAgentImage = submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerGlobalnetImagePullSpec != "" {
+		brokerInfo.SubmarinerGlobalnetImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerGlobalnetImagePullSpec
+	}
 }
 
 func getIPSecPSK(client kubernetes.Interface, brokerNamespace string) (string, error) {
