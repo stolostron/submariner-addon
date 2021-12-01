@@ -32,6 +32,10 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=libreswan
 	CableDriver string `json:"cableDriver,omitempty"`
 
+	// GlobalCIDR specifies the global CIDR used by the cluster.
+	// +optional
+	GlobalCIDR string `json:"globalCIDR,omitempty"`
+
 	// IPSecIKEPort represents IPsec IKE port (default 500).
 	// +optional
 	// +kubebuilder:default=500
@@ -51,6 +55,12 @@ type SubmarinerConfigSpec struct {
 	// +optional
 	// +kubebuilder:default=true
 	NATTEnable bool `json:"NATTEnable"`
+
+	// LoadBalancerEnable enables or disables load balancer mode. When enabled, a LoadBalancer is created in the
+	// submariner-operator namespace (default false).
+	// +optional
+	// +kubebuilder:default=false
+	LoadBalancerEnable bool `json:"loadBalancerEnable"`
 
 	// CredentialsSecret is a reference to the secret with a certain cloud platform
 	// credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD.
@@ -73,12 +83,6 @@ type SubmarinerConfigSpec struct {
 	// GatewayConfig represents the gateways configuration of the Submariner.
 	// +optional
 	GatewayConfig `json:"gatewayConfig,omitempty"`
-
-	// LoadBalancerEnable enables or disables load balancer mode. When enabled, a LoadBalancer is created in the
-	// submariner-operator namespace (default false).
-	// +optional
-	// +kubebuilder:default=false
-	LoadBalancerEnable bool `json:"loadBalancerEnable"`
 }
 
 // SubscriptionConfig contains configuration specified for a submariner subscription.
@@ -120,6 +124,10 @@ type SubmarinerImagePullSpecs struct {
 	// SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.
 	// +optional
 	SubmarinerRouteAgentImagePullSpec string `json:"submarinerRouteAgentImagePullSpec,omitempty"`
+
+	// SubmarinerGlobalnetImagePullSpec represents the desired image of the submariner globalnet.
+	// +optional
+	SubmarinerGlobalnetImagePullSpec string `json:"submarinerGlobalnetImagePullSpec,omitempty"`
 }
 
 type GatewayConfig struct {
