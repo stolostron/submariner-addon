@@ -37,7 +37,7 @@ func init() {
 }
 
 func ApplyManifests(kubeClient kubernetes.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc, files ...string) error {
-	applyResults := resourceapply.ApplyDirectly(resourceapply.NewKubeClientHolder(kubeClient), recorder, assetFunc, files...)
+	applyResults := resourceapply.ApplyDirectly(context.TODO(), resourceapply.NewKubeClientHolder(kubeClient), recorder, assetFunc, files...)
 
 	errs := []error{}
 

@@ -1,6 +1,7 @@
 package submarineraddonagent
 
 import (
+	"context"
 	"crypto/x509"
 	"embed"
 	"encoding/pem"
@@ -198,6 +199,7 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, addon *
 	}
 
 	results := resourceapply.ApplyDirectly(
+		context.TODO(),
 		resourceapply.NewKubeClientHolder(a.kubeClient),
 		a.recorder,
 		func(name string) ([]byte, error) {

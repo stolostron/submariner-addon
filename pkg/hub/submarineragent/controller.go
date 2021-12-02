@@ -504,6 +504,7 @@ func (c *submarinerAgentController) applyClusterRBACFiles(brokerNamespace, manag
 	}
 	clientHolder := resourceapply.NewKubeClientHolder(c.kubeClient)
 	applyResults := resourceapply.ApplyDirectly(
+		context.TODO(),
 		clientHolder,
 		c.eventRecorder,
 		func(name string) ([]byte, error) {
