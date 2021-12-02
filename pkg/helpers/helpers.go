@@ -52,11 +52,6 @@ const (
 	SubmarinerMetricsPort       = 8080
 )
 
-const (
-	brokerSuffix       = "broker"
-	namespaceMaxLength = 63
-)
-
 var (
 	genericScheme = runtime.NewScheme()
 	genericCodecs = serializer.NewCodecFactory(genericScheme)
@@ -300,15 +295,4 @@ func GetCurrentNamespace(defaultNamespace string) string {
 	}
 
 	return string(nsBytes)
-}
-
-func GenerateBrokerName(clusterSetName string) string {
-	name := fmt.Sprintf("%s-%s", clusterSetName, brokerSuffix)
-	if len(name) > namespaceMaxLength {
-		truncatedClusterSetName := clusterSetName[(len(brokerSuffix) - 1):]
-
-		return fmt.Sprintf("%s-%s", truncatedClusterSetName, brokerSuffix)
-	}
-
-	return name
 }
