@@ -6,6 +6,7 @@ import (
 	"embed"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	brokerinfo "github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -91,7 +92,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	config := &brokerConfig{
-		SubmarinerNamespace: helpers.GenerateBrokerName(clusterSet.Name),
+		SubmarinerNamespace: brokerinfo.GenerateBrokerName(clusterSet.Name),
 	}
 
 	assetFunc := resource.AssetFromFile(manifestFiles, config)

@@ -442,34 +442,6 @@ func TestGetEnv(t *testing.T) {
 	}
 }
 
-func TestGernerateBrokerName(t *testing.T) {
-	cases := []struct {
-		name           string
-		clusterSetName string
-		expectedLength int
-	}{
-		{
-			name:           "short name",
-			clusterSetName: "test-clustr-set",
-			expectedLength: len("test-clustr-set-broker"),
-		},
-		{
-			name:           "long name",
-			clusterSetName: "clusterset-geographically-distributed-workloads-long-set-name",
-			expectedLength: 63,
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			actual := GenerateBrokerName(c.clusterSetName)
-			if len(actual) != c.expectedLength {
-				t.Errorf("expected %d, but: %d, %q", c.expectedLength, len(actual), actual)
-			}
-		})
-	}
-}
-
 func newUnstructured(apiVersion, kind, namespace, name string, content map[string]interface{}) *unstructured.Unstructured {
 	object := &unstructured.Unstructured{
 		Object: map[string]interface{}{

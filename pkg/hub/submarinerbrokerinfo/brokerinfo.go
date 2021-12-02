@@ -31,6 +31,8 @@ const (
 	ocpInfrastructureName         = "cluster"
 	ocpAPIServerName              = "cluster"
 	ocpConfigNamespace            = "openshift-config"
+	brokerSuffix                  = "broker"
+	namespaceMaxLength            = 63
 )
 
 var (
@@ -307,4 +309,15 @@ func getBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.
 	}
 
 	return "", "", fmt.Errorf("ServiceAccount %v/%v does not have a secret of type token", brokerNS, clusterName)
+}
+
+func GenerateBrokerName(clusterSetName string) string {
+	name := fmt.Sprintf("%s-%s", clusterSetName, brokerSuffix)
+	if len(name) > namespaceMaxLength {
+		truncatedClusterSetName := clusterSetName[(len(brokerSuffix) - 1):]
+
+		return fmt.Sprintf("%s-%s", truncatedClusterSetName, brokerSuffix)
+	}
+
+	return name
 }
