@@ -36,8 +36,9 @@ func init() {
 	utilruntime.Must(apiextensionsv1.AddToScheme(genericScheme))
 }
 
-func ApplyManifests(kubeClient kubernetes.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc, files ...string) error {
-	applyResults := resourceapply.ApplyDirectly(context.TODO(), resourceapply.NewKubeClientHolder(kubeClient), recorder, assetFunc, files...)
+func ApplyManifests(ctx context.Context, kubeClient kubernetes.Interface, recorder events.Recorder,
+	assetFunc resourceapply.AssetFunc, files ...string) error {
+	applyResults := resourceapply.ApplyDirectly(ctx, resourceapply.NewKubeClientHolder(kubeClient), recorder, assetFunc, files...)
 
 	errs := []error{}
 
@@ -50,7 +51,7 @@ func ApplyManifests(kubeClient kubernetes.Interface, recorder events.Recorder, a
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func DeleteFromManifests(kubeClient kubernetes.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc,
+func DeleteFromManifests(ctx context.Context, kubeClient kubernetes.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc,
 	files ...string) error {
 	errs := []error{}
 
@@ -71,13 +72,13 @@ func DeleteFromManifests(kubeClient kubernetes.Interface, recorder events.Record
 
 		switch t := object.(type) {
 		case *corev1.Namespace:
-			err = kubeClient.CoreV1().Namespaces().Delete(context.TODO(), t.Name, metav1.DeleteOptions{})
+			err = kubeClient.CoreV1().Namespaces().Delete(ctx, t.Name, metav1.DeleteOptions{})
 		case *rbacv1.Role:
-			err = kubeClient.RbacV1().Roles(t.Namespace).Delete(context.TODO(), t.Name, metav1.DeleteOptions{})
+			err = kubeClient.RbacV1().Roles(t.Namespace).Delete(ctx, t.Name, metav1.DeleteOptions{})
 		case *rbacv1.RoleBinding:
-			err = kubeClient.RbacV1().RoleBindings(t.Namespace).Delete(context.TODO(), t.Name, metav1.DeleteOptions{})
+			err = kubeClient.RbacV1().RoleBindings(t.Namespace).Delete(ctx, t.Name, metav1.DeleteOptions{})
 		case *corev1.ServiceAccount:
-			err = kubeClient.CoreV1().ServiceAccounts(t.Namespace).Delete(context.TODO(), t.Name, metav1.DeleteOptions{})
+			err = kubeClient.CoreV1().ServiceAccounts(t.Namespace).Delete(ctx, t.Name, metav1.DeleteOptions{})
 		default:
 			err = fmt.Errorf("unhandled type %T", object)
 		}

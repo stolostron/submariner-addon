@@ -9,23 +9,10 @@ import (
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
-	errorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
@@ -51,20 +38,6 @@ const (
 	SubmarinerRoutePort         = 4800
 	SubmarinerMetricsPort       = 8080
 )
-
-var (
-	genericScheme = runtime.NewScheme()
-	genericCodecs = serializer.NewCodecFactory(genericScheme)
-	genericCodec  = genericCodecs.UniversalDeserializer()
-)
-
-func init() {
-	utilruntime.Must(appsv1.AddToScheme(genericScheme))
-	utilruntime.Must(corev1.AddToScheme(genericScheme))
-	utilruntime.Must(rbacv1.AddToScheme(genericScheme))
-	utilruntime.Must(apiextensionsv1beta1.AddToScheme(genericScheme))
-	utilruntime.Must(apiextensionsv1.AddToScheme(genericScheme))
-}
 
 type UpdateSubmarinerConfigStatusFunc func(status *configv1alpha1.SubmarinerConfigStatus) error
 
@@ -182,60 +155,6 @@ func UpdateManagedClusterAddOnStatusFn(cond *metav1.Condition) UpdateManagedClus
 
 		return nil
 	}
-}
-
-// CleanUpSubmarinerManifests clean up submariner resources from its manifest files.
-func CleanUpSubmarinerManifests(
-	ctx context.Context,
-	client kubernetes.Interface,
-	recorder events.Recorder,
-	assetFunc resourceapply.AssetFunc,
-	files ...string) error {
-	errs := []error{}
-
-	for _, file := range files {
-		objectRaw, err := assetFunc(file)
-		if err != nil {
-			errs = append(errs, err)
-
-			continue
-		}
-
-		object, _, err := genericCodec.Decode(objectRaw, nil, nil)
-		if err != nil {
-			errs = append(errs, err)
-
-			continue
-		}
-
-		switch t := object.(type) {
-		case *corev1.Namespace:
-			err = client.CoreV1().Namespaces().Delete(ctx, t.Name, metav1.DeleteOptions{})
-		case *rbacv1.Role:
-			err = client.RbacV1().Roles(t.Namespace).Delete(ctx, t.Name, metav1.DeleteOptions{})
-		case *rbacv1.RoleBinding:
-			err = client.RbacV1().RoleBindings(t.Namespace).Delete(ctx, t.Name, metav1.DeleteOptions{})
-		case *corev1.ServiceAccount:
-			err = client.CoreV1().ServiceAccounts(t.Namespace).Delete(ctx, t.Name, metav1.DeleteOptions{})
-		default:
-			err = fmt.Errorf("unhandled type %T", object)
-		}
-
-		if errors.IsNotFound(err) {
-			continue
-		}
-
-		if err != nil {
-			errs = append(errs, err)
-
-			continue
-		}
-
-		gvk := resourcehelper.GuessObjectGroupVersionKind(object)
-		recorder.Eventf(fmt.Sprintf("Submariner%sDeleted", gvk.Kind), "Deleted %s", resourcehelper.FormatResourceForCLIWithNamespace(object))
-	}
-
-	return errorhelpers.NewMultiLineAggregate(errs)
 }
 
 func GetClusterProduct(managedCluster *clusterv1.ManagedCluster) string {

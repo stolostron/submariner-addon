@@ -20,7 +20,6 @@ import (
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/submariner-io/admiral/pkg/finalizer"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -418,7 +417,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	submarinerConfig *configv1alpha1.SubmarinerConfig) error {
 	// generate service account and bind it to `submariner-k8s-broker-cluster` role
 	brokerNamespace := brokerinfo.GenerateBrokerName(clusterSetName)
-	if err := c.applyClusterRBACFiles(brokerNamespace, managedCluster.Name); err != nil {
+	if err := c.applyClusterRBACFiles(ctx, brokerNamespace, managedCluster.Name); err != nil {
 		return err
 	}
 
@@ -497,34 +496,13 @@ func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, c
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (c *submarinerAgentController) applyClusterRBACFiles(brokerNamespace, managedClusterName string) error {
+func (c *submarinerAgentController) applyClusterRBACFiles(ctx context.Context, brokerNamespace, managedClusterName string) error {
 	config := &clusterRBACConfig{
 		ManagedClusterName:        managedClusterName,
 		SubmarinerBrokerNamespace: brokerNamespace,
 	}
-	clientHolder := resourceapply.NewKubeClientHolder(c.kubeClient)
-	applyResults := resourceapply.ApplyDirectly(
-		context.TODO(),
-		clientHolder,
-		c.eventRecorder,
-		func(name string) ([]byte, error) {
-			template, err := manifestFiles.ReadFile(name)
-			if err != nil {
-				return nil, err
-			}
 
-			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
-		},
-		clusterRBACFiles...,
-	)
-	errs := []error{}
-	for _, result := range applyResults {
-		if result.Error != nil {
-			errs = append(errs, fmt.Errorf("%q (%T): %w", result.File, result.Type, result.Error))
-		}
-	}
-
-	return operatorhelpers.NewMultiLineAggregate(errs)
+	return resource.ApplyManifests(ctx, c.kubeClient, c.eventRecorder, resource.AssetFromFile(manifestFiles, config), clusterRBACFiles...)
 }
 
 func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, managedClusterName string) error {
@@ -549,20 +527,8 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 		SubmarinerBrokerNamespace: serviceAccounts.Items[0].Namespace,
 	}
 
-	return helpers.CleanUpSubmarinerManifests(
-		ctx,
-		c.kubeClient,
-		c.eventRecorder,
-		func(name string) ([]byte, error) {
-			template, err := manifestFiles.ReadFile(name)
-			if err != nil {
-				return nil, err
-			}
-
-			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
-		},
-		clusterRBACFiles...,
-	)
+	return resource.DeleteFromManifests(ctx, c.kubeClient, c.eventRecorder, resource.AssetFromFile(manifestFiles, config),
+		clusterRBACFiles...)
 }
 
 func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(config *configv1alpha1.SubmarinerConfig) error {

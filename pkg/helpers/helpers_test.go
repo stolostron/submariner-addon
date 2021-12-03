@@ -3,8 +3,6 @@ package helpers
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -13,13 +11,9 @@ import (
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
-	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
-	kubefake "k8s.io/client-go/kubernetes/fake"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -213,74 +207,6 @@ func TestUpdateManagedClusterAddOnStatus(t *testing.T) {
 	}
 }
 
-func TestCleanUpSubmarinerManifests(t *testing.T) {
-	applyFiles := map[string]runtime.Object{
-		"role":           newUnstructured("rbac.authorization.k8s.io/v1", "Role", "ns", "rb", map[string]interface{}{}),
-		"rolebinding":    newUnstructured("rbac.authorization.k8s.io/v1", "RoleBinding", "ns", "r", map[string]interface{}{}),
-		"serviceaccount": newUnstructured("v1", "ServiceAccount", "ns", "sa", map[string]interface{}{}),
-		"namespace":      newUnstructured("v1", "Namespace", "", "ns", map[string]interface{}{}),
-		"kind1":          newUnstructured("v1", "Kind1", "ns", "k1", map[string]interface{}{}),
-	}
-
-	testcase := []struct {
-		name          string
-		applyFileName string
-		expectErr     bool
-	}{
-		{
-			name:          "Delete role",
-			applyFileName: "role",
-			expectErr:     false,
-		},
-		{
-			name:          "Delete rolebinding",
-			applyFileName: "rolebinding",
-			expectErr:     false,
-		},
-		{
-			name:          "Delete serviceaccount",
-			applyFileName: "serviceaccount",
-			expectErr:     false,
-		},
-		{
-			name:          "Delete namespace",
-			applyFileName: "namespace",
-			expectErr:     false,
-		},
-		{
-			name:          "Delete unhandled object",
-			applyFileName: "kind1",
-			expectErr:     true,
-		},
-	}
-
-	for _, c := range testcase {
-		t.Run(c.name, func(t *testing.T) {
-			fakeKubeClient := kubefake.NewSimpleClientset()
-			err := CleanUpSubmarinerManifests(
-				context.TODO(),
-				fakeKubeClient,
-				eventstesting.NewTestingEventRecorder(t),
-				func(name string) ([]byte, error) {
-					if applyFiles[name] == nil {
-						return nil, fmt.Errorf("Failed to find file")
-					}
-
-					return json.Marshal(applyFiles[name])
-				},
-				c.applyFileName,
-			)
-
-			if err == nil && c.expectErr {
-				t.Errorf("Expect an apply error")
-			}
-			if err != nil && !c.expectErr {
-				t.Errorf("Expect no apply error, %v", err)
-			}
-		})
-	}
-}
-
 func TestGetClusterType(t *testing.T) {
 	cases := []struct {
 		name           string
@@ -440,22 +366,4 @@ func TestGetEnv(t *testing.T) {
 			}
 		})
 	}
-}
-
-func newUnstructured(apiVersion, kind, namespace, name string, content map[string]interface{}) *unstructured.Unstructured {
-	object := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": apiVersion,
-			"kind":       kind,
-			"metadata": map[string]interface{}{
-				"namespace": namespace,
-				"name":      name,
-			},
-		},
-	}
-	for key, val := range content {
-		object.Object[key] = val
-	}
-
-	return object
 }
