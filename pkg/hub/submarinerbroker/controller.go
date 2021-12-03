@@ -99,7 +99,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 
 	// ClusterSet is deleting, we remove its related resources on hub
 	if !clusterSet.DeletionTimestamp.IsZero() {
-		if err := resource.DeleteFromManifests(c.kubeClient, syncCtx.Recorder(), assetFunc, staticResourceFiles...); err != nil {
+		if err := resource.DeleteFromManifests(ctx, c.kubeClient, syncCtx.Recorder(), assetFunc, staticResourceFiles...); err != nil {
 			return err
 		}
 
@@ -107,7 +107,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	// Apply static files
-	err = resource.ApplyManifests(c.kubeClient, syncCtx.Recorder(), assetFunc, staticResourceFiles...)
+	err = resource.ApplyManifests(ctx, c.kubeClient, syncCtx.Recorder(), assetFunc, staticResourceFiles...)
 	if err != nil {
 		return err
 	}
