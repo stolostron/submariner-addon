@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 
@@ -157,7 +158,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 			condition = failedCondition(err.Error())
 		}
 
-		updateErr := c.updateSubmarinerConfigStatus(syncCtx.Recorder(), config, &condition)
+		updateErr := c.updateSubmarinerConfigStatus(ctx, syncCtx.Recorder(), config, &condition)
 
 		if err != nil {
 			return err
@@ -175,17 +176,17 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	if config.Status.ManagedClusterInfo.Platform == "AWS" {
 		// for AWS, the gateway configuration will be operated on the hub
 		// count the gateways status on the managed cluster and report it to the hub
-		return c.updateGatewayStatus(syncCtx.Recorder(), config)
+		return c.updateGatewayStatus(ctx, syncCtx.Recorder(), config)
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "GCP" {
-		return c.prepareForGCP(config, syncCtx)
+		return c.prepareForGCP(ctx, config, syncCtx)
 	}
 
 	// ensure the expected count of gateways
 	condition, err := c.ensureGateways(ctx, config)
 
-	updateErr := c.updateSubmarinerConfigStatus(syncCtx.Recorder(), config, &condition)
+	updateErr := c.updateSubmarinerConfigStatus(ctx, syncCtx.Recorder(), config, &condition)
 
 	if err != nil {
 		return err
@@ -194,7 +195,8 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	return updateErr
 }
 
-func (c *submarinerConfigController) prepareForGCP(config *configv1alpha1.SubmarinerConfig, syncCtx factory.SyncContext) error {
+func (c *submarinerConfigController) prepareForGCP(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
+	syncCtx factory.SyncContext) error {
 	if !meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
 		errs := []error{}
 
@@ -217,8 +219,9 @@ func (c *submarinerConfigController) prepareForGCP(config *configv1alpha1.Submar
 			errs = append(errs, preparedErr)
 		}
 
-		_, updated, updatedErr := helpers.UpdateSubmarinerConfigStatus(c.configClient, config.Namespace, config.Name,
-			helpers.UpdateSubmarinerConfigConditionFn(&condition))
+		_, updated, updatedErr := submarinerconfig.UpdateStatus(ctx,
+			c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace), config.Name,
+			submarinerconfig.UpdateConditionFn(&condition))
 
 		if updatedErr != nil {
 			errs = append(errs, updatedErr)
@@ -234,7 +237,7 @@ func (c *submarinerConfigController) prepareForGCP(config *configv1alpha1.Submar
 		}
 	}
 
-	return c.updateGatewayStatus(syncCtx.Recorder(), config)
+	return c.updateGatewayStatus(ctx, syncCtx.Recorder(), config)
 }
 
 func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
@@ -257,10 +260,11 @@ func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Conte
 	return nil
 }
 
-func (c *submarinerConfigController) updateSubmarinerConfigStatus(recorder events.Recorder, config *configv1alpha1.SubmarinerConfig,
-	condition *metav1.Condition) error {
-	updatedStatus, updated, err := helpers.UpdateSubmarinerConfigStatus(c.configClient, config.Namespace, config.Name,
-		helpers.UpdateSubmarinerConfigConditionFn(condition))
+func (c *submarinerConfigController) updateSubmarinerConfigStatus(ctx context.Context, recorder events.Recorder,
+	config *configv1alpha1.SubmarinerConfig, condition *metav1.Condition) error {
+	updatedStatus, updated, err := submarinerconfig.UpdateStatus(ctx,
+		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace), config.Name,
+		submarinerconfig.UpdateConditionFn(condition))
 
 	if updated {
 		recorder.Eventf("SubmarinerConfigStatusUpdated", "Updated status conditions:  %#v", updatedStatus.Conditions)
@@ -513,7 +517,8 @@ func (c *submarinerConfigController) findGatewaysWithZone(expected int, zoneLabe
 	return gateways, nil
 }
 
-func (c *submarinerConfigController) updateGatewayStatus(recorder events.Recorder, config *configv1alpha1.SubmarinerConfig) error {
+func (c *submarinerConfigController) updateGatewayStatus(ctx context.Context, recorder events.Recorder,
+	config *configv1alpha1.SubmarinerConfig) error {
 	gateways, err := c.getLabeledNodes(
 		nodeLabelSelector{workerNodeLabel, selection.Exists},
 		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},
@@ -541,7 +546,7 @@ func (c *submarinerConfigController) updateGatewayStatus(recorder events.Recorde
 		condition = successCondition(gatewayNames)
 	}
 
-	return c.updateSubmarinerConfigStatus(recorder, config, &condition)
+	return c.updateSubmarinerConfigStatus(ctx, recorder, config, &condition)
 }
 
 func failedCondition(formatMsg string, args ...interface{}) metav1.Condition {

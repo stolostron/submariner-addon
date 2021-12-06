@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
+	"github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig"
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 
@@ -376,11 +377,8 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 		}
 	}
 
-	_, updated, updatedErr := helpers.UpdateSubmarinerConfigStatus(
-		c.configClient,
-		config.Namespace, config.Name,
-		helpers.UpdateSubmarinerConfigStatusFn(condition, &managedClusterInfo),
-	)
+	_, updated, updatedErr := submarinerconfig.UpdateStatus(ctx, c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace),
+		config.Name, submarinerconfig.UpdateStatusFn(condition, &managedClusterInfo))
 
 	if updatedErr != nil {
 		errs = append(errs, updatedErr)
@@ -436,7 +434,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	}
 
 	if submarinerConfig != nil {
-		err := c.updateSubmarinerConfigStatus(submarinerConfig, managedCluster.Name)
+		err := c.updateSubmarinerConfigStatus(ctx, submarinerConfig, managedCluster.Name)
 		if err != nil {
 			return err
 		}
@@ -455,7 +453,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	return nil
 }
 
-func (c *submarinerAgentController) updateSubmarinerConfigStatus(submarinerConfig *configv1alpha1.SubmarinerConfig,
+func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Context, submarinerConfig *configv1alpha1.SubmarinerConfig,
 	clusterName string) error {
 	condition := &metav1.Condition{
 		Type:    configv1alpha1.SubmarinerConfigConditionApplied,
@@ -464,8 +462,9 @@ func (c *submarinerAgentController) updateSubmarinerConfigStatus(submarinerConfi
 		Message: "SubmarinerConfig was applied",
 	}
 
-	_, updated, err := helpers.UpdateSubmarinerConfigStatus(c.configClient, submarinerConfig.Namespace, submarinerConfig.Name,
-		helpers.UpdateSubmarinerConfigConditionFn(condition))
+	_, updated, err := submarinerconfig.UpdateStatus(ctx,
+		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(submarinerConfig.Namespace), submarinerConfig.Name,
+		submarinerconfig.UpdateConditionFn(condition))
 
 	if updated {
 		c.eventRecorder.Eventf("SubmarinerConfigApplied", "SubmarinerConfig %q was applied for managed cluster %q",
