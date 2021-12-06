@@ -2,8 +2,6 @@ package helpers
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -16,7 +14,6 @@ import (
 	"k8s.io/client-go/util/retry"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 const (
@@ -157,16 +154,6 @@ func UpdateManagedClusterAddOnStatusFn(cond *metav1.Condition) UpdateManagedClus
 	}
 }
 
-func GetClusterProduct(managedCluster *clusterv1.ManagedCluster) string {
-	for _, claim := range managedCluster.Status.ClusterClaims {
-		if claim.Name == "product.open-cluster-management.io" {
-			return claim.Value
-		}
-	}
-
-	return ""
-}
-
 func GetEnv(key, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {
@@ -174,35 +161,6 @@ func GetEnv(key, defaultValue string) string {
 	}
 
 	return value
-}
-
-func GetManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alpha1.ManagedClusterInfo {
-	clusterInfo := configv1alpha1.ManagedClusterInfo{
-		ClusterName: managedCluster.Name,
-	}
-
-	for _, claim := range managedCluster.Status.ClusterClaims {
-		if claim.Name == "product.open-cluster-management.io" {
-			clusterInfo.Vendor = claim.Value
-		}
-
-		if claim.Name == "platform.open-cluster-management.io" {
-			clusterInfo.Platform = claim.Value
-		}
-
-		if claim.Name == "region.open-cluster-management.io" {
-			clusterInfo.Region = claim.Value
-		}
-
-		if claim.Name == "infrastructure.openshift.io" {
-			var infraInfo map[string]interface{}
-			if err := json.Unmarshal([]byte(claim.Value), &infraInfo); err == nil {
-				clusterInfo.InfraID = fmt.Sprintf("%v", infraInfo["infraName"])
-			}
-		}
-	}
-
-	return clusterInfo
 }
 
 // GetCurrentNamespace returns the current namesapce from file system,
