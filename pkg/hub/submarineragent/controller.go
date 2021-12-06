@@ -3,6 +3,7 @@ package submarineragent
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
 
 	"github.com/ghodss/yaml"
@@ -349,7 +350,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 		return nil
 	}
 
-	managedClusterInfo := helpers.GetManagedClusterInfo(managedCluster)
+	managedClusterInfo := getManagedClusterInfo(managedCluster)
 
 	// prepare submariner cluster environment
 	errs := []error{}
@@ -555,7 +556,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(config *configv1
 
 func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
 	files := []string{agentRBACFile}
-	if helpers.GetClusterProduct(managedCluster) == helpers.ProductOCP {
+	if getClusterProduct(managedCluster) == helpers.ProductOCP {
 		files = append(files, sccFiles...)
 	}
 
@@ -591,4 +592,43 @@ func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{
 			},
 		},
 	}, nil
+}
+
+func getClusterProduct(managedCluster *clusterv1.ManagedCluster) string {
+	for _, claim := range managedCluster.Status.ClusterClaims {
+		if claim.Name == "product.open-cluster-management.io" {
+			return claim.Value
+		}
+	}
+
+	return ""
+}
+
+func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alpha1.ManagedClusterInfo {
+	clusterInfo := configv1alpha1.ManagedClusterInfo{
+		ClusterName: managedCluster.Name,
+	}
+
+	for _, claim := range managedCluster.Status.ClusterClaims {
+		if claim.Name == "product.open-cluster-management.io" {
+			clusterInfo.Vendor = claim.Value
+		}
+
+		if claim.Name == "platform.open-cluster-management.io" {
+			clusterInfo.Platform = claim.Value
+		}
+
+		if claim.Name == "region.open-cluster-management.io" {
+			clusterInfo.Region = claim.Value
+		}
+
+		if claim.Name == "infrastructure.openshift.io" {
+			var infraInfo map[string]interface{}
+			if err := json.Unmarshal([]byte(claim.Value), &infraInfo); err == nil {
+				clusterInfo.InfraID = fmt.Sprintf("%v", infraInfo["infraName"])
+			}
+		}
+	}
+
+	return clusterInfo
 }

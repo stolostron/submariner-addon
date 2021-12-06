@@ -4,7 +4,6 @@ package helpers
 import (
 	"context"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 //nolint:dupl // These tests will either be removed or converted to Gingko.
@@ -202,134 +200,6 @@ func TestUpdateManagedClusterAddOnStatus(t *testing.T) {
 				if !equality.Semantic.DeepEqual(expected, actual) {
 					t.Errorf(diff.ObjectDiff(expected, actual))
 				}
-			}
-		})
-	}
-}
-
-func TestGetClusterType(t *testing.T) {
-	cases := []struct {
-		name           string
-		clusterName    string
-		managedCluster *clusterv1.ManagedCluster
-		expectType     string
-	}{
-		{
-			name:        "cluster is OCP",
-			clusterName: "cluster1",
-			managedCluster: &clusterv1.ManagedCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "cluster1",
-				},
-				Status: clusterv1.ManagedClusterStatus{
-					ClusterClaims: []clusterv1.ManagedClusterClaim{
-						{
-							Name:  "product.open-cluster-management.io",
-							Value: "OpenShift",
-						},
-					},
-				},
-			},
-			expectType: "OpenShift",
-		},
-		{
-			name:        "cluster is not OCP",
-			clusterName: "cluster1",
-			managedCluster: &clusterv1.ManagedCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "cluster1",
-				},
-				Status: clusterv1.ManagedClusterStatus{
-					ClusterClaims: []clusterv1.ManagedClusterClaim{
-						{
-							Name:  "product.open-cluster-management.io",
-							Value: "others",
-						},
-					},
-				},
-			},
-			expectType: "others",
-		},
-		{
-			name:        "cluster has no vendor",
-			clusterName: "cluster1",
-			managedCluster: &clusterv1.ManagedCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "cluster1",
-				},
-			},
-			expectType: "",
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			clusterType := GetClusterProduct(c.managedCluster)
-			if clusterType != c.expectType {
-				t.Errorf("expect %s, but %s", c.expectType, clusterType)
-			}
-		})
-	}
-}
-
-func TestGetManagedClusterInfo(t *testing.T) {
-	cases := []struct {
-		name           string
-		managedCluster *clusterv1.ManagedCluster
-		expected       configv1alpha1.ManagedClusterInfo
-	}{
-		{
-			name: "no claims",
-			managedCluster: &clusterv1.ManagedCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test",
-				},
-			},
-			expected: configv1alpha1.ManagedClusterInfo{
-				ClusterName: "test",
-			},
-		},
-		{
-			name: "has claims",
-			managedCluster: &clusterv1.ManagedCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test",
-				},
-				Status: clusterv1.ManagedClusterStatus{
-					ClusterClaims: []clusterv1.ManagedClusterClaim{
-						{
-							Name:  "product.open-cluster-management.io",
-							Value: "OpenShift",
-						},
-						{
-							Name:  "platform.open-cluster-management.io",
-							Value: "AWS",
-						},
-						{
-							Name:  "region.open-cluster-management.io",
-							Value: "us-east-1",
-						},
-						{
-							Name:  "infrastructure.openshift.io",
-							Value: "{\"infraName\":\"cluster-1234\"}",
-						},
-					},
-				},
-			},
-			expected: configv1alpha1.ManagedClusterInfo{
-				ClusterName: "test",
-				Vendor:      "OpenShift",
-				Platform:    "AWS",
-				Region:      "us-east-1",
-				InfraID:     "cluster-1234",
-			},
-		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			info := GetManagedClusterInfo(c.managedCluster)
-			if !reflect.DeepEqual(info, c.expected) {
-				t.Errorf("expect %v, but %s", c.expected, info)
 			}
 		})
 	}
