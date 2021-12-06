@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    component: submariner-globalnet
+  name: submariner-globalnet-info
+  namespace: {{ .SubmarinerNamespace }}
+data:
+  clusterinfo: "[]"
+  globalnetCidrRange: "{{ .GlobalnetCIDRRange }}"
+  globalnetClusterSize: "{{ .DefaultGlobalnetClusterSize }}"
+  globalnetEnabled: "{{ .GlobalnetEnabled }}"

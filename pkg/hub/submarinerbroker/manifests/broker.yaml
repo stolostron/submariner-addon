@@ -1,0 +1,17 @@
+apiVersion: submariner.io/v1alpha1
+kind: Broker
+metadata:
+  name: broker
+  namespace: {{ .SubmarinerNamespace }}
+spec:
+  components:
+  {{ range $ele := .Components }}
+  - {{ $ele }}
+  {{ end }}
+  defaultCustomDomains: 
+  {{ range $ele := .DefaultCustomDomains }}
+  - {{ $ele }}
+  {{ end }}
+  globalnetCIDRRange: "{{ .GlobalnetCIDRRange }}"
+  defaultGlobalnetClusterSize: {{ .DefaultGlobalnetClusterSize }}
+  globalnetEnabled: {{ .GlobalnetEnabled }}
