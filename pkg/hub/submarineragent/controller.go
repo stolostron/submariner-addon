@@ -155,10 +155,6 @@ func NewSubmarinerAgentController(
 			// TODO: we may consider to use addon to set up the submariner env on the managed cluster instead of
 			// using manifestwork, one problem should be considered - how to get the cloud credentials
 			accessor, _ := meta.Accessor(obj)
-			if accessor.GetName() != helpers.SubmarinerConfigName {
-				return ""
-			}
-
 			return accessor.GetNamespace() + "/" + accessor.GetName()
 		}, configInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
@@ -202,7 +198,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 			return err
 		}
 
-		config, err := c.configLister.SubmarinerConfigs(name).Get(helpers.SubmarinerConfigName)
+		config, err := c.configLister.SubmarinerConfigs(namespace).Get(name)
 		if errors.IsNotFound(err) {
 			// only sync the managed cluster
 			return c.syncManagedCluster(ctx, managedCluster.DeepCopy(), nil)

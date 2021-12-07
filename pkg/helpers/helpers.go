@@ -21,7 +21,7 @@ import (
 
 const (
 	SubmarinerAddOnName  = "submariner"
-	SubmarinerConfigName = "submariner"
+	SubmarinerConfigName = "sample-submariner-config"
 )
 
 const (

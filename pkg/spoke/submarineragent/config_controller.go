@@ -60,6 +60,7 @@ type submarinerConfigController struct {
 	clusterName          string
 	cloudProviderFactory cloud.ProviderFactory
 	onSyncDefer          func()
+	configName           string
 }
 
 type SubmarinerConfigControllerInput struct {
@@ -73,6 +74,7 @@ type SubmarinerConfigControllerInput struct {
 	Recorder             events.Recorder
 	// This is a hook for unit tests to invoke a defer (specifically GinkgoRecover) when the sync function is called.
 	OnSyncDefer func()
+	configName           string
 }
 
 // NewSubmarinerConfigController returns an instance of submarinerAgentConfigController.
@@ -86,6 +88,7 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 		clusterName:          input.ClusterName,
 		cloudProviderFactory: input.CloudProviderFactory,
 		onSyncDefer:          input.OnSyncDefer,
+		configName:           input.configName,
 	}
 
 	return factory.New().
@@ -97,7 +100,7 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
 
-			return metaObj.GetName() == helpers.SubmarinerConfigName
+			return metaObj.GetName() == c.configName
 		}, input.ConfigInformer.Informer()).
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
@@ -127,7 +130,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	config, err := c.configLister.SubmarinerConfigs(c.clusterName).Get(helpers.SubmarinerConfigName)
+	config, err := c.configLister.SubmarinerConfigs(c.clusterName).Get(c.configName)
 	if apiErrors.IsNotFound(err) {
 		// the config not found, could be deleted, do nothing
 		return nil
