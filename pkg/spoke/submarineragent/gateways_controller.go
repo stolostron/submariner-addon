@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/addon"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,8 +83,7 @@ func (c *gatewaysStatusController) sync(ctx context.Context, syncCtx factory.Syn
 	}
 
 	// check submariner agent status and update submariner-addon status on the hub cluster
-	updatedStatus, updated, err := helpers.UpdateManagedClusterAddOnStatus(ctx, c.addOnClient, c.clusterName,
-		helpers.UpdateManagedClusterAddOnStatusFn(&gatewayNodeCondtion))
+	updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(&gatewayNodeCondtion))
 	if err != nil {
 		return err
 	}
