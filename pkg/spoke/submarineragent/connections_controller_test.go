@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/openshift/library-go/pkg/operator/events"
 	fakereactor "github.com/submariner-io/admiral/pkg/fake"
@@ -177,7 +176,7 @@ func newConnStatusControllerTestDriver() *connStatusControllerTestDriver {
 	})
 
 	JustBeforeEach(func() {
-		submarinerClient, dynamicInformerFactory, submarinerInformer := testing.NewDynamicClientWithInformer(submarinerNS)
+		submarinerClient, dynamicInformerFactory, submarinerInformer := newDynamicClientWithInformer(submarinerNS)
 		t.submarinerClient = submarinerClient
 
 		_, err := t.submarinerClient.Create(context.TODO(), test.ToUnstructured(t.submariner), metav1.CreateOptions{})
