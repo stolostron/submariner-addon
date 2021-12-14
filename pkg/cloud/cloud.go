@@ -6,7 +6,7 @@ import (
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
@@ -60,7 +60,7 @@ func (f *providerFactory) Get(managedClusterInfo configv1alpha1.ManagedClusterIn
 		return &defaultProvider{}, nil
 	}
 
-	if vendor != helpers.ProductOCP {
+	if vendor != constants.ProductOCP {
 		return nil, fmt.Errorf("unsupported vendor %q of cluster %q", vendor, clusterName)
 	}
 
@@ -81,8 +81,7 @@ func (f *providerFactory) Get(managedClusterInfo configv1alpha1.ManagedClusterIn
 	return &defaultProvider{}, nil
 }
 
-type defaultProvider struct {
-}
+type defaultProvider struct{}
 
 func (p *defaultProvider) PrepareSubmarinerClusterEnv() error {
 	return nil

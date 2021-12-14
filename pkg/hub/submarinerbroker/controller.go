@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"embed"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	brokerinfo "github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/openshift/library-go/pkg/controller/factory"
@@ -116,7 +116,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 }
 
 func (c *submarinerBrokerController) createIPSecPSKSecret(brokerNamespace string) error {
-	_, err := c.kubeClient.CoreV1().Secrets(brokerNamespace).Get(context.TODO(), helpers.IPSecPSKSecretName, metav1.GetOptions{})
+	_, err := c.kubeClient.CoreV1().Secrets(brokerNamespace).Get(context.TODO(), constants.IPSecPSKSecretName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		psk := make([]byte, ipSecPSKSecretLength)
 		if _, err := rand.Read(psk); err != nil {
@@ -125,7 +125,7 @@ func (c *submarinerBrokerController) createIPSecPSKSecret(brokerNamespace string
 
 		pskSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: helpers.IPSecPSKSecretName,
+				Name: constants.IPSecPSKSecretName,
 			},
 			Data: map[string][]byte{
 				"psk": psk,

@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/open-cluster-management/submariner-addon/pkg/addon"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	"github.com/submariner-io/admiral/pkg/fake"
 	"github.com/submariner-io/admiral/pkg/test"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -109,7 +109,7 @@ var _ = Describe("Update Status", func() {
 
 	When("the ManagedClusterAddOn doesn't exist", func() {
 		JustBeforeEach(func() {
-			Expect(t.client.AddonV1alpha1().ManagedClusterAddOns(namespace).Delete(context.TODO(), helpers.SubmarinerAddOnName,
+			Expect(t.client.AddonV1alpha1().ManagedClusterAddOns(namespace).Delete(context.TODO(), constants.SubmarinerAddOnName,
 				metav1.DeleteOptions{}))
 		})
 
@@ -164,7 +164,7 @@ func newUpdateStatusTestDriver() *updateStatusTestDriver {
 	JustBeforeEach(func() {
 		t.client = addonfake.NewSimpleClientset(&addonv1alpha1.ManagedClusterAddOn{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      helpers.SubmarinerAddOnName,
+				Name:      constants.SubmarinerAddOnName,
 				Namespace: namespace,
 			},
 
@@ -208,7 +208,7 @@ func (t *updateStatusTestDriver) assertStatusConditionUpdated(updatedStatus *add
 }
 
 func (t *updateStatusTestDriver) getStatus() *addonv1alpha1.ManagedClusterAddOnStatus {
-	config, err := t.client.AddonV1alpha1().ManagedClusterAddOns(namespace).Get(context.TODO(), helpers.SubmarinerAddOnName,
+	config, err := t.client.AddonV1alpha1().ManagedClusterAddOns(namespace).Get(context.TODO(), constants.SubmarinerAddOnName,
 		metav1.GetOptions{})
 	Expect(err).To(Succeed())
 

@@ -14,7 +14,7 @@ import (
 	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	cloudFake "github.com/open-cluster-management/submariner-addon/pkg/cloud/fake"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent"
 	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -97,7 +97,7 @@ var _ = Describe("Controller", func() {
 
 					test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
 						config, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(clusterName).Get(context.TODO(),
-							helpers.SubmarinerConfigName, metav1.GetOptions{})
+							constants.SubmarinerConfigName, metav1.GetOptions{})
 						if err != nil {
 							return nil, err
 						}
@@ -112,7 +112,7 @@ var _ = Describe("Controller", func() {
 					t.managedCluster.Status.ClusterClaims = []clusterv1.ManagedClusterClaim{
 						{
 							Name:  "product.open-cluster-management.io",
-							Value: helpers.ProductOCP,
+							Value: constants.ProductOCP,
 						},
 					}
 				})
@@ -212,7 +212,7 @@ func newTestDriver() *testDriver {
 
 		t.addOn = &addonv1alpha1.ManagedClusterAddOn{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      helpers.SubmarinerAddOnName,
+				Name:      constants.SubmarinerAddOnName,
 				Namespace: clusterName,
 			},
 			Spec: addonv1alpha1.ManagedClusterAddOnSpec{
@@ -440,7 +440,7 @@ func (t *testDriver) assertSCCManifestObjs(objs []*unstructured.Unstructured) {
 func (t *testDriver) createSubmarinerConfig() {
 	t.submarinerConfig = &configv1alpha1.SubmarinerConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: helpers.SubmarinerConfigName,
+			Name: constants.SubmarinerConfigName,
 		},
 		Spec: configv1alpha1.SubmarinerConfigSpec{
 			CableDriver:   "vxlan",

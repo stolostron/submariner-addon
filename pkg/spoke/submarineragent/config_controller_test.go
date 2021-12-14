@@ -13,7 +13,7 @@ import (
 	configFake "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
 	configInformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	cloudFake "github.com/open-cluster-management/submariner-addon/pkg/cloud/fake"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -674,7 +674,7 @@ func (t *configControllerTestDriver) awaitFailureStatusCondition() {
 func (t *configControllerTestDriver) awaitSubmarinerConfigStatusCondition(expCond *metav1.Condition) {
 	test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
 		config, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(clusterName).Get(context.TODO(),
-			helpers.SubmarinerConfigName, metav1.GetOptions{})
+			constants.SubmarinerConfigName, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -741,7 +741,7 @@ func newWorkerNode(name string) *corev1.Node {
 func newSubmarinerConfig() *configv1alpha1.SubmarinerConfig {
 	return &configv1alpha1.SubmarinerConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      helpers.SubmarinerConfigName,
+			Name:      constants.SubmarinerConfigName,
 			Namespace: clusterName,
 		},
 		Spec: configv1alpha1.SubmarinerConfigSpec{

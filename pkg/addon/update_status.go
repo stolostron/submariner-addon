@@ -3,7 +3,7 @@ package addon
 import (
 	"context"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -21,7 +21,8 @@ func UpdateStatus(ctx context.Context, client addonclient.Interface, addOnNamesp
 	var updatedAddOnStatus *addonv1alpha1.ManagedClusterAddOnStatus
 
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		addOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).Get(ctx, helpers.SubmarinerAddOnName, metav1.GetOptions{})
+		addOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).Get(ctx, constants.SubmarinerAddOnName,
+			metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			return nil
 		}
