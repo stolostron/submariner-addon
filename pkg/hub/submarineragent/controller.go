@@ -15,7 +15,7 @@ import (
 	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
 	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	brokerinfo "github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	"github.com/open-cluster-management/submariner-addon/pkg/manifestwork"
 	"github.com/open-cluster-management/submariner-addon/pkg/resource"
@@ -157,7 +157,7 @@ func NewSubmarinerAgentController(
 			// TODO: we may consider to use addon to set up the submariner env on the managed cluster instead of
 			// using manifestwork, one problem should be considered - how to get the cloud credentials
 			accessor, _ := meta.Accessor(obj)
-			if accessor.GetName() != helpers.SubmarinerConfigName {
+			if accessor.GetName() != constants.SubmarinerConfigName {
 				return ""
 			}
 
@@ -165,7 +165,7 @@ func NewSubmarinerAgentController(
 		}, configInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
-			if accessor.GetName() != helpers.SubmarinerAddOnName {
+			if accessor.GetName() != constants.SubmarinerAddOnName {
 				return ""
 			}
 
@@ -204,7 +204,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 			return err
 		}
 
-		config, err := c.configLister.SubmarinerConfigs(name).Get(helpers.SubmarinerConfigName)
+		config, err := c.configLister.SubmarinerConfigs(name).Get(constants.SubmarinerConfigName)
 		if errors.IsNotFound(err) {
 			// only sync the managed cluster
 			return c.syncManagedCluster(ctx, managedCluster.DeepCopy(), nil)
@@ -270,7 +270,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 	managedCluster *clusterv1.ManagedCluster,
 	config *configv1alpha1.SubmarinerConfig) error {
 	// find the submariner-addon on the managed cluster namespace
-	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(helpers.SubmarinerAddOnName)
+	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(constants.SubmarinerAddOnName)
 
 	switch {
 	case errors.IsNotFound(err):
@@ -555,7 +555,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(config *configv1
 
 func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
 	files := []string{agentRBACFile}
-	if getClusterProduct(managedCluster) == helpers.ProductOCP {
+	if getClusterProduct(managedCluster) == constants.ProductOCP {
 		files = append(files, sccFiles...)
 	}
 

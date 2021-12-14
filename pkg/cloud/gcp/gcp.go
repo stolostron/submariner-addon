@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	gcpclient "github.com/submariner-io/cloud-prepare/pkg/gcp/client"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
@@ -17,8 +18,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/reporter"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-
 	"github.com/openshift/library-go/pkg/operator/events"
 
 	"github.com/submariner-io/cloud-prepare/pkg/api"
@@ -56,7 +55,7 @@ func NewGCPProvider(
 	}
 
 	if nattPort == 0 {
-		nattPort = helpers.SubmarinerNatTPort
+		nattPort = constants.SubmarinerNatTPort
 	}
 
 	if instanceType != "" {
@@ -68,7 +67,7 @@ func NewGCPProvider(
 	}
 
 	if nattDiscoveryPort == 0 {
-		nattDiscoveryPort = helpers.SubmarinerNatTDiscoveryPort
+		nattDiscoveryPort = constants.SubmarinerNatTDiscoveryPort
 	}
 
 	projectId, gcpClient, err := newClient(hubKubeClient, clusterName, credentialsSecretName)
@@ -96,8 +95,8 @@ func NewGCPProvider(
 	return &gcpProvider{
 		infraID:           infraID,
 		nattPort:          uint16(nattPort),
-		routePort:         strconv.Itoa(helpers.SubmarinerRoutePort),
-		metricsPort:       helpers.SubmarinerMetricsPort,
+		routePort:         strconv.Itoa(constants.SubmarinerRoutePort),
+		metricsPort:       constants.SubmarinerMetricsPort,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
 		reporter:          reporter.NewEventRecorderWrapper("GCPCloudProvider", eventRecorder),
@@ -129,7 +128,7 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 
 	input := api.PrepareForSubmarinerInput{
 		InternalPorts: []api.PortSpec{
-			{Port: helpers.SubmarinerRoutePort, Protocol: "udp"},
+			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
 			{Port: g.metricsPort, Protocol: "tcp"},
 		},
 	}

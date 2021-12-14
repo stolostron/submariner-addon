@@ -7,7 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/submariner-io/admiral/pkg/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
@@ -62,7 +62,7 @@ func (t *managedClusterAddOnTestBase) run() {
 func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(expCond *metav1.Condition) {
 	test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
 		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.TODO(),
-			helpers.SubmarinerAddOnName, metav1.GetOptions{})
+			constants.SubmarinerAddOnName, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +74,7 @@ func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(ex
 func (t *managedClusterAddOnTestBase) awaitNoManagedClusterAddOnStatusCondition(condType string) {
 	Consistently(func() *metav1.Condition {
 		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.TODO(),
-			helpers.SubmarinerConfigName, metav1.GetOptions{})
+			constants.SubmarinerConfigName, metav1.GetOptions{})
 		Expect(err).To(Succeed())
 
 		return meta.FindStatusCondition(config.Status.Conditions, condType)
@@ -84,7 +84,7 @@ func (t *managedClusterAddOnTestBase) awaitNoManagedClusterAddOnStatusCondition(
 func newAddOn() *addonv1alpha1.ManagedClusterAddOn {
 	return &addonv1alpha1.ManagedClusterAddOn{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      helpers.SubmarinerAddOnName,
+			Name:      constants.SubmarinerAddOnName,
 			Namespace: clusterName,
 		},
 	}

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -87,7 +87,7 @@ func Get(
 	installationNamespace string) (*SubmarinerBrokerInfo, error) {
 	brokerInfo := &SubmarinerBrokerInfo{
 		CableDriver:            defaultCableDriver,
-		IPSecNATTPort:          helpers.SubmarinerNatTPort,
+		IPSecNATTPort:          constants.SubmarinerNatTPort,
 		BrokerNamespace:        brokeNamespace,
 		ClusterName:            clusterName,
 		CatalogName:            catalogName,
@@ -193,9 +193,9 @@ func applySubmarinerImageConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConf
 }
 
 func getIPSecPSK(client kubernetes.Interface, brokerNamespace string) (string, error) {
-	secret, err := client.CoreV1().Secrets(brokerNamespace).Get(context.TODO(), helpers.IPSecPSKSecretName, metav1.GetOptions{})
+	secret, err := client.CoreV1().Secrets(brokerNamespace).Get(context.TODO(), constants.IPSecPSKSecretName, metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get broker IPSEC PSK secret %v/%v: %w", brokerNamespace, helpers.IPSecPSKSecretName, err)
+		return "", fmt.Errorf("failed to get broker IPSEC PSK secret %v/%v: %w", brokerNamespace, constants.IPSecPSKSecretName, err)
 	}
 
 	return base64.StdEncoding.EncodeToString(secret.Data["psk"]), nil

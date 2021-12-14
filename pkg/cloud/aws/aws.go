@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	"github.com/openshift/library-go/pkg/operator/events"
 
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/manifestwork"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud/reporter"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,11 +58,11 @@ func NewAWSProvider(
 	}
 
 	if nattPort == 0 {
-		nattPort = helpers.SubmarinerNatTPort
+		nattPort = constants.SubmarinerNatTPort
 	}
 
 	if nattDiscoveryPort == 0 {
-		nattDiscoveryPort = helpers.SubmarinerNatTDiscoveryPort
+		nattDiscoveryPort = constants.SubmarinerNatTDiscoveryPort
 	}
 
 	if instanceType == "" {
@@ -123,8 +123,8 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	}
 	if err := a.cloudPrepare.PrepareForSubmariner(cpapi.PrepareForSubmarinerInput{
 		InternalPorts: []cpapi.PortSpec{
-			{Port: helpers.SubmarinerRoutePort, Protocol: "udp"},
-			{Port: helpers.SubmarinerMetricsPort, Protocol: "tcp"},
+			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
+			{Port: constants.SubmarinerMetricsPort, Protocol: "tcp"},
 		},
 	}, a.reporter); err != nil {
 		return err

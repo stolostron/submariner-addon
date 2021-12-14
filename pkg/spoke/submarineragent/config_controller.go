@@ -15,7 +15,7 @@ import (
 	configinformer "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
 	configlister "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -93,12 +93,12 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
 
-			return metaObj.GetName() == helpers.SubmarinerAddOnName
+			return metaObj.GetName() == constants.SubmarinerAddOnName
 		}, input.AddOnInformer.Informer()).
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
 
-			return metaObj.GetName() == helpers.SubmarinerConfigName
+			return metaObj.GetName() == constants.SubmarinerConfigName
 		}, input.ConfigInformer.Informer()).
 		WithFilteredEventsInformers(func(obj interface{}) bool {
 			metaObj := obj.(metav1.Object)
@@ -118,7 +118,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		defer c.onSyncDefer()
 	}
 
-	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(helpers.SubmarinerAddOnName)
+	addOn, err := c.addOnLister.ManagedClusterAddOns(c.clusterName).Get(constants.SubmarinerAddOnName)
 	if apiErrors.IsNotFound(err) {
 		// the addon not found, could be deleted, ignore
 		return nil
@@ -128,7 +128,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	config, err := c.configLister.SubmarinerConfigs(c.clusterName).Get(helpers.SubmarinerConfigName)
+	config, err := c.configLister.SubmarinerConfigs(c.clusterName).Get(constants.SubmarinerConfigName)
 	if apiErrors.IsNotFound(err) {
 		// the config not found, could be deleted, do nothing
 		return nil

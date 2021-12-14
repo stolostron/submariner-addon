@@ -9,7 +9,7 @@ import (
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
@@ -173,7 +173,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	// start lease updater
 	leaseUpdater := lease.NewLeaseUpdater(
 		spokeKubeClient,
-		helpers.SubmarinerAddOnName,
+		constants.SubmarinerAddOnName,
 		o.InstallationNamespace,
 	)
 	go leaseUpdater.Start(ctx)
