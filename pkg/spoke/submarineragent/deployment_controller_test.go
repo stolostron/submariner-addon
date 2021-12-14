@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -208,7 +207,7 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 	})
 
 	JustBeforeEach(func() {
-		subscriptionClient, dynamicInformerFactory, subscriptionInformer := testing.NewDynamicClientWithInformer(submarinerNS)
+		subscriptionClient, dynamicInformerFactory, subscriptionInformer := newDynamicClientWithInformer(submarinerNS)
 		t.subscriptionClient = subscriptionClient
 
 		if t.subscription != nil {
