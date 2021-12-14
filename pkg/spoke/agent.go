@@ -10,6 +10,7 @@ import (
 	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/spf13/cobra"
@@ -61,7 +62,7 @@ func (o *AgentOptions) AddFlags(cmd *cobra.Command) {
 }
 
 func (o *AgentOptions) Complete() {
-	o.InstallationNamespace = helpers.GetCurrentNamespace(defaultInstallationNamespace)
+	o.InstallationNamespace = resource.GetCurrentNamespace(defaultInstallationNamespace)
 }
 
 func (o *AgentOptions) Validate() error {

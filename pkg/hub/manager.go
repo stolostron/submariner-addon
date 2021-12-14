@@ -9,10 +9,10 @@ import (
 	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	"github.com/open-cluster-management/submariner-addon/pkg/cloud"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineraddonagent"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent"
 	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker"
+	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/spf13/cobra"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -56,7 +56,7 @@ func (o *AddOnOptions) Complete(kubeClient kubernetes.Interface) error {
 		return nil
 	}
 
-	namespace := helpers.GetCurrentNamespace(defaultNamespace)
+	namespace := resource.GetCurrentNamespace(defaultNamespace)
 	podName := os.Getenv("POD_NAME")
 	if podName == "" {
 		return fmt.Errorf("the pod environment POD_NAME is required")
