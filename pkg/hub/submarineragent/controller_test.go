@@ -31,6 +31,7 @@ import (
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
@@ -63,16 +64,16 @@ var _ = Describe("Controller", func() {
 		Context("after the ManagedCluster and ManagedClusterSet", func() {
 			JustBeforeEach(func() {
 				t.createManagedClusterSet()
-				t.ensureNoManifestWork()
+				t.ensureNoManifestWorks()
 
 				t.createManagedCluster()
-				t.ensureNoManifestWork()
+				t.ensureNoManifestWorks()
 
 				t.createAddon()
 			})
 
-			It("should deploy the submariner ManifestWork", func() {
-				t.awaitManifestWork()
+			It("should deploy the ManifestWorks", func() {
+				t.awaitManifestWorks()
 			})
 
 			It("should create RBAC resources for the managed cluster", func() {
@@ -86,8 +87,8 @@ var _ = Describe("Controller", func() {
 					t.createSubmarinerConfig()
 				})
 
-				It("should deploy the submariner ManifestWork with the SubmarinerConfig overrides", func() {
-					t.awaitManifestWork()
+				It("should deploy the ManifestWorks with the SubmarinerConfig overrides", func() {
+					t.awaitManifestWorks()
 
 					expCond := &metav1.Condition{
 						Type:   configv1alpha1.SubmarinerConfigConditionApplied,
@@ -117,8 +118,8 @@ var _ = Describe("Controller", func() {
 					}
 				})
 
-				It("should deploy the submariner ManifestWork with the Openshift security resources", func() {
-					t.assertSCCManifestObjs(t.awaitManifestWork())
+				It("should deploy the operator ManifestWork with the Openshift security resources", func() {
+					t.assertSCCManifestObjs(t.awaitOperatorManifestWork())
 				})
 			})
 		})
@@ -126,16 +127,16 @@ var _ = Describe("Controller", func() {
 		Context("before the ManagedCluster and ManagedClusterSet", func() {
 			JustBeforeEach(func() {
 				t.createAddon()
-				t.ensureNoManifestWork()
+				t.ensureNoManifestWorks()
 
 				t.createManagedCluster()
-				t.ensureNoManifestWork()
+				t.ensureNoManifestWorks()
 
 				t.createManagedClusterSet()
 			})
 
-			It("should deploy the submariner ManifestWork", func() {
-				t.awaitManifestWork()
+			It("should deploy the ManifestWorks", func() {
+				t.awaitManifestWorks()
 			})
 
 			t.testFinalizers()
@@ -144,19 +145,21 @@ var _ = Describe("Controller", func() {
 
 	When("the SubmarinerConfig is created after the submariner ManifestWork is deployed", func() {
 		JustBeforeEach(func() {
-			t.initManifestWork()
+			t.initManifestWorks()
 			t.createSubmarinerConfig()
 		})
 
-		It("should update the ManifestWork", func() {
-			t.assertManifestWork(test.AwaitUpdateAction(&t.manifestWorkClient.Fake, "manifestworks",
-				submarineragent.ManifestWorkName).(*workv1.ManifestWork))
+		It("should update the ManifestWorks", func() {
+			t.assertOperatorManifestWork(test.AwaitUpdateAction(&t.manifestWorkClient.Fake, "manifestworks",
+				submarineragent.OperatorManifestWorkName).(*workv1.ManifestWork))
+			t.assertSubmarinerManifestWork(test.AwaitUpdateAction(&t.manifestWorkClient.Fake, "manifestworks",
+				submarineragent.SubmarinerCRManifestWorkName).(*workv1.ManifestWork))
 		})
 	})
 
 	When("the ManagedClusterAddon is being deleted", func() {
 		JustBeforeEach(func() {
-			t.initManifestWork()
+			t.initManifestWorks()
 			test.SetDeleting(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)), t.addOn.Name)
 		})
 
@@ -165,7 +168,7 @@ var _ = Describe("Controller", func() {
 
 	When("the ManagedCluster is being deleted", func() {
 		JustBeforeEach(func() {
-			t.initManifestWork()
+			t.initManifestWorks()
 			test.SetDeleting(resource.ForManagedCluster(t.clusterClient.ClusterV1().ManagedClusters()), t.managedCluster.Name)
 		})
 
@@ -174,7 +177,7 @@ var _ = Describe("Controller", func() {
 
 	When("the ManagedCluster is removed from the ManagedClusterSet", func() {
 		JustBeforeEach(func() {
-			t.initManifestWork()
+			t.initManifestWorks()
 
 			t.managedCluster.Labels = nil
 			_, err := t.clusterClient.ClusterV1().ManagedClusters().Update(context.TODO(), t.managedCluster, metav1.UpdateOptions{})
@@ -305,11 +308,12 @@ func newTestDriver() *testDriver {
 	return t
 }
 
-func (t *testDriver) initManifestWork() {
+func (t *testDriver) initManifestWorks() {
 	t.createManagedClusterSet()
 	t.createManagedCluster()
 	t.createAddon()
-	t.awaitManifestWork()
+	t.awaitManifestWorks()
+	t.manifestWorkClient.Fake.ClearActions()
 }
 
 func (t *testDriver) testFinalizers() {
@@ -322,8 +326,8 @@ func (t *testDriver) testFinalizers() {
 }
 
 func (t *testDriver) testAgentCleanup() {
-	It("should delete the submariner ManifestWork", func() {
-		t.awaitNoManifestWork()
+	It("should delete the ManifestWorks", func() {
+		t.awaitNoManifestWorks()
 	})
 
 	It("should delete the finalizers", func() {
@@ -339,40 +343,20 @@ func (t *testDriver) testAgentCleanup() {
 	})
 }
 
-func (t *testDriver) awaitManifestWork() []*unstructured.Unstructured {
-	return t.assertManifestWork(test.AwaitResource(resource.ForManifestWork(t.manifestWorkClient.WorkV1().ManifestWorks(clusterName)),
-		submarineragent.ManifestWorkName).(*workv1.ManifestWork))
+func (t *testDriver) awaitManifestWorks() {
+	t.awaitOperatorManifestWork()
+	t.awaitSubmarinerManifestWork()
 }
 
-func (t *testDriver) assertManifestWork(work *workv1.ManifestWork) []*unstructured.Unstructured {
-	manifestObjs := make([]*unstructured.Unstructured, len(work.Spec.Workload.Manifests))
+func (t *testDriver) awaitOperatorManifestWork() []*unstructured.Unstructured {
+	return t.assertOperatorManifestWork(test.AwaitResource(resource.ForManifestWork(
+		t.manifestWorkClient.WorkV1().ManifestWorks(clusterName)), submarineragent.OperatorManifestWorkName).(*workv1.ManifestWork))
+}
 
-	for i := range work.Spec.Workload.Manifests {
-		obj := &unstructured.Unstructured{}
-		err := obj.UnmarshalJSON(work.Spec.Workload.Manifests[i].Raw)
-		Expect(err).To(Succeed())
+func (t *testDriver) assertOperatorManifestWork(work *workv1.ManifestWork) []*unstructured.Unstructured {
+	manifestObjs := unmarshallManifestObjs(work)
 
-		manifestObjs[i] = obj
-	}
-
-	submariner := &submarinerv1alpha1.Submariner{}
-	Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
-		assertManifestObj(manifestObjs, "Submariner", "").Object, submariner)).To(Succeed())
-	Expect(submariner.Namespace).To(Equal(installNamespace))
-	Expect(submariner.Spec.BrokerK8sApiServer).To(Equal("127.0.0.1"))
-	Expect(submariner.Spec.BrokerK8sApiServerToken).To(Equal(brokerToken))
-	Expect(submariner.Spec.BrokerK8sCA).To(Equal(base64.StdEncoding.EncodeToString([]byte(brokerCA))))
-	Expect(submariner.Spec.BrokerK8sRemoteNamespace).To(Equal(brokerNamespace))
-	Expect(submariner.Spec.CeIPSecPSK).To(Equal(base64.StdEncoding.EncodeToString([]byte(ipsecPSK))))
-	Expect(submariner.Spec.ClusterID).To(Equal(clusterName))
-	Expect(submariner.Spec.Namespace).To(Equal(installNamespace))
-
-	if t.submarinerConfig != nil {
-		Expect(submariner.Spec.CableDriver).To(Equal(t.submarinerConfig.Spec.CableDriver))
-		Expect(submariner.Spec.CeIPSecIKEPort).To(Equal(t.submarinerConfig.Spec.IPSecIKEPort))
-		Expect(submariner.Spec.CeIPSecNATTPort).To(Equal(t.submarinerConfig.Spec.IPSecNATTPort))
-		Expect(submariner.Spec.NatEnabled).To(Equal(t.submarinerConfig.Spec.NATTEnable))
-	}
+	assertNoManifestObj(manifestObjs, "Submariner", "")
 
 	subscription := assertManifestObj(manifestObjs, "Subscription", "")
 	assertNestedString(subscription, installNamespace, "metadata", "namespace")
@@ -397,18 +381,65 @@ func (t *testDriver) assertManifestWork(work *workv1.ManifestWork) []*unstructur
 	return manifestObjs
 }
 
-func (t *testDriver) ensureNoManifestWork() {
-	Consistently(func() bool {
-		_, err := t.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Get(context.TODO(), submarineragent.ManifestWorkName,
-			metav1.GetOptions{})
-
-		return apierrors.IsNotFound(err)
-	}).Should(BeTrue(), "Found unexpected ManifestWork")
+func (t *testDriver) awaitSubmarinerManifestWork() {
+	t.assertSubmarinerManifestWork(test.AwaitResource(resource.ForManifestWork(
+		t.manifestWorkClient.WorkV1().ManifestWorks(clusterName)), submarineragent.SubmarinerCRManifestWorkName).(*workv1.ManifestWork))
 }
 
-func (t *testDriver) awaitNoManifestWork() {
+func (t *testDriver) assertSubmarinerManifestWork(work *workv1.ManifestWork) {
+	manifestObjs := unmarshallManifestObjs(work)
+
+	submariner := &submarinerv1alpha1.Submariner{}
+	Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
+		assertManifestObj(manifestObjs, "Submariner", "").Object, submariner)).To(Succeed())
+	Expect(submariner.Namespace).To(Equal(installNamespace))
+	Expect(submariner.Spec.BrokerK8sApiServer).To(Equal("127.0.0.1"))
+	Expect(submariner.Spec.BrokerK8sApiServerToken).To(Equal(brokerToken))
+	Expect(submariner.Spec.BrokerK8sCA).To(Equal(base64.StdEncoding.EncodeToString([]byte(brokerCA))))
+	Expect(submariner.Spec.BrokerK8sRemoteNamespace).To(Equal(brokerNamespace))
+	Expect(submariner.Spec.CeIPSecPSK).To(Equal(base64.StdEncoding.EncodeToString([]byte(ipsecPSK))))
+	Expect(submariner.Spec.ClusterID).To(Equal(clusterName))
+	Expect(submariner.Spec.Namespace).To(Equal(installNamespace))
+
+	if t.submarinerConfig != nil {
+		Expect(submariner.Spec.CableDriver).To(Equal(t.submarinerConfig.Spec.CableDriver))
+		Expect(submariner.Spec.CeIPSecIKEPort).To(Equal(t.submarinerConfig.Spec.IPSecIKEPort))
+		Expect(submariner.Spec.CeIPSecNATTPort).To(Equal(t.submarinerConfig.Spec.IPSecNATTPort))
+		Expect(submariner.Spec.NatEnabled).To(Equal(t.submarinerConfig.Spec.NATTEnable))
+	}
+}
+
+func (t *testDriver) ensureNoManifestWorks() {
+	Consistently(func() []workv1.ManifestWork {
+		list, err := t.manifestWorkClient.WorkV1().ManifestWorks(clusterName).List(context.TODO(), metav1.ListOptions{})
+		Expect(err).To(Succeed())
+
+		return list.Items
+	}).Should(BeEmpty(), "Found unexpected ManifestWorks")
+}
+
+func (t *testDriver) awaitNoManifestWorks() {
+	t.awaitNoManifestWork(submarineragent.SubmarinerCRManifestWorkName)
+	t.awaitNoManifestWork(submarineragent.OperatorManifestWorkName)
+
+	deletedNames := []string{}
+	last := ""
+
+	actions := t.manifestWorkClient.Fake.Actions()
+	for i := range actions {
+		if actions[i].GetVerb() == "delete" && actions[i].GetResource().Resource == "manifestworks" &&
+			actions[i].(testing.DeleteAction).GetName() != last {
+			last = actions[i].(testing.DeleteAction).GetName()
+			deletedNames = append(deletedNames, actions[i].(testing.DeleteAction).GetName())
+		}
+	}
+
+	Expect(deletedNames).To(Equal([]string{submarineragent.SubmarinerCRManifestWorkName, submarineragent.OperatorManifestWorkName}))
+}
+
+func (t *testDriver) awaitNoManifestWork(name string) {
 	Eventually(func() bool {
-		_, err := t.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Get(context.TODO(), submarineragent.ManifestWorkName,
+		_, err := t.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Get(context.TODO(), name,
 			metav1.GetOptions{})
 
 		return apierrors.IsNotFound(err)
@@ -482,6 +513,20 @@ func (t *testDriver) createAddon() {
 	Expect(err).To(Succeed())
 }
 
+func unmarshallManifestObjs(work *workv1.ManifestWork) []*unstructured.Unstructured {
+	manifestObjs := make([]*unstructured.Unstructured, len(work.Spec.Workload.Manifests))
+
+	for i := range work.Spec.Workload.Manifests {
+		obj := &unstructured.Unstructured{}
+		err := obj.UnmarshalJSON(work.Spec.Workload.Manifests[i].Raw)
+		Expect(err).To(Succeed())
+
+		manifestObjs[i] = obj
+	}
+
+	return manifestObjs
+}
+
 func assertManifestObj(objs []*unstructured.Unstructured, kind, name string) *unstructured.Unstructured {
 	for _, o := range objs {
 		if o.GetKind() == kind && (name == "" || strings.Contains(o.GetName(), name)) {
@@ -492,6 +537,14 @@ func assertManifestObj(objs []*unstructured.Unstructured, kind, name string) *un
 	Fail(fmt.Sprintf("Expected manifest resource with kind %q and name %q", kind, name))
 
 	return nil
+}
+
+func assertNoManifestObj(objs []*unstructured.Unstructured, kind, name string) {
+	for _, o := range objs {
+		if o.GetKind() == kind && (name == "" || strings.Contains(o.GetName(), name)) {
+			Fail(fmt.Sprintf("Unexpected manifest resource with kind %q and name %q", kind, name))
+		}
+	}
 }
 
 func assertNestedString(obj *unstructured.Unstructured, expected string, fields ...string) {

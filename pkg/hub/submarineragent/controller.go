@@ -23,8 +23,9 @@ import (
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+	"github.com/pkg/errors"
 	"github.com/submariner-io/admiral/pkg/finalizer"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -49,25 +50,22 @@ import (
 	workv1 "open-cluster-management.io/api/work/v1"
 )
 
-const ManifestWorkName = "submariner-operator"
-
 const (
-	ClusterSetLabel     = "cluster.open-cluster-management.io/clusterset"
-	serviceAccountLabel = "cluster.open-cluster-management.io/submariner-cluster-sa"
-)
-
-const (
-	AgentFinalizer            = "cluster.open-cluster-management.io/submariner-agent-cleanup"
-	AddOnFinalizer            = "submarineraddon.open-cluster-management.io/submariner-addon-cleanup"
-	submarinerConfigFinalizer = "submarineraddon.open-cluster-management.io/config-cleanup"
+	ClusterSetLabel              = "cluster.open-cluster-management.io/clusterset"
+	serviceAccountLabel          = "cluster.open-cluster-management.io/submariner-cluster-sa"
+	OperatorManifestWorkName     = "submariner-operator"
+	SubmarinerCRManifestWorkName = "submariner-resource"
+	AgentFinalizer               = "cluster.open-cluster-management.io/submariner-agent-cleanup"
+	AddOnFinalizer               = "submarineraddon.open-cluster-management.io/submariner-addon-cleanup"
+	submarinerConfigFinalizer    = "submarineraddon.open-cluster-management.io/config-cleanup"
+	agentRBACFile                = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
+	submarinerCRFile             = "manifests/operator/submariner.io-submariners-cr.yaml"
 )
 
 var clusterRBACFiles = []string{
 	"manifests/rbac/broker-cluster-serviceaccount.yaml",
 	"manifests/rbac/broker-cluster-rolebinding.yaml",
 }
-
-const agentRBACFile = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
 
 var sccFiles = []string{
 	"manifests/rbac/scc-aggregate-clusterrole.yaml",
@@ -77,7 +75,6 @@ var sccFiles = []string{
 var operatorFiles = []string{
 	"manifests/operator/submariner-operator-group.yaml",
 	"manifests/operator/submariner-operator-subscription.yaml",
-	"manifests/operator/submariner.io-submariners-cr.yaml",
 }
 
 //go:embed manifests
@@ -147,7 +144,7 @@ func NewSubmarinerAgentController(
 			// TODO: we may consider to use addon to deploy the submariner on the managed cluster instead of
 			// using manifestwork, one problem should be considered - how to get the IPSECPSK
 			accessor, _ := meta.Accessor(obj)
-			if accessor.GetName() != ManifestWorkName {
+			if accessor.GetName() != OperatorManifestWorkName && accessor.GetName() != SubmarinerCRManifestWorkName {
 				return ""
 			}
 
@@ -195,7 +192,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 	// if the sync is triggered by change of ManagedCluster, ManifestWork or ManagedClusterAddOn, reconcile the managed cluster
 	if namespace == "" {
 		managedCluster, err := c.clusterLister.Get(name)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// managed cluster not found, could have been deleted, do nothing.
 			return nil
 		}
@@ -205,7 +202,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		}
 
 		config, err := c.configLister.SubmarinerConfigs(name).Get(constants.SubmarinerConfigName)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// only sync the managed cluster
 			return c.syncManagedCluster(ctx, managedCluster.DeepCopy(), nil)
 		}
@@ -224,7 +221,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 
 	// if the sync is triggered by change of SubmarinerConfig, reconcile the submariner config
 	config, err := c.configLister.SubmarinerConfigs(namespace).Get(name)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		// config is not found, could have been deleted, do nothing.
 		return nil
 	}
@@ -234,7 +231,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 	}
 
 	managedCluster, err := c.clusterLister.Get(namespace)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		// handle deleting submariner config after managed cluster was deleted.
 		return c.syncSubmarinerConfig(ctx, nil, config.DeepCopy())
 	}
@@ -273,16 +270,10 @@ func (c *submarinerAgentController) syncManagedCluster(
 	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(constants.SubmarinerAddOnName)
 
 	switch {
-	case errors.IsNotFound(err):
+	case apierrors.IsNotFound(err):
 		// submariner-addon is not found, could have been deleted, do nothing.
 		return nil
 	case err != nil:
-		return err
-	}
-
-	// add a submariner agent finalizer to a managed cluster
-	added, err := finalizer.Add(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster, AgentFinalizer)
-	if added || err != nil {
 		return err
 	}
 
@@ -301,11 +292,22 @@ func (c *submarinerAgentController) syncManagedCluster(
 	_, err = c.clusterSetLister.Get(clusterSetName)
 
 	switch {
-	case errors.IsNotFound(err):
+	case apierrors.IsNotFound(err):
 		// if one cluster has clusterset label, but the clusterset is not found, it could have been deleted
 		// try to clean up the submariner agent
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	case err != nil:
+		return err
+	}
+
+	// submariner-addon is deleting, we remove its related resources
+	if !addOn.DeletionTimestamp.IsZero() {
+		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
+	}
+
+	// add a submariner agent finalizer to a managed cluster
+	added, err := finalizer.Add(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster, AgentFinalizer)
+	if added || err != nil {
 		return err
 	}
 
@@ -314,11 +316,6 @@ func (c *submarinerAgentController) syncManagedCluster(
 		addOn, AddOnFinalizer)
 	if added || err != nil {
 		return err
-	}
-
-	// submariner-addon is deleting, we remove its related resources
-	if !addOn.DeletionTimestamp.IsZero() {
-		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	}
 
 	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster, addOn, config)
@@ -395,7 +392,23 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 // clean up the submariner agent from this managedCluster.
 func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedCluster *clusterv1.ManagedCluster,
 	addOn *addonv1alpha1.ManagedClusterAddOn) error {
-	if err := c.removeSubmarinerAgent(ctx, managedCluster.Name); err != nil {
+	submarinerManifestWork, err := c.manifestWorkLister.ManifestWorks(managedCluster.Name).Get(SubmarinerCRManifestWorkName)
+
+	switch {
+	case apierrors.IsNotFound(err):
+		if err := c.deleteManifestWork(ctx, OperatorManifestWorkName, managedCluster.Name); err != nil {
+			return err
+		}
+	case err != nil:
+		return errors.Wrapf(err, "error retrieving ManifestWork %q", SubmarinerCRManifestWorkName)
+	case submarinerManifestWork.DeletionTimestamp.IsZero():
+		return c.deleteManifestWork(ctx, SubmarinerCRManifestWorkName, managedCluster.Name)
+	default:
+		return nil
+	}
+
+	// remove service account and its rolebinding from broker namespace
+	if err := c.removeClusterRBACFiles(ctx, managedCluster.Name); err != nil {
 		return err
 	}
 
@@ -440,13 +453,23 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		}
 	}
 
-	// apply submariner operator manifest work
-	operatorManifestWork, err := getManifestWork(managedCluster, brokerInfo)
+	// Apply submariner operator manifest work
+	operatorManifestWork, err := newOperatorManifestWork(managedCluster, brokerInfo)
 	if err != nil {
 		return err
 	}
 
 	if err := manifestwork.Apply(ctx, c.manifestWorkClient, operatorManifestWork, c.eventRecorder); err != nil {
+		return err
+	}
+
+	// Apply submariner resource manifest work
+	submarinerManifestWork, err := newSubmarinerManifestWork(managedCluster, brokerInfo)
+	if err != nil {
+		return err
+	}
+
+	if err := manifestwork.Apply(ctx, c.manifestWorkClient, submarinerManifestWork, c.eventRecorder); err != nil {
 		return err
 	}
 
@@ -474,26 +497,20 @@ func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Con
 	return err
 }
 
-func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, clusterName string) error {
-	errs := []error{}
-	// remove submariner manifestworks
-	err := c.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Delete(ctx, ManifestWorkName, metav1.DeleteOptions{})
+func (c *submarinerAgentController) deleteManifestWork(ctx context.Context, name, clusterName string) error {
+	err := c.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Delete(ctx, name, metav1.DeleteOptions{})
 
 	switch {
-	case errors.IsNotFound(err):
-		// there is no submariner manifestworks, do noting
+	case apierrors.IsNotFound(err):
+		// there is no manifestwork, do nothing
 	case err == nil:
-		c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q", fmt.Sprintf("%s/%s", clusterName, ManifestWorkName))
+		c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q",
+			fmt.Sprintf("%s/%s", clusterName, name))
 	case err != nil:
-		errs = append(errs, fmt.Errorf("failed to remove submariner agent from managed cluster %v: %w", clusterName, err))
+		return errors.Wrapf(err, "error deleting manifestwork %q from managed cluster %q", name, clusterName)
 	}
 
-	// remove service account and its rolebinding from broker namespace
-	if err := c.removeClusterRBACFiles(ctx, clusterName); err != nil {
-		errs = append(errs, err)
-	}
-
-	return operatorhelpers.NewMultiLineAggregate(errs)
+	return nil
 }
 
 func (c *submarinerAgentController) applyClusterRBACFiles(ctx context.Context, brokerNamespace, managedClusterName string) error {
@@ -553,7 +570,11 @@ func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(config *configv1
 	return nil
 }
 
-func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
+func newSubmarinerManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
+	return newManifestWork(SubmarinerCRManifestWorkName, managedCluster.Name, config, submarinerCRFile)
+}
+
+func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
 	files := []string{agentRBACFile}
 	if getClusterProduct(managedCluster) == constants.ProductOCP {
 		files = append(files, sccFiles...)
@@ -561,6 +582,10 @@ func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{
 
 	files = append(files, operatorFiles...)
 
+	return newManifestWork(OperatorManifestWorkName, managedCluster.Name, config, files...)
+}
+
+func newManifestWork(name, namespace string, config interface{}, files ...string) (*workv1.ManifestWork, error) {
 	manifests := []workv1.Manifest{}
 
 	for _, file := range files {
@@ -582,8 +607,8 @@ func getManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{
 	return &workv1.ManifestWork{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ManifestWorkName,
-			Namespace: managedCluster.Name,
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: workv1.ManifestWorkSpec{
 			Workload: workv1.ManifestsTemplate{

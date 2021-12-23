@@ -3,17 +3,19 @@ package integration_test
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent"
+	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/open-cluster-management/submariner-addon/test/util"
+	"github.com/submariner-io/admiral/pkg/finalizer"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 )
-
-const expectedOperatorWork = "submariner-operator"
 
 var _ = Describe("Deploy a submariner on hub", func() {
 	var managedClusterSetName string
@@ -63,10 +65,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			err = util.SetupServiceAccount(kubeClient, expectedBrokerNamespace, managedClusterName)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Check if the submariner agent manifestworks are deployed")
-			Eventually(func() bool {
-				return util.FindManifestWorks(workClient, managedClusterName, expectedOperatorWork)
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+			awaitSubmarinerManifestMorks(managedClusterName)
 		})
 	})
 
@@ -104,30 +103,36 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			err = util.SetupServiceAccount(kubeClient, brokerNamespace, managedClusterName)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(func() bool {
-				return util.FindManifestWorks(workClient, managedClusterName, expectedOperatorWork)
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+			awaitSubmarinerManifestMorks(managedClusterName)
 		})
 
 		It("Should remove the submariner agent manifestworks after the submariner-addon is removed from the managed cluster", func() {
+			By("Adding finalizer to the submariner-resource manifestwork")
+			work, err := workClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(),
+				submarineragent.SubmarinerCRManifestWorkName, metav1.GetOptions{})
+			Expect(err).To(Succeed())
+
+			_, err = finalizer.Add(context.Background(), resource.ForManifestWork(workClient.WorkV1().ManifestWorks(managedClusterName)),
+				work, "test-finalizer")
+			Expect(err).To(Succeed())
+
 			By("Remove the submariner-addon from the managed cluster")
-			err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Delete(context.TODO(), "submariner", metav1.DeleteOptions{})
+			err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Delete(context.TODO(), "submariner",
+				metav1.DeleteOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Check if the submariner agent manifestworks are removed")
-			Eventually(func() bool {
-				works, err := workClient.WorkV1().ManifestWorks(managedClusterName).List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					return false
-				}
-				for _, work := range works.Items {
-					if work.Name == expectedOperatorWork {
-						return false
-					}
-				}
+			time.Sleep(time.Second * 3)
 
-				return true
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+			By("Removing finalizer from the submariner-resource manifestwork")
+			work, err = workClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(),
+				submarineragent.SubmarinerCRManifestWorkName, metav1.GetOptions{})
+			Expect(err).To(Succeed())
+
+			err = finalizer.Remove(context.Background(), resource.ForManifestWork(workClient.WorkV1().ManifestWorks(managedClusterName)),
+				work, "test-finalizer")
+			Expect(err).To(Succeed())
+
+			awaitNoSubmarinerManifestMorks(managedClusterName)
 		})
 
 		It("Should remove the submariner agent manifestworks after the managedclusterset label is removed from the managed cluster", func() {
@@ -136,20 +141,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			err := util.UpdateManagedClusterLabels(clusterClient, managedClusterName, newLabels)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Check if the submariner agent manifestworks are removed")
-			Eventually(func() bool {
-				works, err := workClient.WorkV1().ManifestWorks(managedClusterName).List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					return false
-				}
-				for _, work := range works.Items {
-					if work.Name == expectedOperatorWork {
-						return false
-					}
-				}
-
-				return true
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+			awaitNoSubmarinerManifestMorks(managedClusterName)
 		})
 
 		It("Should remove the submariner agent manifestworks after the managedcluster is removed", func() {
@@ -157,20 +149,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			err := clusterClient.ClusterV1().ManagedClusters().Delete(context.Background(), managedClusterName, metav1.DeleteOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Check if the submariner agent manifestworks are removed")
-			Eventually(func() bool {
-				works, err := workClient.WorkV1().ManifestWorks(managedClusterName).List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					return false
-				}
-				for _, work := range works.Items {
-					if work.Name == expectedOperatorWork {
-						return false
-					}
-				}
-
-				return true
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+			awaitNoSubmarinerManifestMorks(managedClusterName)
 		})
 	})
 
@@ -277,3 +256,19 @@ var _ = Describe("Deploy a submariner on hub", func() {
 		})
 	})
 })
+
+func awaitSubmarinerManifestMorks(managedClusterName string) {
+	By("Check if the submariner agent manifestworks are deployed")
+	Eventually(func() bool {
+		return util.FindManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName,
+			submarineragent.SubmarinerCRManifestWorkName)
+	}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+}
+
+func awaitNoSubmarinerManifestMorks(managedClusterName string) {
+	By("Check if the submariner agent manifestworks are removed")
+	Eventually(func() bool {
+		return util.FindManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName,
+			submarineragent.SubmarinerCRManifestWorkName)
+	}, eventuallyTimeout, eventuallyInterval).Should(BeFalse())
+}

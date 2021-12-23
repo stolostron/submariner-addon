@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent"
 	"github.com/open-cluster-management/submariner-addon/pkg/spoke"
 	"github.com/open-cluster-management/submariner-addon/test/util"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
@@ -66,7 +67,7 @@ var _ = Describe("Deploy a submariner-addon agent", func() {
 
 		It("Should deploy the submariner-addon agent manifestworks on managed cluster namespace successfully", func() {
 			Eventually(func() bool {
-				return util.FindManifestWorks(workClient, managedClusterName, expectedOperatorWork, expectedAgentWork)
+				return util.FindManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName, expectedAgentWork)
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
 	})
