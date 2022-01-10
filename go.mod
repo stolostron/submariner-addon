@@ -20,6 +20,7 @@ require (
 	github.com/submariner-io/cloud-prepare v0.12.0-m0.0.20211123153104-4ea00fe8bf34
 	github.com/submariner-io/submariner-operator/api v0.0.0-20211109163502-92bf6a97e565
 	github.com/submariner-io/submariner/pkg/apis v0.0.0-20210817085048-59f656555db0
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	google.golang.org/api v0.62.0
