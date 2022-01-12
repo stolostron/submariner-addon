@@ -3,7 +3,7 @@ package addon
 import (
 	"context"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/constants"
+	"github.com/stolostron/submariner-addon/pkg/constants"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"

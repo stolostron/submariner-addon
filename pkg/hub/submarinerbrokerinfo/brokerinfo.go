@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	apiconfigv1 "github.com/openshift/api/config/v1"
+	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	"github.com/stolostron/submariner-addon/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

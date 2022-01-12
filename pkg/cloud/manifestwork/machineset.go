@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/manifestwork"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/stolostron/submariner-addon/pkg/manifestwork"
 	"github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 	rbacv1 "k8s.io/api/rbac/v1"

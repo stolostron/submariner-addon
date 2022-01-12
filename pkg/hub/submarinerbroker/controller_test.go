@@ -6,9 +6,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker"
-	"github.com/open-cluster-management/submariner-addon/pkg/resource"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbroker"
+	"github.com/stolostron/submariner-addon/pkg/resource"
 	fakereactor "github.com/submariner-io/admiral/pkg/fake"
 	"github.com/submariner-io/admiral/pkg/test"
 	corev1 "k8s.io/api/core/v1"

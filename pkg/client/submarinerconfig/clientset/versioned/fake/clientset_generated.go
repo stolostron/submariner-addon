@@ -3,9 +3,9 @@
 package fake
 
 import (
-	clientset "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	submarineraddonv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
-	fakesubmarineraddonv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1/fake"
+	clientset "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+	submarineraddonv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
+	fakesubmarineraddonv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

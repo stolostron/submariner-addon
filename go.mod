@@ -1,4 +1,4 @@
-module github.com/open-cluster-management/submariner-addon
+module github.com/stolostron/submariner-addon
 
 go 1.16
 

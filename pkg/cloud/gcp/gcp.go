@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/constants"
+	"github.com/stolostron/submariner-addon/pkg/constants"
 	gcpclient "github.com/submariner-io/cloud-prepare/pkg/gcp/client"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
@@ -17,8 +17,8 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/klog/v2"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/reporter"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 	cloudpreparegcp "github.com/submariner-io/cloud-prepare/pkg/gcp"

@@ -7,9 +7,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent"
-	"github.com/open-cluster-management/submariner-addon/pkg/resource"
-	"github.com/open-cluster-management/submariner-addon/test/util"
+	"github.com/stolostron/submariner-addon/pkg/hub/submarineragent"
+	"github.com/stolostron/submariner-addon/pkg/resource"
+	"github.com/stolostron/submariner-addon/test/util"
 	"github.com/submariner-io/admiral/pkg/finalizer"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

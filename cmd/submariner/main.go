@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/cmd/hub"
-	"github.com/open-cluster-management/submariner-addon/pkg/cmd/spoke"
-	"github.com/open-cluster-management/submariner-addon/pkg/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/stolostron/submariner-addon/pkg/cmd/hub"
+	"github.com/stolostron/submariner-addon/pkg/cmd/spoke"
+	"github.com/stolostron/submariner-addon/pkg/version"
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 )
