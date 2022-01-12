@@ -6,8 +6,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/addon"
-	"github.com/open-cluster-management/submariner-addon/pkg/constants"
+	"github.com/stolostron/submariner-addon/pkg/addon"
+	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/submariner-io/admiral/pkg/fake"
 	"github.com/submariner-io/admiral/pkg/test"
 	"k8s.io/apimachinery/pkg/api/meta"

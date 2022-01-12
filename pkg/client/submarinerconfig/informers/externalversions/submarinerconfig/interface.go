@@ -3,8 +3,8 @@
 package submarinerconfig
 
 import (
-	internalinterfaces "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
+	internalinterfaces "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

@@ -170,7 +170,7 @@ spec:
               - args:
                 - /submariner
                 - controller
-                image: quay.io/open-cluster-management/submariner-addon:0.3.0
+                image: quay.io/stolostron/submariner-addon:0.3.0
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -206,7 +206,7 @@ spec:
   - submariner-addon
   links:
   - name: Submariner Addon
-    url: https://github.com/open-cluster-management/submariner-addon
+    url: https://github.com/stolostron/submariner-addon
   maintainers:
   - email: jqiu@redhat.com
     name: Jian Qiu

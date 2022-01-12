@@ -8,9 +8,9 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	cloud "github.com/open-cluster-management/submariner-addon/pkg/cloud"
 	events "github.com/openshift/library-go/pkg/operator/events"
+	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	cloud "github.com/stolostron/submariner-addon/pkg/cloud"
 )
 
 // MockProvider is a mock of Provider interface.

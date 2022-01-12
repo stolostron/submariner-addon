@@ -14,5 +14,5 @@ pkg/apis/submarinerconfig/v1alpha1 \
 "
 
 API_PACKAGES="\
-github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1,\
+github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1,\
 "

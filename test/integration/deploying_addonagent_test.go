@@ -6,10 +6,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineragent"
-	"github.com/open-cluster-management/submariner-addon/pkg/spoke"
-	"github.com/open-cluster-management/submariner-addon/test/util"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"github.com/stolostron/submariner-addon/pkg/hub/submarineragent"
+	"github.com/stolostron/submariner-addon/pkg/spoke"
+	"github.com/stolostron/submariner-addon/test/util"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"

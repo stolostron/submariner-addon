@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/constants"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/stolostron/submariner-addon/pkg/constants"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/manifestwork"
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/reporter"
+	"github.com/stolostron/submariner-addon/pkg/cloud/manifestwork"
+	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
