@@ -6,8 +6,8 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/manifestwork"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/stolostron/submariner-addon/pkg/cloud/manifestwork"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

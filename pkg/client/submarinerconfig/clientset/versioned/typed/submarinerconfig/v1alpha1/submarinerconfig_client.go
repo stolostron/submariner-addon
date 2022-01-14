@@ -3,8 +3,8 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	"github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/scheme"
+	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	"github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

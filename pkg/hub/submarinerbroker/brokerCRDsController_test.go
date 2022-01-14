@@ -9,7 +9,7 @@ import (
 	fakeapiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	testinghelpers "github.com/stolostron/submariner-addon/pkg/helpers/testing"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 

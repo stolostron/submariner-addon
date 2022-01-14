@@ -234,7 +234,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: quay.io/open-cluster-management/submariner-addon:latest
+                image: quay.io/stolostron/submariner-addon:latest
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -269,7 +269,7 @@ spec:
   - submariner-addon
   links:
   - name: Submariner Addon
-    url: https://github.com/open-cluster-management/submariner-addon
+    url: https://github.com/stolostron/submariner-addon
   maintainers:
   - email: jqiu@redhat.com
     name: Jian Qiu

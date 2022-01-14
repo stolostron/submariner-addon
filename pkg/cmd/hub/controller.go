@@ -5,8 +5,8 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/hub"
-	"github.com/open-cluster-management/submariner-addon/pkg/version"
+	"github.com/stolostron/submariner-addon/pkg/hub"
+	"github.com/stolostron/submariner-addon/pkg/version"
 )
 
 func NewController() *cobra.Command {

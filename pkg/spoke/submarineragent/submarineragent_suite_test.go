@@ -7,8 +7,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	testingHelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
+	testingHelpers "github.com/stolostron/submariner-addon/pkg/helpers/testing"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"

@@ -11,9 +11,9 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 
-	configclientset "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub"
-	"github.com/open-cluster-management/submariner-addon/test/util"
+	configclientset "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+	"github.com/stolostron/submariner-addon/pkg/hub"
+	"github.com/stolostron/submariner-addon/test/util"
 	addonclientset "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
