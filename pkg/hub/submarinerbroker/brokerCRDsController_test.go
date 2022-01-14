@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	testinghelpers "github.com/stolostron/submariner-addon/pkg/helpers/testing"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 

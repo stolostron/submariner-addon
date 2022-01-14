@@ -14,7 +14,7 @@ import (
 	workclientset "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
-	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 

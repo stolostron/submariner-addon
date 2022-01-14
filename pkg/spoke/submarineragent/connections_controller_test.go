@@ -8,7 +8,7 @@ import (
 	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
 	addonfake "github.com/open-cluster-management/api/client/addon/clientset/versioned/fake"
 	addoninformers "github.com/open-cluster-management/api/client/addon/informers/externalversions"
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	testinghelpers "github.com/stolostron/submariner-addon/pkg/helpers/testing"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

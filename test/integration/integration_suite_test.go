@@ -14,9 +14,9 @@ import (
 	addonclientset "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	workclientset "github.com/open-cluster-management/api/client/work/clientset/versioned"
-	configclientset "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub"
-	"github.com/open-cluster-management/submariner-addon/test/util"
+	configclientset "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+	"github.com/stolostron/submariner-addon/pkg/hub"
+	"github.com/stolostron/submariner-addon/test/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

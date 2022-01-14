@@ -14,9 +14,9 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 
 # Image URL to use all building/pushing image targets;
 IMAGE ?= submariner-addon
-IMAGE_REGISTRY ?= quay.io/open-cluster-management
+IMAGE_REGISTRY ?= quay.io/stolostron
 
-GIT_HOST ?= github.com/open-cluster-management
+GIT_HOST ?= github.com/stolostron
 BASE_DIR := $(shell basename $(PWD))
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 
