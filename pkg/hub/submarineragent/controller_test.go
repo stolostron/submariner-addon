@@ -18,10 +18,10 @@ import (
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	workv1 "github.com/open-cluster-management/api/work/v1"
-	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
-	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	fakeconfigclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
+	configinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
+	testinghelpers "github.com/stolostron/submariner-addon/pkg/helpers/testing"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 

@@ -17,9 +17,9 @@ import (
 
 	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	workv1 "github.com/open-cluster-management/api/work/v1"
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws/bindata"
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws/client"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/stolostron/submariner-addon/pkg/cloud/aws/bindata"
+	"github.com/stolostron/submariner-addon/pkg/cloud/aws/client"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

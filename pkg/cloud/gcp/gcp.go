@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp/client"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/stolostron/submariner-addon/pkg/cloud/gcp/client"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
 
 	"google.golang.org/api/compute/v1"
 	googleapi "google.golang.org/api/googleapi"

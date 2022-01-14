@@ -8,7 +8,7 @@ import (
 	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	testinghelpers "github.com/stolostron/submariner-addon/pkg/helpers/testing"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 

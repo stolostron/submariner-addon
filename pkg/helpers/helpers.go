@@ -20,8 +20,8 @@ import (
 	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	workv1 "github.com/open-cluster-management/api/work/v1"
-	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
 	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"

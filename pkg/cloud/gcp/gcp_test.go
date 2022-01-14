@@ -7,7 +7,7 @@ import (
 
 	googleapi "google.golang.org/api/googleapi"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp/client/mock"
+	"github.com/stolostron/submariner-addon/pkg/cloud/gcp/client/mock"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 )

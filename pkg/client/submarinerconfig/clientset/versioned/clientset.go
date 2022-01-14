@@ -5,7 +5,7 @@ package versioned
 import (
 	"fmt"
 
-	submarineraddonv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
+	submarineraddonv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

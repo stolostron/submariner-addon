@@ -12,7 +12,7 @@ import (
 
 	addonapiv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	testinghelpers "github.com/stolostron/submariner-addon/pkg/helpers/testing"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 

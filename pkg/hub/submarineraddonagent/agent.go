@@ -9,8 +9,8 @@ import (
 	"github.com/open-cluster-management/addon-framework/pkg/agent"
 	addonapiv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineraddonagent/bindata"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
+	"github.com/stolostron/submariner-addon/pkg/hub/submarineraddonagent/bindata"
 
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"

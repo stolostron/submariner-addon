@@ -16,8 +16,8 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarinerbroker/bindata"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
+	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbroker/bindata"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"

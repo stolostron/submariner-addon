@@ -10,13 +10,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/cmd/hub"
-	"github.com/open-cluster-management/submariner-addon/pkg/cmd/spoke"
+	"github.com/stolostron/submariner-addon/pkg/cmd/hub"
+	"github.com/stolostron/submariner-addon/pkg/cmd/spoke"
 
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/version"
+	"github.com/stolostron/submariner-addon/pkg/version"
 )
 
 // The submariner binary is used to integrate between ACM and Submariner.

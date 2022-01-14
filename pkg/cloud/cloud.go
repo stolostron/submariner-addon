@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	workclient "github.com/open-cluster-management/api/client/work/clientset/versioned"
-	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/aws"
-	"github.com/open-cluster-management/submariner-addon/pkg/cloud/gcp"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	"github.com/stolostron/submariner-addon/pkg/cloud/aws"
+	"github.com/stolostron/submariner-addon/pkg/cloud/gcp"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 

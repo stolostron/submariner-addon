@@ -14,9 +14,9 @@ import (
 	fakeworkclient "github.com/open-cluster-management/api/client/work/clientset/versioned/fake"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	workv1 "github.com/open-cluster-management/api/work/v1"
-	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
+	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	fakeconfigclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
+	testinghelpers "github.com/stolostron/submariner-addon/pkg/helpers/testing"
 
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
 	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"

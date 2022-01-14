@@ -10,10 +10,10 @@ import (
 
 	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	addoninformers "github.com/open-cluster-management/api/client/addon/informers/externalversions"
-	configclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	configinformers "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
-	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
+	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+	configinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
+	"github.com/stolostron/submariner-addon/pkg/spoke/submarineragent"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 

@@ -6,7 +6,7 @@ import (
 	addonclient "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "github.com/open-cluster-management/api/client/addon/informers/externalversions/addon/v1alpha1"
 	addonlisterv1alpha1 "github.com/open-cluster-management/api/client/addon/listers/addon/v1alpha1"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
 
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/apis/submariner/v1alpha1"
 
