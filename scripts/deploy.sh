@@ -133,8 +133,8 @@ kind: Klusterlet
 metadata:
   name: klusterlet
 spec:
-  registrationImagePullSpec: quay.io/open-cluster-management/registration
-  workImagePullSpec: quay.io/open-cluster-management/work
+  registrationImagePullSpec: quay.io/stolostron/registration
+  workImagePullSpec: quay.io/stolostron/work
   clusterName: ${cluster}
   namespace: open-cluster-management-agent
   externalServerURLs:
@@ -250,13 +250,13 @@ done
 
 # downlaod registration-operator
 registration_operator_dir="${work_dir}/registration-operator"
-git clone --depth 1 --branch release-2.2 https://github.com/open-cluster-management/registration-operator.git ${registration_operator_dir}
+git clone --depth 1 --branch release-2.2 https://github.com/stolostron/registration-operator.git ${registration_operator_dir}
 
 # the first cluster is hub cluster
 hub="${clusters[0]}"
 
 # load submariner-addon image from local
-kind load --name="${hub}" docker-image quay.io/open-cluster-management/submariner-addon:latest
+kind load --name="${hub}" docker-image quay.io/stolostron/submariner-addon:latest
 
 # deploy hub
 deploy_hub ${hub}

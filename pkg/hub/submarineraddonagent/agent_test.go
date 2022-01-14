@@ -14,8 +14,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/hub/submarineraddonagent"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/stolostron/submariner-addon/pkg/hub/submarineraddonagent"
 	appsv1 "k8s.io/api/apps/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"

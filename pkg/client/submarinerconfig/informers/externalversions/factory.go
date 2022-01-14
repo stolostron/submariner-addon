@@ -7,9 +7,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	internalinterfaces "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/internalinterfaces"
-	submarinerconfig "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig"
+	versioned "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+	internalinterfaces "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/internalinterfaces"
+	submarinerconfig "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

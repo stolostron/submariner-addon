@@ -21,7 +21,7 @@ on:
 jobs:
   check:
     name: Check Dependencies
-    if: github.repository_owner == 'open-cluster-management'
+    if: github.repository_owner == 'stolostron'
     runs-on: ubuntu-latest
     steps:
       - uses: z0al/dependent-issues@65a8dadac8eb87a2ea821f277fe5529d86609558

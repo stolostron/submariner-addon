@@ -104,7 +104,7 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
 
 The add-on has been integrated into ACM 2.2 as a default component:
 
-1. Install ACM following the [`deploy`](https://github.com/open-cluster-management/deploy) repo.
+1. Install ACM following the [`deploy`](https://github.com/stolostron/deploy) repo.
 
 2. Import or create OCP clusters as managed cluster through the ACM console UI.
    

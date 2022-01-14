@@ -22,8 +22,8 @@ go install -mod=vendor ./${CODEGEN_PKG}/cmd/{defaulter-gen,client-gen,lister-gen
 
 for group in submarinerconfig; do
   bash ${CODEGEN_PKG}/generate-groups.sh "client,lister,informer" \
-    github.com/open-cluster-management/submariner-addon/pkg/client/${group} \
-    github.com/open-cluster-management/submariner-addon/pkg/apis \
+    github.com/stolostron/submariner-addon/pkg/client/${group} \
+    github.com/stolostron/submariner-addon/pkg/apis \
     "${group}:v1alpha1" \
     --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
     ${verify}

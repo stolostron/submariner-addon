@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 
 	"k8s.io/apimachinery/pkg/api/errors"

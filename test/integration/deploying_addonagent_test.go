@@ -7,8 +7,8 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/spoke"
-	"github.com/open-cluster-management/submariner-addon/test/util"
+	"github.com/stolostron/submariner-addon/pkg/spoke"
+	"github.com/stolostron/submariner-addon/test/util"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 

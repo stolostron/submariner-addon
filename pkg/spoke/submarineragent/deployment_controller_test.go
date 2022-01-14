@@ -5,10 +5,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
-	"github.com/open-cluster-management/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"github.com/stolostron/submariner-addon/pkg/helpers/testing"
+	"github.com/stolostron/submariner-addon/pkg/spoke/submarineragent"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"

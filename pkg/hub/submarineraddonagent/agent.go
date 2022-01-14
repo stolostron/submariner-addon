@@ -6,7 +6,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"

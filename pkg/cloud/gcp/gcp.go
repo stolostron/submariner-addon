@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/klog/v2"
 
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers"
+	"github.com/stolostron/submariner-addon/pkg/helpers"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"

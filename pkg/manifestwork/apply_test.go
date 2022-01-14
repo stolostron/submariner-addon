@@ -5,9 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
-	"github.com/open-cluster-management/submariner-addon/pkg/manifestwork"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/stolostron/submariner-addon/pkg/helpers/testing"
+	"github.com/stolostron/submariner-addon/pkg/manifestwork"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"open-cluster-management.io/api/client/work/clientset/versioned/fake"

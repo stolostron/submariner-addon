@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	configv1alpha1 "github.com/open-cluster-management/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	fakeconfigclient "github.com/open-cluster-management/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
-	testinghelpers "github.com/open-cluster-management/submariner-addon/pkg/helpers/testing"
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
+	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	fakeconfigclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
+	testinghelpers "github.com/stolostron/submariner-addon/pkg/helpers/testing"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
