@@ -31,8 +31,9 @@ import (
 // +k8s:openapi-gen=true
 type ServiceDiscoverySpec struct {
 	BrokerK8sApiServer       string               `json:"brokerK8sApiServer"`
-	BrokerK8sApiServerToken  string               `json:"brokerK8sApiServerToken"`
-	BrokerK8sCA              string               `json:"brokerK8sCA"`
+	BrokerK8sApiServerToken  string               `json:"brokerK8sApiServerToken,omitempty"`
+	BrokerK8sCA              string               `json:"brokerK8sCA,omitempty"`
+	BrokerK8sSecret          string               `json:"brokerK8sSecret,omitempty"`
 	BrokerK8sRemoteNamespace string               `json:"brokerK8sRemoteNamespace"`
 	ClusterID                string               `json:"clusterID"`
 	Namespace                string               `json:"namespace"`
@@ -40,6 +41,7 @@ type ServiceDiscoverySpec struct {
 	Version                  string               `json:"version,omitempty"`
 	Debug                    bool                 `json:"debug"`
 	GlobalnetEnabled         bool                 `json:"globalnetEnabled,omitempty"`
+	BrokerK8sInsecure        bool                 `json:"brokerK8sInsecure,omitempty"`
 	CoreDNSCustomConfig      *CoreDNSCustomConfig `json:"coreDNSCustomConfig,omitempty"`
 	// +listType=set
 	CustomDomains  []string          `json:"customDomains,omitempty"`
@@ -65,7 +67,7 @@ type ServiceDiscoveryStatus struct {
 
 // +kubebuilder:object:root=true
 
-// ServiceDiscovery is the Schema for the servicediscoveries API
+// ServiceDiscovery is the Schema for the servicediscoveries API.
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=servicediscoveries,scope=Namespaced
@@ -80,7 +82,7 @@ type ServiceDiscovery struct {
 
 // +kubebuilder:object:root=true
 
-// ServiceDiscoveryList contains a list of ServiceDiscovery
+// ServiceDiscoveryList contains a list of ServiceDiscovery.
 type ServiceDiscoveryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -93,6 +95,7 @@ func init() {
 
 func (sd *ServiceDiscovery) UnmarshalJSON(data []byte) error {
 	type serviceDiscoveryAlias ServiceDiscovery
+
 	serviceDiscovery := &serviceDiscoveryAlias{
 		Spec: ServiceDiscoverySpec{
 			Version:    DefaultLighthouseVersion,
@@ -103,5 +106,6 @@ func (sd *ServiceDiscovery) UnmarshalJSON(data []byte) error {
 	_ = json.Unmarshal(data, serviceDiscovery)
 
 	*sd = ServiceDiscovery(*serviceDiscovery)
+
 	return nil
 }

@@ -40,7 +40,7 @@ type ClusterSpec struct {
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:MinLength=1
 	ClusterID   string   `json:"cluster_id"` // perhaps this could just be a hash of the name...?
-	ColorCodes  []string `json:"color_codes"`
+	ColorCodes  []string `json:"color_codes,omitempty"`
 	ServiceCIDR []string `json:"service_cidr"`
 	ClusterCIDR []string `json:"cluster_cidr"`
 	GlobalCIDR  []string `json:"global_cidr"`
@@ -67,9 +67,9 @@ type Endpoint struct {
 func (ep *Endpoint) GatewayIP() net.IP {
 	if ep.Spec.PublicIP != "" {
 		return net.ParseIP(ep.Spec.PublicIP)
-	} else {
-		return net.ParseIP(ep.Spec.PrivateIP)
 	}
+
+	return net.ParseIP(ep.Spec.PrivateIP)
 }
 
 type EndpointSpec struct {
@@ -110,7 +110,7 @@ const (
 	DNS          = "dns"  // dns:mygateway.dns.name.com
 )
 
-// ValidGatewayNodeConfig list should contain only keys that configure node specific settings via labels
+// ValidGatewayNodeConfig list should contain only keys that configure node specific settings via labels.
 var ValidGatewayNodeConfig = []string{
 	UDPPortConfig,
 	NATTDiscoveryPortConfig,
@@ -188,8 +188,8 @@ const (
 	ConnectionError ConnectionStatus = "error"
 )
 
-func NewConnection(endpointSpec EndpointSpec, usedIP string, nat bool) *Connection {
-	return &Connection{Endpoint: endpointSpec, UsingIP: usedIP, UsingNAT: nat}
+func NewConnection(endpointSpec *EndpointSpec, usedIP string, nat bool) *Connection {
+	return &Connection{Endpoint: *endpointSpec, UsingIP: usedIP, UsingNAT: nat}
 }
 
 func (c *Connection) SetStatus(status ConnectionStatus, messageFormat string, a ...interface{}) {

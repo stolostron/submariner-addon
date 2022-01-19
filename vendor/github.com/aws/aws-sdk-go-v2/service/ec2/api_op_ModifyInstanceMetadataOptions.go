@@ -48,13 +48,13 @@ type ModifyInstanceMetadataOptionsInput struct {
 	// UnauthorizedOperation.
 	DryRun *bool
 
-	// This parameter enables or disables the HTTP metadata endpoint on your instances.
-	// If the parameter is not specified, the existing state is maintained. If you
-	// specify a value of disabled, you will not be able to access your instance
-	// metadata.
+	// Enables or disables the HTTP metadata endpoint on your instances. If this
+	// parameter is not specified, the existing state is maintained. If you specify a
+	// value of disabled, you cannot access your instance metadata.
 	HttpEndpoint types.InstanceMetadataEndpointState
 
-	// Enables or disables the IPv6 endpoint for the instance metadata service.
+	// Enables or disables the IPv6 endpoint for the instance metadata service. This
+	// setting applies only if you have enabled the HTTP metadata endpoint.
 	HttpProtocolIpv6 types.InstanceMetadataProtocolState
 
 	// The desired HTTP PUT response hop limit for instance metadata requests. The
@@ -74,6 +74,13 @@ type ModifyInstanceMetadataOptionsInput struct {
 	// credential always returns the version 2.0 credentials; the version 1.0
 	// credentials are not available.
 	HttpTokens types.HttpTokensState
+
+	// Set to enabled to allow access to instance tags from the instance metadata. Set
+	// to disabled to turn off access to instance tags from the instance metadata. For
+	// more information, see Work with instance tags using the instance metadata
+	// (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
+	// Default: disabled
+	InstanceMetadataTags types.InstanceMetadataTagsState
 
 	noSmithyDocumentSerde
 }
