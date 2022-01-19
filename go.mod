@@ -16,18 +16,16 @@ require (
 	github.com/prometheus/procfs v0.7.2 // indirect
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.12.0-m0.0.20211201145404-74420c79f374
-	github.com/submariner-io/cloud-prepare v0.12.0-m0.0.20211123153104-4ea00fe8bf34
-	github.com/submariner-io/submariner-operator/api v0.0.0-20211109163502-92bf6a97e565
-	github.com/submariner-io/submariner/pkg/apis v0.0.0-20210817085048-59f656555db0
-	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
+	github.com/submariner-io/admiral v0.12.0-m3
+	github.com/submariner-io/cloud-prepare v0.12.0-m3.0.20220117145104-8c71f70f26cb
+	github.com/submariner-io/submariner v0.12.0-m3.0.20220118140616-86d7b7924805
+	github.com/submariner-io/submariner-operator v0.12.0-m3.0.20220118152331-5eb19252606e
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
-	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
-	google.golang.org/api v0.62.0
+	google.golang.org/api v0.65.0
 	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.22.1
 	k8s.io/apimachinery v0.22.1
-	k8s.io/client-go v0.22.1
+	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/code-generator v0.22.1
 	k8s.io/component-base v0.22.1
 	k8s.io/klog/v2 v2.9.0
@@ -40,4 +38,5 @@ require (
 replace (
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/api => google.golang.org/api v0.29.0
+	k8s.io/client-go => k8s.io/client-go v0.22.1
 )

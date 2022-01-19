@@ -123,16 +123,17 @@ func New(accessKeyID, secretAccessKey, region string) (Interface, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(region),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, "")),
-		config.WithEndpointResolver(aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
-			if service != "route53" || region != "cn-northwest-1" {
-				return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-			}
+		config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
+			func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+				if service != "route53" || region != "cn-northwest-1" {
+					return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+				}
 
-			return aws.Endpoint{
-				URL:         "https://route53.amazonaws.com.cn",
-				PartitionID: "aws-cn",
-			}, nil
-		})))
+				return aws.Endpoint{
+					URL:         "https://route53.amazonaws.com.cn",
+					PartitionID: "aws-cn",
+				}, nil
+			})))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS configuration: %w", err)
 	}
