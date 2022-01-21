@@ -1150,8 +1150,8 @@ github.com/openshift/build-machinery-go v0.0.0-20200211121458-5e3d6e570160/go.mo
 github.com/openshift/build-machinery-go v0.0.0-20210115170933-e575b44a7a94/go.mod h1:b1BuldmJlbA/xYtdZvKi+7j5YGB44qJUJDZ9zwiNCfE=
 github.com/openshift/build-machinery-go v0.0.0-20210712174854-1bb7fd1518d3/go.mod h1:b1BuldmJlbA/xYtdZvKi+7j5YGB44qJUJDZ9zwiNCfE=
 github.com/openshift/build-machinery-go v0.0.0-20210806203541-4ea9b6da3a37/go.mod h1:b1BuldmJlbA/xYtdZvKi+7j5YGB44qJUJDZ9zwiNCfE=
-github.com/openshift/build-machinery-go v0.0.0-20210922160744-a9caf93aef90 h1:UUq18A+3oxNPCLvgSbhwKfMhVX3SQWOeJKcXkMkumek=
-github.com/openshift/build-machinery-go v0.0.0-20210922160744-a9caf93aef90/go.mod h1:b1BuldmJlbA/xYtdZvKi+7j5YGB44qJUJDZ9zwiNCfE=
+github.com/openshift/build-machinery-go v0.0.0-20211213093930-7e33a7eb4ce3 h1:65oBhJYHzYK5VL0gF1eiYY37lLzyLZ47b9y5Kib1nf8=
+github.com/openshift/build-machinery-go v0.0.0-20211213093930-7e33a7eb4ce3/go.mod h1:b1BuldmJlbA/xYtdZvKi+7j5YGB44qJUJDZ9zwiNCfE=
 github.com/openshift/client-go v0.0.0-20210916133943-9acee1a0fb83/go.mod h1:iSeqKIqUKxVec3gV1kNvwS1tjDpzpdP134RimkLc3BE=
 github.com/openshift/cluster-dns-operator v0.0.0-20200529200012-f9e4dfc90c57/go.mod h1:HYdEeWE4E1gJCqTPv2Sg6ionbE1u0mqCE6yVoeVynO8=
 github.com/openshift/library-go v0.0.0-20210916194400-ae21aab32431 h1:Fdg8exEe5DWwY3xmOxXy42L8K0N0nQA/q/i922kdD5M=
@@ -2323,8 +2323,8 @@ mvdan.cc/unparam v0.0.0-20190720180237-d51796306d8f/go.mod h1:4G1h5nDURzA3bwVMZI
 open-cluster-management.io/addon-framework v0.1.0 h1:y02vHE4ak9Q7KCz/vDQPwTqzOy+bAWLA+Mpe/HfX0yQ=
 open-cluster-management.io/addon-framework v0.1.0/go.mod h1:IUjwRzTzJWdXBGtA1eX/gQffG7LBAPXtXrdquAWuZ+E=
 open-cluster-management.io/api v0.0.0-20210916013819-2e58cdb938f9/go.mod h1:9qiA5h/8kvPQnJEOlAPHVjRO9a1jCmDhGzvgMBvXEaE=
-open-cluster-management.io/api v0.5.0 h1:rJOe+iX+wVwW1ln/kLEBe7X9NJbQPdZ6a9bDh82AjUA=
-open-cluster-management.io/api v0.5.0/go.mod h1:9qiA5h/8kvPQnJEOlAPHVjRO9a1jCmDhGzvgMBvXEaE=
+open-cluster-management.io/api v0.6.0 h1:PzR1G/d9YmwL742lgJgFgsEJs6i8Zg05pdIhK/iLZV4=
+open-cluster-management.io/api v0.6.0/go.mod h1:0IUTh8J+p4pv1THh1r9oO0luX9Z1FLDEAmvzW09qC0o=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/letsencrypt v0.0.3/go.mod h1:buyQKZ6IXrRnB7TdkHP0RyEybLx18HHyOSoTyoOLqNY=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
