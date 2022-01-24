@@ -3,7 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"time"
 
@@ -37,7 +37,7 @@ var HubKubeConfigPath = path.Join("/tmp", "submaddon-integration-test", "kubecon
 
 // on prow env, the /var/run/secrets/kubernetes.io/serviceaccount/namespace can be found.
 func GetCurrentNamespace(kubeClient kubernetes.Interface, defaultNamespace string) (string, error) {
-	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
