@@ -51,6 +51,9 @@ rules:
   verbs: ["update", "patch"]
 # Allow submariner-addon hub controller to run with addon-framwork
 - apiGroups: ["addon.open-cluster-management.io"]
+  resources: ["clustermanagementaddons"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["addon.open-cluster-management.io"]
   resources: ["managedclusteraddons"]
   verbs: ["get", "list", "watch", "patch", "update"]
 - apiGroups: ["addon.open-cluster-management.io"]
