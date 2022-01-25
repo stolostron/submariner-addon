@@ -29,6 +29,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
 		&SubmarinerConfig{},
 		&SubmarinerConfigList{},
+		&SubmarinerDiagnoseConfig{},
+		&SubmarinerDiagnoseConfigList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 

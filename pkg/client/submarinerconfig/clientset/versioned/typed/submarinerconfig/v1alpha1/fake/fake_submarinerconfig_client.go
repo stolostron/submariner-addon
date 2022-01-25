@@ -16,6 +16,10 @@ func (c *FakeSubmarineraddonV1alpha1) SubmarinerConfigs(namespace string) v1alph
 	return &FakeSubmarinerConfigs{c, namespace}
 }
 
+func (c *FakeSubmarineraddonV1alpha1) SubmarinerDiagnoseConfigs(namespace string) v1alpha1.SubmarinerDiagnoseConfigInterface {
+	return &FakeSubmarinerDiagnoseConfigs{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeSubmarineraddonV1alpha1) RESTClient() rest.Interface {

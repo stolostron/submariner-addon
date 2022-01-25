@@ -39,6 +39,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=submarineraddon.open-cluster-management.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("submarinerconfigs"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("submarinerdiagnoseconfigs"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Submarineraddon().V1alpha1().SubmarinerDiagnoseConfigs().Informer()}, nil
 
 	}
 

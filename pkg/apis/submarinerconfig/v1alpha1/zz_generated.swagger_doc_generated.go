@@ -89,6 +89,42 @@ func (SubmarinerConfigStatus) SwaggerDoc() map[string]string {
 	return map_SubmarinerConfigStatus
 }
 
+var map_SubmarinerDiagnoseConfig = map[string]string{
+	"":       "SubmarinerDiagnoseConfig represents the configuration for SubmarinerDiagnose. Submariner-addon will use it to run SubmarinerDiagnose.",
+	"spec":   "Spec defines the configuration of the Submariner",
+	"status": "Status represents the current status of submarinerdiagnose",
+}
+
+func (SubmarinerDiagnoseConfig) SwaggerDoc() map[string]string {
+	return map_SubmarinerDiagnoseConfig
+}
+
+var map_SubmarinerDiagnoseConfigList = map[string]string{
+	"":         "SubmarinerDiagnoseConfigList is a collection of SubmarinerDiagnoseConfig.",
+	"metadata": "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+	"items":    "Items is a list of SubmarinerDiagnoseConfig.",
+}
+
+func (SubmarinerDiagnoseConfigList) SwaggerDoc() map[string]string {
+	return map_SubmarinerDiagnoseConfigList
+}
+
+var map_SubmarinerDiagnoseSpec = map[string]string{
+	"": "SubmarinerDiagnoseSpec defines the desired configuration to run SubmarinerDiagnose.",
+}
+
+func (SubmarinerDiagnoseSpec) SwaggerDoc() map[string]string {
+	return map_SubmarinerDiagnoseSpec
+}
+
+var map_SubmarinerDiagnoseStatus = map[string]string{
+	"": "SubmarinerDiagnoseStatus defines the observed result of SubmarinerDiagnose.",
+}
+
+func (SubmarinerDiagnoseStatus) SwaggerDoc() map[string]string {
+	return map_SubmarinerDiagnoseStatus
+}
+
 var map_SubmarinerImagePullSpecs = map[string]string{
 	"submarinerImagePullSpec":           "SubmarinerImagePullSpec represents the desired image of submariner.",
 	"lighthouseAgentImagePullSpec":      "LighthouseAgentImagePullSpec represents the desired image of the lighthouse agent.",

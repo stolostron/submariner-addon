@@ -25,6 +25,9 @@ spec:
     - Kind: SubmarinerConfig
       name: submarinerconfigs.submarineraddon.open-cluster-management.io
       version: v1alpha1
+    - Kind: SubmarinerDiagnoseConfig
+      name: submarinerdiagnoseconfigs.submarineraddon.open-cluster-management.io
+      version: v1alpha1
   description: An integration between ACM and Submariner.
   displayName: Submariner Addon
   icon:

@@ -10,6 +10,8 @@ import (
 type Interface interface {
 	// SubmarinerConfigs returns a SubmarinerConfigInformer.
 	SubmarinerConfigs() SubmarinerConfigInformer
+	// SubmarinerDiagnoseConfigs returns a SubmarinerDiagnoseConfigInformer.
+	SubmarinerDiagnoseConfigs() SubmarinerDiagnoseConfigInformer
 }
 
 type version struct {
@@ -26,4 +28,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // SubmarinerConfigs returns a SubmarinerConfigInformer.
 func (v *version) SubmarinerConfigs() SubmarinerConfigInformer {
 	return &submarinerConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// SubmarinerDiagnoseConfigs returns a SubmarinerDiagnoseConfigInformer.
+func (v *version) SubmarinerDiagnoseConfigs() SubmarinerDiagnoseConfigInformer {
+	return &submarinerDiagnoseConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
