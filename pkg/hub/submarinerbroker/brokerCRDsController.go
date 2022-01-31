@@ -22,6 +22,7 @@ const (
 
 var staticCRDFiles = []string{
 	"manifests/submariner.io_clusters_crd.yaml",
+	"manifests/submariner.io_brokers_crd.yaml",
 	"manifests/submariner.io_endpoints_crd.yaml",
 	"manifests/submariner.io_gateways_crd.yaml",
 	"manifests/submariner.io_lighthouse.serviceimports_crd.yaml",
