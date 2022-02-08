@@ -1,4 +1,20 @@
-package internal
+/*
+Copyright 2021 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package certs
 
 // NB(directxman12): nothing has verified that this has good settings.  In fact,
 // the setting generated here are probably terrible, but they're fine for integration
@@ -155,6 +171,26 @@ func (c *TinyCA) NewServingCert(names ...string) (CertPair, error) {
 			IPs:      ips,
 		},
 		Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	})
+}
+
+// ClientInfo describes some Kubernetes user for the purposes of creating
+// client certificates.
+type ClientInfo struct {
+	// Name is the user name (embedded as the cert's CommonName)
+	Name string
+	// Groups are the groups to which this user belongs (embedded as the cert's
+	// Organization)
+	Groups []string
+}
+
+// NewClientCert produces a new CertPair suitable for use with Kubernetes
+// client cert auth with an API server validating based on this CA.
+func (c *TinyCA) NewClientCert(user ClientInfo) (CertPair, error) {
+	return c.makeCert(certutil.Config{
+		CommonName:   user.Name,
+		Organization: user.Groups,
+		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	})
 }
 
