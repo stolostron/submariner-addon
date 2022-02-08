@@ -9,11 +9,3 @@ type SubmarinerConfigListerExpansion interface{}
 // SubmarinerConfigNamespaceListerExpansion allows custom methods to be added to
 // SubmarinerConfigNamespaceLister.
 type SubmarinerConfigNamespaceListerExpansion interface{}
-
-// SubmarinerDiagnoseConfigListerExpansion allows custom methods to be added to
-// SubmarinerDiagnoseConfigLister.
-type SubmarinerDiagnoseConfigListerExpansion interface{}
-
-// SubmarinerDiagnoseConfigNamespaceListerExpansion allows custom methods to be added to
-// SubmarinerDiagnoseConfigNamespaceLister.
-type SubmarinerDiagnoseConfigNamespaceListerExpansion interface{}

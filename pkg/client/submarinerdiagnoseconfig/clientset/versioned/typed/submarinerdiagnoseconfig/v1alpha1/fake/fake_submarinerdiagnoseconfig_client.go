@@ -3,7 +3,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
+	v1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/clientset/versioned/typed/submarinerdiagnoseconfig/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
@@ -12,8 +12,8 @@ type FakeSubmarineraddonV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeSubmarineraddonV1alpha1) SubmarinerConfigs(namespace string) v1alpha1.SubmarinerConfigInterface {
-	return &FakeSubmarinerConfigs{c, namespace}
+func (c *FakeSubmarineraddonV1alpha1) SubmarinerDiagnoseConfigs(namespace string) v1alpha1.SubmarinerDiagnoseConfigInterface {
+	return &FakeSubmarinerDiagnoseConfigs{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

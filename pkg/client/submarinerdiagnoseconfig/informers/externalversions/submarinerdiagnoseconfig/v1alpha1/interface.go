@@ -3,13 +3,13 @@
 package v1alpha1
 
 import (
-	internalinterfaces "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// SubmarinerConfigs returns a SubmarinerConfigInformer.
-	SubmarinerConfigs() SubmarinerConfigInformer
+	// SubmarinerDiagnoseConfigs returns a SubmarinerDiagnoseConfigInformer.
+	SubmarinerDiagnoseConfigs() SubmarinerDiagnoseConfigInformer
 }
 
 type version struct {
@@ -23,7 +23,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// SubmarinerConfigs returns a SubmarinerConfigInformer.
-func (v *version) SubmarinerConfigs() SubmarinerConfigInformer {
-	return &submarinerConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// SubmarinerDiagnoseConfigs returns a SubmarinerDiagnoseConfigInformer.
+func (v *version) SubmarinerDiagnoseConfigs() SubmarinerDiagnoseConfigInformer {
+	return &submarinerDiagnoseConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

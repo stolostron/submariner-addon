@@ -5,7 +5,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -37,8 +37,8 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=submarineraddon.open-cluster-management.io, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithResource("submarinerconfigs"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("submarinerdiagnoseconfigs"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Submarineraddon().V1alpha1().SubmarinerDiagnoseConfigs().Informer()}, nil
 
 	}
 

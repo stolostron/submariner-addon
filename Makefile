@@ -48,6 +48,7 @@ $(call build-image,$(IMAGE),$(IMAGE_REGISTRY)/$(IMAGE),./Dockerfile,.)
 # $3 - manifests
 # $4 - output
 $(call add-crd-gen,submarinerconfigv1alpha1,./pkg/apis/submarinerconfig/v1alpha1,./pkg/apis/submarinerconfig/v1alpha1,./pkg/apis/submarinerconfig/v1alpha1)
+$(call add-crd-gen,submarinerdiagnoseconfigv1alpha1,./pkg/apis/submarinerdiagonseconfig/v1alpha1,./pkg/apis/submarinerdiagnoseconfig/v1alpha1,./pkg/apis/submarinerdiagnoseconfig/v1alpha1)
 
 clean:
 	scripts/deploy.sh cleanup
@@ -72,7 +73,8 @@ update-scripts:
 update-crds: ensure-controller-gen
 	$(CONTROLLER_GEN) crd paths=./pkg/apis/submarinerconfig/v1alpha1 output:crd:artifacts:config=deploy/config/crds
 	cp deploy/config/crds/submarineraddon.open-cluster-management.io_submarinerconfigs.yaml pkg/apis/submarinerconfig/v1alpha1/0000_00_submarineraddon.open-cluster-management.io_submarinerconfigs.crd.yaml
-
+	$(CONTROLLER_GEN) crd paths=./pkg/apis/submarinerdiagnoseconfig/v1alpha1 output:crd:artifacts:config=deploy/config/crds
+	#cp deploy/config/crds/submarineraddon.open-cluster-management.io_submarinerdiagnoseconfigs.yaml pkg/apis/submarineridiagnoseconfig/v1alpha1/0000_00_submarineraddon.open-cluster-management.io_submarineridiagnoseconfigs.crd.yaml
 verify-scripts:
 	bash -x hack/verify-deepcopy.sh
 	bash -x hack/verify-swagger-docs.sh

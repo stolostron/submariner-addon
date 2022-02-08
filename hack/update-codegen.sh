@@ -28,3 +28,12 @@ for group in submarinerconfig; do
     --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
     ${verify}
 done
+
+for group in submarinerdiagnoseconfig; do
+  bash ${CODEGEN_PKG}/generate-groups.sh "client,lister,informer" \
+    github.com/stolostron/submariner-addon/pkg/client/${group} \
+    github.com/stolostron/submariner-addon/pkg/apis \
+    "${group}:v1alpha1" \
+    --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
+    ${verify}
+done

@@ -6,10 +6,10 @@ import (
 	"context"
 	time "time"
 
-	submarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	versioned "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
-	internalinterfaces "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
+	submarinerdiagnoseconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
+	versioned "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/clientset/versioned"
+	internalinterfaces "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/listers/submarinerdiagnoseconfig/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -55,7 +55,7 @@ func NewFilteredSubmarinerDiagnoseConfigInformer(client versioned.Interface, nam
 				return client.SubmarineraddonV1alpha1().SubmarinerDiagnoseConfigs(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&submarinerconfigv1alpha1.SubmarinerDiagnoseConfig{},
+		&submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig{},
 		resyncPeriod,
 		indexers,
 	)
@@ -66,7 +66,7 @@ func (f *submarinerDiagnoseConfigInformer) defaultInformer(client versioned.Inte
 }
 
 func (f *submarinerDiagnoseConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&submarinerconfigv1alpha1.SubmarinerDiagnoseConfig{}, f.defaultInformer)
+	return f.factory.InformerFor(&submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig{}, f.defaultInformer)
 }
 
 func (f *submarinerDiagnoseConfigInformer) Lister() v1alpha1.SubmarinerDiagnoseConfigLister {

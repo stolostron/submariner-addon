@@ -3,14 +3,14 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	"github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/scheme"
+	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
+	"github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
 type SubmarineraddonV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	SubmarinerConfigsGetter
+	SubmarinerDiagnoseConfigsGetter
 }
 
 // SubmarineraddonV1alpha1Client is used to interact with features provided by the submarineraddon.open-cluster-management.io group.
@@ -18,8 +18,8 @@ type SubmarineraddonV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *SubmarineraddonV1alpha1Client) SubmarinerConfigs(namespace string) SubmarinerConfigInterface {
-	return newSubmarinerConfigs(c, namespace)
+func (c *SubmarineraddonV1alpha1Client) SubmarinerDiagnoseConfigs(namespace string) SubmarinerDiagnoseConfigInterface {
+	return newSubmarinerDiagnoseConfigs(c, namespace)
 }
 
 // NewForConfig creates a new SubmarineraddonV1alpha1Client for the given config.
