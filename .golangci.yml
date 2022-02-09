@@ -144,3 +144,9 @@ issues:
         - stylecheck
         - godot
       path: "pkg/apis/submarinerconfig/v1alpha1/zz_generated.swagger_doc_generated.go"
+
+    # Ignore any failures in auto-generated files
+    - linters:
+        - stylecheck
+        - godot
+      path: "pkg/apis/submarinerdiagnoseconfig/v1alpha1/zz_generated.swagger_doc_generated.go"

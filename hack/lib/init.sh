@@ -11,8 +11,10 @@ set -o pipefail
 
 API_GROUP_VERSIONS="\
 pkg/apis/submarinerconfig/v1alpha1 \
+pkg/apis/submarinerdiagnoseconfig/v1alpha1 \
 "
 
 API_PACKAGES="\
 github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1,\
+github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1,\
 "

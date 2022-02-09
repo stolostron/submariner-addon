@@ -13,3 +13,10 @@ GOFLAGS="" bash ${CODEGEN_PKG}/generate-groups.sh "deepcopy" \
   "submarinerconfig:v1alpha1" \
   --go-header-file ${SCRIPT_ROOT}/hack/empty.txt \
   ${verify}
+
+GOFLAGS="" bash ${CODEGEN_PKG}/generate-groups.sh "deepcopy" \
+  github.com/stolostron/submariner-addon/generated \
+  github.com/stolostron/submariner-addon/pkg/apis \
+  "submarinerdiagnoseconfig:v1alpha1" \
+  --go-header-file ${SCRIPT_ROOT}/hack/empty.txt \
+  ${verify}
