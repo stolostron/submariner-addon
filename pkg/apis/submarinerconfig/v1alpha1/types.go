@@ -140,17 +140,33 @@ type GatewayConfig struct {
 	// +optional
 	AWS `json:"aws,omitempty"`
 
+	// GCP represents the configuration for Google Cloud Platform.
+	// If the platform of managed cluster is not Google Cloud Platform, this field will be ignored.
+	// +optional
+	GCP `json:"gcp,omitempty"`
+
+	// Azure represents the configuration for Azure Cloud Platform.
+	// If the platform of managed cluster is not Azure Cloud Platform, this field will be ignored.
+	// +optional
+	Azure `json:"azure,omitempty"`
+
+	// RHOS represents the configuration for Redhat Openstack Platform.
+	// If the platform of managed cluster is not Redhat Openstack Platform, this field will be ignored.
+	// +optional
+	RHOS `json:"rhos,omitempty"`
+
 	// Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway
-	// component on the managed cluster.
-	// If the platform of managed cluster is Amazon Web Services, the submariner-addon will create the
-	// specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster,
-	// for other platforms, the submariner-addon will select the specified number of worker nodes and label
-	// them with `submariner.io/gateway` on the managed cluster.
-	// The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled
-	// automatically.
+	// component on the managed cluster. The default value is 1, if the value is greater than 1, the
+	// Submariner gateway HA will be enabled automatically.
 	// +optional
 	// +kubebuilder:default=1
 	Gateways int `json:"gateways,omitempty"`
+
+	// DedicatedGatewayNode enables or disables dedicated  gateway node. If enabled, the Submariner gateway component
+	// will be deployed on a newly created dedicated node. If disabled, then one of the existing worker nodes will
+	// be used. If Amazon Web Services this is ignored and Submariner gateway component will always be deployed on a
+	// dedicated gateway node
+	DedicatedGatewayNode bool `json:"dedicatedgatewaynode,omitempty"`
 }
 
 type AWS struct {
@@ -159,6 +175,33 @@ type AWS struct {
 	// The default value is `m5n.large`.
 	// +optional
 	// +kubebuilder:default=m5n.large
+	InstanceType string `json:"instanceType,omitempty"`
+}
+
+type GCP struct {
+	// InstanceType represents the Google Cloud Platform instance type of the gateway node that will be
+	// created on the managed cluster.
+	// The default value is `n1-standard-4`.
+	// +optional
+	// +kubebuilder:default=n1-standard-4
+	InstanceType string `json:"instanceType,omitempty"`
+}
+
+type RHOS struct {
+	// InstanceType represents the Redhat Openstack instance type of the gateway node that will be
+	// created on the managed cluster.
+	// The default value is `PnTAE.CPU_16_Memory_32768_Disk_80`.
+	// +optional
+	// +kubebuilder:default=PnTAE.CPU_16_Memory_32768_Disk_80
+	InstanceType string `json:"instanceType,omitempty"`
+}
+
+type Azure struct {
+	// InstanceType represents the Azure Cloud Platform instance type of the gateway node that will be
+	// created on the managed cluster.
+	// The default value is `Standard_D4s_v3`.
+	// +optional
+	// +kubebuilder:default=Standard_D4s_v3
 	InstanceType string `json:"instanceType,omitempty"`
 }
 

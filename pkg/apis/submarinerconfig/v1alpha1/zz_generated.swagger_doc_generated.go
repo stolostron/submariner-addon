@@ -19,9 +19,29 @@ func (AWS) SwaggerDoc() map[string]string {
 	return map_AWS
 }
 
+var map_Azure = map[string]string{
+	"instanceType": "InstanceType represents the Azure Cloud Platform instance type of the gateway node that will be created on the managed cluster. The default value is `Standard_D4s_v3`.",
+}
+
+func (Azure) SwaggerDoc() map[string]string {
+	return map_Azure
+}
+
+var map_GCP = map[string]string{
+	"instanceType": "InstanceType represents the Google Cloud Platform instance type of the gateway node that will be created on the managed cluster. The default value is `n1-standard-4`.",
+}
+
+func (GCP) SwaggerDoc() map[string]string {
+	return map_GCP
+}
+
 var map_GatewayConfig = map[string]string{
-	"aws":      "AWS represents the configuration for Amazon Web Services. If the platform of managed cluster is not Amazon Web Services, this field will be ignored.",
-	"gateways": "Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway component on the managed cluster. If the platform of managed cluster is Amazon Web Services, the submariner-addon will create the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster, for other platforms, the submariner-addon will select the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster. The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled automatically.",
+	"aws":                  "AWS represents the configuration for Amazon Web Services. If the platform of managed cluster is not Amazon Web Services, this field will be ignored.",
+	"gcp":                  "GCP represents the configuration for Google Cloud Platform. If the platform of managed cluster is not Google Cloud Platform, this field will be ignored.",
+	"azure":                "Azure represents the configuration for Azure Cloud Platform. If the platform of managed cluster is not Azure Cloud Platform, this field will be ignored.",
+	"rhos":                 "RHOS represents the configuration for Redhat Openstack Platform. If the platform of managed cluster is not Redhat Openstack Platform, this field will be ignored.",
+	"gateways":             "Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway component on the managed cluster. The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled automatically.",
+	"dedicatedgatewaynode": "DedicatedGatewayNode enables or disables dedicated  gateway node. If enabled, the Submariner gateway component will be deployed on a newly created dedicated node. If disabled, then one of the existing worker nodes will be used. If Amazon Web Services this is ignored and Submariner gateway component will always be deployed on a dedicated gateway node",
 }
 
 func (GatewayConfig) SwaggerDoc() map[string]string {
@@ -38,6 +58,14 @@ var map_ManagedClusterInfo = map[string]string{
 
 func (ManagedClusterInfo) SwaggerDoc() map[string]string {
 	return map_ManagedClusterInfo
+}
+
+var map_RHOS = map[string]string{
+	"instanceType": "InstanceType represents the Redhat Openstack instance type of the gateway node that will be created on the managed cluster. The default value is `PnTAE.CPU_16_Memory_32768_Disk_80`.",
+}
+
+func (RHOS) SwaggerDoc() map[string]string {
+	return map_RHOS
 }
 
 var map_SubmarinerConfig = map[string]string{
