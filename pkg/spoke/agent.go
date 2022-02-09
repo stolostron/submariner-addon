@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
+	diagnoseclient "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/clientset/versioned"
+	diagnoseinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/informers/externalversions"
 	"github.com/stolostron/submariner-addon/pkg/cloud"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/resource"
@@ -99,6 +101,11 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		return err
 	}
 
+	diagnoseHubKubeClient, err := diagnoseclient.NewForConfig(hubRestConfig)
+	if err != nil {
+		return err
+	}
+
 	spokeKubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
 		return err
@@ -128,6 +135,8 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		addoninformers.WithNamespace(o.ClusterName))
 	configInformers := configinformers.NewSharedInformerFactoryWithOptions(configHubKubeClient, 10*time.Minute,
 		configinformers.WithNamespace(o.ClusterName))
+	diagnoseInformers := diagnoseinformers.NewSharedInformerFactoryWithOptions(diagnoseHubKubeClient, 10*time.Minute,
+		diagnoseinformers.WithNamespace(o.ClusterName))
 
 	spokeKubeInformers := informers.NewSharedInformerFactoryWithOptions(spokeKubeClient, 10*time.Minute,
 		informers.WithNamespace(o.InstallationNamespace))
@@ -146,6 +155,17 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		Recorder:             controllerContext.EventRecorder,
 	})
 
+	submarinerDiagnoseConfigController := submarineragent.NewSubmarinerDiagnoseConfigController(
+		&submarineragent.SubmarinerDiagnoseConfigControllerInput{
+			ClusterName:    o.ClusterName,
+			KubeClient:     spokeKubeClient,
+			ConfigClient:   diagnoseHubKubeClient,
+			AddOnInformer:  addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+			ConfigInformer: diagnoseInformers.Submarineraddon().V1alpha1().SubmarinerDiagnoseConfigs(),
+			PodInformer:    spokeKubeInformers.Core().V1().Pods(),
+			Recorder:       controllerContext.EventRecorder,
+		})
+
 	gatewaysStatusController := submarineragent.NewGatewaysStatusController(
 		o.ClusterName,
 		addOnHubKubeClient,
@@ -162,10 +182,12 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 
 	go addOnInformers.Start(ctx.Done())
 	go configInformers.Start(ctx.Done())
+	go diagnoseInformers.Start(ctx.Done())
 	go spokeKubeInformers.Start(ctx.Done())
 	go dynamicInformers.Start(ctx.Done())
 
 	go submarinerConfigController.Run(ctx, 1)
+	go submarinerDiagnoseConfigController.Run(ctx, 1)
 	go gatewaysStatusController.Run(ctx, 1)
 	go deploymentStatusController.Run(ctx, 1)
 	go connectionsStatusController.Run(ctx, 1)

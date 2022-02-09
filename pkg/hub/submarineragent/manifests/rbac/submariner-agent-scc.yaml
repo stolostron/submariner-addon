@@ -38,5 +38,6 @@ users:
 - system:serviceaccount:submariner-operator:submariner-gateway
 - system:serviceaccount:submariner-operator:submariner-routeagent
 - system:serviceaccount:submariner-operator:submariner-globalnet
+- system:serviceaccount:submariner-operator:submariner-diagnose
 volumes:
 - '*'
