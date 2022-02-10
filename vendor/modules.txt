@@ -131,8 +131,8 @@ github.com/ghodss/yaml
 # github.com/go-logr/logr v0.4.0
 ## explicit; go 1.14
 github.com/go-logr/logr
-# github.com/go-logr/zapr v0.2.0
-## explicit; go 1.12
+# github.com/go-logr/zapr v0.4.0
+## explicit
 github.com/go-logr/zapr
 # github.com/go-openapi/jsonpointer v0.19.5
 ## explicit; go 1.13
@@ -264,8 +264,6 @@ github.com/onsi/ginkgo/types
 ## explicit; go 1.16
 github.com/onsi/gomega
 github.com/onsi/gomega/format
-github.com/onsi/gomega/gbytes
-github.com/onsi/gomega/gexec
 github.com/onsi/gomega/internal
 github.com/onsi/gomega/internal/gutil
 github.com/onsi/gomega/matchers
@@ -549,7 +547,7 @@ go.uber.org/atomic
 # go.uber.org/multierr v1.6.0
 ## explicit; go 1.12
 go.uber.org/multierr
-# go.uber.org/zap v1.17.0
+# go.uber.org/zap v1.19.0
 ## explicit; go 1.13
 go.uber.org/zap
 go.uber.org/zap/buffer
@@ -651,6 +649,8 @@ golang.org/x/tools/internal/typeparams
 ## explicit; go 1.11
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
+# gomodules.xyz/jsonpatch/v2 v2.2.0
+## explicit; go 1.12
 # google.golang.org/api v0.68.0
 ## explicit; go 1.11
 google.golang.org/api/compute/v1
@@ -1470,19 +1470,22 @@ open-cluster-management.io/api/work/v1
 ## explicit; go 1.13
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
-# sigs.k8s.io/controller-runtime v0.8.3
-## explicit; go 1.15
+# sigs.k8s.io/controller-runtime v0.9.1
+## explicit; go 1.16
 sigs.k8s.io/controller-runtime/pkg/client
 sigs.k8s.io/controller-runtime/pkg/client/apiutil
 sigs.k8s.io/controller-runtime/pkg/client/config
+sigs.k8s.io/controller-runtime/pkg/conversion
 sigs.k8s.io/controller-runtime/pkg/envtest
 sigs.k8s.io/controller-runtime/pkg/internal/log
-sigs.k8s.io/controller-runtime/pkg/internal/testing/integration
-sigs.k8s.io/controller-runtime/pkg/internal/testing/integration/addr
-sigs.k8s.io/controller-runtime/pkg/internal/testing/integration/internal
+sigs.k8s.io/controller-runtime/pkg/internal/testing/addr
+sigs.k8s.io/controller-runtime/pkg/internal/testing/certs
+sigs.k8s.io/controller-runtime/pkg/internal/testing/controlplane
+sigs.k8s.io/controller-runtime/pkg/internal/testing/process
 sigs.k8s.io/controller-runtime/pkg/log
 sigs.k8s.io/controller-runtime/pkg/log/zap
 sigs.k8s.io/controller-runtime/pkg/scheme
+sigs.k8s.io/controller-runtime/pkg/webhook/conversion
 # sigs.k8s.io/kube-storage-version-migrator v0.0.4
 ## explicit; go 1.13
 sigs.k8s.io/kube-storage-version-migrator/pkg/apis/migration/v1alpha1

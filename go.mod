@@ -29,7 +29,7 @@ require (
 	k8s.io/klog/v2 v2.9.0
 	open-cluster-management.io/addon-framework v0.1.0
 	open-cluster-management.io/api v0.6.0
-	sigs.k8s.io/controller-runtime v0.8.3
+	sigs.k8s.io/controller-runtime v0.9.1
 )
 
 require (
@@ -61,7 +61,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-logr/logr v0.4.0 // indirect
-	github.com/go-logr/zapr v0.2.0 // indirect
+	github.com/go-logr/zapr v0.4.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
@@ -110,7 +110,7 @@ require (
 	go.opentelemetry.io/proto/otlp v0.7.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.17.0 // indirect
+	go.uber.org/zap v1.19.0 // indirect
 	golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e // indirect
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20211208012354-db4efeb81f4b // indirect
