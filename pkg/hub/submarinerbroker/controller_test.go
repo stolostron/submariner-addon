@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbroker"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	fakereactor "github.com/submariner-io/admiral/pkg/fake"
@@ -175,7 +176,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 
 		controller := submarinerbroker.NewController(t.clusterSetClient.ClusterV1beta1().ManagedClusterSets(),
 			t.kubeClient, informerFactory.Cluster().V1beta1().ManagedClusterSets(),
-			events.NewLoggingEventRecorder("test"))
+			events.NewLoggingEventRecorder("test"), resourceapply.NewResourceCache())
 
 		var ctx context.Context
 

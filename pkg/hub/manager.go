@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/spf13/cobra"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
@@ -129,6 +130,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	configInformers := configinformers.NewSharedInformerFactory(configClient, 10*time.Minute)
 	apiExtensionsInformers := apiextensionsinformers.NewSharedInformerFactory(apiExtensionClient, 10*time.Minute)
 	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnClient, 10*time.Minute)
+	resourceCache := resourceapply.NewResourceCache()
 
 	submarinerBrokerCRDsController := submarinerbroker.NewCRDsController(
 		apiExtensionClient,
@@ -146,6 +148,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		kubeClient,
 		clusterInformers.Cluster().V1beta1().ManagedClusterSets(),
 		controllerContext.EventRecorder,
+		resourceCache,
 	)
 
 	submarinerAgentController := submarineragent.NewSubmarinerAgentController(
@@ -162,6 +165,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 		cloud.NewProviderFactory(nil, kubeClient, workClient, dynamicClient, nil),
 		controllerContext.EventRecorder,
+		resourceCache,
 	)
 
 	go clusterInformers.Start(ctx.Done())
@@ -179,7 +183,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
-	err = mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, controllerContext.EventRecorder, o.AgentImage))
+	err = mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, controllerContext.EventRecorder, resourceCache, o.AgentImage))
 	if err != nil {
 		return err
 	}

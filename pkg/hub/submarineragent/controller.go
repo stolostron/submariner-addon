@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/addon"
@@ -105,6 +106,7 @@ type submarinerAgentController struct {
 	addOnLister          addonlisterv1alpha1.ManagedClusterAddOnLister
 	cloudProviderFactory cloud.ProviderFactory
 	eventRecorder        events.Recorder
+	resourceCache        resourceapply.ResourceCache
 }
 
 // NewSubmarinerAgentController returns a submarinerAgentController instance.
@@ -121,7 +123,8 @@ func NewSubmarinerAgentController(
 	configInformer configinformer.SubmarinerConfigInformer,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
 	cloudProviderFactory cloud.ProviderFactory,
-	recorder events.Recorder) factory.Controller {
+	recorder events.Recorder,
+	resourceCache resourceapply.ResourceCache) factory.Controller {
 	c := &submarinerAgentController{
 		kubeClient:           kubeClient,
 		dynamicClient:        dynamicClient,
@@ -136,6 +139,7 @@ func NewSubmarinerAgentController(
 		addOnLister:          addOnInformer.Lister(),
 		cloudProviderFactory: cloudProviderFactory,
 		eventRecorder:        recorder.WithComponentSuffix("submariner-agent-controller"),
+		resourceCache:        resourceCache,
 	}
 
 	return factory.New().
@@ -571,7 +575,8 @@ func (c *submarinerAgentController) applyClusterRBACFiles(ctx context.Context, b
 		SubmarinerBrokerNamespace: brokerNamespace,
 	}
 
-	return resource.ApplyManifests(ctx, c.kubeClient, c.eventRecorder, resource.AssetFromFile(manifestFiles, config), clusterRBACFiles...)
+	return resource.ApplyManifests(ctx, c.kubeClient, c.eventRecorder, c.resourceCache, resource.AssetFromFile(manifestFiles, config),
+		clusterRBACFiles...)
 }
 
 func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, managedClusterName string) error {

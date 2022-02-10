@@ -70,17 +70,20 @@ var manifestFiles embed.FS
 
 // addOnAgent monitors the Submariner agent status and configure Submariner cluster environment on the managed cluster.
 type addOnAgent struct {
-	kubeClient kubernetes.Interface
-	recorder   events.Recorder
-	agentImage string
+	kubeClient    kubernetes.Interface
+	recorder      events.Recorder
+	agentImage    string
+	resourceCache resourceapply.ResourceCache
 }
 
 // NewAddOnAgent returns an instance of addOnAgent.
-func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, agentImage string) *addOnAgent {
+func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, resourceCache resourceapply.ResourceCache, agentImage string,
+) *addOnAgent {
 	return &addOnAgent{
-		kubeClient: kubeClient,
-		recorder:   recorder,
-		agentImage: agentImage,
+		kubeClient:    kubeClient,
+		recorder:      recorder,
+		agentImage:    agentImage,
+		resourceCache: resourceCache,
 	}
 }
 
@@ -202,6 +205,7 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, addon *
 		context.TODO(),
 		resourceapply.NewKubeClientHolder(a.kubeClient),
 		a.recorder,
+		a.resourceCache,
 		func(name string) ([]byte, error) {
 			template, err := manifestFiles.ReadFile(name)
 			if err != nil {

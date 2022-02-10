@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	fakeconfigclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/fake"
@@ -312,7 +313,8 @@ func newTestDriver() *testDriver {
 			workInformerFactory.Work().V1().ManifestWorks(),
 			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
-			providerFactory, events.NewLoggingEventRecorder("test"))
+			providerFactory, events.NewLoggingEventRecorder("test"),
+			resourceapply.NewResourceCache())
 
 		var ctx context.Context
 

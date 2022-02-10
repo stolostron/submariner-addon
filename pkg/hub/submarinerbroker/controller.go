@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	brokerinfo "github.com/stolostron/submariner-addon/pkg/hub/submarinerbrokerinfo"
@@ -45,6 +46,7 @@ type submarinerBrokerController struct {
 	clustersetClient clientset.ManagedClusterSetInterface
 	clusterSetLister clusterlisterv1beta1.ManagedClusterSetLister
 	eventRecorder    events.Recorder
+	resourceCache    resourceapply.ResourceCache
 }
 
 type brokerConfig struct {
@@ -55,12 +57,14 @@ func NewController(
 	clustersetClient clientset.ManagedClusterSetInterface,
 	kubeClient kubernetes.Interface,
 	clusterSetInformer clusterinformerv1beta1.ManagedClusterSetInformer,
-	recorder events.Recorder) factory.Controller {
+	recorder events.Recorder,
+	resourceCache resourceapply.ResourceCache) factory.Controller {
 	c := &submarinerBrokerController{
 		kubeClient:       kubeClient,
 		clustersetClient: clustersetClient,
 		clusterSetLister: clusterSetInformer.Lister(),
 		eventRecorder:    recorder.WithComponentSuffix("submariner-broker-controller"),
+		resourceCache:    resourceCache,
 	}
 
 	return factory.New().
@@ -117,7 +121,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	// Apply static files
-	err = resource.ApplyManifests(ctx, c.kubeClient, syncCtx.Recorder(), assetFunc, staticResourceFiles...)
+	err = resource.ApplyManifests(ctx, c.kubeClient, syncCtx.Recorder(), c.resourceCache, assetFunc, staticResourceFiles...)
 	if err != nil {
 		return err
 	}

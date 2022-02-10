@@ -306,3 +306,7 @@ func (r *IntegrationTestEventRecorder) Warningf(reason, messageFmt string, args 
 
 func (r *IntegrationTestEventRecorder) Shutdown() {
 }
+
+func (r *IntegrationTestEventRecorder) WithContext(ctx context.Context) events.Recorder {
+	return r
+}

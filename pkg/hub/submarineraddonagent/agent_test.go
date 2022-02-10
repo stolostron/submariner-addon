@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarineraddonagent"
 	appsv1 "k8s.io/api/apps/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -207,7 +208,8 @@ func newTestDriver() *testDriver {
 
 	BeforeEach(func() {
 		t.kubeClient = kubefake.NewSimpleClientset()
-		t.addOnAgent = submarineraddonagent.NewAddOnAgent(t.kubeClient, events.NewLoggingEventRecorder("test"), "test")
+		t.addOnAgent = submarineraddonagent.NewAddOnAgent(t.kubeClient, events.NewLoggingEventRecorder("test"),
+			resourceapply.NewResourceCache(), "test")
 	})
 
 	return t
