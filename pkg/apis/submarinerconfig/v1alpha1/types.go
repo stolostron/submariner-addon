@@ -106,6 +106,10 @@ type SubscriptionConfig struct {
 	// StartingCSV represents the startingCSV of a submariner subscription.
 	// +optional
 	StartingCSV string `json:"startingCSV,omitempty"`
+
+	// InstallPlanApproval determines whether subscription installation plans are applied automatically.
+	// +optional
+	InstallPlanApproval string `json:"installPlanApproval,omitempty"`
 }
 
 type SubmarinerImagePullSpecs struct {

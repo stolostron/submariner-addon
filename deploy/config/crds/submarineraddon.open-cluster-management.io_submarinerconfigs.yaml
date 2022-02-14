@@ -106,6 +106,9 @@ spec:
                   channel:
                     description: Channel represents the channel of a submariner subscription.
                     type: string
+                  installPlanApproval:
+                    description: InstallPlanApproval determines whether subscription installation plans are applied automatically.
+                    type: string
                   source:
                     default: redhat-operators
                     description: Source represents the catalog source of a submariner subscription. The default value is redhat-operators
