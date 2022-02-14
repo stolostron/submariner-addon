@@ -57,6 +57,7 @@ type SubmarinerBrokerInfo struct {
 	IPSecIKEPort              int
 	IPSecNATTPort             int
 	InstallationNamespace     string
+	InstallPlanApproval       string
 	BrokerAPIServer           string
 	BrokerNamespace           string
 	BrokerToken               string
@@ -96,6 +97,7 @@ func Get(
 		CatalogSource:          defaultCatalogSource,
 		CatalogSourceNamespace: defaultCatalogSourceNamespace,
 		InstallationNamespace:  defaultInstallationNamespace,
+		InstallPlanApproval:    "Automatic",
 	}
 
 	if len(installationNamespace) != 0 {
@@ -164,6 +166,10 @@ func applySubmarinerConfig(
 
 	if submarinerConfig.Spec.SubscriptionConfig.StartingCSV != "" {
 		brokerInfo.CatalogStartingCSV = submarinerConfig.Spec.SubscriptionConfig.StartingCSV
+	}
+
+	if submarinerConfig.Spec.SubscriptionConfig.InstallPlanApproval != "" {
+		brokerInfo.InstallPlanApproval = submarinerConfig.Spec.SubscriptionConfig.InstallPlanApproval
 	}
 
 	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec != "" {
