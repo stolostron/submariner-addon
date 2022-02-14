@@ -649,8 +649,6 @@ golang.org/x/tools/internal/typeparams
 ## explicit; go 1.11
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# gomodules.xyz/jsonpatch/v2 v2.2.0
-## explicit; go 1.12
 # google.golang.org/api v0.68.0
 ## explicit; go 1.11
 google.golang.org/api/compute/v1
