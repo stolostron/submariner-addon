@@ -12,6 +12,7 @@ import (
 	configclientset "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/stolostron/submariner-addon/pkg/hub"
 	"github.com/stolostron/submariner-addon/test/util"
+	submClientSet "github.com/submariner-io/submariner-operator/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -47,6 +48,7 @@ var cfg *rest.Config
 var (
 	kubeClient    kubernetes.Interface
 	clusterClient clusterclientset.Interface
+	submClient    submClientSet.Interface
 	workClient    workclientset.Interface
 	configClinet  configclientset.Interface
 	addOnClient   addonclientset.Interface
@@ -105,6 +107,10 @@ var _ = BeforeSuite(func() {
 	dynamicClient, err = dynamic.NewForConfig(cfg)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(dynamicClient).ToNot(BeNil())
+
+	submClient, err = submClientSet.NewForConfig(cfg)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(submClient).ToNot(BeNil())
 
 	// prepare open-cluster-management namespaces
 	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace("open-cluster-management"),

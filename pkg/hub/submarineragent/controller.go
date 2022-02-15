@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/pkg/errors"
+	"github.com/stolostron/submariner-addon/pkg/addon"
 	"github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
@@ -23,11 +24,14 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/manifestwork"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/finalizer"
+	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
+	"github.com/submariner-io/submariner-operator/pkg/broker"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -58,6 +62,10 @@ const (
 	submarinerConfigFinalizer    = "submarineraddon.open-cluster-management.io/config-cleanup"
 	agentRBACFile                = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
 	submarinerCRFile             = "manifests/operator/submariner.io-submariners-cr.yaml"
+	BrokerCfgMissing             = "SubmarinerBrokerConfigMissing"
+	brokerObjectName             = "submariner"
+	defaultGNClusterSize         = 65535
+	defaultGNCIDR                = "242.0.0.0/8"
 )
 
 var clusterRBACFiles = []string{
@@ -433,6 +441,16 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		return err
 	}
 
+	err := c.createGNConfigMapIfNecessary(brokerNamespace)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	if apierrors.IsNotFound(err) {
+		_ = c.updateManagedClusterAddOnStatus(ctx, managedClusterAddOn, brokerNamespace)
+		return fmt.Errorf("brokers.submariner.io object named %q missing in namespace %q", brokerObjectName, brokerNamespace)
+	}
+
 	// create submariner broker info with submariner config
 	brokerInfo, err := brokerinfo.Get(
 		c.kubeClient,
@@ -492,6 +510,28 @@ func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Con
 	if updated {
 		c.eventRecorder.Eventf("SubmarinerConfigApplied", "SubmarinerConfig %q was applied for managed cluster %q",
 			submarinerConfig.Name, clusterName)
+	}
+
+	return err
+}
+
+func (c *submarinerAgentController) updateManagedClusterAddOnStatus(ctx context.Context,
+	managedClusterAddon *addonv1alpha1.ManagedClusterAddOn, brokerNamespace string) error {
+	message := fmt.Sprintf("Waiting for brokers.submariner.io object named submariner to be created in %q namespace", brokerNamespace)
+	condition := metav1.Condition{
+		Type:    BrokerCfgMissing,
+		Status:  metav1.ConditionFalse,
+		Reason:  "SubmarinerBrokerConfigMissing",
+		Message: message,
+	}
+
+	_, updated, err := addon.UpdateStatus(ctx, c.addOnClient, managedClusterAddon.Namespace, addon.UpdateConditionFn(&condition))
+	if err != nil {
+		return err
+	}
+
+	if updated {
+		c.eventRecorder.Eventf("SubmarinerBrokerConfigMissing", message)
 	}
 
 	return err
@@ -655,4 +695,57 @@ func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 	}
 
 	return clusterInfo
+}
+
+func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace string) error {
+	_, gnCmErr := broker.GetGlobalnetConfigMap(c.kubeClient, brokerNamespace)
+	if gnCmErr != nil && !apierrors.IsNotFound(gnCmErr) {
+		return errors.Wrapf(gnCmErr, "error getting globalnet configmap from broker namespace %q", brokerNamespace)
+	}
+
+	if apierrors.IsNotFound(gnCmErr) {
+		brokerGVR := schema.GroupVersionResource{
+			Group:    "submariner.io",
+			Version:  "v1alpha1",
+			Resource: "brokers",
+		}
+
+		brokerCfg, brokerErr := c.dynamicClient.Resource(brokerGVR).Namespace(brokerNamespace).Get(context.TODO(),
+			brokerObjectName, metav1.GetOptions{})
+		if brokerErr != nil && !apierrors.IsNotFound(brokerErr) {
+			return errors.Wrapf(brokerErr, "error getting broker object from namespace %q", brokerNamespace)
+		}
+
+		if apierrors.IsNotFound(brokerErr) {
+			return brokerErr
+		}
+
+		brokerObj := &submarinerv1a1.Broker{}
+
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(brokerCfg.Object, brokerObj)
+		if err != nil {
+			return errors.Wrapf(err, "error converting broker object in namespace %q", brokerNamespace)
+		}
+
+		if brokerObj.Spec.GlobalnetEnabled {
+			klog.Infof("Globalnet is enabled in the managedClusterSet namespace %q", brokerNamespace)
+
+			if brokerObj.Spec.DefaultGlobalnetClusterSize == 0 {
+				brokerObj.Spec.DefaultGlobalnetClusterSize = defaultGNClusterSize
+			}
+
+			if brokerObj.Spec.GlobalnetCIDRRange == "" {
+				brokerObj.Spec.GlobalnetCIDRRange = defaultGNCIDR
+			}
+		} else {
+			klog.Infof("Globalnet is disabled in the managedClusterSet namespace %q", brokerNamespace)
+		}
+
+		if err := broker.CreateGlobalnetConfigMap(c.kubeClient, brokerObj.Spec.GlobalnetEnabled,
+			brokerObj.Spec.GlobalnetCIDRRange, brokerObj.Spec.DefaultGlobalnetClusterSize, brokerNamespace); err != nil {
+			return errors.Wrapf(err, "error creating globalnet configmap on Broker")
+		}
+	}
+
+	return nil
 }

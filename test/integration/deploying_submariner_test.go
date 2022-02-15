@@ -11,6 +11,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/stolostron/submariner-addon/test/util"
 	"github.com/submariner-io/admiral/pkg/finalizer"
+	"github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,6 +57,9 @@ var _ = Describe("Deploy a submariner on hub", func() {
 				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
+			By("Create the brokers.submariner.io config in the broker namespace")
+			createBrokerConfiguration(expectedBrokerNamespace)
+
 			By("Create a submariner-addon")
 			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(),
 				util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
@@ -93,6 +97,9 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
 				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
+
+			By("Create the brokers.submariner.io config in the broker namespace")
+			createBrokerConfiguration(brokerNamespace)
 
 			By("Create a submariner-addon")
 			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(),
@@ -271,4 +278,19 @@ func awaitNoSubmarinerManifestMorks(managedClusterName string) {
 		return util.FindManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName,
 			submarineragent.SubmarinerCRManifestWorkName)
 	}, eventuallyTimeout, eventuallyInterval).Should(BeFalse())
+}
+
+func createBrokerConfiguration(brokerNamespace string) {
+	brokerCfg := &v1alpha1.Broker{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "submariner",
+			Namespace: brokerNamespace,
+		},
+		Spec: v1alpha1.BrokerSpec{
+			GlobalnetEnabled: false,
+		},
+	}
+
+	_, err := submClient.SubmarinerV1alpha1().Brokers(brokerNamespace).Create(context.TODO(), brokerCfg, metav1.CreateOptions{})
+	Expect(err).NotTo(HaveOccurred())
 }

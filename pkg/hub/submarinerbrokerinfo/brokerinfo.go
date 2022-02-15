@@ -9,16 +9,20 @@ import (
 	"strings"
 
 	apiconfigv1 "github.com/openshift/api/config/v1"
+	"github.com/pkg/errors"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
+	"github.com/submariner-io/submariner-operator/pkg/reporter"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -83,13 +87,13 @@ func Get(
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
 	clusterName string,
-	brokeNamespace string,
+	brokerNamespace string,
 	submarinerConfig *configv1alpha1.SubmarinerConfig,
 	installationNamespace string) (*SubmarinerBrokerInfo, error) {
 	brokerInfo := &SubmarinerBrokerInfo{
 		CableDriver:            defaultCableDriver,
 		IPSecNATTPort:          constants.SubmarinerNatTPort,
-		BrokerNamespace:        brokeNamespace,
+		BrokerNamespace:        brokerNamespace,
 		ClusterName:            clusterName,
 		CatalogName:            catalogName,
 		CatalogSource:          defaultCatalogSource,
@@ -102,6 +106,11 @@ func Get(
 		brokerInfo.InstallationNamespace = installationNamespace
 	}
 
+	err := applyGlobalnetConfig(kubeClient, brokerNamespace, clusterName, brokerInfo, submarinerConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	apiServer, err := getBrokerAPIServer(dynamicClient)
 	if err != nil {
 		return nil, err
@@ -109,14 +118,14 @@ func Get(
 
 	brokerInfo.BrokerAPIServer = apiServer
 
-	ipSecPSK, err := getIPSecPSK(kubeClient, brokeNamespace)
+	ipSecPSK, err := getIPSecPSK(kubeClient, brokerNamespace)
 	if err != nil {
 		return nil, err
 	}
 
 	brokerInfo.IPSecPSK = ipSecPSK
 
-	token, ca, err := getBrokerTokenAndCA(kubeClient, dynamicClient, brokeNamespace, clusterName, apiServer)
+	token, ca, err := getBrokerTokenAndCA(kubeClient, dynamicClient, brokerNamespace, clusterName, apiServer)
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +138,42 @@ func Get(
 	return brokerInfo, nil
 }
 
+func applyGlobalnetConfig(kubeClient kubernetes.Interface, brokerNamespace, clusterName string,
+	brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig) error {
+	gnInfo, _, err := globalnet.GetGlobalNetworks(kubeClient, brokerNamespace)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "error reading globalnet configmap from namespace %q", brokerNamespace)
+	}
+
+	if apierrors.IsNotFound(err) {
+		klog.Warningf("globalnetConfigMap is missing in the broker namespace %q", brokerNamespace)
+		return err
+	}
+
+	if gnInfo != nil && gnInfo.Enabled {
+		netconfig := globalnet.Config{
+			ClusterID: clusterName,
+		}
+
+		// If GlobalCIDR is manually specified by the user in the submarinerConfig
+		if submarinerConfig != nil && submarinerConfig.Spec.GlobalCIDR != "" {
+			netconfig.GlobalCIDR = submarinerConfig.Spec.GlobalCIDR
+		}
+
+		status := reporter.Klog()
+		err = globalnet.AllocateAndUpdateGlobalCIDRConfigMap(kubeClient, brokerNamespace, &netconfig, status)
+		if err != nil {
+			klog.Errorf("Unable to allocate globalCIDR to cluster %q: %v", clusterName, err)
+			return err
+		}
+
+		klog.Infof("Allocated globalCIDR %q for Cluster %q", netconfig.GlobalCIDR, clusterName)
+		brokerInfo.GlobalCIDR = netconfig.GlobalCIDR
+	}
+
+	return nil
+}
+
 func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig) {
 	if submarinerConfig == nil {
 		return
@@ -136,10 +181,6 @@ func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *c
 
 	brokerInfo.NATEnabled = submarinerConfig.Spec.NATTEnable
 	brokerInfo.LoadBalancerEnabled = submarinerConfig.Spec.LoadBalancerEnable
-
-	if submarinerConfig.Spec.GlobalCIDR != "" {
-		brokerInfo.GlobalCIDR = submarinerConfig.Spec.GlobalCIDR
-	}
 
 	if submarinerConfig.Spec.CableDriver != "" {
 		brokerInfo.CableDriver = submarinerConfig.Spec.CableDriver
@@ -210,7 +251,7 @@ func getIPSecPSK(client kubernetes.Interface, brokerNamespace string) (string, e
 func getBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
 	infrastructureConfig, err := dynamicClient.Resource(infrastructureGVR).Get(context.TODO(), ocpInfrastructureName, metav1.GetOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			apiServer := os.Getenv(brokerAPIServer)
 			if apiServer == "" {
 				return "", fmt.Errorf("failed to get apiserver in env %v", brokerAPIServer)
@@ -237,7 +278,7 @@ func getKubeAPIServerCA(kubeAPIServer string, kubeClient kubernetes.Interface, d
 	}
 
 	unstructuredAPIServer, err := dynamicClient.Resource(apiServerGVR).Get(context.TODO(), ocpAPIServerName, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}
 

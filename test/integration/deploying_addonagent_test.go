@@ -55,6 +55,9 @@ var _ = Describe("Deploy a submariner-addon agent", func() {
 				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
+			By("Create the brokers.submariner.io config in the broker namespace")
+			createBrokerConfiguration(brokerNamespace)
+
 			By("Create a submariner-addon")
 			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(),
 				util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})

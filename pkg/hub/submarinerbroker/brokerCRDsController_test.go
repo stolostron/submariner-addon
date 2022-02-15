@@ -87,6 +87,7 @@ func (t *brokerCRDsControllerTestDriver) awaitSubmarinerCRDs() {
 	t.awaitCRD("gateways.submariner.io")
 	t.awaitCRD("serviceimports.lighthouse.submariner.io")
 	t.awaitCRD("serviceimports.multicluster.x-k8s.io")
+	t.awaitCRD("brokers.submariner.io")
 }
 
 func (t *brokerCRDsControllerTestDriver) awaitCRD(name string) {
