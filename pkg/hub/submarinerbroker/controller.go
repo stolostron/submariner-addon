@@ -171,7 +171,7 @@ func (c *submarinerBrokerController) annotateClusterSetWithBrokerNamespace(broke
 		return errors.Wrapf(retryErr, "error updating clusterSet annotation %q", clusterSetName)
 	}
 
-	klog.Infof("Successfully annotated clusterSet %q with brokerNamespace %q", clusterSetName, brokerNamespace)
+	klog.V(4).Infof("Successfully annotated clusterSet %q with brokerNamespace %q", clusterSetName, brokerNamespace)
 
 	return nil
 }

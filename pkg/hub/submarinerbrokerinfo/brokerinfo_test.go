@@ -2,6 +2,8 @@ package submarinerbrokerinfo_test
 
 import (
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -9,6 +11,7 @@ import (
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbrokerinfo"
+	"github.com/submariner-io/submariner-operator/pkg/broker"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -41,6 +44,7 @@ var _ = Describe("Function Get", func() {
 		ipsecSecret           *corev1.Secret
 		serviceAccount        *corev1.ServiceAccount
 		serviceAccountSecret  *corev1.Secret
+		gnConfigMap           *corev1.ConfigMap
 		kubeObjs              []runtime.Object
 		dynamicObjs           []runtime.Object
 		brokerInfo            *submarinerbrokerinfo.SubmarinerBrokerInfo
@@ -93,7 +97,18 @@ var _ = Describe("Function Get", func() {
 			Type: corev1.SecretTypeServiceAccountToken,
 		}
 
-		kubeObjs = []runtime.Object{ipsecSecret, serviceAccount, serviceAccountSecret}
+		gnConfigMap = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      broker.GlobalCIDRConfigMapName,
+				Namespace: brokerNamespace,
+			},
+			Data: map[string]string{
+				broker.GlobalnetStatusKey: "false",
+				broker.ClusterInfoKey:     "[]",
+			},
+		}
+
+		kubeObjs = []runtime.Object{ipsecSecret, serviceAccount, serviceAccountSecret, gnConfigMap}
 		dynamicObjs = []runtime.Object{infrastructure}
 	})
 
@@ -131,6 +146,12 @@ var _ = Describe("Function Get", func() {
 		When("no installation namespace is provided", func() {
 			It("should return the default", func() {
 				Expect(brokerInfo.InstallationNamespace).To(Equal("open-cluster-management-agent-addon"))
+			})
+		})
+
+		When("globalnet is disabled", func() {
+			It("should return an empty GlobalCIDR", func() {
+				Expect(brokerInfo.GlobalCIDR).To(BeEmpty())
 			})
 		})
 
@@ -184,6 +205,7 @@ var _ = Describe("Function Get", func() {
 						IPSecNATTPort:      5678,
 						NATTEnable:         true,
 						LoadBalancerEnable: true,
+						GlobalCIDR:         "242.1.0.0/16",
 					},
 				}
 			})
@@ -205,6 +227,10 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.SubmarinerRouteAgentImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec))
 			})
 
+			It("should return an empty GlobalCIDR as globalnet is disabled", func() {
+				Expect(brokerInfo.GlobalCIDR).To(BeEmpty())
+			})
+
 			Context("with some fields not set", func() {
 				BeforeEach(func() {
 					submarinerConfig.Spec.CableDriver = ""
@@ -219,6 +245,22 @@ var _ = Describe("Function Get", func() {
 					Expect(brokerInfo.CatalogSourceNamespace).To(Equal("openshift-marketplace"))
 					Expect(brokerInfo.IPSecNATTPort).To(Equal(4500))
 				})
+			})
+		})
+
+		When("globalnet is enabled in the clusterSet", func() {
+			BeforeEach(func() {
+				cidrRange, _ := json.Marshal("242.0.0.0/8")
+				gnConfigMap.Data = map[string]string{
+					broker.GlobalnetStatusKey:   "true",
+					broker.ClusterInfoKey:       "[]",
+					broker.GlobalnetClusterSize: fmt.Sprint(65535),
+					broker.GlobalnetCidrRange:   string(cidrRange),
+				}
+			})
+
+			It("should allocate a GlobalCIDR", func() {
+				Expect(brokerInfo.GlobalCIDR).To(Equal("242.1.0.0/16"))
 			})
 		})
 
@@ -264,6 +306,16 @@ var _ = Describe("Function Get", func() {
 			It("should return the correct BrokerCA", func() {
 				Expect(brokerInfo.BrokerCA).To(Equal(base64.StdEncoding.EncodeToString(tlsData)))
 			})
+		})
+	})
+
+	When("globalnet configMap is missing in the clusterSet", func() {
+		BeforeEach(func() {
+			kubeObjs = []runtime.Object{ipsecSecret, serviceAccount, serviceAccountSecret}
+		})
+
+		It("should return an error", func() {
+			Expect(err).ToNot(Succeed())
 		})
 	})
 

@@ -21,6 +21,7 @@ import (
 	coreresource "github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
+	"github.com/submariner-io/submariner-operator/pkg/broker"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -69,6 +70,7 @@ var _ = Describe("Controller", func() {
 				t.createManagedCluster()
 				t.ensureNoManifestWorks()
 
+				t.createGlobalnetConfigMap()
 				t.createAddon()
 			})
 
@@ -108,6 +110,34 @@ var _ = Describe("Controller", func() {
 				})
 			})
 
+			Context("and the SubmarinerConfig is present but globalnet config missing", func() {
+				BeforeEach(func() {
+					t.createSubmarinerConfig()
+				})
+
+				JustBeforeEach(func() {
+					t.deleteGlobalnetConfigMap()
+				})
+
+				It("should update the status of ManagedClusterAddOn about missing config", func() {
+					expCond := &metav1.Condition{
+						Type:   submarineragent.BrokerCfgMissing,
+						Status: metav1.ConditionFalse,
+						Reason: "SubmarinerBrokerConfigMissing",
+					}
+
+					test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
+						config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.TODO(),
+							constants.SubmarinerAddOnName, metav1.GetOptions{})
+						if err != nil {
+							return nil, err
+						}
+
+						return config.Status.Conditions, nil
+					})
+				})
+			})
+
 			Context("and the ManagedCluster product is Openshift", func() {
 				BeforeEach(func() {
 					t.managedCluster.Status.ClusterClaims = []clusterv1.ManagedClusterClaim{
@@ -133,6 +163,7 @@ var _ = Describe("Controller", func() {
 				t.ensureNoManifestWorks()
 
 				t.createManagedClusterSet()
+				t.createGlobalnetConfigMap()
 			})
 
 			It("should deploy the ManifestWorks", func() {
@@ -312,6 +343,7 @@ func (t *testDriver) initManifestWorks() {
 	t.createManagedClusterSet()
 	t.createManagedCluster()
 	t.createAddon()
+	t.createGlobalnetConfigMap()
 	t.awaitManifestWorks()
 	t.manifestWorkClient.Fake.ClearActions()
 }
@@ -510,6 +542,29 @@ func (t *testDriver) createManagedClusterSet() {
 
 func (t *testDriver) createAddon() {
 	_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Create(context.TODO(), t.addOn, metav1.CreateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func (t *testDriver) createGlobalnetConfigMap() {
+	data := map[string]string{
+		broker.GlobalnetStatusKey: "false",
+		broker.ClusterInfoKey:     "[]",
+	}
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      broker.GlobalCIDRConfigMapName,
+			Namespace: brokerNamespace,
+		},
+		Data: data,
+	}
+
+	_, err := t.kubeClient.CoreV1().ConfigMaps(brokerNamespace).Create(context.TODO(), cm, metav1.CreateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func (t *testDriver) deleteGlobalnetConfigMap() {
+	err := t.kubeClient.CoreV1().ConfigMaps(brokerNamespace).Delete(context.TODO(), broker.GlobalCIDRConfigMapName, metav1.DeleteOptions{})
 	Expect(err).To(Succeed())
 }
 

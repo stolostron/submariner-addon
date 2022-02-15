@@ -429,9 +429,28 @@ github.com/submariner-io/cloud-prepare/pkg/ocp
 # github.com/submariner-io/submariner v0.12.0-m3.0.20220118140616-86d7b7924805
 ## explicit; go 1.13
 github.com/submariner-io/submariner/pkg/apis/submariner.io/v1
+github.com/submariner-io/submariner/pkg/client/clientset/versioned
+github.com/submariner-io/submariner/pkg/client/clientset/versioned/scheme
+github.com/submariner-io/submariner/pkg/client/clientset/versioned/typed/submariner.io/v1
 # github.com/submariner-io/submariner-operator v0.12.0-m3.0.20220207153110-fe57e5ca3f30
 ## explicit; go 1.16
 github.com/submariner-io/submariner-operator/api/submariner/v1alpha1
+github.com/submariner-io/submariner-operator/internal/component
+github.com/submariner-io/submariner-operator/internal/constants
+github.com/submariner-io/submariner-operator/internal/rbac
+github.com/submariner-io/submariner-operator/pkg/broker
+github.com/submariner-io/submariner-operator/pkg/client/clientset/versioned
+github.com/submariner-io/submariner-operator/pkg/client/clientset/versioned/scheme
+github.com/submariner-io/submariner-operator/pkg/client/clientset/versioned/typed/submariner/v1alpha1
+github.com/submariner-io/submariner-operator/pkg/crd
+github.com/submariner-io/submariner-operator/pkg/discovery/globalnet
+github.com/submariner-io/submariner-operator/pkg/embeddedyamls
+github.com/submariner-io/submariner-operator/pkg/gateway
+github.com/submariner-io/submariner-operator/pkg/lighthouse
+github.com/submariner-io/submariner-operator/pkg/namespace
+github.com/submariner-io/submariner-operator/pkg/reporter
+github.com/submariner-io/submariner-operator/pkg/resource
+github.com/submariner-io/submariner-operator/pkg/role
 # go.etcd.io/etcd/api/v3 v3.5.1
 ## explicit; go 1.16
 go.etcd.io/etcd/api/v3/authpb
