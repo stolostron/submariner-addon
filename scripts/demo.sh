@@ -50,6 +50,17 @@ spec:
   installNamespace: submariner-operator
 EOF
 
+echo "Create the broker object in the clusterset1-broker namespace..."
+cat << EOF | kubectl apply -f -
+apiVersion: submariner.io/v1alpha1
+kind: Broker
+metadata:
+  name: submariner
+  namespace: clusterset1-broker
+spec:
+  globalnetEnabled: false
+EOF
+
 echo "Wait the submariner manifestworks to be created on hub ..."
 while :
 do
