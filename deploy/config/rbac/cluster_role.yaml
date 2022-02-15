@@ -29,6 +29,9 @@ rules:
 - apiGroups: ["apiextensions.k8s.io"]
   resources: ["customresourcedefinitions", "customresourcedefinitions/finalizers"]
   verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+- apiGroups: ["submariner.io"]
+  resources: ["brokers"]
+  verbs: ["create", "get", "update", "delete"]
 # Allow submariner-addon hub controller to deploy submariner agent
 - apiGroups: [""]
   resources: ["secrets"]
