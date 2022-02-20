@@ -20,7 +20,6 @@ package aws
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/aws/smithy-go"
 )
@@ -40,26 +39,6 @@ func newNotFoundError(msg string, args ...interface{}) error {
 func isNotFoundError(err error) bool {
 	var e notFoundError
 	return errors.As(err, &e)
-}
-
-type compositeError struct {
-	errs []error
-}
-
-func (e *compositeError) Error() string {
-	errStrings := make([]string, 0, len(e.errs))
-
-	for _, err := range e.errs {
-		fmt.Println()
-
-		errStrings = append(errStrings, err.Error())
-	}
-
-	return fmt.Sprintf("Encountered %v errors: %s", len(e.errs), strings.Join(errStrings, "; "))
-}
-
-func newCompositeError(errs ...error) error {
-	return &compositeError{errs: errs}
 }
 
 func appendIfError(errs []error, err error) []error {

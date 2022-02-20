@@ -283,7 +283,7 @@ func awaitNoSubmarinerManifestMorks(managedClusterName string) {
 func createBrokerConfiguration(brokerNamespace string) {
 	brokerCfg := &v1alpha1.Broker{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "submariner",
+			Name:      "submariner-broker",
 			Namespace: brokerNamespace,
 		},
 		Spec: v1alpha1.BrokerSpec{
