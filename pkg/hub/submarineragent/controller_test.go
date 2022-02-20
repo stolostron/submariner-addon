@@ -121,9 +121,9 @@ var _ = Describe("Controller", func() {
 
 				It("should update the status of ManagedClusterAddOn about missing config", func() {
 					expCond := &metav1.Condition{
-						Type:   submarineragent.BrokerCfgMissing,
+						Type:   submarineragent.BrokerCfgApplied,
 						Status: metav1.ConditionFalse,
-						Reason: "SubmarinerBrokerConfigMissing",
+						Reason: "BrokerConfigMissing",
 					}
 
 					test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
