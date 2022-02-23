@@ -19,7 +19,7 @@ require (
 	github.com/submariner-io/submariner v0.12.0-m3.0.20220118140616-86d7b7924805
 	github.com/submariner-io/submariner-operator v0.12.0-m3.0.20220221070009-8792137b9116
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
-	google.golang.org/api v0.69.0
+	google.golang.org/api v0.70.0
 	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.22.1
 	k8s.io/apimachinery v0.22.1
@@ -33,7 +33,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.2.0 // indirect
+	cloud.google.com/go/compute v1.3.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -122,7 +122,7 @@ require (
 	golang.org/x/tools v0.1.8 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220211171837-173942840c17 // indirect
+	google.golang.org/genproto v0.0.0-20220218161850-94dd64e39d7c // indirect
 	google.golang.org/grpc v1.44.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
