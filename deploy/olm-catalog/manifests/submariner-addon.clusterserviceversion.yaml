@@ -15,6 +15,9 @@ spec:
     - kind: SubmarinerConfig
       name: submarinerconfigs.submarineraddon.open-cluster-management.io
       version: v1alpha1
+    - kind: SubmarinerDiagnoseConfig
+      name: submarinerdiagnoseconfigs.submarineraddon.open-cluster-management.io
+      version: v1alpha1
   description: An integration between ACM and Submariner.
   displayName: Submariner Addon
   icon:
@@ -109,6 +112,15 @@ spec:
           - patch
           - delete
         - apiGroups:
+          - submariner.io
+          resources:
+          - brokers
+          verbs:
+          - create
+          - get
+          - update
+          - delete
+        - apiGroups:
           - ""
           resources:
           - secrets
@@ -165,6 +177,14 @@ spec:
           verbs:
           - update
           - patch
+        - apiGroups:
+          - addon.open-cluster-management.io
+          resources:
+          - clustermanagementaddons
+          verbs:
+          - get
+          - list
+          - watch
         - apiGroups:
           - addon.open-cluster-management.io
           resources:
@@ -234,7 +254,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: quay.io/open-cluster-management/submariner-addon:latest
+                image: quay.io/stolostron/submariner-addon:latest
                 livenessProbe:
                   httpGet:
                     path: /healthz

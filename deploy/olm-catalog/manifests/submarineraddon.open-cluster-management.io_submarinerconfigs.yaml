@@ -39,7 +39,7 @@ spec:
                 type: integer
               NATTDiscoveryPort:
                 default: 4900
-                description: NATTDiscoveryPort represents NAT-T Discovery port (default UDP/4900).
+                description: NATTDiscoveryPort specifies the port used for NAT-T Discovery (default UDP/4900).
                 type: integer
               NATTEnable:
                 default: true
@@ -72,6 +72,9 @@ spec:
                     description: Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway component on the managed cluster. If the platform of managed cluster is Amazon Web Services, the submariner-addon will create the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster, for other platforms, the submariner-addon will select the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster. The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled automatically.
                     type: integer
                 type: object
+              globalCIDR:
+                description: GlobalCIDR specifies the global CIDR used by the cluster.
+                type: string
               imagePullSpecs:
                 description: ImagePullSpecs represents the desired images of submariner components installed on the managed cluster. If not specified, the default submariner images that was defined by submariner operator will be used.
                 properties:
@@ -80,6 +83,9 @@ spec:
                     type: string
                   lighthouseCoreDNSImagePullSpec:
                     description: LighthouseCoreDNSImagePullSpec represents the desired image of lighthouse coredns.
+                    type: string
+                  submarinerGlobalnetImagePullSpec:
+                    description: SubmarinerGlobalnetImagePullSpec represents the desired image of the submariner globalnet.
                     type: string
                   submarinerImagePullSpec:
                     description: SubmarinerImagePullSpec represents the desired image of submariner.
@@ -97,6 +103,9 @@ spec:
                 properties:
                   channel:
                     description: Channel represents the channel of a submariner subscription.
+                    type: string
+                  installPlanApproval:
+                    description: InstallPlanApproval determines whether subscription installation plans are applied automatically.
                     type: string
                   source:
                     default: redhat-operators
