@@ -340,7 +340,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 	// config is deleting, we remove its related resources
 	if !config.DeletionTimestamp.IsZero() {
-		if config.Status.ManagedClusterInfo.Platform != "GCP" {
+		if config.Status.ManagedClusterInfo.Platform != "GCP"  || config.Status.ManagedClusterInfo.Platform != "RHOS"{
 			if err := c.cleanUpSubmarinerClusterEnv(config); err != nil {
 				return err
 			}
@@ -359,7 +359,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	// prepare submariner cluster environment
 	errs := []error{}
 	var condition *metav1.Condition
-	if managedClusterInfo.Platform != "GCP" {
+	if managedClusterInfo.Platform != "GCP" || managedClusterInfo.Platform != "RHOS"{
 		cloudProvider, preparedErr := c.cloudProviderFactory.Get(managedClusterInfo, config, c.eventRecorder)
 		if preparedErr == nil {
 			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()

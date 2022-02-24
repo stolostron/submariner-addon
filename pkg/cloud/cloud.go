@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"fmt"
+	"github.com/stolostron/submariner-addon/pkg/cloud/rhos"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
@@ -74,6 +75,10 @@ func (f *providerFactory) Get(managedClusterInfo configv1alpha1.ManagedClusterIn
 			config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
 	case "GCP":
 		return gcp.NewGCPProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
+			region, infraID, clusterName, config.Spec.CredentialsSecret.Name,
+			"", config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
+	case "RHOS":
+		return rhos.NewRHOSProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
 			region, infraID, clusterName, config.Spec.CredentialsSecret.Name,
 			"", config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
 	}

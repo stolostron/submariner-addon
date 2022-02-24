@@ -767,7 +767,9 @@ github.com/gophercloud/gophercloud v0.2.0/go.mod h1:vxM41WHh5uqHVBMZHzuwNOHh8XEo
 github.com/gophercloud/gophercloud v0.3.0/go.mod h1:vxM41WHh5uqHVBMZHzuwNOHh8XEoIEcSTewFxm1c5g8=
 github.com/gophercloud/gophercloud v0.6.0/go.mod h1:GICNByuaEBibcjmjvI7QvYJSZEbGkcYwAR7EZK2WMqM=
 github.com/gophercloud/gophercloud v0.20.0/go.mod h1:wRtmUelyIIv3CSSDI47aUwbs075O6i+LY+pXsKCBsb4=
+github.com/gophercloud/gophercloud v0.24.0 h1:jDsIMGJ1KZpAjYfQgGI2coNQj5Q83oPzuiGJRFWgMzw=
 github.com/gophercloud/gophercloud v0.24.0/go.mod h1:Q8fZtyi5zZxPS/j9aj3sSxtvj41AdQMDwyo1myduD5c=
+github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d h1:0Wsi5dvUuPF6dVn/CNfEA4xLxmaEtOt7tV2HD16xIf8=
 github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d/go.mod h1:qOGlfG6OIJ193/c3Xt/XjOfHataNZdQcVgiu93LxBUM=
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20191106031601-ce3c9ade29de/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
@@ -1080,6 +1082,7 @@ github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceT
 github.com/mitchellh/cli v1.1.0/go.mod h1:xcISNoH86gajksDmfB23e/pu+B+GeFRMYmoHXxx3xhI=
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=
 github.com/mitchellh/go-homedir v1.0.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
+github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b/go.mod h1:r1VsdOzOPt1ZSrGZWFoNhsAedKnEd6r9Np1+5blZCWk=
 github.com/mitchellh/go-testing-interface v1.0.0/go.mod h1:kRemZodwjscx+RGhAo8eIhFbs2+BFgRtFPeD/KE+zxI=
@@ -1447,8 +1450,9 @@ github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/submariner-io/admiral v0.12.0-m3/go.mod h1:UBcJ547DlOWcX13HtWBS83tmd+DcWDu9FDbmI0iDSU4=
 github.com/submariner-io/admiral v0.12.0-m3.0.20220211050139-69a40598bdd6 h1:RMgMytzHKdn4giyMDnu9oFmT40ea0NX75HcttQCoL/U=
 github.com/submariner-io/admiral v0.12.0-m3.0.20220211050139-69a40598bdd6/go.mod h1:hFPcxH0gAr559/qK7ri10Yh1wyeK6yzow1PIqtBk+30=
-github.com/submariner-io/cloud-prepare v0.12.0-m3.0.20220131085225-2759d0ffc20d h1:Z7hkgJaLbV2tiSMYwuZ0xr735nU79u59yLe5ARe7Ew8=
 github.com/submariner-io/cloud-prepare v0.12.0-m3.0.20220131085225-2759d0ffc20d/go.mod h1:wbv1vS0XaS/6qmlzqyoE00M9FeqJSLnPsNRVYOcKma4=
+github.com/submariner-io/cloud-prepare v0.12.0-m3.0.20220221091242-11c95f3eb5ca h1:c1FaZ5k3kSFDZLQi+lvkfVugTxp6fEkyr0HYe7zXCwI=
+github.com/submariner-io/cloud-prepare v0.12.0-m3.0.20220221091242-11c95f3eb5ca/go.mod h1:S6YklUFMk9MzhkcyR10H+EKbB7OjdpohQCguyNrL+3I=
 github.com/submariner-io/lighthouse v0.12.0-m3.0.20220215144325-3a00dd24acab/go.mod h1:uPVrzpVpJfAI01V5vuPzdyNVZbXocgtT6oFhKpxamGc=
 github.com/submariner-io/shipyard v0.12.0-m3/go.mod h1:el/lH6ed/1BN1FvEXlptiib7qT2cTwEQ4AMceH3js9g=
 github.com/submariner-io/submariner v0.12.0-m3.0.20220118080926-1324572a65c0/go.mod h1:gFraUju7PkagXestbQFUYSv3mA67LkqTk2UenBaQl58=
