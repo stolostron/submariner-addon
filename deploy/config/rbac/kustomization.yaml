@@ -1,4 +1,3 @@
 resources:
   - cluster_role.yaml
   - cluster_role_binding.yaml
-  - brokers-submariner-io-cr.yaml
