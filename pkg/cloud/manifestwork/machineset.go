@@ -82,7 +82,7 @@ func (msd *manifestWorkMachineSetDeployer) Deploy(machineSet *unstructured.Unstr
 	}, msd.eventRecorder)
 }
 
-func (msd *manifestWorkMachineSetDeployer) GetWorkerNodeImage(machineSet *unstructured.Unstructured, infraID string) (string, error) {
+func (msd *manifestWorkMachineSetDeployer) GetWorkerNodeImage(workerNodeList []string, machineSet *unstructured.Unstructured, infraID string) (string, error) {
 	// This isn't used for AWS
 	return "", nil
 }
