@@ -177,8 +177,8 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return c.updateGatewayStatus(ctx, syncCtx.Recorder(), config)
 	}
 
-	if config.Status.ManagedClusterInfo.Platform == "GCP" {
-		return c.prepareForGCP(ctx, config, syncCtx)
+	if config.Status.ManagedClusterInfo.Platform == "GCP" || config.Status.ManagedClusterInfo.Platform == "OpenStack" {
+		return c.prepareForSubmariner(ctx, config, syncCtx)
 	}
 
 	// ensure the expected count of gateways
@@ -193,7 +193,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	return updateErr
 }
 
-func (c *submarinerConfigController) prepareForGCP(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
+func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
 	syncCtx factory.SyncContext) error {
 	if !meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
 		errs := []error{}
@@ -240,7 +240,8 @@ func (c *submarinerConfigController) prepareForGCP(ctx context.Context, config *
 
 func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
 	recorder events.Recorder) error {
-	if config.Status.ManagedClusterInfo.Platform == "GCP" {
+	switch config.Status.ManagedClusterInfo.Platform {
+	case "GCP", "Openstack":
 		var cloudProvider cloud.Provider
 
 		cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, recorder)
@@ -249,9 +250,10 @@ func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Conte
 		}
 
 		return errors.WithMessagef(err, "Failed to clean up the submariner cluster environment")
-	}
-
-	if config.Status.ManagedClusterInfo.Platform != "AWS" {
+	case "AWS":
+		// Cloud-prepare for AWS done from hub, Nothing to do on spoke
+		break
+	default:
 		return errors.WithMessagef(c.removeAllGateways(ctx), "Failed to unlabel the gateway nodes")
 	}
 

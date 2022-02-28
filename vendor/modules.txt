@@ -10,7 +10,7 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 ## explicit
 github.com/PuerkitoBio/urlesc
-# github.com/aws/aws-sdk-go-v2 v1.13.0
+# github.com/aws/aws-sdk-go-v2 v1.14.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2
 github.com/aws/aws-sdk-go-v2/aws
@@ -31,10 +31,10 @@ github.com/aws/aws-sdk-go-v2/internal/sdkio
 github.com/aws/aws-sdk-go-v2/internal/strings
 github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
 github.com/aws/aws-sdk-go-v2/internal/timeconv
-# github.com/aws/aws-sdk-go-v2/config v1.13.1
+# github.com/aws/aws-sdk-go-v2/config v1.14.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/config
-# github.com/aws/aws-sdk-go-v2/credentials v1.8.0
+# github.com/aws/aws-sdk-go-v2/credentials v1.9.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/credentials
 github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
@@ -43,38 +43,38 @@ github.com/aws/aws-sdk-go-v2/credentials/endpointcreds/internal/client
 github.com/aws/aws-sdk-go-v2/credentials/processcreds
 github.com/aws/aws-sdk-go-v2/credentials/ssocreds
 github.com/aws/aws-sdk-go-v2/credentials/stscreds
-# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.10.0
+# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.11.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds/internal/config
-# github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.4
+# github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.5
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/internal/configsources
-# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.2.0
+# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.3.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2
-# github.com/aws/aws-sdk-go-v2/internal/ini v1.3.5
+# github.com/aws/aws-sdk-go-v2/internal/ini v1.3.6
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/internal/ini
-# github.com/aws/aws-sdk-go-v2/service/ec2 v1.29.0
+# github.com/aws/aws-sdk-go-v2/service/ec2 v1.30.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/ec2
 github.com/aws/aws-sdk-go-v2/service/ec2/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/ec2/types
-# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.7.0
+# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.8.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
-# github.com/aws/aws-sdk-go-v2/service/sso v1.9.0
+# github.com/aws/aws-sdk-go-v2/service/sso v1.10.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/sso
 github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sso/types
-# github.com/aws/aws-sdk-go-v2/service/sts v1.14.0
+# github.com/aws/aws-sdk-go-v2/service/sts v1.15.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/sts
 github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sts/types
-# github.com/aws/smithy-go v1.10.0
+# github.com/aws/smithy-go v1.11.0
 ## explicit; go 1.15
 github.com/aws/smithy-go
 github.com/aws/smithy-go/document
@@ -191,6 +191,26 @@ github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
 github.com/googleapis/gnostic/jsonschema
 github.com/googleapis/gnostic/openapiv2
+# github.com/gophercloud/gophercloud v0.24.0
+## explicit; go 1.14
+github.com/gophercloud/gophercloud
+github.com/gophercloud/gophercloud/openstack
+github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups
+github.com/gophercloud/gophercloud/openstack/compute/v2/servers
+github.com/gophercloud/gophercloud/openstack/identity/v2/tenants
+github.com/gophercloud/gophercloud/openstack/identity/v2/tokens
+github.com/gophercloud/gophercloud/openstack/identity/v3/extensions/ec2tokens
+github.com/gophercloud/gophercloud/openstack/identity/v3/extensions/oauth1
+github.com/gophercloud/gophercloud/openstack/identity/v3/tokens
+github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules
+github.com/gophercloud/gophercloud/openstack/utils
+github.com/gophercloud/gophercloud/pagination
+# github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
+## explicit; go 1.15
+github.com/gophercloud/utils/env
+github.com/gophercloud/utils/gnocchi
+github.com/gophercloud/utils/internal
+github.com/gophercloud/utils/openstack/clientconfig
 # github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 ## explicit
 github.com/grpc-ecosystem/go-grpc-prometheus
@@ -222,6 +242,9 @@ github.com/mailru/easyjson/jwriter
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/mitchellh/go-homedir v1.1.0
+## explicit
+github.com/mitchellh/go-homedir
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
@@ -406,7 +429,7 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/submariner-io/admiral v0.12.0-m3.0.20220211050139-69a40598bdd6
+# github.com/submariner-io/admiral v0.12.0
 ## explicit; go 1.13
 github.com/submariner-io/admiral/pkg/fake
 github.com/submariner-io/admiral/pkg/federate
@@ -417,7 +440,7 @@ github.com/submariner-io/admiral/pkg/stringset
 github.com/submariner-io/admiral/pkg/syncer/test
 github.com/submariner-io/admiral/pkg/test
 github.com/submariner-io/admiral/pkg/util
-# github.com/submariner-io/cloud-prepare v0.12.0-m3.0.20220131085225-2759d0ffc20d
+# github.com/submariner-io/cloud-prepare v0.12.0
 ## explicit; go 1.13
 github.com/submariner-io/cloud-prepare/pkg/api
 github.com/submariner-io/cloud-prepare/pkg/aws
@@ -426,13 +449,14 @@ github.com/submariner-io/cloud-prepare/pkg/gcp
 github.com/submariner-io/cloud-prepare/pkg/gcp/client
 github.com/submariner-io/cloud-prepare/pkg/k8s
 github.com/submariner-io/cloud-prepare/pkg/ocp
-# github.com/submariner-io/submariner v0.12.0-m3.0.20220118140616-86d7b7924805
+github.com/submariner-io/cloud-prepare/pkg/rhos
+# github.com/submariner-io/submariner v0.12.0
 ## explicit; go 1.13
 github.com/submariner-io/submariner/pkg/apis/submariner.io/v1
 github.com/submariner-io/submariner/pkg/client/clientset/versioned
 github.com/submariner-io/submariner/pkg/client/clientset/versioned/scheme
 github.com/submariner-io/submariner/pkg/client/clientset/versioned/typed/submariner.io/v1
-# github.com/submariner-io/submariner-operator v0.12.0-m3.0.20220221070009-8792137b9116
+# github.com/submariner-io/submariner-operator v0.12.0
 ## explicit; go 1.16
 github.com/submariner-io/submariner-operator/api/submariner/v1alpha1
 github.com/submariner-io/submariner-operator/internal/component
