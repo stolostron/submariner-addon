@@ -15,3 +15,6 @@ rules:
 - apiGroups: [""]
   resources: ["nodes"]
   verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["machine.openshift.io"]
+  resources: ["machinesets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

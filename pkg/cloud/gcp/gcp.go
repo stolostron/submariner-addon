@@ -91,7 +91,7 @@ func NewGCPProvider(
 	k8sClient := k8s.NewInterface(kubeClient)
 
 	gwDeployer := cloudpreparegcp.NewOcpGatewayDeployer(cloudInfo, msDeployer, instanceType,
-		"", false, k8sClient)
+		"", true, k8sClient)
 
 	return &gcpProvider{
 		infraID:              infraID,
