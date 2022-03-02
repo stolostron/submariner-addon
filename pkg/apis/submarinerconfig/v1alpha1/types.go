@@ -161,12 +161,6 @@ type GatewayConfig struct {
 	// +optional
 	// +kubebuilder:default=1
 	Gateways int `json:"gateways,omitempty"`
-
-	// DedicatedGatewayNode enables or disables dedicated  gateway node. If enabled, the Submariner gateway component
-	// will be deployed on a newly created dedicated node. If disabled, then one of the existing worker nodes will
-	// be used. If Amazon Web Services this is ignored and Submariner gateway component will always be deployed on a
-	// dedicated gateway node
-	DedicatedGatewayNode bool `json:"dedicatedgatewaynode,omitempty"`
 }
 
 type AWS struct {

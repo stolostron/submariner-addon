@@ -101,14 +101,6 @@ spec:
                           the managed cluster. The default value is `Standard_D4s_v3`.
                         type: string
                     type: object
-                  dedicatedgatewaynode:
-                    description: DedicatedGatewayNode enables or disables dedicated  gateway
-                      node. If enabled, the Submariner gateway component will be deployed
-                      on a newly created dedicated node. If disabled, then one of
-                      the existing worker nodes will be used. If Amazon Web Services
-                      this is ignored and Submariner gateway component will always
-                      be deployed on a dedicated gateway node
-                    type: boolean
                   gateways:
                     default: 1
                     description: Gateways represents the count of worker nodes that
