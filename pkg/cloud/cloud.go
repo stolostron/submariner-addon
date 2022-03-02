@@ -75,7 +75,7 @@ func (f *providerFactory) Get(managedClusterInfo configv1alpha1.ManagedClusterIn
 	case "GCP":
 		return gcp.NewGCPProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
 			region, infraID, clusterName, config.Spec.CredentialsSecret.Name,
-			"", config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
+			config.Spec.GatewayConfig.GCP.InstanceType, config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
 	}
 
 	return &defaultProvider{}, nil
