@@ -36,12 +36,11 @@ func (GCP) SwaggerDoc() map[string]string {
 }
 
 var map_GatewayConfig = map[string]string{
-	"aws":                  "AWS represents the configuration for Amazon Web Services. If the platform of managed cluster is not Amazon Web Services, this field will be ignored.",
-	"gcp":                  "GCP represents the configuration for Google Cloud Platform. If the platform of managed cluster is not Google Cloud Platform, this field will be ignored.",
-	"azure":                "Azure represents the configuration for Azure Cloud Platform. If the platform of managed cluster is not Azure Cloud Platform, this field will be ignored.",
-	"rhos":                 "RHOS represents the configuration for Redhat Openstack Platform. If the platform of managed cluster is not Redhat Openstack Platform, this field will be ignored.",
-	"gateways":             "Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway component on the managed cluster. The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled automatically.",
-	"dedicatedgatewaynode": "DedicatedGatewayNode enables or disables dedicated  gateway node. If enabled, the Submariner gateway component will be deployed on a newly created dedicated node. If disabled, then one of the existing worker nodes will be used. If Amazon Web Services this is ignored and Submariner gateway component will always be deployed on a dedicated gateway node",
+	"aws":      "AWS represents the configuration for Amazon Web Services. If the platform of managed cluster is not Amazon Web Services, this field will be ignored.",
+	"gcp":      "GCP represents the configuration for Google Cloud Platform. If the platform of managed cluster is not Google Cloud Platform, this field will be ignored.",
+	"azure":    "Azure represents the configuration for Azure Cloud Platform. If the platform of managed cluster is not Azure Cloud Platform, this field will be ignored.",
+	"rhos":     "RHOS represents the configuration for Redhat Openstack Platform. If the platform of managed cluster is not Redhat Openstack Platform, this field will be ignored.",
+	"gateways": "Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway component on the managed cluster. The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled automatically.",
 }
 
 func (GatewayConfig) SwaggerDoc() map[string]string {
