@@ -2537,8 +2537,8 @@ mvdan.cc/unparam v0.0.0-20190720180237-d51796306d8f/go.mod h1:4G1h5nDURzA3bwVMZI
 open-cluster-management.io/addon-framework v0.1.0 h1:y02vHE4ak9Q7KCz/vDQPwTqzOy+bAWLA+Mpe/HfX0yQ=
 open-cluster-management.io/addon-framework v0.1.0/go.mod h1:IUjwRzTzJWdXBGtA1eX/gQffG7LBAPXtXrdquAWuZ+E=
 open-cluster-management.io/api v0.0.0-20210916013819-2e58cdb938f9/go.mod h1:9qiA5h/8kvPQnJEOlAPHVjRO9a1jCmDhGzvgMBvXEaE=
-open-cluster-management.io/api v0.6.0 h1:PzR1G/d9YmwL742lgJgFgsEJs6i8Zg05pdIhK/iLZV4=
-open-cluster-management.io/api v0.6.0/go.mod h1:0IUTh8J+p4pv1THh1r9oO0luX9Z1FLDEAmvzW09qC0o=
+open-cluster-management.io/api v0.6.1-0.20220302050849-83dafb2a3afd h1:SGi9q56/ncG2mmOFX9CDQjHHcgU7weJMc2iePGGbt9Y=
+open-cluster-management.io/api v0.6.1-0.20220302050849-83dafb2a3afd/go.mod h1:0IUTh8J+p4pv1THh1r9oO0luX9Z1FLDEAmvzW09qC0o=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/letsencrypt v0.0.3/go.mod h1:buyQKZ6IXrRnB7TdkHP0RyEybLx18HHyOSoTyoOLqNY=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=

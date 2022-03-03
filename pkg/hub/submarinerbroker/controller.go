@@ -23,6 +23,7 @@ import (
 	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta1"
 	clusterinformerv1beta1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta1"
 	clusterlisterv1beta1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
 const (
@@ -87,6 +88,12 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	clusterSet = clusterSet.DeepCopy()
+
+	// ignore the non-legacy clusterset
+	selectorType := clusterSet.Spec.ClusterSelector.SelectorType
+	if len(selectorType) > 0 && selectorType != clusterv1beta1.LegacyClusterSetLabel {
+		return nil
+	}
 
 	// Update finalizer at first
 	added, err := finalizer.Add(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
