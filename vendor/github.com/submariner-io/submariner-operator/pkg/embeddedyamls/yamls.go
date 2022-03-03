@@ -2076,155 +2076,6 @@ spec:
                     - cluster
                   x-kubernetes-list-type: map
 `
-	Config_broker_broker_admin_service_account_yaml = `---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: submariner-k8s-broker-admin
-`
-	Config_broker_broker_admin_role_yaml = `---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: submariner-k8s-broker-admin
-rules:
-  - apiGroups:
-      - submariner.io
-    resources:
-      - clusters
-      - endpoints
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - patch
-      - update
-      - delete
-  - apiGroups:
-      - ""
-    resources:
-      - serviceaccounts
-      - secrets
-      - configmaps
-    verbs:
-      - create
-      - get
-      - list
-      - update
-      - delete
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resources:
-      - rolebindings
-    verbs:
-      - create
-      - get
-      - list
-      - delete
-  - apiGroups:
-      - multicluster.x-k8s.io
-    resources:
-      - '*'
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - patch
-      - update
-      - delete
-  - apiGroups:
-      - discovery.k8s.io
-    resources:
-      - endpointslices
-      - endpointslices/restricted
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - patch
-      - update
-      - delete
-`
-	Config_broker_broker_admin_role_binding_yaml = `---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: submariner-k8s-broker-admin
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: submariner-k8s-broker-admin
-subjects:
-  - kind: ServiceAccount
-    name: submariner-k8s-broker-admin
-`
-	Config_broker_broker_client_service_account_yaml = `---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: submariner-k8s-broker-client
-`
-	Config_broker_broker_client_role_yaml = `---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: submariner-k8s-broker-cluster
-rules:
-  - apiGroups:
-      - submariner.io
-    resources:
-      - clusters
-      - endpoints
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - patch
-      - update
-      - delete
-  - apiGroups:
-      - multicluster.x-k8s.io
-    resources:
-      - '*'
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - patch
-      - update
-      - delete
-  - apiGroups:
-      - discovery.k8s.io
-    resources:
-      - endpointslices
-      - endpointslices/restricted
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - patch
-      - update
-      - delete
-`
-	Config_broker_broker_client_role_binding_yaml = `---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: submariner-k8s-broker-client
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: submariner-k8s-broker-cluster
-subjects:
-  - kind: ServiceAccount
-    name: submariner-k8s-broker-client
-`
 	Config_rbac_submariner_operator_service_account_yaml = `---
 apiVersion: v1
 kind: ServiceAccount
@@ -2874,15 +2725,6 @@ rules:
     resources:
       - clusterglobalegressips
       - globalegressips
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - update
-  - apiGroups:
-      - submariner.io
-    resources:
       - globalingressips
     verbs:
       - create
@@ -2922,6 +2764,100 @@ roleRef:
   kind: ClusterRole
   name: submariner-globalnet
   apiGroup: rbac.authorization.k8s.io
+`
+	Config_rbac_submariner_diagnose_service_account_yaml = `---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: submariner-diagnose
+`
+	Config_rbac_submariner_diagnose_role_yaml = `---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: submariner-diagnose
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - create
+      - get
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - submariner.io
+    resources:
+      - '*'
+    verbs:
+      - get
+      - list
+`
+	Config_rbac_submariner_diagnose_role_binding_yaml = `---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: submariner-diagnose
+subjects:
+  - kind: ServiceAccount
+    name: submariner-diagnose
+roleRef:
+  kind: Role
+  name: submariner-diagnose
+  apiGroup: rbac.authorization.k8s.io
+`
+	Config_rbac_submariner_diagnose_cluster_role_yaml = `---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: submariner-diagnose
+rules:
+  # submariner-diagnose runs subctl diagnose to troubleshoot submariner
+  # dpeloyment
+  - apiGroups:  # nodes are looked up to figure out network settings
+      - ""
+    resources:
+      - configmaps
+      - nodes
+    verbs:
+      - get
+      - list
+  - apiGroups:  # pods are created to run firewall diagnostics
+      - ""
+    resources:
+      - pods
+    verbs:
+      - create
+      - get
+      - list
+`
+	Config_rbac_submariner_diagnose_cluster_role_binding_yaml = `---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: submariner-diagnose
+subjects:
+  - kind: ServiceAccount
+    name: submariner-diagnose
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: submariner-diagnose
 `
 	Config_rbac_lighthouse_agent_service_account_yaml = `---
 apiVersion: v1
