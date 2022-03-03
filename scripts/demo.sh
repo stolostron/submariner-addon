@@ -55,7 +55,7 @@ cat << EOF | kubectl apply -f -
 apiVersion: submariner.io/v1alpha1
 kind: Broker
 metadata:
-  name: submariner
+  name: submariner-broker
   namespace: clusterset1-broker
 spec:
   globalnetEnabled: false
