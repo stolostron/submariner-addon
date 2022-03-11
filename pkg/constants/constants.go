@@ -8,8 +8,12 @@ const (
 
 	IPSecPSKSecretName = "submariner-ipsec-psk"
 
-	SubmarinerNatTPort          = 4500
-	SubmarinerNatTDiscoveryPort = 4900
-	SubmarinerRoutePort         = 4800
-	SubmarinerMetricsPort       = 8080
+	SubmarinerNatTPort           = 4500
+	SubmarinerNatTDiscoveryPort  = 4900
+	SubmarinerRoutePort          = 4800
+	SubmarinerGatewayMetricsPort = 8080
+
+	// TODO: Currently we are configuring this Port unconditionally. This is an internal port, but can be
+	// enabled only in Globalnet deployments.
+	SubmarinerGlobalnetMetricsPort = 8081
 )
