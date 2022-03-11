@@ -31,15 +31,16 @@ const (
 )
 
 type gcpProvider struct {
-	infraID           string
-	nattPort          uint16
-	routePort         string
-	metricsPort       uint16
-	cloudPrepare      api.Cloud
-	reporter          api.Reporter
-	gwDeployer        api.GatewayDeployer
-	gateways          int
-	nattDiscoveryPort int64
+	infraID              string
+	nattPort             uint16
+	routePort            string
+	gatewayMetricsPort   uint16
+	globalnetMetricsPort uint16
+	cloudPrepare         api.Cloud
+	reporter             api.Reporter
+	gwDeployer           api.GatewayDeployer
+	gateways             int
+	nattDiscoveryPort    int64
 }
 
 func NewGCPProvider(
@@ -93,15 +94,16 @@ func NewGCPProvider(
 		"", true, k8sClient)
 
 	return &gcpProvider{
-		infraID:           infraID,
-		nattPort:          uint16(nattPort),
-		routePort:         strconv.Itoa(constants.SubmarinerRoutePort),
-		metricsPort:       constants.SubmarinerMetricsPort,
-		cloudPrepare:      cloudPrepare,
-		gwDeployer:        gwDeployer,
-		reporter:          reporter.NewEventRecorderWrapper("GCPCloudProvider", eventRecorder),
-		nattDiscoveryPort: int64(nattDiscoveryPort),
-		gateways:          gateways,
+		infraID:              infraID,
+		nattPort:             uint16(nattPort),
+		routePort:            strconv.Itoa(constants.SubmarinerRoutePort),
+		gatewayMetricsPort:   constants.SubmarinerGatewayMetricsPort,
+		globalnetMetricsPort: constants.SubmarinerGlobalnetMetricsPort,
+		cloudPrepare:         cloudPrepare,
+		gwDeployer:           gwDeployer,
+		reporter:             reporter.NewEventRecorderWrapper("GCPCloudProvider", eventRecorder),
+		nattDiscoveryPort:    int64(nattDiscoveryPort),
+		gateways:             gateways,
 	}, nil
 }
 
@@ -129,7 +131,8 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 	input := api.PrepareForSubmarinerInput{
 		InternalPorts: []api.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-			{Port: g.metricsPort, Protocol: "tcp"},
+			{Port: g.gatewayMetricsPort, Protocol: "tcp"},
+			{Port: g.globalnetMetricsPort, Protocol: "tcp"},
 		},
 	}
 	err := g.cloudPrepare.PrepareForSubmariner(input, g.reporter)
