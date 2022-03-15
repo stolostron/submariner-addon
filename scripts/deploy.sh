@@ -249,9 +249,9 @@ do
     deploy_olm "$cluster"
 done
 
-# downlaod registration-operator
+# download registration-operator
 registration_operator_dir="${work_dir}/registration-operator"
-git clone --depth 1 --branch release-2.2 https://github.com/stolostron/registration-operator.git ${registration_operator_dir}
+git clone --depth 1 https://github.com/stolostron/registration-operator.git ${registration_operator_dir}
 
 # the first cluster is hub cluster
 hub="${clusters[0]}"
