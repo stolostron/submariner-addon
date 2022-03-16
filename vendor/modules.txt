@@ -668,7 +668,7 @@ golang.org/x/tools/internal/typeparams
 ## explicit; go 1.11
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.72.0
+# google.golang.org/api v0.73.0
 ## explicit; go 1.15
 google.golang.org/api/compute/v1
 google.golang.org/api/dns/v1
