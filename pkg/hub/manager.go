@@ -15,8 +15,10 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/hub/submarineragent"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbroker"
 	"github.com/stolostron/submariner-addon/pkg/resource"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	kubeinformers "k8s.io/client-go/informers"
@@ -32,8 +34,9 @@ import (
 )
 
 const (
-	containerName    = "submariner-addon"
-	defaultNamespace = "open-cluster-management"
+	containerName                = "submariner-addon"
+	defaultNamespace             = "open-cluster-management"
+	accessToBrokerCRDClusterRole = "access-to-brokers-submariner-crd"
 )
 
 type AddOnOptions struct {
@@ -133,6 +136,11 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		controllerContext.EventRecorder,
 	)
 
+	err = createClusterRoleToAllowBrokerCRD(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
+
 	submarinerBrokerController := submarinerbroker.NewController(
 		clusterClient.ClusterV1beta1().ManagedClusterSets(),
 		kubeClient,
@@ -184,6 +192,38 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	}()
 
 	<-ctx.Done()
+
+	return nil
+}
+
+func createClusterRoleToAllowBrokerCRD(ctx context.Context, kubeClient *kubernetes.Clientset) error {
+	klog.Infof("Checking if ClusterRole %q exists", accessToBrokerCRDClusterRole)
+
+	_, err := kubeClient.RbacV1().ClusterRoles().Get(ctx, accessToBrokerCRDClusterRole, metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	if apierrors.IsNotFound(err) {
+		klog.Info("%q not found, creating it", accessToBrokerCRDClusterRole)
+		// Create the ClusterRole
+		brokerClusterRole := &rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: accessToBrokerCRDClusterRole,
+			},
+			Rules: []rbacv1.PolicyRule{
+				{
+					APIGroups: []string{"submariner.io"},
+					Resources: []string{"brokers"},
+					Verbs:     []string{"create", "get", "update"},
+				},
+			},
+		}
+		_, err := kubeClient.RbacV1().ClusterRoles().Create(ctx, brokerClusterRole, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
