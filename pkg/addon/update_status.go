@@ -16,7 +16,8 @@ import (
 type UpdateStatusFunc func(status *addonv1alpha1.ManagedClusterAddOnStatus) error
 
 func UpdateStatus(ctx context.Context, client addonclient.Interface, addOnNamespace string,
-	updateFuncs ...UpdateStatusFunc) (*addonv1alpha1.ManagedClusterAddOnStatus, bool, error) {
+	updateFuncs ...UpdateStatusFunc,
+) (*addonv1alpha1.ManagedClusterAddOnStatus, bool, error) {
 	updated := false
 	var updatedAddOnStatus *addonv1alpha1.ManagedClusterAddOnStatus
 
