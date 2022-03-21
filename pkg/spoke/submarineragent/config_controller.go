@@ -251,7 +251,7 @@ func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Conte
 
 		return errors.WithMessagef(err, "Failed to clean up the submariner cluster environment")
 	case "AWS":
-		// Nothing to do
+		// Cloud-prepare for AWS done from hub, Nothing to do on spoke
 		break
 	default:
 		return errors.WithMessagef(c.removeAllGateways(ctx), "Failed to unlabel the gateway nodes")
