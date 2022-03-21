@@ -15,7 +15,8 @@ import (
 type UpdateStatusFunc func(status *configv1alpha1.SubmarinerConfigStatus)
 
 func UpdateStatus(ctx context.Context, client configclient.SubmarinerConfigInterface, name string,
-	updateFuncs ...UpdateStatusFunc) (*configv1alpha1.SubmarinerConfigStatus, bool, error) {
+	updateFuncs ...UpdateStatusFunc,
+) (*configv1alpha1.SubmarinerConfigStatus, bool, error) {
 	updated := false
 	var updatedStatus *configv1alpha1.SubmarinerConfigStatus
 
@@ -65,7 +66,8 @@ func UpdateConditionFn(cond *metav1.Condition) UpdateStatusFunc {
 }
 
 func UpdateStatusFn(cond *metav1.Condition,
-	managedClusterInfo *configv1alpha1.ManagedClusterInfo) UpdateStatusFunc {
+	managedClusterInfo *configv1alpha1.ManagedClusterInfo,
+) UpdateStatusFunc {
 	return func(oldStatus *configv1alpha1.SubmarinerConfigStatus) {
 		oldStatus.ManagedClusterInfo = *managedClusterInfo
 
