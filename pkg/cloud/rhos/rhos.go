@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gophercloud/gophercloud/openstack"
 	"strconv"
+
+	"github.com/gophercloud/gophercloud/openstack"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
@@ -111,16 +112,16 @@ func NewRHOSProvider(
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on RHOS
 // The below tasks will be executed
 // 1. create the inbound and outbound firewall rules for submariner, below ports will be opened
-//    - IPsec IKE port (by default 500/UDP)
 //    - NAT traversal port (by default 4500/UDP)
 //    - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
-// 2. create the inbound and outbound firewall rules to open 8080/TCP port to export metrics service from the Submariner gateway
+//    - ESP & AH protocols for private-ip to private-ip gateway communications
+// 2. create the inbound and outbound firewall rules to open 8080/TCP, 8081/TCP port to export metrics service from the
+//    Submariner gateway
 func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 	if err := r.gwDeployer.Deploy(api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
 			{Port: r.nattPort, Protocol: "udp"},
 			{Port: uint16(r.nattDiscoveryPort), Protocol: "udp"},
-			// ESP & AH protocols are used for private-ip to private-ip gateway communications
 			{Port: 0, Protocol: "esp"},
 			{Port: 0, Protocol: "ah"},
 		},
@@ -146,8 +147,9 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 }
 
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on RHOS after the SubmarinerConfig was deleted
-// 1. delete the inbound and outbound firewall rules to close submariner ports
-// 2. delete the inbound and outbound firewall rules to close submariner metrics port
+// 1. delete any dedicated gateways that were previously deployed.
+// 2. delete the inbound and outbound firewall rules to close submariner ports
+// 3. delete the inbound and outbound firewall rules to close submariner metrics port
 func (r rhosProvider) CleanUpSubmarinerClusterEnv() error {
 	err := r.gwDeployer.Cleanup(r.reporter)
 	if err != nil {
