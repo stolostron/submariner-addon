@@ -41,5 +41,5 @@ spec:
     lighthouse-coredns: {{ .LighthouseCoreDNSImage }}
     {{- end}}
 {{- end}}
-  repository: registry.redhat.io/rhacm2-tech-preview
+  repository: registry.redhat.io/rhacm2
   version: v0.12.0
