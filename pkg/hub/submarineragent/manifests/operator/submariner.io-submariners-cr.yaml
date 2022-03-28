@@ -11,7 +11,6 @@ spec:
   brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
   cableDriver: {{ .CableDriver }}
   ceIPSecDebug: false
-  ceIPSecIKEPort: {{ .IPSecIKEPort }}
   ceIPSecNATTPort: {{ .IPSecNATTPort }}
   ceIPSecPSK: {{ .IPSecPSK }}
   clusterCIDR: ""
