@@ -8,7 +8,7 @@ require (
 	github.com/gophercloud/gophercloud v0.24.0
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.18.1
+	github.com/onsi/gomega v1.19.0
 	github.com/openshift/api v0.0.0-20210915110300-3cd8091317c4
 	github.com/openshift/build-machinery-go v0.0.0-20220121085309-f94edc2d6874
 	github.com/openshift/library-go v0.0.0-20210916194400-ae21aab32431
