@@ -173,7 +173,6 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.CatalogSource).To(Equal("redhat-operators"))
 				Expect(brokerInfo.CatalogSourceNamespace).To(Equal("openshift-marketplace"))
 				Expect(brokerInfo.CatalogStartingCSV).To(BeEmpty())
-				Expect(brokerInfo.IPSecIKEPort).To(BeZero())
 				Expect(brokerInfo.IPSecNATTPort).To(Equal(4500))
 				Expect(brokerInfo.LighthouseAgentImage).To(BeEmpty())
 				Expect(brokerInfo.LighthouseCoreDNSImage).To(BeEmpty())
@@ -201,7 +200,6 @@ var _ = Describe("Function Get", func() {
 							SubmarinerRouteAgentImagePullSpec: "quay.io/submariner/submariner-route-agent:10.0.1",
 						},
 						CableDriver:        "wireguard",
-						IPSecIKEPort:       1234,
 						IPSecNATTPort:      5678,
 						NATTEnable:         true,
 						LoadBalancerEnable: true,
@@ -217,7 +215,6 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.CatalogSource).To(Equal(submarinerConfig.Spec.SubscriptionConfig.Source))
 				Expect(brokerInfo.CatalogSourceNamespace).To(Equal(submarinerConfig.Spec.SubscriptionConfig.SourceNamespace))
 				Expect(brokerInfo.CatalogStartingCSV).To(Equal(submarinerConfig.Spec.SubscriptionConfig.StartingCSV))
-				Expect(brokerInfo.IPSecIKEPort).To(Equal(submarinerConfig.Spec.IPSecIKEPort))
 				Expect(brokerInfo.IPSecNATTPort).To(Equal(submarinerConfig.Spec.IPSecNATTPort))
 				Expect(brokerInfo.LighthouseAgentImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec))
 				Expect(brokerInfo.LighthouseCoreDNSImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec))

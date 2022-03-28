@@ -56,7 +56,6 @@ var (
 type SubmarinerBrokerInfo struct {
 	NATEnabled                bool
 	LoadBalancerEnabled       bool
-	IPSecIKEPort              int
 	IPSecNATTPort             int
 	InstallationNamespace     string
 	InstallPlanApproval       string
@@ -184,10 +183,6 @@ func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *c
 
 	if submarinerConfig.Spec.CableDriver != "" {
 		brokerInfo.CableDriver = submarinerConfig.Spec.CableDriver
-	}
-
-	if submarinerConfig.Spec.IPSecIKEPort != 0 {
-		brokerInfo.IPSecIKEPort = submarinerConfig.Spec.IPSecIKEPort
 	}
 
 	if submarinerConfig.Spec.IPSecNATTPort != 0 {
