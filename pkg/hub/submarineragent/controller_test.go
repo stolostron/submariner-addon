@@ -435,7 +435,6 @@ func (t *testDriver) assertSubmarinerManifestWork(work *workv1.ManifestWork) {
 
 	if t.submarinerConfig != nil {
 		Expect(submariner.Spec.CableDriver).To(Equal(t.submarinerConfig.Spec.CableDriver))
-		Expect(submariner.Spec.CeIPSecIKEPort).To(Equal(t.submarinerConfig.Spec.IPSecIKEPort))
 		Expect(submariner.Spec.CeIPSecNATTPort).To(Equal(t.submarinerConfig.Spec.IPSecNATTPort))
 		Expect(submariner.Spec.NatEnabled).To(Equal(t.submarinerConfig.Spec.NATTEnable))
 	}
@@ -507,7 +506,6 @@ func (t *testDriver) createSubmarinerConfig() {
 		},
 		Spec: configv1alpha1.SubmarinerConfigSpec{
 			CableDriver:   "vxlan",
-			IPSecIKEPort:  101,
 			IPSecNATTPort: 202,
 			NATTEnable:    true,
 			SubscriptionConfig: configv1alpha1.SubscriptionConfig{
