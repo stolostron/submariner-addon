@@ -1,6 +1,6 @@
 # SubmarinerConfig
 
-SubmarinerConfig is a namespace-scoped API which can build the cluster environment automatically to meet the prerequisites for running Submariner. The User can also customize the configurations used in Submariner by SubmarinerConfig like Cable Driver, IPSec IKE ports etc.
+SubmarinerConfig is a namespace-scoped API which can build the cluster environment automatically to meet the prerequisites for running Submariner. The User can also customize the configurations used in Submariner by SubmarinerConfig like Cable Driver, IPSec NATT ports etc.
 
 The SubmarinerConfig should be created in the managed cluster namespace.
 
@@ -32,7 +32,6 @@ SubmarinerConfig can support OCP on AWS, GCP or VMware vSphere at the current st
         name: <config-name>
         namespace: <managed-cluster-namespace>
     spec:
-        IPSecIKEPort: <IPSec IKE Port>
         IPSecNATTPort: <IPSec NAT-T Port>
         credentialsSecret:
             name: <cloud-provider-credential-secret-name>
