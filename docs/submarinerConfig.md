@@ -1,6 +1,6 @@
 # SubmarinerConfig
 
-SubmarinerConfig is a namespace-scoped API which can build the cluster environment automatically to meet the prerequisites for running Submariner. The User can also customize the configurations used in Submariner by SubmarinerConfig like Cable Driver, IPSec NATT ports etc.
+SubmarinerConfig is a namespace-scoped API which can build the cluster environment automatically to meet the prerequisites for running Submariner. The User can also customize the configurations used in Submariner by SubmarinerConfig like Cable Driver, IPSec NAT-T ports etc.
 
 The SubmarinerConfig should be created in the managed cluster namespace.
 
