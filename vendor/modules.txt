@@ -180,8 +180,8 @@ github.com/google/gofuzz/bytesource
 # github.com/google/uuid v1.2.0
 ## explicit
 github.com/google/uuid
-# github.com/googleapis/gax-go/v2 v2.1.1
-## explicit; go 1.11
+# github.com/googleapis/gax-go/v2 v2.2.0
+## explicit; go 1.15
 github.com/googleapis/gax-go/v2
 github.com/googleapis/gax-go/v2/apierror
 github.com/googleapis/gax-go/v2/apierror/internal/proto
@@ -612,7 +612,7 @@ golang.org/x/crypto/salsa20/salsa
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20220225172249-27dd8689420f
+# golang.org/x/net v0.0.0-20220325170049-de3da57026de
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -638,7 +638,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 ## explicit
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5
+# golang.org/x/sys v0.0.0-20220328115105-d36c6a25d886
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -692,7 +692,7 @@ golang.org/x/tools/internal/typeparams
 ## explicit; go 1.11
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.73.0
+# google.golang.org/api v0.74.0
 ## explicit; go 1.15
 google.golang.org/api/compute/v1
 google.golang.org/api/dns/v1
@@ -720,7 +720,7 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20220310185008-1973136f34c6
+# google.golang.org/genproto v0.0.0-20220324131243-acbaeb5b85eb
 ## explicit; go 1.15
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
