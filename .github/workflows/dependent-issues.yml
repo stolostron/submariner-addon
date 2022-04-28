@@ -24,7 +24,7 @@ jobs:
     if: github.repository_owner == 'stolostron'
     runs-on: ubuntu-latest
     steps:
-      - uses: z0al/dependent-issues@65a8dadac8eb87a2ea821f277fe5529d86609558
+      - uses: z0al/dependent-issues@0fae07162bc9e0d8e116a133bd03686eed6efa21
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
