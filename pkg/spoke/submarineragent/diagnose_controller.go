@@ -9,7 +9,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig"
 	diagnosev1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
 	diagnoseclient "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/clientset/versioned"
-	diagnoseinformer "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/informers/externalversions/submarinerdiagnoseconfig/v1alpha1" //nolint:lll // Ignore line length check
+	diagnoseinformer "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/informers/externalversions/submarinerdiagnoseconfig/v1alpha1" //nolint
 	diagnoselister "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/listers/submarinerdiagnoseconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	batchv1 "k8s.io/api/batch/v1"
