@@ -186,7 +186,7 @@ func (c *CloudInfo) openGatewayPort(groupName, nodeName string, computeClient *g
 	return errors.WithMessagef(err, "open gateway ports failed")
 }
 
-func (c *CloudInfo) removeGWFirewallRules(groupName, nodeName string, computeClient *gophercloud.ServiceClient) error {
+func (c *CloudInfo) removeFirewallRulesFromGW(groupName, nodeName string, computeClient *gophercloud.ServiceClient) error {
 	opts := servers.ListOpts{Name: nodeName}
 	pager := servers.List(computeClient, opts)
 

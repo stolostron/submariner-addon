@@ -179,55 +179,73 @@ func (d *ocpGatewayDeployer) deployGWNode(gwNodes *v1.NodeList, gatewayCount int
 	// Currently, we only support increasing the number of Gateway nodes which could be a valid use-case
 	// to convert a non-HA deployment to an HA deployment. We are not supporting decreasing the Gateway
 	// nodes (for now) as it might impact the datapath if we accidentally delete the active GW node.
+	var err error
+
 	if numGatewayNodes < gatewayCount {
 		gatewayNodesToDeploy := gatewayCount - numGatewayNodes
 
-		workerNodes, err := d.K8sClient.ListNodesWithLabel("node-role.kubernetes.io/worker")
+		if d.dedicatedGWNode {
+			err = d.deployDedicatedGWNode(gatewayNodesToDeploy, reporter)
+		} else {
+			err = d.tagExistingNode(groupName, computeClient, gatewayNodesToDeploy, reporter)
+		}
+	}
+
+	return err
+}
+
+func (d *ocpGatewayDeployer) deployDedicatedGWNode(gatewayNodesToDeploy int, reporter api.Reporter) error {
+	for i := 0; i < gatewayNodesToDeploy; i++ {
+		gwNodeName := d.InfraID + "-submariner-gw" + strconv.Itoa(i)
+		reporter.Started(fmt.Sprintf("Deploying dedicated gateway node %s",
+			gwNodeName))
+
+		err := d.deployGateway(strconv.Itoa(i))
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to list k8s nodes in project %q", d.projectID))
+			reporter.Failed(err)
+			return err
 		}
 
-		nodes := workerNodes.Items
+		reporter.Succeeded("Successfully deployed Submariner gateway node")
+	}
 
-		for i := range nodes {
-			if d.dedicatedGWNode {
-				reporter.Started(fmt.Sprintf("Deploying dedicated gateway node %s",
-					d.InfraID+"-submariner-gw"+strconv.Itoa(i)))
+	return nil
+}
 
-				err = d.deployGateway(strconv.Itoa(i))
+func (d *ocpGatewayDeployer) tagExistingNode(groupName string, computeClient *gophercloud.ServiceClient,
+	gatewayNodesToDeploy int, reporter api.Reporter) error {
+	workerNodes, err := d.K8sClient.ListNodesWithLabel("node-role.kubernetes.io/worker")
+	if err != nil {
+		return errors.Wrapf(err, "failed to list k8s nodes in project %q", d.projectID)
+	}
 
-				if err != nil {
-					reporter.Failed(err)
-					return err
-				}
-			} else {
-				alreadyTagged := nodes[i].GetLabels()[submarinerGatewayNodeTag]
-				if alreadyTagged == "true" {
-					continue
-				}
+	nodes := workerNodes.Items
+	for i := range nodes {
+		alreadyTagged := nodes[i].GetLabels()[submarinerGatewayNodeTag]
+		if alreadyTagged == "true" {
+			continue
+		}
 
-				reporter.Started(fmt.Sprintf("Configuring worker node %q as Submariner gateway node", nodes[i].Name))
+		reporter.Started(fmt.Sprintf("Configuring worker node %q as Submariner gateway node", nodes[i].Name))
 
-				err := d.K8sClient.AddGWLabelOnNode(nodes[i].Name)
-				if err != nil {
-					return errors.Wrapf(err, "failed to label the node %q as Submariner gateway node", nodes[i].Name)
-				}
-			}
+		err := d.K8sClient.AddGWLabelOnNode(nodes[i].Name)
+		if err != nil {
+			return errors.Wrapf(err, "failed to label the node %q as Submariner gateway node", nodes[i].Name)
+		}
 
-			if err := d.openGatewayPort(groupName, nodes[i].Name, computeClient); err != nil {
-				return errors.Wrap(err, "failed to open the Submariner gateway port")
-			}
+		if err = d.openGatewayPort(groupName, nodes[i].Name, computeClient); err != nil {
+			return errors.Wrap(err, "failed to open the Submariner gateway port")
+		}
 
-			gatewayNodesToDeploy--
-			if gatewayNodesToDeploy <= 0 {
-				reporter.Succeeded("Successfully deployed Submariner gateway node")
-				return nil
-			}
+		gatewayNodesToDeploy--
+		if gatewayNodesToDeploy <= 0 {
+			reporter.Succeeded("Successfully deployed Submariner gateway node")
+			return nil
+		}
 
-			if gatewayNodesToDeploy > 0 {
-				reporter.Failed(errors.Wrap(err, "there are insufficient nodes to deploy the required number of gateways"))
-				return nil
-			}
+		if gatewayNodesToDeploy > 0 {
+			reporter.Failed(errors.Wrap(err, "there are insufficient nodes to deploy the required number of gateways"))
+			return nil
 		}
 	}
 
@@ -259,6 +277,13 @@ func (d *ocpGatewayDeployer) Cleanup(reporter api.Reporter) error {
 		// If the instance name matches with d.InfraID + "-submariner-gw-", it implies that
 		// the gateway node was deployed using the OCPMachineSet API otherwise it's an existing worker node.
 		prefix := d.InfraID + "-submariner-gw-"
+
+		err = d.removeFirewallRulesFromGW(groupName, gwNodes[i].Name, computeClient)
+		if err != nil {
+			return errors.Wrapf(err, "error deleting the Submariner gateway security group rules from node: %q",
+				gwNodes[i].Name)
+		}
+
 		if strings.HasPrefix(gwNodes[i].Name, prefix) {
 			reporter.Started(fmt.Sprintf("Deleting the gateway instance %q", gwNodes[i].Name))
 
@@ -270,12 +295,6 @@ func (d *ocpGatewayDeployer) Cleanup(reporter api.Reporter) error {
 
 			reporter.Succeeded("Successfully deleted the instance")
 		} else {
-			err = d.removeGWFirewallRules(groupName, gwNodes[i].Name, computeClient)
-			if err != nil {
-				return errors.Wrapf(err, "error deleting the Submariner gateway security group rules from node: %q",
-					gwNodes[i].Name)
-			}
-
 			reporter.Started(fmt.Sprintf("Removing the gateway configuration from instance %q", gwNodes[i].Name))
 			err = d.K8sClient.RemoveGWLabelFromWorkerNode(&gwNodes[i])
 			if err != nil {
