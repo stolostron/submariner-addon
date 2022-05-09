@@ -67,6 +67,10 @@ spec:
           securityGroups:
           - filter: {}
             name: {{.InfraID}}-worker
+          - filter: {}
+            name: {{.InfraID}}-submariner-gw-sg
+          - filter: {}
+            name: {{.InfraID}}-submariner-internal-sg
           serverMetadata:
             Name: {{.InfraID}}-worker
             openshiftClusterID: {{.InfraID}}
