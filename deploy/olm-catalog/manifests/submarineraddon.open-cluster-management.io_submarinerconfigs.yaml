@@ -67,34 +67,10 @@ spec:
                         description: InstanceType represents the Amazon Web Services EC2 instance type of the gateway node that will be created on the managed cluster. The default value is `m5n.large`.
                         type: string
                     type: object
-                  azure:
-                    description: Azure represents the configuration for Azure Cloud Platform. If the platform of managed cluster is not Azure Cloud Platform, this field will be ignored.
-                    properties:
-                      instanceType:
-                        default: Standard_D4s_v3
-                        description: InstanceType represents the Azure Cloud Platform instance type of the gateway node that will be created on the managed cluster. The default value is `Standard_D4s_v3`.
-                        type: string
-                      type: object
                   gateways:
                     default: 1
                     description: Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway component on the managed cluster. If the platform of managed cluster is Amazon Web Services, the submariner-addon will create the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster, for other platforms, the submariner-addon will select the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster. The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled automatically.
                     type: integer
-                  gcp:
-                    description: GCP represents the configuration for Google Cloud Platform. If the platform of managed cluster is not Google Cloud Platform, this field will be ignored.
-                    properties:
-                      instanceType:
-                        default: n1-standard-4
-                        description: InstanceType represents the Google Cloud Platform instance type of the gateway node that will be created on the managed cluster. The default value is `n1-standard-4`.
-                        type: string
-                    type: object
-                  rhos:
-                    description: RHOS represents the configuration for Redhat Openstack Platform. If the platform of managed cluster is not Redhat Openstack Platform, this field will be ignored.
-                    properties:
-                      instanceType:
-                        default: PnTAE.CPU_16_Memory_32768_Disk_80
-                        description: InstanceType represents the Redhat Openstack instance type of the gateway node that will be created on the managed cluster. The default value is `PnTAE.CPU_16_Memory_32768_Disk_80`.
-                        type: string
-                    type: object
                 type: object
               globalCIDR:
                 description: GlobalCIDR specifies the global CIDR used by the cluster.
