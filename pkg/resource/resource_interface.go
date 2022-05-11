@@ -5,9 +5,7 @@ import (
 	"context"
 
 	configV1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-
-	//nolint:lll // Can't split line
-	configV1alpha1Client "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
+	cfgv1a1clnt "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
 	"github.com/submariner-io/admiral/pkg/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -72,7 +70,7 @@ func ForAddon(client addonV1alpha1Client.ManagedClusterAddOnInterface) resource.
 	}
 }
 
-func ForSubmarinerConfig(client configV1alpha1Client.SubmarinerConfigInterface) resource.Interface {
+func ForSubmarinerConfig(client cfgv1a1clnt.SubmarinerConfigInterface) resource.Interface {
 	return &resource.InterfaceFuncs{
 		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (runtime.Object, error) {
 			return client.Get(ctx, name, options)
