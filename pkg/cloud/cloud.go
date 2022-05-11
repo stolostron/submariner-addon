@@ -39,7 +39,8 @@ type providerFactory struct {
 }
 
 func NewProviderFactory(restMapper meta.RESTMapper, kubeClient kubernetes.Interface, workClient workclient.Interface,
-	dynamicClient dynamic.Interface, hubKubeClient kubernetes.Interface) ProviderFactory {
+	dynamicClient dynamic.Interface, hubKubeClient kubernetes.Interface,
+) ProviderFactory {
 	return &providerFactory{
 		restMapper:    restMapper,
 		kubeClient:    kubeClient,
@@ -50,7 +51,8 @@ func NewProviderFactory(restMapper meta.RESTMapper, kubeClient kubernetes.Interf
 }
 
 func (f *providerFactory) Get(managedClusterInfo configv1alpha1.ManagedClusterInfo, config *configv1alpha1.SubmarinerConfig,
-	eventsRecorder events.Recorder) (Provider, error) {
+	eventsRecorder events.Recorder,
+) (Provider, error) {
 	platform := managedClusterInfo.Platform
 	region := managedClusterInfo.Region
 	infraID := managedClusterInfo.InfraID

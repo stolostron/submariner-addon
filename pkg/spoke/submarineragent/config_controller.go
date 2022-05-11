@@ -194,7 +194,8 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 }
 
 func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
-	syncCtx factory.SyncContext) error {
+	syncCtx factory.SyncContext,
+) error {
 	if !meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
 		errs := []error{}
 
@@ -239,7 +240,8 @@ func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, c
 }
 
 func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
-	recorder events.Recorder) error {
+	recorder events.Recorder,
+) error {
 	switch config.Status.ManagedClusterInfo.Platform {
 	case "GCP", "Openstack":
 		var cloudProvider cloud.Provider
@@ -261,7 +263,8 @@ func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Conte
 }
 
 func (c *submarinerConfigController) updateSubmarinerConfigStatus(ctx context.Context, recorder events.Recorder,
-	config *configv1alpha1.SubmarinerConfig, condition *metav1.Condition) error {
+	config *configv1alpha1.SubmarinerConfig, condition *metav1.Condition,
+) error {
 	updatedStatus, updated, err := submarinerconfig.UpdateStatus(ctx,
 		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace), config.Name,
 		submarinerconfig.UpdateConditionFn(condition))
@@ -274,7 +277,8 @@ func (c *submarinerConfigController) updateSubmarinerConfigStatus(ctx context.Co
 }
 
 func (c *submarinerConfigController) ensureGateways(ctx context.Context,
-	config *configv1alpha1.SubmarinerConfig) (metav1.Condition, error) {
+	config *configv1alpha1.SubmarinerConfig,
+) (metav1.Condition, error) {
 	if config.Spec.Gateways < 1 {
 		return metav1.Condition{
 			Type:    submarinerGatewayCondition,
@@ -414,7 +418,8 @@ func (c *submarinerConfigController) unlabelNode(ctx context.Context, node *core
 }
 
 func (c *submarinerConfigController) addGateways(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
-	expectedGateways int) ([]string, error) {
+	expectedGateways int,
+) ([]string, error) {
 	// for other non-public cloud platform (vsphere) or native k8s
 	zoneLabel := defaultZoneLabel
 
@@ -518,7 +523,8 @@ func (c *submarinerConfigController) findGatewaysWithZone(expected int, zoneLabe
 }
 
 func (c *submarinerConfigController) updateGatewayStatus(ctx context.Context, recorder events.Recorder,
-	config *configv1alpha1.SubmarinerConfig) error {
+	config *configv1alpha1.SubmarinerConfig,
+) error {
 	gateways, err := c.getLabeledNodes(
 		nodeLabelSelector{workerNodeLabel, selection.Exists},
 		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},

@@ -88,7 +88,8 @@ func Get(
 	clusterName string,
 	brokerNamespace string,
 	submarinerConfig *configv1alpha1.SubmarinerConfig,
-	installationNamespace string) (*SubmarinerBrokerInfo, error) {
+	installationNamespace string,
+) (*SubmarinerBrokerInfo, error) {
 	brokerInfo := &SubmarinerBrokerInfo{
 		CableDriver:            defaultCableDriver,
 		IPSecNATTPort:          constants.SubmarinerNatTPort,
@@ -138,7 +139,8 @@ func Get(
 }
 
 func applyGlobalnetConfig(kubeClient kubernetes.Interface, brokerNamespace, clusterName string,
-	brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig) error {
+	brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig,
+) error {
 	gnInfo, _, err := globalnet.GetGlobalNetworks(kubeClient, brokerNamespace)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrapf(err, "error reading globalnet configmap from namespace %q", brokerNamespace)
@@ -315,7 +317,8 @@ func getKubeAPIServerCA(kubeAPIServer string, kubeClient kubernetes.Interface, d
 }
 
 func getBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, brokerNS, clusterName,
-	kubeAPIServer string) (token, ca string, err error) {
+	kubeAPIServer string,
+) (token, ca string, err error) {
 	sa, err := kubeClient.CoreV1().ServiceAccounts(brokerNS).Get(context.TODO(), clusterName, metav1.GetOptions{})
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get agent ServiceAccount %v/%v: %w", brokerNS, clusterName, err)
