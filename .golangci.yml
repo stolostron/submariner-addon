@@ -2,6 +2,7 @@
 run:
   skip-dirs:
     - pkg/cloud
+  go: 1.17
 linters-settings:
   gocritic:
     enabled-tags:
