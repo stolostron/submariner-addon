@@ -37,7 +37,8 @@ func init() {
 }
 
 func ApplyManifests(ctx context.Context, kubeClient kubernetes.Interface, recorder events.Recorder,
-	assetFunc resourceapply.AssetFunc, files ...string) error {
+	assetFunc resourceapply.AssetFunc, files ...string,
+) error {
 	applyResults := resourceapply.ApplyDirectly(ctx, resourceapply.NewKubeClientHolder(kubeClient), recorder, assetFunc, files...)
 
 	errs := []error{}
@@ -52,7 +53,8 @@ func ApplyManifests(ctx context.Context, kubeClient kubernetes.Interface, record
 }
 
 func DeleteFromManifests(ctx context.Context, kubeClient kubernetes.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc,
-	files ...string) error {
+	files ...string,
+) error {
 	errs := []error{}
 
 	for _, file := range files {

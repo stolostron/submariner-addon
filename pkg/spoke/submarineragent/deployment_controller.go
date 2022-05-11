@@ -42,7 +42,8 @@ type deploymentStatusController struct {
 // NewDeploymentStatusController returns an instance of deploymentStatusController.
 func NewDeploymentStatusController(clusterName string, installationNamespace string, addOnClient addonclient.Interface,
 	daemonsetInformer appsv1informers.DaemonSetInformer, deploymentInformer appsv1informers.DeploymentInformer,
-	subscriptionInformer informers.GenericInformer, recorder events.Recorder) factory.Controller {
+	subscriptionInformer informers.GenericInformer, recorder events.Recorder,
+) factory.Controller {
 	c := &deploymentStatusController{
 		addOnClient:        addOnClient,
 		daemonSetLister:    daemonsetInformer.Lister(),

@@ -34,7 +34,8 @@ func NewGatewaysStatusController(
 	clusterName string,
 	addOnClient addonclient.Interface,
 	nodeInformer corev1informers.NodeInformer,
-	recorder events.Recorder) factory.Controller {
+	recorder events.Recorder,
+) factory.Controller {
 	c := &gatewaysStatusController{
 		addOnClient: addOnClient,
 		nodeLister:  nodeInformer.Lister(),

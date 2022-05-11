@@ -41,7 +41,8 @@ type submarinerBrokerCRDsController struct {
 func NewCRDsController(
 	crdClient apiextensionsclientset.Interface,
 	crdInformer apiextensionsinformers.CustomResourceDefinitionInformer,
-	recorder events.Recorder) factory.Controller {
+	recorder events.Recorder,
+) factory.Controller {
 	c := &submarinerBrokerCRDsController{
 		crdClient:     crdClient,
 		eventRecorder: recorder.WithComponentSuffix("submariner-broker-crds-controller"),
