@@ -205,7 +205,8 @@ func newUpdateStatusTestDriver() *updateStatusTestDriver {
 }
 
 func (t *updateStatusTestDriver) doUpdateStatus(
-	updateFuncs submarinerconfig.UpdateStatusFunc) (*configv1alpha1.SubmarinerConfigStatus, bool, error) {
+	updateFuncs submarinerconfig.UpdateStatusFunc,
+) (*configv1alpha1.SubmarinerConfigStatus, bool, error) {
 	return submarinerconfig.UpdateStatus(context.TODO(), t.client.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace),
 		configName, updateFuncs)
 }
@@ -219,7 +220,8 @@ func (t *updateStatusTestDriver) doUpdateCondition(newCond *metav1.Condition) *c
 }
 
 func (t *updateStatusTestDriver) assertStatusConditionUpdated(updatedStatus *configv1alpha1.SubmarinerConfigStatus,
-	expCond *metav1.Condition) *configv1alpha1.SubmarinerConfigStatus {
+	expCond *metav1.Condition,
+) *configv1alpha1.SubmarinerConfigStatus {
 	newStatus := t.getStatus()
 	actual := meta.FindStatusCondition(newStatus.Conditions, expCond.Type)
 	Expect(actual).ToNot(BeNil())
@@ -246,7 +248,8 @@ func (t *updateStatusTestDriver) getStatus() *configv1alpha1.SubmarinerConfigSta
 }
 
 func (t *updateStatusTestDriver) assertManagedClusterInfoUpdated(updatedStatus *configv1alpha1.SubmarinerConfigStatus,
-	expInfo *configv1alpha1.ManagedClusterInfo) {
+	expInfo *configv1alpha1.ManagedClusterInfo,
+) {
 	newStatus := t.getStatus()
 
 	Expect(newStatus.ManagedClusterInfo.ClusterName).To(Equal(expInfo.ClusterName))

@@ -32,7 +32,8 @@ type connectionsStatusController struct {
 
 // NewConnectionsStatusController returns an instance of submarinerAgentStatusController.
 func NewConnectionsStatusController(clusterName string, addOnClient addonclient.Interface, submarinerInformer informers.GenericInformer,
-	recorder events.Recorder) factory.Controller {
+	recorder events.Recorder,
+) factory.Controller {
 	c := &connectionsStatusController{
 		addOnClient:      addOnClient,
 		submarinerLister: submarinerInformer.Lister(),

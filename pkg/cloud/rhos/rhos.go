@@ -54,7 +54,8 @@ func NewRHOSProvider(
 	hubKubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 	region, infraID, clusterName, credentialsSecretName, instanceType string,
-	nattPort, nattDiscoveryPort, gateways int) (*rhosProvider, error) {
+	nattPort, nattDiscoveryPort, gateways int,
+) (*rhosProvider, error) {
 	if infraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")
 	}
