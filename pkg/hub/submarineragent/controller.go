@@ -121,7 +121,8 @@ func NewSubmarinerAgentController(
 	configInformer configinformer.SubmarinerConfigInformer,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
 	cloudProviderFactory cloud.ProviderFactory,
-	recorder events.Recorder) factory.Controller {
+	recorder events.Recorder,
+) factory.Controller {
 	c := &submarinerAgentController{
 		kubeClient:           kubeClient,
 		dynamicClient:        dynamicClient,
@@ -271,7 +272,8 @@ func (c *submarinerAgentController) onManagedClusterSetChange(syncCtx factory.Sy
 func (c *submarinerAgentController) syncManagedCluster(
 	ctx context.Context,
 	managedCluster *clusterv1.ManagedCluster,
-	config *configv1alpha1.SubmarinerConfig) error {
+	config *configv1alpha1.SubmarinerConfig,
+) error {
 	// find the submariner-addon on the managed cluster namespace
 	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(constants.SubmarinerAddOnName)
 
@@ -330,7 +332,8 @@ func (c *submarinerAgentController) syncManagedCluster(
 // syncSubmarinerConfig syncs submariner configuration.
 func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	managedCluster *clusterv1.ManagedCluster,
-	config *configv1alpha1.SubmarinerConfig) error {
+	config *configv1alpha1.SubmarinerConfig,
+) error {
 	// add a finalizer to the submarinerconfigfinalizer.Remove(ctx, resource.ForSubmarinerConfig(
 	added, err := finalizer.Add(ctx, resource.ForSubmarinerConfig(
 		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace)), config, submarinerConfigFinalizer)
@@ -397,7 +400,8 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 // clean up the submariner agent from this managedCluster.
 func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedCluster *clusterv1.ManagedCluster,
-	addOn *addonv1alpha1.ManagedClusterAddOn) error {
+	addOn *addonv1alpha1.ManagedClusterAddOn,
+) error {
 	submarinerManifestWork, err := c.manifestWorkLister.ManifestWorks(managedCluster.Name).Get(SubmarinerCRManifestWorkName)
 
 	switch {
@@ -432,7 +436,8 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	clusterSetName string,
 	managedCluster *clusterv1.ManagedCluster,
 	managedClusterAddOn *addonv1alpha1.ManagedClusterAddOn,
-	submarinerConfig *configv1alpha1.SubmarinerConfig) error {
+	submarinerConfig *configv1alpha1.SubmarinerConfig,
+) error {
 	// generate service account and bind it to `submariner-k8s-broker-cluster` role
 	brokerNamespace := brokerinfo.GenerateBrokerName(clusterSetName)
 	if err := c.applyClusterRBACFiles(ctx, brokerNamespace, managedCluster.Name); err != nil {
@@ -495,7 +500,8 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 }
 
 func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Context, submarinerConfig *configv1alpha1.SubmarinerConfig,
-	clusterName string) error {
+	clusterName string,
+) error {
 	condition := &metav1.Condition{
 		Type:    configv1alpha1.SubmarinerConfigConditionApplied,
 		Status:  metav1.ConditionTrue,
@@ -516,7 +522,8 @@ func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Con
 }
 
 func (c *submarinerAgentController) updateManagedClusterAddOnStatus(ctx context.Context,
-	managedClusterAddon *addonv1alpha1.ManagedClusterAddOn, brokerNamespace string, missing bool) error {
+	managedClusterAddon *addonv1alpha1.ManagedClusterAddOn, brokerNamespace string, missing bool,
+) error {
 	condition := metav1.Condition{
 		Type: BrokerCfgApplied,
 	}

@@ -44,7 +44,8 @@ func NewAWSProvider(
 	region, infraID, clusterName, credentialsSecretName string,
 	instanceType string,
 	nattPort, nattDiscoveryPort int,
-	gateways int) (*awsProvider, error) {
+	gateways int,
+) (*awsProvider, error) {
 	if region == "" {
 		return nil, fmt.Errorf("cluster region is empty")
 	}

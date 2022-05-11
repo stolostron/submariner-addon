@@ -55,7 +55,8 @@ func NewController(
 	clustersetClient clientset.ManagedClusterSetInterface,
 	kubeClient kubernetes.Interface,
 	clusterSetInformer clusterinformerv1beta1.ManagedClusterSetInformer,
-	recorder events.Recorder) factory.Controller {
+	recorder events.Recorder,
+) factory.Controller {
 	c := &submarinerBrokerController{
 		kubeClient:       kubeClient,
 		clustersetClient: clustersetClient,

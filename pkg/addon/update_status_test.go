@@ -188,7 +188,8 @@ func (t *updateStatusTestDriver) assertUpdateCondition(newCond *metav1.Condition
 }
 
 func (t *updateStatusTestDriver) assertStatusConditionUpdated(updatedStatus *addonv1alpha1.ManagedClusterAddOnStatus,
-	expCond *metav1.Condition) *addonv1alpha1.ManagedClusterAddOnStatus {
+	expCond *metav1.Condition,
+) *addonv1alpha1.ManagedClusterAddOnStatus {
 	newStatus := t.getStatus()
 	actual := meta.FindStatusCondition(newStatus.Conditions, expCond.Type)
 	Expect(actual).ToNot(BeNil())

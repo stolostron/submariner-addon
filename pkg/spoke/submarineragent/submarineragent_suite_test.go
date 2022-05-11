@@ -91,7 +91,8 @@ func newAddOn() *addonv1alpha1.ManagedClusterAddOn {
 }
 
 func newDynamicClientWithInformer(namespace string) (dynamic.ResourceInterface, dynamicinformer.DynamicSharedInformerFactory,
-	informers.GenericInformer) {
+	informers.GenericInformer,
+) {
 	fakeGVR := schema.GroupVersionResource{
 		Group:    "fake-dynamic-client-group",
 		Version:  "v1",
