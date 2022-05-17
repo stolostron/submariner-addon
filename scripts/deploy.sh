@@ -213,6 +213,7 @@ EOF
 {"op":"add","path":"/spec/imagePullSpecs/lighthouseAgentImagePullSpec","value":"'${submrepo}'/lighthouse-agent:'${submver}'"},
 {"op":"add","path":"/spec/imagePullSpecs/lighthouseCoreDNSImagePullSpec","value":"'${submrepo}'/lighthouse-coredns:'${submver}'"},
 {"op":"add","path":"/spec/imagePullSpecs/submarinerGlobalnetImagePullSpec","value":"'${submrepo}'/submariner-globalnet:'${submver}'"},
+{"op":"add","path":"/spec/imagePullSpecs/submarinerNetworkPluginSyncerImagePullSpec","value":"'${submrepo}'/submariner-networkplugin-syncer:'${submver}'"},
 {"op":"add","path":"/spec/NATTEnable","value":false}]'
 
 }

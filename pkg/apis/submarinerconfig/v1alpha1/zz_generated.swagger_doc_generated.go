@@ -117,11 +117,12 @@ func (SubmarinerConfigStatus) SwaggerDoc() map[string]string {
 }
 
 var map_SubmarinerImagePullSpecs = map[string]string{
-	"submarinerImagePullSpec":           "SubmarinerImagePullSpec represents the desired image of submariner.",
-	"lighthouseAgentImagePullSpec":      "LighthouseAgentImagePullSpec represents the desired image of the lighthouse agent.",
-	"lighthouseCoreDNSImagePullSpec":    "LighthouseCoreDNSImagePullSpec represents the desired image of lighthouse coredns.",
-	"submarinerRouteAgentImagePullSpec": "SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.",
-	"submarinerGlobalnetImagePullSpec":  "SubmarinerGlobalnetImagePullSpec represents the desired image of the submariner globalnet.",
+	"submarinerImagePullSpec":                    "SubmarinerImagePullSpec represents the desired image of submariner.",
+	"lighthouseAgentImagePullSpec":               "LighthouseAgentImagePullSpec represents the desired image of the lighthouse agent.",
+	"lighthouseCoreDNSImagePullSpec":             "LighthouseCoreDNSImagePullSpec represents the desired image of lighthouse coredns.",
+	"submarinerRouteAgentImagePullSpec":          "SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.",
+	"submarinerGlobalnetImagePullSpec":           "SubmarinerGlobalnetImagePullSpec represents the desired image of the submariner globalnet.",
+	"submarinerNetworkPluginSyncerImagePullSpec": "SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer.",
 }
 
 func (SubmarinerImagePullSpecs) SwaggerDoc() map[string]string {
