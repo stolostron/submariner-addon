@@ -54,31 +54,32 @@ var (
 )
 
 type SubmarinerBrokerInfo struct {
-	NATEnabled                bool
-	LoadBalancerEnabled       bool
-	IPSecNATTPort             int
-	InstallationNamespace     string
-	InstallPlanApproval       string
-	BrokerAPIServer           string
-	BrokerNamespace           string
-	BrokerToken               string
-	BrokerCA                  string
-	IPSecPSK                  string
-	CableDriver               string
-	ClusterName               string
-	ClusterCIDR               string
-	GlobalCIDR                string
-	ServiceCIDR               string
-	CatalogChannel            string
-	CatalogName               string
-	CatalogSource             string
-	CatalogSourceNamespace    string
-	CatalogStartingCSV        string
-	SubmarinerGatewayImage    string
-	SubmarinerRouteAgentImage string
-	SubmarinerGlobalnetImage  string
-	LighthouseAgentImage      string
-	LighthouseCoreDNSImage    string
+	NATEnabled                         bool
+	LoadBalancerEnabled                bool
+	IPSecNATTPort                      int
+	InstallationNamespace              string
+	InstallPlanApproval                string
+	BrokerAPIServer                    string
+	BrokerNamespace                    string
+	BrokerToken                        string
+	BrokerCA                           string
+	IPSecPSK                           string
+	CableDriver                        string
+	ClusterName                        string
+	ClusterCIDR                        string
+	GlobalCIDR                         string
+	ServiceCIDR                        string
+	CatalogChannel                     string
+	CatalogName                        string
+	CatalogSource                      string
+	CatalogSourceNamespace             string
+	CatalogStartingCSV                 string
+	SubmarinerGatewayImage             string
+	SubmarinerRouteAgentImage          string
+	SubmarinerGlobalnetImage           string
+	SubmarinerNetworkPluginSyncerImage string
+	LighthouseAgentImage               string
+	LighthouseCoreDNSImage             string
 }
 
 // Get retrieves submariner broker information consolidated with hub information.
@@ -233,6 +234,10 @@ func applySubmarinerImageConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConf
 
 	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerGlobalnetImagePullSpec != "" {
 		brokerInfo.SubmarinerGlobalnetImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerGlobalnetImagePullSpec
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec != "" {
+		brokerInfo.SubmarinerNetworkPluginSyncerImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec
 	}
 }
 
