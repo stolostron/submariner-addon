@@ -132,6 +132,10 @@ type SubmarinerImagePullSpecs struct {
 	// SubmarinerGlobalnetImagePullSpec represents the desired image of the submariner globalnet.
 	// +optional
 	SubmarinerGlobalnetImagePullSpec string `json:"submarinerGlobalnetImagePullSpec,omitempty"`
+
+	// SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer.
+	// +optional
+	SubmarinerNetworkPluginSyncerImagePullSpec string `json:"submarinerNetworkPluginSyncerImagePullSpec,omitempty"`
 }
 
 type GatewayConfig struct {
