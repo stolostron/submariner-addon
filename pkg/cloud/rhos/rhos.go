@@ -195,6 +195,9 @@ func newClient(kubeClient kubernetes.Interface, secretNamespace, secretName stri
 		ApplicationCredentialSecret: cloud.AuthInfo.ApplicationCredentialSecret,
 		Username:                    cloud.AuthInfo.Username,
 		Password:                    cloud.AuthInfo.Password,
+		DomainName:                  cloud.AuthInfo.UserDomainName,
+		TenantID:                    cloud.AuthInfo.ProjectID,
+		TenantName:                  cloud.AuthInfo.ProjectName,
 	}
 
 	projectID := cloud.AuthInfo.ProjectID
