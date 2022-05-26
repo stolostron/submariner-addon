@@ -155,7 +155,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 
 	deploymentStatusController := submarineragent.NewDeploymentStatusController(o.ClusterName, o.InstallationNamespace,
 		addOnHubKubeClient, spokeKubeInformers.Apps().V1().DaemonSets(), spokeKubeInformers.Apps().V1().Deployments(),
-		dynamicInformers.ForResource(subscriptionGVR), controllerContext.EventRecorder)
+		dynamicInformers.ForResource(subscriptionGVR), dynamicInformers.ForResource(submarinerGVR), controllerContext.EventRecorder)
 
 	connectionsStatusController := submarineragent.NewConnectionsStatusController(o.ClusterName, addOnHubKubeClient,
 		dynamicInformers.ForResource(submarinerGVR), controllerContext.EventRecorder)

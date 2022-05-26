@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/addon"
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,21 +21,27 @@ import (
 )
 
 const (
-	subscriptionName = "submariner"
-	operatorName     = "submariner-operator"
-	gatewayName      = "submariner-gateway"
-	routeAgentName   = "submariner-routeagent"
+	subscriptionName           = "submariner"
+	operatorName               = "submariner-operator"
+	gatewayName                = "submariner-gateway"
+	routeAgentName             = "submariner-routeagent"
+	globalnetName              = "submariner-globalnet"
+	networkPluginSyncerName    = "submariner-networkplugin-syncer"
+	lighthouseAgentName        = "submariner-lighthouse-agent"
+	lighthouseCoreDNSName      = "submariner-lighthouse-coredns"
+	networkPluginOVNKubernetes = "OVNKubernetes"
 )
 
 const submarinerAgentDegraded = "SubmarinerAgentDegraded"
 
-// deploymentStatusController watches the status of submariner-operator deployment and submariner daemonsets
+// deploymentStatusController watches the status of submariner deployments and submariner daemonsets
 // on the managed cluster and reports the status to the submariner-addon on the hub cluster.
 type deploymentStatusController struct {
 	addOnClient        addonclient.Interface
 	daemonSetLister    appsv1lister.DaemonSetLister
 	deploymentLister   appsv1lister.DeploymentLister
 	subscriptionLister cache.GenericLister
+	submarinerLister   cache.GenericLister
 	clusterName        string
 	namespace          string
 }
@@ -42,19 +49,25 @@ type deploymentStatusController struct {
 // NewDeploymentStatusController returns an instance of deploymentStatusController.
 func NewDeploymentStatusController(clusterName string, installationNamespace string, addOnClient addonclient.Interface,
 	daemonsetInformer appsv1informers.DaemonSetInformer, deploymentInformer appsv1informers.DeploymentInformer,
-	subscriptionInformer informers.GenericInformer, recorder events.Recorder,
+	subscriptionInformer informers.GenericInformer, submarinerInformer informers.GenericInformer, recorder events.Recorder,
 ) factory.Controller {
 	c := &deploymentStatusController{
 		addOnClient:        addOnClient,
 		daemonSetLister:    daemonsetInformer.Lister(),
 		deploymentLister:   deploymentInformer.Lister(),
 		subscriptionLister: subscriptionInformer.Lister(),
+		submarinerLister:   submarinerInformer.Lister(),
 		clusterName:        clusterName,
 		namespace:          installationNamespace,
 	}
 
 	return factory.New().
 		WithInformers(subscriptionInformer.Informer(), daemonsetInformer.Informer(), deploymentInformer.Informer()).
+		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			key, _ := cache.MetaNamespaceKeyFunc(obj)
+
+			return key
+		}, submarinerInformer.Informer()).
 		WithSync(c.sync).
 		ToController("SubmarinerAgentStatusController", recorder)
 }
@@ -100,22 +113,26 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 				startingCSV, channel, sub.Spec.CatalogSourceNamespace, sub.Spec.CatalogSource))
 	}
 
-	err = c.checkOperatorDeployment(&degradedConditionReasons, &degradedConditionMessages)
+	err = c.checkDeployments(&degradedConditionReasons, &degradedConditionMessages)
 	if err != nil {
 		return err
 	}
 
-	err = c.checkGatewayDaemonSet(&degradedConditionReasons, &degradedConditionMessages)
+	err = c.checkDaemonSets(&degradedConditionReasons, &degradedConditionMessages)
 	if err != nil {
 		return err
 	}
 
-	err = c.checkRouteAgentDaemonSet(&degradedConditionReasons, &degradedConditionMessages)
-	if err != nil {
+	submariner, err := c.getSubmariner(syncCtx.QueueKey())
+
+	if submariner == nil {
 		return err
 	}
 
-	// TODO check globalnet daemonset status, if global is enabled
+	err = c.checkOptionalDeployments(submariner, &degradedConditionReasons, &degradedConditionMessages)
+	if err != nil {
+		return err
+	}
 
 	submarinerAgentCondtion := metav1.Condition{
 		Type:    submarinerAgentDegraded,
@@ -144,20 +161,62 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	return nil
 }
 
-func (c *deploymentStatusController) checkOperatorDeployment(degradedConditionReasons, degradedConditionMessages *[]string) error {
-	operator, err := c.deploymentLister.Deployments(c.namespace).Get(operatorName)
+func (c *deploymentStatusController) checkDeployment(name, reasonName string, degradedConditionReasons,
+	degradedConditionMessages *[]string,
+) error {
+	deployment, err := c.deploymentLister.Deployments(c.namespace).Get(name)
+	msgName := strings.ReplaceAll(name, "-", " ")
 
 	switch {
 	case errors.IsNotFound(err):
-		*degradedConditionReasons = append(*degradedConditionReasons, "NoOperatorDeployment")
-		*degradedConditionMessages = append(*degradedConditionMessages, "The submariner operator deployment does not exist")
+		*degradedConditionReasons = append(*degradedConditionReasons, fmt.Sprintf("No%sDeployment", reasonName))
+		*degradedConditionMessages = append(*degradedConditionMessages, fmt.Sprintf("The %s deployment does not exist", msgName))
 	case err == nil:
-		if operator.Status.AvailableReplicas == 0 {
-			*degradedConditionReasons = append(*degradedConditionReasons, "NoOperatorAvailable")
-			*degradedConditionMessages = append(*degradedConditionMessages, "There is no submariner operator replica available")
+		if deployment.Status.AvailableReplicas == 0 {
+			*degradedConditionReasons = append(*degradedConditionReasons, fmt.Sprintf("No%sAvailable", reasonName))
+			*degradedConditionMessages = append(*degradedConditionMessages, fmt.Sprintf("There are no %s replica available", msgName))
 		}
 	case err != nil:
 		return err
+	}
+
+	return nil
+}
+
+func (c *deploymentStatusController) checkDeployments(degradedConditionReasons, degradedConditionMessages *[]string) error {
+	err := c.checkDeployment(operatorName, "Operator", degradedConditionReasons, degradedConditionMessages)
+	if err != nil {
+		return err
+	}
+
+	err = c.checkDeployment(lighthouseAgentName, "LighthouseAgent", degradedConditionReasons, degradedConditionMessages)
+	if err != nil {
+		return err
+	}
+
+	err = c.checkDeployment(lighthouseCoreDNSName, "LighthouseCoreDNS", degradedConditionReasons, degradedConditionMessages)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *deploymentStatusController) checkOptionalDeployments(submariner *submarinerv1alpha1.Submariner,
+	degradedConditionReasons, degradedConditionMessages *[]string,
+) (err error) {
+	if submariner.Spec.GlobalCIDR != "" {
+		err = c.checkDeployment(globalnetName, "Globalnet", degradedConditionReasons, degradedConditionMessages)
+		if err != nil {
+			return err
+		}
+	}
+
+	if submariner.Status.NetworkPlugin == networkPluginOVNKubernetes {
+		err = c.checkDeployment(networkPluginSyncerName, "NetworkPluginSyncer", degradedConditionReasons, degradedConditionMessages)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -206,4 +265,43 @@ func (c *deploymentStatusController) checkRouteAgentDaemonSet(degradedConditionR
 	}
 
 	return nil
+}
+
+func (c *deploymentStatusController) checkDaemonSets(degradedConditionReasons, degradedConditionMessages *[]string) error {
+	err := c.checkGatewayDaemonSet(degradedConditionReasons, degradedConditionMessages)
+	if err != nil {
+		return err
+	}
+
+	err = c.checkRouteAgentDaemonSet(degradedConditionReasons, degradedConditionMessages)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *deploymentStatusController) getSubmariner(queueKey string) (*submarinerv1alpha1.Submariner, error) {
+	namespace, name, _ := cache.SplitMetaNamespaceKey(queueKey)
+	runtimeSubmariner, err := c.submarinerLister.ByNamespace(namespace).Get(name)
+	if errors.IsNotFound(err) {
+		// submariner cr is not found, could be deleted, ignore it.
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	unstructuredSubmariner, err := runtime.DefaultUnstructuredConverter.ToUnstructured(runtimeSubmariner)
+	if err != nil {
+		return nil, err
+	}
+
+	submariner := &submarinerv1alpha1.Submariner{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredSubmariner, &submariner); err != nil {
+		return nil, err
+	}
+
+	return submariner, nil
 }
