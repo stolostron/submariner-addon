@@ -177,7 +177,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return c.updateGatewayStatus(ctx, syncCtx.Recorder(), config)
 	}
 
-	if config.Status.ManagedClusterInfo.Platform == "GCP" || config.Status.ManagedClusterInfo.Platform == "OpenStack" {
+	if isSpokePrepared(config.Status.ManagedClusterInfo.Platform) {
 		return c.prepareForSubmariner(ctx, config, syncCtx)
 	}
 
@@ -243,7 +243,7 @@ func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Conte
 	recorder events.Recorder,
 ) error {
 	switch config.Status.ManagedClusterInfo.Platform {
-	case "GCP", "Openstack":
+	case "GCP", "Openstack", "Azure":
 		var cloudProvider cloud.Provider
 
 		cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, recorder)
@@ -572,4 +572,12 @@ func successCondition(gatewayNames []string) metav1.Condition {
 		Message: fmt.Sprintf("%d node(s) (%q) are labeled as gateways", len(gatewayNames),
 			strings.Join(gatewayNames, ",")),
 	}
+}
+
+func isSpokePrepared(cloudName string) bool {
+	if cloudName == "GCP" || cloudName == "OpenStack" || cloudName == "Azure" {
+		return true
+	}
+
+	return false
 }
