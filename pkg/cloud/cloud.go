@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/cloud/aws"
+	"github.com/stolostron/submariner-addon/pkg/cloud/azure"
 	"github.com/stolostron/submariner-addon/pkg/cloud/gcp"
 	"github.com/stolostron/submariner-addon/pkg/cloud/rhos"
 	"github.com/stolostron/submariner-addon/pkg/constants"
@@ -83,6 +84,10 @@ func (f *providerFactory) Get(managedClusterInfo configv1alpha1.ManagedClusterIn
 		return rhos.NewRHOSProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
 			region, infraID, clusterName, config.Spec.CredentialsSecret.Name,
 			config.Spec.GatewayConfig.RHOS.InstanceType, config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
+	case "Azure":
+		return azure.NewAzureProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
+			region, infraID, clusterName, config.Spec.CredentialsSecret.Name,
+			config.Spec.GatewayConfig.Azure.InstanceType, config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
 	}
 
 	return &defaultProvider{}, nil

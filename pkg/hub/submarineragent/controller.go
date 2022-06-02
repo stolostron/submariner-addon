@@ -355,7 +355,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	if !config.DeletionTimestamp.IsZero() {
 		delete(c.knownConfigs, config.Namespace)
 
-		if config.Status.ManagedClusterInfo.Platform != "GCP" && config.Status.ManagedClusterInfo.Platform != "OpenStack" {
+		if !isSpokePrepared(config.Status.ManagedClusterInfo.Platform) {
 			if err := c.cleanUpSubmarinerClusterEnv(config); err != nil {
 				return err
 			}
@@ -374,7 +374,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	// prepare submariner cluster environment
 	errs := []error{}
 	var condition *metav1.Condition
-	if managedClusterInfo.Platform != "GCP" && managedClusterInfo.Platform != "OpenStack" {
+	if !isSpokePrepared(managedClusterInfo.Platform) {
 		cloudProvider, preparedErr := c.cloudProviderFactory.Get(managedClusterInfo, config, c.eventRecorder)
 		if preparedErr == nil {
 			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
@@ -784,4 +784,12 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace
 	}
 
 	return nil
+}
+
+func isSpokePrepared(cloudName string) bool {
+	if cloudName == "GCP" || cloudName == "OpenStack" || cloudName == "Azure" {
+		return true
+	}
+
+	return false
 }
