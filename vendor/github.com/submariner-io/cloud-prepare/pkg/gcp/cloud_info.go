@@ -20,7 +20,7 @@ package gcp
 
 import (
 	"github.com/pkg/errors"
-	"github.com/submariner-io/cloud-prepare/pkg/api"
+	"github.com/submariner-io/admiral/pkg/reporter"
 	gcpclient "github.com/submariner-io/cloud-prepare/pkg/gcp/client"
 	"google.golang.org/api/compute/v1"
 )
@@ -58,17 +58,16 @@ func (c *CloudInfo) openPorts(rules ...*compute.Firewall) error {
 	return nil
 }
 
-func (c *CloudInfo) deleteFirewallRule(name string, reporter api.Reporter) error {
-	reporter.Started("Deleting firewall rule %q on GCP", name)
+func (c *CloudInfo) deleteFirewallRule(name string, status reporter.Interface) error {
+	status.Start("Deleting firewall rule %q on GCP", name)
 
 	if err := c.Client.DeleteFirewallRule(c.ProjectID, name); err != nil {
 		if !gcpclient.IsGCPNotFoundError(err) {
-			reporter.Failed(err)
-			return errors.Wrapf(err, "error deleting firewall rule %q", name)
+			return status.Error(err, "unable to delete firewall rule %q", name)
 		}
 	}
 
-	reporter.Succeeded("Deleted firewall rule %q on GCP", name)
+	status.Success("Deleted firewall rule %q on GCP", name)
 
 	return nil
 }

@@ -21,7 +21,7 @@ package rhos
 import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
-	"github.com/pkg/errors"
+	"github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 )
 
@@ -43,48 +43,46 @@ func NewCloud(info CloudInfo) api.Cloud {
 	}
 }
 
-func (rc *rhosCloud) PrepareForSubmariner(input api.PrepareForSubmarinerInput, reporter api.Reporter) error {
-	reporter.Started("Opening internal ports for intra-cluster communications on RHOS")
+func (rc *rhosCloud) PrepareForSubmariner(input api.PrepareForSubmarinerInput, status reporter.Interface) error {
+	status.Start("Opening internal ports for intra-cluster communications on RHOS")
+	defer status.End()
 
 	computeClient, err := openstack.NewComputeV2(rc.Client, gophercloud.EndpointOpts{Region: rc.Region})
 	if err != nil {
-		return errors.WithMessage(err, "Error creating the compute client")
+		return status.Error(err, "error creating the compute client")
 	}
 
 	networkClient, err := openstack.NewNetworkV2(rc.Client, gophercloud.EndpointOpts{Region: rc.Region})
 	if err != nil {
-		return errors.WithMessage(err, "Error creating the network client")
+		return status.Error(err, "error creating the network client")
 	}
 
 	if err := rc.openInternalPorts(rc.InfraID, input.InternalPorts, computeClient, networkClient); err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to open ports")
 	}
 
-	reporter.Succeeded("Opened internal ports %q for intra-cluster communications on RHOS",
-		formatPorts(input.InternalPorts))
+	status.Success("Opened internal ports %q for intra-cluster communications on RHOS", formatPorts(input.InternalPorts))
 
 	return nil
 }
 
-func (rc *rhosCloud) CleanupAfterSubmariner(reporter api.Reporter) error {
-	reporter.Started("Revoking intra-cluster communication permissions")
+func (rc *rhosCloud) CleanupAfterSubmariner(status reporter.Interface) error {
+	status.Start("Revoking intra-cluster communication permissions")
 
 	computeClient, err := openstack.NewComputeV2(rc.Client, gophercloud.EndpointOpts{Region: rc.Region})
 	if err != nil {
-		return errors.WithMessagef(err, "creating compute client failed for region %q", rc.Region)
+		return status.Error(err, "creating compute client failed for region %q", rc.Region)
 	}
 
 	if err := rc.removeInternalFirewallRules(rc.InfraID, computeClient); err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to remove firewall rules")
 	}
 
 	if err := rc.deleteSG(rc.InfraID+internalSecurityGroupSuffix, computeClient); err != nil {
 		return err
 	}
 
-	reporter.Succeeded("Revoked intra-cluster communication permissions")
+	status.Success("Revoked intra-cluster communication permissions")
 
 	return nil
 }

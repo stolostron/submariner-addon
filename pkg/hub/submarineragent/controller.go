@@ -25,7 +25,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/finalizer"
 	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
-	"github.com/submariner-io/submariner-operator/pkg/broker"
+	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -717,7 +717,7 @@ func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 }
 
 func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace string) error {
-	_, gnCmErr := broker.GetGlobalnetConfigMap(c.kubeClient, brokerNamespace)
+	_, gnCmErr := globalnet.GetConfigMap(c.kubeClient, brokerNamespace)
 	if gnCmErr != nil && !apierrors.IsNotFound(gnCmErr) {
 		return errors.Wrapf(gnCmErr, "error getting globalnet configmap from broker namespace %q", brokerNamespace)
 	}
@@ -750,17 +750,17 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace
 		klog.Infof("Globalnet is enabled in the managedClusterSet namespace %q", brokerNamespace)
 
 		if brokerObj.Spec.DefaultGlobalnetClusterSize == 0 {
-			brokerObj.Spec.DefaultGlobalnetClusterSize = broker.DefaultGlobalnetClusterSize
+			brokerObj.Spec.DefaultGlobalnetClusterSize = globalnet.DefaultGlobalnetClusterSize
 		}
 
 		if brokerObj.Spec.GlobalnetCIDRRange == "" {
-			brokerObj.Spec.GlobalnetCIDRRange = broker.DefaultGlobalnetCIDR
+			brokerObj.Spec.GlobalnetCIDRRange = globalnet.DefaultGlobalnetCIDR
 		}
 	} else {
 		klog.Infof("Globalnet is disabled in the managedClusterSet namespace %q", brokerNamespace)
 	}
 
-	if err := broker.CreateGlobalnetConfigMap(c.kubeClient, brokerObj.Spec.GlobalnetEnabled,
+	if err := globalnet.CreateConfigMap(c.kubeClient, brokerObj.Spec.GlobalnetEnabled,
 		brokerObj.Spec.GlobalnetCIDRRange, brokerObj.Spec.DefaultGlobalnetClusterSize, brokerNamespace); err != nil {
 		return errors.Wrapf(err, "error creating globalnet configmap on Broker")
 	}

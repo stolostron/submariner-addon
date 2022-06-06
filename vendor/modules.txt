@@ -10,7 +10,7 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 ## explicit
 github.com/PuerkitoBio/urlesc
-# github.com/aws/aws-sdk-go-v2 v1.14.0
+# github.com/aws/aws-sdk-go-v2 v1.16.4
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2
 github.com/aws/aws-sdk-go-v2/aws
@@ -31,10 +31,10 @@ github.com/aws/aws-sdk-go-v2/internal/sdkio
 github.com/aws/aws-sdk-go-v2/internal/strings
 github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
 github.com/aws/aws-sdk-go-v2/internal/timeconv
-# github.com/aws/aws-sdk-go-v2/config v1.14.0
+# github.com/aws/aws-sdk-go-v2/config v1.15.7
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/config
-# github.com/aws/aws-sdk-go-v2/credentials v1.9.0
+# github.com/aws/aws-sdk-go-v2/credentials v1.12.2
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/credentials
 github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
@@ -43,38 +43,38 @@ github.com/aws/aws-sdk-go-v2/credentials/endpointcreds/internal/client
 github.com/aws/aws-sdk-go-v2/credentials/processcreds
 github.com/aws/aws-sdk-go-v2/credentials/ssocreds
 github.com/aws/aws-sdk-go-v2/credentials/stscreds
-# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.11.0
+# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.5
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds/internal/config
-# github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.5
+# github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.11
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/internal/configsources
-# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.3.0
+# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.5
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2
-# github.com/aws/aws-sdk-go-v2/internal/ini v1.3.6
+# github.com/aws/aws-sdk-go-v2/internal/ini v1.3.12
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/internal/ini
-# github.com/aws/aws-sdk-go-v2/service/ec2 v1.30.0
+# github.com/aws/aws-sdk-go-v2/service/ec2 v1.43.1
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/ec2
 github.com/aws/aws-sdk-go-v2/service/ec2/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/ec2/types
-# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.8.0
+# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.5
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
-# github.com/aws/aws-sdk-go-v2/service/sso v1.10.0
+# github.com/aws/aws-sdk-go-v2/service/sso v1.11.5
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/sso
 github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sso/types
-# github.com/aws/aws-sdk-go-v2/service/sts v1.15.0
+# github.com/aws/aws-sdk-go-v2/service/sts v1.16.6
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/sts
 github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sts/types
-# github.com/aws/smithy-go v1.11.0
+# github.com/aws/smithy-go v1.11.2
 ## explicit; go 1.15
 github.com/aws/smithy-go
 github.com/aws/smithy-go/document
@@ -116,7 +116,7 @@ github.com/davecgh/go-spew/spew
 ## explicit
 github.com/emicklei/go-restful
 github.com/emicklei/go-restful/log
-# github.com/evanphx/json-patch v4.11.0+incompatible
+# github.com/evanphx/json-patch v4.12.0+incompatible
 ## explicit
 github.com/evanphx/json-patch
 # github.com/felixge/httpsnoop v1.0.1
@@ -128,7 +128,7 @@ github.com/fsnotify/fsnotify
 # github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 ## explicit
 github.com/ghodss/yaml
-# github.com/go-logr/logr v0.4.0
+# github.com/go-logr/logr v1.2.0 => github.com/go-logr/logr v0.4.0
 ## explicit; go 1.14
 github.com/go-logr/logr
 # github.com/go-logr/zapr v0.4.0
@@ -177,7 +177,7 @@ github.com/google/go-cmp/cmp/internal/value
 ## explicit; go 1.12
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
-# github.com/google/uuid v1.2.0
+# github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
 # github.com/googleapis/gax-go/v2 v2.4.0
@@ -235,6 +235,8 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
+# github.com/kr/pretty v0.2.1
+## explicit; go 1.12
 # github.com/mailru/easyjson v0.7.7
 ## explicit; go 1.12
 github.com/mailru/easyjson/buffer
@@ -398,7 +400,7 @@ github.com/pkg/errors
 # github.com/pkg/profile v1.3.0
 ## explicit
 github.com/pkg/profile
-# github.com/prometheus/client_golang v1.12.1
+# github.com/prometheus/client_golang v1.12.2
 ## explicit; go 1.13
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
@@ -430,19 +432,20 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/submariner-io/admiral v0.12.1
-## explicit; go 1.13
+# github.com/submariner-io/admiral v0.13.0-m2
+## explicit; go 1.17
 github.com/submariner-io/admiral/pkg/fake
 github.com/submariner-io/admiral/pkg/federate
 github.com/submariner-io/admiral/pkg/finalizer
 github.com/submariner-io/admiral/pkg/log
+github.com/submariner-io/admiral/pkg/reporter
 github.com/submariner-io/admiral/pkg/resource
 github.com/submariner-io/admiral/pkg/stringset
 github.com/submariner-io/admiral/pkg/syncer/test
 github.com/submariner-io/admiral/pkg/test
 github.com/submariner-io/admiral/pkg/util
-# github.com/submariner-io/cloud-prepare v0.12.1
-## explicit; go 1.13
+# github.com/submariner-io/cloud-prepare v0.13.0-m2
+## explicit; go 1.17
 github.com/submariner-io/cloud-prepare/pkg/api
 github.com/submariner-io/cloud-prepare/pkg/aws
 github.com/submariner-io/cloud-prepare/pkg/aws/client
@@ -451,31 +454,16 @@ github.com/submariner-io/cloud-prepare/pkg/gcp/client
 github.com/submariner-io/cloud-prepare/pkg/k8s
 github.com/submariner-io/cloud-prepare/pkg/ocp
 github.com/submariner-io/cloud-prepare/pkg/rhos
-# github.com/submariner-io/submariner v0.12.1
-## explicit; go 1.13
+# github.com/submariner-io/submariner v0.13.0-m2
+## explicit; go 1.17
 github.com/submariner-io/submariner/pkg/apis/submariner.io/v1
-github.com/submariner-io/submariner/pkg/client/clientset/versioned
-github.com/submariner-io/submariner/pkg/client/clientset/versioned/scheme
-github.com/submariner-io/submariner/pkg/client/clientset/versioned/typed/submariner.io/v1
-# github.com/submariner-io/submariner-operator v0.12.1
-## explicit; go 1.16
+# github.com/submariner-io/submariner-operator v0.13.0-m2.0.20220608090053-600dbf9c25c3
+## explicit; go 1.17
 github.com/submariner-io/submariner-operator/api/submariner/v1alpha1
-github.com/submariner-io/submariner-operator/internal/component
-github.com/submariner-io/submariner-operator/internal/constants
-github.com/submariner-io/submariner-operator/internal/rbac
-github.com/submariner-io/submariner-operator/pkg/broker
 github.com/submariner-io/submariner-operator/pkg/client/clientset/versioned
 github.com/submariner-io/submariner-operator/pkg/client/clientset/versioned/scheme
 github.com/submariner-io/submariner-operator/pkg/client/clientset/versioned/typed/submariner/v1alpha1
-github.com/submariner-io/submariner-operator/pkg/crd
 github.com/submariner-io/submariner-operator/pkg/discovery/globalnet
-github.com/submariner-io/submariner-operator/pkg/embeddedyamls
-github.com/submariner-io/submariner-operator/pkg/gateway
-github.com/submariner-io/submariner-operator/pkg/lighthouse
-github.com/submariner-io/submariner-operator/pkg/namespace
-github.com/submariner-io/submariner-operator/pkg/reporter
-github.com/submariner-io/submariner-operator/pkg/resource
-github.com/submariner-io/submariner-operator/pkg/role
 # go.etcd.io/etcd/api/v3 v3.5.1
 ## explicit; go 1.16
 go.etcd.io/etcd/api/v3/authpb
@@ -673,7 +661,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
+# golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
 ## explicit
 golang.org/x/time/rate
 # golang.org/x/tools v0.1.8
@@ -1405,7 +1393,7 @@ k8s.io/component-base/metrics/prometheus/workqueue
 k8s.io/component-base/metrics/testutil
 k8s.io/component-base/traces
 k8s.io/component-base/version
-# k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027
+# k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c
 ## explicit; go 1.13
 k8s.io/gengo/args
 k8s.io/gengo/examples/deepcopy-gen/generators
@@ -1420,7 +1408,7 @@ k8s.io/gengo/types
 # k8s.io/klog v1.0.0
 ## explicit; go 1.12
 k8s.io/klog
-# k8s.io/klog/v2 v2.9.0
+# k8s.io/klog/v2 v2.40.1 => k8s.io/klog/v2 v2.9.0
 ## explicit; go 1.13
 k8s.io/klog/v2
 # k8s.io/kube-aggregator v0.22.1
@@ -1430,8 +1418,8 @@ k8s.io/kube-aggregator/pkg/apis/apiregistration/v1
 k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1
 k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/scheme
 k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1
-# k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e
-## explicit; go 1.12
+# k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65
+## explicit; go 1.16
 k8s.io/kube-openapi/cmd/openapi-gen/args
 k8s.io/kube-openapi/pkg/builder
 k8s.io/kube-openapi/pkg/common
@@ -1443,7 +1431,7 @@ k8s.io/kube-openapi/pkg/util
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/util/sets
 k8s.io/kube-openapi/pkg/validation/spec
-# k8s.io/utils v0.0.0-20210802155522-efc7438f0176
+# k8s.io/utils v0.0.0-20211116205334-6203023598ed
 ## explicit; go 1.12
 k8s.io/utils/buffer
 k8s.io/utils/integer
@@ -1511,11 +1499,11 @@ open-cluster-management.io/api/cluster/v1
 open-cluster-management.io/api/cluster/v1alpha1
 open-cluster-management.io/api/cluster/v1beta1
 open-cluster-management.io/api/work/v1
-# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.22
-## explicit; go 1.13
+# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30
+## explicit; go 1.17
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
-# sigs.k8s.io/controller-runtime v0.9.1
+# sigs.k8s.io/controller-runtime v0.9.7 => sigs.k8s.io/controller-runtime v0.9.1
 ## explicit; go 1.16
 sigs.k8s.io/controller-runtime/pkg/client
 sigs.k8s.io/controller-runtime/pkg/client/apiutil
@@ -1537,14 +1525,17 @@ sigs.k8s.io/kube-storage-version-migrator/pkg/apis/migration/v1alpha1
 sigs.k8s.io/kube-storage-version-migrator/pkg/clients/clientset
 sigs.k8s.io/kube-storage-version-migrator/pkg/clients/clientset/scheme
 sigs.k8s.io/kube-storage-version-migrator/pkg/clients/clientset/typed/migration/v1alpha1
-# sigs.k8s.io/structured-merge-diff/v4 v4.1.2
+# sigs.k8s.io/structured-merge-diff/v4 v4.2.1
 ## explicit; go 1.13
 sigs.k8s.io/structured-merge-diff/v4/fieldpath
 sigs.k8s.io/structured-merge-diff/v4/merge
 sigs.k8s.io/structured-merge-diff/v4/schema
 sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
-# sigs.k8s.io/yaml v1.2.0
+# sigs.k8s.io/yaml v1.3.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
+# github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
 # k8s.io/client-go => k8s.io/client-go v0.22.1
+# k8s.io/klog/v2 => k8s.io/klog/v2 v2.9.0
+# sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.1

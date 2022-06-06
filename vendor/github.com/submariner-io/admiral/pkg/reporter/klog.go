@@ -16,6 +16,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package embeddedyamls
+package reporter
 
-//go:generate go run generators/yamls2go.go ../../ .
+import "k8s.io/klog"
+
+type klogType struct{}
+
+func Klog() Interface {
+	return &Adapter{Basic: &klogType{}}
+}
+
+func (k klogType) Start(message string, args ...interface{}) {
+	klog.Infof(message, args...)
+}
+
+func (k klogType) End() {
+}
+
+func (k klogType) Success(message string, args ...interface{}) {
+	klog.Infof(message, args...)
+}
+
+func (k klogType) Failure(message string, args ...interface{}) {
+	klog.Errorf(message, args...)
+}
+
+func (k klogType) Warning(message string, args ...interface{}) {
+	klog.Warningf(message, args...)
+}

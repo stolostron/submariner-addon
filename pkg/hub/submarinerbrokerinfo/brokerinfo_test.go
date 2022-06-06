@@ -9,7 +9,7 @@ import (
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbrokerinfo"
-	"github.com/submariner-io/submariner-operator/pkg/broker"
+	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -368,7 +368,7 @@ var _ = Describe("Function Get", func() {
 })
 
 func newGlobalnetConfigMap(globalnetEnabled bool, cidrRange string, clusterSize uint) *corev1.ConfigMap {
-	configMap, err := broker.NewGlobalnetConfigMap(globalnetEnabled, cidrRange, clusterSize, brokerNamespace)
+	configMap, err := globalnet.NewGlobalnetConfigMap(globalnetEnabled, cidrRange, clusterSize, brokerNamespace)
 	Expect(err).To(Succeed())
 
 	return configMap

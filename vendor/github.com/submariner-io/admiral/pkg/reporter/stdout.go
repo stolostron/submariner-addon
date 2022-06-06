@@ -16,17 +16,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resource
+package reporter
 
-import (
-	"context"
+import "fmt"
 
-	"github.com/submariner-io/admiral/pkg/resource"
-	"github.com/submariner-io/admiral/pkg/util"
-	"k8s.io/apimachinery/pkg/runtime"
-)
+type stdout struct{}
 
-func CreateOrUpdate(ctx context.Context, client resource.Interface, obj runtime.Object) (bool, error) {
-	result, err := util.CreateOrUpdate(ctx, client, obj, util.Replace(obj))
-	return result == util.OperationResultCreated, err // nolint:wrapcheck // No need to wrap.
+func Stdout() Interface {
+	return &Adapter{Basic: &stdout{}}
+}
+
+func (s stdout) Start(message string, args ...interface{}) {
+	s.Success(message, args...)
+}
+
+func (s stdout) End() {
+}
+
+func (s stdout) Success(message string, args ...interface{}) {
+	fmt.Printf(message+"\n", args...)
+}
+
+func (s stdout) Failure(message string, args ...interface{}) {
+	fmt.Printf("ERROR: "+message+"\n", args...)
+}
+
+func (s stdout) Warning(message string, args ...interface{}) {
+	fmt.Printf("WARNING: "+message+"\n", args...)
 }

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 )
 
@@ -35,28 +36,28 @@ func NewCloud(info CloudInfo) api.Cloud {
 }
 
 // PrepareForSubmariner prepares submariner cluster environment on GCP.
-func (gc *gcpCloud) PrepareForSubmariner(input api.PrepareForSubmarinerInput, reporter api.Reporter) error {
+func (gc *gcpCloud) PrepareForSubmariner(input api.PrepareForSubmarinerInput, status reporter.Interface) error {
 	// Create the inbound firewall rule for submariner internal ports.
-	reporter.Started("Opening internal ports %q for intra-cluster communications on GCP", formatPorts(input.InternalPorts))
+	status.Start("Opening internal ports %q for intra-cluster communications on GCP", formatPorts(input.InternalPorts))
+	defer status.End()
 
 	internalIngress := newInternalFirewallRule(gc.ProjectID, gc.InfraID, input.InternalPorts)
 	if err := gc.openPorts(internalIngress); err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to open ports")
 	}
 
-	reporter.Succeeded("Opened internal ports %q with firewall rule %q on GCP",
+	status.Success("Opened internal ports %q with firewall rule %q on GCP",
 		formatPorts(input.InternalPorts), internalIngress.Name)
 
 	return nil
 }
 
 // CleanupAfterSubmariner clean up submariner cluster environment on GCP.
-func (gc *gcpCloud) CleanupAfterSubmariner(reporter api.Reporter) error {
+func (gc *gcpCloud) CleanupAfterSubmariner(status reporter.Interface) error {
 	// Delete the inbound and outbound firewall rules to close submariner internal ports.
 	internalIngressName := generateRuleName(gc.InfraID, internalPortsRuleName)
 
-	return gc.deleteFirewallRule(internalIngressName, reporter)
+	return gc.deleteFirewallRule(internalIngressName, status)
 }
 
 func formatPorts(ports []api.PortSpec) string {

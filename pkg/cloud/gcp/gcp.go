@@ -3,6 +3,7 @@ package gcp
 import (
 	"context"
 	"fmt"
+	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"strconv"
 
 	"github.com/stolostron/submariner-addon/pkg/constants"
@@ -37,7 +38,7 @@ type gcpProvider struct {
 	gatewayMetricsPort   uint16
 	globalnetMetricsPort uint16
 	cloudPrepare         api.Cloud
-	reporter             api.Reporter
+	reporter             submreporter.Interface
 	gwDeployer           api.GatewayDeployer
 	gateways             int
 	nattDiscoveryPort    int64
@@ -141,7 +142,7 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	g.reporter.Succeeded("The Submariner cluster environment has been set up on GCP")
+	g.reporter.Success("The Submariner cluster environment has been set up on GCP")
 	return nil
 }
 
@@ -159,7 +160,7 @@ func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
 		return err
 	}
 
-	g.reporter.Succeeded("The Submariner cluster environment has been cleaned up on GCP")
+	g.reporter.Success("The Submariner cluster environment has been cleaned up on GCP")
 	return nil
 }
 

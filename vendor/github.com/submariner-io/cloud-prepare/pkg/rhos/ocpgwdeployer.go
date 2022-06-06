@@ -28,6 +28,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/pkg/errors"
+	"github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 	v1 "k8s.io/api/core/v1"
@@ -47,7 +48,8 @@ type ocpGatewayDeployer struct {
 
 // NewOcpGatewayDeployer returns a GatewayDeployer capable of deploying gateways using OCP.
 func NewOcpGatewayDeployer(info CloudInfo, msDeployer ocp.MachineSetDeployer, projectID, instanceType, image, cloudName string,
-	dedicatedGWNode bool) api.GatewayDeployer {
+	dedicatedGWNode bool,
+) api.GatewayDeployer {
 	return &ocpGatewayDeployer{
 		CloudInfo:       info,
 		projectID:       projectID,
@@ -136,43 +138,43 @@ func (d *ocpGatewayDeployer) deployGateway(index string) error {
 	return errors.Wrap(d.msDeployer.Deploy(machineSet), "failed to deploy submariner gateway node")
 }
 
-func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, reporter api.Reporter) error {
-	reporter.Started("Configuring the required firewall rules for inter-cluster traffic")
+func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, status reporter.Interface) error {
+	status.Start("Configuring the required firewall rules for inter-cluster traffic")
+	defer status.End()
 
 	computeClient, err := openstack.NewComputeV2(d.Client, gophercloud.EndpointOpts{Region: d.Region})
 	if err != nil {
-		return errors.Wrap(err, "error creating the compute client")
+		return status.Error(err, "error creating the compute client")
 	}
 
 	networkClient, err := openstack.NewNetworkV2(d.Client, gophercloud.EndpointOpts{Region: d.Region})
 	if err != nil {
-		return errors.Wrap(err, "error creating the network client")
+		return status.Error(err, "error creating the network client")
 	}
 
 	groupName := d.InfraID + gwSecurityGroupSuffix
 	if err := d.createGWSecurityGroup(input.PublicPorts, groupName, computeClient, networkClient); err != nil {
-		return errors.Wrap(err, "creating gateway security group failed")
+		return status.Error(err, "creating gateway security group failed")
 	}
 
-	reporter.Succeeded("Opened External ports %q in security group %q on RHOS",
+	status.Success("Opened External ports %q in security group %q on RHOS",
 		formatPorts(input.PublicPorts), groupName)
-
-	reporter.Started("Configuring the required number of Submariner gateway pods")
 
 	gwNodes, err := d.K8sClient.ListGatewayNodes()
 	if err != nil {
-		return errors.Wrap(err, "listing the existing gatway nodes failed")
+		return status.Error(err, "listing the existing gateway nodes failed")
 	}
 
-	return d.deployGWNode(gwNodes, input.Gateways, groupName, computeClient, reporter)
+	return d.deployGWNode(gwNodes, input.Gateways, groupName, computeClient, status)
 }
 
 func (d *ocpGatewayDeployer) deployGWNode(gwNodes *v1.NodeList, gatewayCount int, groupName string,
-	computeClient *gophercloud.ServiceClient, reporter api.Reporter) error {
+	computeClient *gophercloud.ServiceClient, status reporter.Interface,
+) error {
 	numGatewayNodes := len(gwNodes.Items)
 
 	if numGatewayNodes == gatewayCount {
-		reporter.Succeeded("Current Submariner gateways match the required number of Submariner gateways")
+		status.Success("Current Submariner gateways match the required number of Submariner gateways")
 		return nil
 	}
 
@@ -185,38 +187,38 @@ func (d *ocpGatewayDeployer) deployGWNode(gwNodes *v1.NodeList, gatewayCount int
 		gatewayNodesToDeploy := gatewayCount - numGatewayNodes
 
 		if d.dedicatedGWNode {
-			err = d.deployDedicatedGWNode(gatewayNodesToDeploy, reporter)
+			err = d.deployDedicatedGWNode(gatewayNodesToDeploy, status)
 		} else {
-			err = d.tagExistingNode(groupName, computeClient, gatewayNodesToDeploy, reporter)
+			err = d.tagExistingNode(groupName, computeClient, gatewayNodesToDeploy, status)
 		}
 	}
 
 	return err
 }
 
-func (d *ocpGatewayDeployer) deployDedicatedGWNode(gatewayNodesToDeploy int, reporter api.Reporter) error {
+func (d *ocpGatewayDeployer) deployDedicatedGWNode(gatewayNodesToDeploy int, status reporter.Interface) error {
 	for i := 0; i < gatewayNodesToDeploy; i++ {
 		gwNodeName := d.InfraID + "-submariner-gw" + strconv.Itoa(i)
-		reporter.Started(fmt.Sprintf("Deploying dedicated gateway node %s",
-			gwNodeName))
+		status.Start("Deploying dedicated Submariner gateway node %s", gwNodeName)
 
 		err := d.deployGateway(strconv.Itoa(i))
 		if err != nil {
-			reporter.Failed(err)
-			return err
+			return status.Error(err, "unable to deploy gateway")
 		}
 
-		reporter.Succeeded("Successfully deployed Submariner gateway node")
+		status.Success("Successfully deployed Submariner gateway node")
+		status.End()
 	}
 
 	return nil
 }
 
 func (d *ocpGatewayDeployer) tagExistingNode(groupName string, computeClient *gophercloud.ServiceClient,
-	gatewayNodesToDeploy int, reporter api.Reporter) error {
+	gatewayNodesToDeploy int, status reporter.Interface,
+) error {
 	workerNodes, err := d.K8sClient.ListNodesWithLabel("node-role.kubernetes.io/worker")
 	if err != nil {
-		return errors.Wrapf(err, "failed to list k8s nodes in project %q", d.projectID)
+		return status.Error(err, "failed to list k8s nodes in project %q", d.projectID)
 	}
 
 	nodes := workerNodes.Items
@@ -226,43 +228,42 @@ func (d *ocpGatewayDeployer) tagExistingNode(groupName string, computeClient *go
 			continue
 		}
 
-		reporter.Started(fmt.Sprintf("Configuring worker node %q as Submariner gateway node", nodes[i].Name))
+		status.Start("Configuring worker node %q as Submariner gateway node", nodes[i].Name)
 
 		err := d.K8sClient.AddGWLabelOnNode(nodes[i].Name)
 		if err != nil {
-			return errors.Wrapf(err, "failed to label the node %q as Submariner gateway node", nodes[i].Name)
+			return status.Error(err, "failed to label the node %q as Submariner gateway node", nodes[i].Name)
 		}
 
 		if err = d.openGatewayPort(groupName, nodes[i].Name, computeClient); err != nil {
-			return errors.Wrap(err, "failed to open the Submariner gateway port")
+			return status.Error(err, "failed to open the Submariner gateway port")
 		}
 
 		gatewayNodesToDeploy--
 		if gatewayNodesToDeploy <= 0 {
-			reporter.Succeeded("Successfully deployed Submariner gateway node")
+			status.Success("Successfully deployed Submariner gateway node")
+			status.End()
+
 			return nil
 		}
 
 		if gatewayNodesToDeploy > 0 {
-			reporter.Failed(errors.Wrap(err, "there are insufficient nodes to deploy the required number of gateways"))
-			return nil
+			return status.Error(err, "there are insufficient nodes to deploy the required number of gateways")
 		}
 	}
 
 	return nil
 }
 
-func (d *ocpGatewayDeployer) Cleanup(reporter api.Reporter) error {
-	reporter.Started("Removing the Submariner gateway configuration from nodes ")
-
+func (d *ocpGatewayDeployer) Cleanup(status reporter.Interface) error {
 	computeClient, err := openstack.NewComputeV2(d.Client, gophercloud.EndpointOpts{Region: d.Region})
 	if err != nil {
-		return errors.Wrapf(err, "error creating the compute client for the region: %q", d.Region)
+		return status.Error(err, "error creating the compute client for the region: %q", d.Region)
 	}
 
 	gwNodesList, err := d.K8sClient.ListGatewayNodes()
 	if err != nil {
-		return errors.Wrap(err, "error listing the Submariner gateway nodes")
+		return status.Error(err, "error listing the Submariner gateway nodes")
 	}
 
 	groupName := d.InfraID + gwSecurityGroupSuffix
@@ -278,43 +279,47 @@ func (d *ocpGatewayDeployer) Cleanup(reporter api.Reporter) error {
 		// the gateway node was deployed using the OCPMachineSet API otherwise it's an existing worker node.
 		prefix := d.InfraID + "-submariner-gw-"
 
+		status.Start("Deleting the Submariner gateway security group rules from node %q", gwNodes[i].Name)
+
 		err = d.removeFirewallRulesFromGW(groupName, gwNodes[i].Name, computeClient)
 		if err != nil {
-			return errors.Wrapf(err, "error deleting the Submariner gateway security group rules from node: %q",
-				gwNodes[i].Name)
+			return status.Error(err, "error deleting the security group rules")
 		}
 
 		if strings.HasPrefix(gwNodes[i].Name, prefix) {
-			reporter.Started(fmt.Sprintf("Deleting the gateway instance %q", gwNodes[i].Name))
+			status.Start(fmt.Sprintf("Deleting the gateway instance %q", gwNodes[i].Name))
 
 			err = d.deleteGateway(strconv.Itoa(i))
 			if err != nil {
-				return errors.Wrapf(err, "error deleting the Submariner gateway security group rules from node: %q",
+				return status.Error(err, "error deleting the gateway instance from node: %q",
 					gwNodes[i].Name)
 			}
 
-			reporter.Succeeded("Successfully deleted the instance")
+			status.Success("Successfully deleted the instance")
 		} else {
-			reporter.Started(fmt.Sprintf("Removing the gateway configuration from instance %q", gwNodes[i].Name))
+			status.Start(fmt.Sprintf("Removing the gateway configuration from instance %q", gwNodes[i].Name))
 			err = d.K8sClient.RemoveGWLabelFromWorkerNode(&gwNodes[i])
 			if err != nil {
-				return errors.Wrap(err, "failed to remove labels from worker node")
+				return status.Error(err, "failed to remove labels from worker node")
 			}
 
-			reporter.Succeeded("Successfully reconfigured the instance")
+			status.Success("Successfully reconfigured the instance")
 		}
+
+		status.End()
 	}
 
-	reporter.Succeeded("Successfully removed the Submariner gateway configuration from the nodes")
+	status.Success("Successfully removed the Submariner gateway configuration from the nodes")
 
-	reporter.Started("Deleting the Submariner gateway security group")
+	status.Start("Deleting the Submariner gateway security group")
 
 	err = d.deleteSG(groupName, computeClient)
 	if err != nil {
 		return errors.Wrap(err, "error deleting the Submariner gateway security group")
 	}
 
-	reporter.Succeeded("Successfully deleted the Submariner Submariner gateway firewall rules")
+	status.Success("Successfully deleted the Submariner gateway security group")
+	status.End()
 
 	return nil
 }
