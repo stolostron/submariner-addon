@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"strconv"
 
 	"github.com/gophercloud/gophercloud/openstack"
@@ -41,7 +42,7 @@ type rhosProvider struct {
 	gatewayMetricsPort   uint16
 	globalnetMetricsPort uint16
 	cloudPrepare         api.Cloud
-	reporter             api.Reporter
+	reporter             submreporter.Interface
 	gwDeployer           api.GatewayDeployer
 	gateways             int
 	nattDiscoveryPort    int64
@@ -143,7 +144,7 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	r.reporter.Succeeded("The Submariner cluster environment has been set up on RHOS")
+	r.reporter.Success("The Submariner cluster environment has been set up on RHOS")
 	return nil
 }
 
@@ -162,7 +163,7 @@ func (r rhosProvider) CleanUpSubmarinerClusterEnv() error {
 		return err
 	}
 
-	r.reporter.Succeeded("The Submariner cluster environment has been cleaned up on RHOS")
+	r.reporter.Success("The Submariner cluster environment has been cleaned up on RHOS")
 	return nil
 }
 

@@ -25,6 +25,7 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
+	"github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/admiral/pkg/stringset"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
@@ -45,7 +46,8 @@ type ocpGatewayDeployer struct {
 
 // NewOcpGatewayDeployer returns a GatewayDeployer capable of deploying gateways using OCP.
 func NewOcpGatewayDeployer(info CloudInfo, msDeployer ocp.MachineSetDeployer, instanceType, image string,
-	dedicatedGWNode bool, k8sClient k8s.Interface) api.GatewayDeployer {
+	dedicatedGWNode bool, k8sClient k8s.Interface,
+) api.GatewayDeployer {
 	return &ocpGatewayDeployer{
 		CloudInfo:       info,
 		msDeployer:      msDeployer,
@@ -56,26 +58,27 @@ func NewOcpGatewayDeployer(info CloudInfo, msDeployer ocp.MachineSetDeployer, in
 	}
 }
 
-func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, reporter api.Reporter) error {
-	reporter.Started("Configuring the required firewall rules for inter-cluster traffic")
+func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, status reporter.Interface) error {
+	status.Start("Configuring the required firewall rules for inter-cluster traffic")
+	defer status.End()
 
 	externalIngress := newExternalFirewallRules(d.ProjectID, d.InfraID, input.PublicPorts)
 	if err := d.openPorts(externalIngress); err != nil {
-		return reportFailure(reporter, err, "error creating firewall rule %q", externalIngress.Name)
+		return status.Error(err, "error creating firewall rule %q", externalIngress.Name)
 	}
 
-	reporter.Succeeded("Opened External ports %q with firewall rule %q on GCP",
+	status.Success("Opened External ports %q with firewall rule %q on GCP",
 		formatPorts(input.PublicPorts), externalIngress.Name)
 
-	numGatewayNodes, eligibleZonesForGW, err := d.parseCurrentGatewayInstances(reporter)
+	numGatewayNodes, eligibleZonesForGW, err := d.parseCurrentGatewayInstances(status)
 	if err != nil {
-		return reportFailure(reporter, err, "error parsing current gateway instances")
+		return status.Error(err, "error parsing current gateway instances")
 	}
 
 	gatewayNodesToDeploy := input.Gateways - numGatewayNodes
 
 	if gatewayNodesToDeploy == 0 {
-		reporter.Succeeded("Current gateways match the required number of gateways")
+		status.Success("Current gateways match the required number of gateways")
 		return nil
 	}
 
@@ -83,22 +86,22 @@ func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, reporter api.R
 	// to convert a non-HA deployment to an HA deployment. We are not supporting decreasing the Gateway
 	// nodes (for now) as it might impact the datapath if we accidentally delete the active GW node.
 	if gatewayNodesToDeploy < 0 {
-		reporter.Failed(fmt.Errorf("decreasing the number of Gateway nodes is not currently supported"))
+		status.Failure("Decreasing the number of Gateway nodes is not currently supported")
 		return nil
 	}
 
 	if d.dedicatedGWNode {
 		for _, zone := range eligibleZonesForGW.Elements() {
-			reporter.Started(fmt.Sprintf("Deploying dedicated gateway node in zone %q", zone))
+			status.Start("Deploying dedicated gateway node in zone %q", zone)
 
 			err = d.deployGateway(zone)
 			if err != nil {
-				return reportFailure(reporter, err, "error deploying gateway for zone %q", zone)
+				return status.Error(err, "error deploying gateway for zone %q", zone)
 			}
 
 			gatewayNodesToDeploy--
 			if gatewayNodesToDeploy <= 0 {
-				reporter.Succeeded("Successfully deployed gateway node")
+				status.Success("Successfully deployed gateway node")
 				return nil
 			}
 		}
@@ -108,7 +111,7 @@ func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, reporter api.R
 		for _, zone := range eligibleZonesForGW.Elements() {
 			workerNodes, err := d.k8sClient.ListNodesWithLabel("topology.kubernetes.io/zone=" + zone + ",node-role.kubernetes.io/worker")
 			if err != nil {
-				return reportFailure(reporter, err, "failed to list k8s nodes in zone %q of project %q", zone, d.ProjectID)
+				return status.Error(err, "failed to list k8s nodes in zone %q of project %q", zone, d.ProjectID)
 			}
 
 			for i := range workerNodes.Items {
@@ -119,9 +122,9 @@ func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, reporter api.R
 					continue
 				}
 
-				reporter.Started(fmt.Sprintf("Configuring worker node %q in zone %q as gateway node", node.Name, zone))
+				status.Start("Configuring worker node %q in zone %q as gateway node", node.Name, zone)
 				if err := d.configureExistingNodeAsGW(zone, gcpInstanceInfo[1], node.Name); err != nil {
-					return reportFailure(reporter, err, "error configuring gateway node %q", node.Name)
+					return status.Error(err, "error configuring gateway node %q", node.Name)
 				}
 
 				gatewayNodesToDeploy--
@@ -129,7 +132,7 @@ func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, reporter api.R
 			}
 
 			if gatewayNodesToDeploy <= 0 {
-				reporter.Succeeded("Successfully deployed gateway node")
+				status.Success("Successfully deployed gateway node")
 				return nil
 			}
 		}
@@ -139,18 +142,19 @@ func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, reporter api.R
 	// is more than the number of Zones, its treated as an error.
 	err = fmt.Errorf("there are an insufficient number of zones (%d) to deploy the desired number of gateways (%d)",
 		eligibleZonesForGW.Size(), input.Gateways)
-	reporter.Failed(err)
+	status.Failure(err.Error())
 
 	return err
 }
 
-func (d *ocpGatewayDeployer) parseCurrentGatewayInstances(reporter api.Reporter) (int, stringset.Interface, error) {
-	zones, err := d.retrieveZones(reporter)
+func (d *ocpGatewayDeployer) parseCurrentGatewayInstances(status reporter.Interface) (int, stringset.Interface, error) {
+	zones, err := d.retrieveZones(status)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	reporter.Started("Verifying if current gateways match the required number of gateways")
+	status.Start("Verifying if current gateways match the required number of gateways")
+	defer status.End()
 
 	zonesWithSubmarinerGW := stringset.New()
 	eligibleZonesForGW := stringset.New()
@@ -164,7 +168,7 @@ func (d *ocpGatewayDeployer) parseCurrentGatewayInstances(reporter api.Reporter)
 
 		instanceList, err := d.Client.ListInstances(zone.Name)
 		if err != nil {
-			return 0, nil, errors.Wrapf(err, "failed to list instances in zone %q of project %q", zone.Name, d.ProjectID)
+			return 0, nil, status.Error(err, "failed to list instances in zone %q of project %q", zone.Name, d.ProjectID)
 		}
 
 		for _, instance := range instanceList.Items {
@@ -300,19 +304,20 @@ func (d *ocpGatewayDeployer) configureExistingNodeAsGW(zone, gcpInstanceInfo, no
 	return nil
 }
 
-func (d *ocpGatewayDeployer) Cleanup(reporter api.Reporter) error {
-	reporter.Started("Retrieving the Submariner gateway firewall rules")
+func (d *ocpGatewayDeployer) Cleanup(status reporter.Interface) error {
+	status.Start("Retrieving the Submariner gateway firewall rules")
+	defer status.End()
 
-	err := d.deleteExternalFWRules(reporter)
+	err := d.deleteExternalFWRules(status)
 	if err != nil {
-		return reportFailure(reporter, err, "failed to delete the gateway firewall rules in the project %q", d.ProjectID)
+		return status.Error(err, "failed to delete the gateway firewall rules in the project %q", d.ProjectID)
 	}
 
-	reporter.Succeeded("Successfully deleted the firewall rules")
+	status.Success("Successfully deleted the firewall rules")
 
-	zones, err := d.retrieveZones(reporter)
+	zones, err := d.retrieveZones(status)
 	if err != nil {
-		return reportFailure(reporter, err, "error retrieving zones")
+		return err
 	}
 
 	for _, zone := range zones.Items {
@@ -322,7 +327,7 @@ func (d *ocpGatewayDeployer) Cleanup(reporter api.Reporter) error {
 
 		instanceList, err := d.Client.ListInstances(zone.Name)
 		if err != nil {
-			return reportFailure(reporter, err, "failed to list instances in zone %q of project %q", zone.Name, d.ProjectID)
+			return status.Error(err, "failed to list instances in zone %q of project %q", zone.Name, d.ProjectID)
 		}
 
 		for _, instance := range instanceList.Items {
@@ -339,35 +344,35 @@ func (d *ocpGatewayDeployer) Cleanup(reporter api.Reporter) error {
 			// the gateway node was deployed using the OCPMachineSet API otherwise it's an existing worker node.
 			prefix := d.InfraID + "-submariner-gw-" + zone.Name
 			if strings.HasPrefix(instance.Name, prefix) {
-				reporter.Started(fmt.Sprintf("Deleting the gateway instance %q", instance.Name))
+				status.Start(fmt.Sprintf("Deleting the gateway instance %q", instance.Name))
 
 				err := d.deleteGateway(zone.Name)
 				if err != nil {
-					return reportFailure(reporter, err, "failed to delete dedicated gateway instance %q", instance.Name)
+					return status.Error(err, "failed to delete dedicated gateway instance %q", instance.Name)
 				}
 
-				reporter.Succeeded("Successfully deleted the instance")
+				status.Success("Successfully deleted the instance")
 			} else {
-				reporter.Started(fmt.Sprintf("Removing the gateway configuration from instance %q", instance.Name))
+				status.Start(fmt.Sprintf("Removing the gateway configuration from instance %q", instance.Name))
 
 				err = d.resetExistingGWNode(zone.Name, instance)
 				if err != nil {
-					return reportFailure(reporter, err, "failed to delete gateway instance %q", instance.Name)
+					return status.Error(err, "failed to delete gateway instance %q", instance.Name)
 				}
 
-				reporter.Succeeded("Successfully reconfigured the instance")
+				status.Success("Successfully reconfigured the instance")
 			}
 		}
 	}
 
-	reporter.Started("Removing the Submariner gateway label from worker nodes")
+	status.Start("Removing the Submariner gateway label from worker nodes")
 
 	err = d.k8sClient.RemoveGWLabelFromWorkerNodes()
 	if err != nil {
-		return reportFailure(reporter, err, "error removing the gateway label from worker nodes")
+		return status.Error(err, "error removing the gateway label from worker nodes")
 	}
 
-	reporter.Succeeded("Successfully removed the label from the worker nodes")
+	status.Success("Successfully removed the label from the worker nodes")
 
 	return nil
 }
@@ -381,21 +386,14 @@ func (d *ocpGatewayDeployer) deleteGateway(zone string) error {
 	return errors.Wrapf(d.msDeployer.Delete(machineSet), "error deleting machine set %q", machineSet.GetName())
 }
 
-func (d *ocpGatewayDeployer) deleteExternalFWRules(reporter api.Reporter) error {
+func (d *ocpGatewayDeployer) deleteExternalFWRules(status reporter.Interface) error {
 	ingressName := generateRuleName(d.InfraID, publicPortsRuleName)
 
-	if err := d.deleteFirewallRule(ingressName, reporter); err != nil {
+	if err := d.deleteFirewallRule(ingressName, status); err != nil {
 		return errors.Wrapf(err, "error deleting firewall rule %q", ingressName)
 	}
 
 	return nil
-}
-
-func reportFailure(reporter api.Reporter, failure error, format string, args ...interface{}) error {
-	err := errors.WithMessagef(failure, format, args...)
-	reporter.Failed(err)
-
-	return err
 }
 
 func (d *ocpGatewayDeployer) ignoreZone(zone *compute.Zone) bool {
@@ -443,15 +441,16 @@ func (d *ocpGatewayDeployer) resetExistingGWNode(zone string, instance *compute.
 	return nil
 }
 
-func (d *ocpGatewayDeployer) retrieveZones(reporter api.Reporter) (*compute.ZoneList, error) {
-	reporter.Started("Retrieving the current zones in the project")
+func (d *ocpGatewayDeployer) retrieveZones(status reporter.Interface) (*compute.ZoneList, error) {
+	status.Start("Retrieving the current zones in the project")
+	status.End()
 
 	zones, err := d.Client.ListZones()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list the zones in the project %q", d.ProjectID)
+		return nil, status.Error(err, "failed to list the zones in the project %q", d.ProjectID)
 	}
 
-	reporter.Succeeded("Retrieved the zones")
+	status.Success("Retrieved the zones")
 
 	return zones, nil
 }

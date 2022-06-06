@@ -16,15 +16,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package constants
+package reporter
 
-// Arranged alphabetically.
-const (
-	DefaultBrokerNamespace  = "submariner-k8s-broker"
-	OperatorNamespace       = "submariner-operator"
-	SubmarinerBrokerAdminSA = "submariner-k8s-broker-admin"
-	SubmarinerGatewayLabel  = "submariner.io/gateway"
-	SubmarinerName          = "submariner"
-	SubmarinerNamespace     = "submariner-operator"
-	TrueLabel               = "true"
+import (
+	"unicode"
+
+	"github.com/pkg/errors"
 )
+
+type Adapter struct {
+	Basic
+}
+
+func (a *Adapter) Error(err error, message string, args ...interface{}) error {
+	if err == nil {
+		return nil
+	}
+
+	err = errors.Wrapf(err, message, args...)
+
+	capitalizeFirst := func(str string) string {
+		for i, v := range str {
+			return string(unicode.ToUpper(v)) + str[i+1:]
+		}
+
+		return ""
+	}
+
+	a.Basic.Failure(capitalizeFirst(err.Error()))
+	a.Basic.End()
+
+	return err
+}

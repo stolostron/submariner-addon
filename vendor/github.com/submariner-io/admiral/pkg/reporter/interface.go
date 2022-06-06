@@ -18,14 +18,7 @@ limitations under the License.
 
 package reporter
 
-import (
-	"unicode"
-
-	"github.com/pkg/errors"
-)
-
-// Interface for reporting on the progress of an operation.
-type Interface interface {
+type Basic interface {
 	// Start reports that an operation or sequence of operations is starting;
 	// any operation in progress is ended.
 	Start(message string, args ...interface{})
@@ -41,29 +34,12 @@ type Interface interface {
 
 	// Warning reports a warning message for the last operation.
 	Warning(message string, args ...interface{})
+}
 
+// Interface for reporting on the progress of an operation.
+type Interface interface {
+	Basic
 	// Error wraps err with the supplied message, reports it as a failure, ends the current operation, and returns the error.
 	// If err is nil, does nothing and returns nil.
 	Error(err error, message string, args ...interface{}) error
-}
-
-func HandleError(reporter Interface, err error, message string, args ...interface{}) error {
-	if err == nil {
-		return nil
-	}
-
-	err = errors.Wrapf(err, message, args...)
-
-	capitalizeFirst := func(str string) string {
-		for i, v := range str {
-			return string(unicode.ToUpper(v)) + str[i+1:]
-		}
-
-		return ""
-	}
-
-	reporter.Failure(capitalizeFirst(err.Error()))
-	reporter.End()
-
-	return err
 }

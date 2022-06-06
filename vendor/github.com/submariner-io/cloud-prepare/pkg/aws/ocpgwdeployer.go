@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	"github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -57,46 +58,43 @@ func NewOcpGatewayDeployer(cloud api.Cloud, msDeployer ocp.MachineSetDeployer, i
 	}, nil
 }
 
-func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, reporter api.Reporter) error {
-	reporter.Started(messageRetrieveVPCID)
+func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, status reporter.Interface) error {
+	status.Start(messageRetrieveVPCID)
+	defer status.End()
 
 	vpcID, err := d.aws.getVpcID()
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to retrieve the VPC ID")
 	}
 
-	reporter.Succeeded(messageRetrievedVPCID, vpcID)
+	status.Success(messageRetrievedVPCID, vpcID)
 
-	reporter.Started(messageValidatePrerequisites)
+	status.Start(messageValidatePrerequisites)
 
 	publicSubnets, err := d.aws.findPublicSubnets(vpcID, d.aws.filterByName("{infraID}-public-{region}*"))
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to find public subnets")
 	}
 
 	err = d.validateDeployPrerequisites(vpcID, input, publicSubnets)
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to validate prerequisites")
 	}
 
-	reporter.Succeeded(messageValidatedPrerequisites)
+	status.Success(messageValidatedPrerequisites)
 
-	reporter.Started("Creating Submariner gateway security group")
+	status.Start("Creating Submariner gateway security group")
 
 	gatewaySG, err := d.aws.createGatewaySG(vpcID, input.PublicPorts)
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to create gateway")
 	}
 
-	reporter.Succeeded("Created Submariner gateway security group %s", gatewaySG)
+	status.Success("Created Submariner gateway security group %s", gatewaySG)
 
 	subnets, err := d.aws.getSubnetsSupportingInstanceType(publicSubnets, d.instanceType)
 	if err != nil {
-		return err
+		return status.Error(err, "unable to create security group")
 	}
 
 	taggedSubnets, _ := filterSubnets(subnets, func(subnet *types.Subnet) (bool, error) {
@@ -115,39 +113,38 @@ func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, reporter api.R
 
 		subnetName := extractName(subnet.Tags)
 
-		reporter.Started("Adjusting public subnet %s to support Submariner", subnetName)
+		status.Start("Adjusting public subnet %s to support Submariner", subnetName)
 
 		err = d.aws.tagPublicSubnet(subnet.SubnetId)
 		if err != nil {
-			reporter.Failed(err)
-			return err
+			return status.Error(err, "unable to tag public subnet")
 		}
 
 		taggedSubnets = append(taggedSubnets, *subnet)
 
-		reporter.Succeeded("Adjusted public subnet %s to support Submariner", subnetName)
+		status.Success("Adjusted public subnet %s to support Submariner", subnetName)
 	}
 
 	for i := range taggedSubnets {
 		subnet := &taggedSubnets[i]
 		subnetName := extractName(subnet.Tags)
 
-		reporter.Started("Deploying gateway node for public subnet %s", subnetName)
+		status.Start("Deploying gateway node for public subnet %s", subnetName)
 
 		err = d.deployGateway(vpcID, gatewaySG, subnet)
 		if err != nil {
-			reporter.Failed(err)
-			return err
+			return status.Error(err, "unable to deploy gateway")
 		}
 
-		reporter.Succeeded("Deployed gateway node for public subnet %s", subnetName)
+		status.Success("Deployed gateway node for public subnet %s", subnetName)
 	}
 
 	return nil
 }
 
 func (d *ocpGatewayDeployer) validateDeployPrerequisites(vpcID string, input api.GatewayDeployInput,
-	publicSubnets []types.Subnet) error {
+	publicSubnets []types.Subnet,
+) error {
 	var errs []error
 	var subnets []types.Subnet
 
@@ -293,26 +290,25 @@ func (d *ocpGatewayDeployer) deployGateway(vpcID, gatewaySecurityGroup string, p
 	return errors.Wrapf(d.msDeployer.Deploy(machineSet), "error deploying machine set %q", machineSet.GetName())
 }
 
-func (d *ocpGatewayDeployer) Cleanup(reporter api.Reporter) error {
-	reporter.Started(messageRetrieveVPCID)
+func (d *ocpGatewayDeployer) Cleanup(status reporter.Interface) error {
+	status.Start(messageRetrieveVPCID)
+	defer status.End()
 
 	vpcID, err := d.aws.getVpcID()
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to retrieve the VPC ID")
 	}
 
-	reporter.Succeeded(messageRetrievedVPCID, vpcID)
+	status.Success(messageRetrievedVPCID, vpcID)
 
-	reporter.Started(messageValidatePrerequisites)
+	status.Start(messageValidatePrerequisites)
 
 	err = d.validateCleanupPrerequisites(vpcID)
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to validate prerequisites")
 	}
 
-	reporter.Succeeded(messageValidatedPrerequisites)
+	status.Success(messageValidatedPrerequisites)
 
 	subnets, err := d.aws.getTaggedPublicSubnets(vpcID)
 	if err != nil {
@@ -323,36 +319,33 @@ func (d *ocpGatewayDeployer) Cleanup(reporter api.Reporter) error {
 		subnet := &subnets[i]
 		subnetName := extractName(subnet.Tags)
 
-		reporter.Started("Removing gateway node for public subnet %s", subnetName)
+		status.Start("Removing gateway node for public subnet %s", subnetName)
 
 		err = d.deleteGateway(subnet)
 		if err != nil {
-			reporter.Failed(err)
-			return err
+			return status.Error(err, "unable to remove gateway node")
 		}
 
-		reporter.Succeeded("Removed gateway node for public subnet %s", subnetName)
+		status.Success("Removed gateway node for public subnet %s", subnetName)
 
-		reporter.Started("Untagging public subnet %s from supporting Submariner", subnetName)
+		status.Start("Untagging public subnet %s from supporting Submariner", subnetName)
 
 		err = d.aws.untagPublicSubnet(subnet.SubnetId)
 		if err != nil {
-			reporter.Failed(err)
-			return err
+			return status.Error(err, "unable to untag subnet")
 		}
 
-		reporter.Succeeded("Untagged public subnet %s from supporting Submariner", subnetName)
+		status.Success("Untagged public subnet %s from supporting Submariner", subnetName)
 	}
 
-	reporter.Started("Deleting Submariner gateway security group")
+	status.Start("Deleting Submariner gateway security group")
 
 	err = d.aws.deleteGatewaySG(vpcID)
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to delete gateway")
 	}
 
-	reporter.Succeeded("Deleted Submariner gateway security group")
+	status.Success("Deleted Submariner gateway security group")
 
 	return nil
 }

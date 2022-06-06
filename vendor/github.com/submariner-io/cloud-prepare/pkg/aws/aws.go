@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/pkg/errors"
+	"github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 	awsClient "github.com/submariner-io/cloud-prepare/pkg/aws/client"
 )
@@ -87,37 +88,35 @@ func DefaultProfile() string {
 	return "default"
 }
 
-func (ac *awsCloud) PrepareForSubmariner(input api.PrepareForSubmarinerInput, reporter api.Reporter) error {
-	reporter.Started(messageRetrieveVPCID)
+func (ac *awsCloud) PrepareForSubmariner(input api.PrepareForSubmarinerInput, status reporter.Interface) error {
+	status.Start(messageRetrieveVPCID)
+	defer status.End()
 
 	vpcID, err := ac.getVpcID()
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to retrieve the VPC ID")
 	}
 
-	reporter.Succeeded(messageRetrievedVPCID, vpcID)
+	status.Success(messageRetrievedVPCID, vpcID)
 
-	reporter.Started(messageValidatePrerequisites)
+	status.Start(messageValidatePrerequisites)
 
 	err = ac.validatePreparePrerequisites(vpcID)
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to validate prerequisites")
 	}
 
-	reporter.Succeeded(messageValidatedPrerequisites)
+	status.Success(messageValidatedPrerequisites)
 
 	for _, port := range input.InternalPorts {
-		reporter.Started("Opening port %v protocol %s for intra-cluster communications", port.Port, port.Protocol)
+		status.Start("Opening port %v protocol %s for intra-cluster communications", port.Port, port.Protocol)
 
 		err = ac.allowPortInCluster(vpcID, port.Port, port.Protocol)
 		if err != nil {
-			reporter.Failed(err)
-			return err
+			return status.Error(err, "unable to open port")
 		}
 
-		reporter.Succeeded("Opened port %v protocol %s for intra-cluster communications", port.Port, port.Protocol)
+		status.Success("Opened port %v protocol %s for intra-cluster communications", port.Port, port.Protocol)
 	}
 
 	return nil
@@ -127,36 +126,34 @@ func (ac *awsCloud) validatePreparePrerequisites(vpcID string) error {
 	return ac.validateCreateSecGroupRule(vpcID)
 }
 
-func (ac *awsCloud) CleanupAfterSubmariner(reporter api.Reporter) error {
-	reporter.Started(messageRetrieveVPCID)
+func (ac *awsCloud) CleanupAfterSubmariner(status reporter.Interface) error {
+	status.Start(messageRetrieveVPCID)
+	defer status.End()
 
 	vpcID, err := ac.getVpcID()
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to retrieve the VPC ID")
 	}
 
-	reporter.Succeeded(messageRetrievedVPCID, vpcID)
+	status.Success(messageRetrievedVPCID, vpcID)
 
-	reporter.Started(messageValidatePrerequisites)
+	status.Start(messageValidatePrerequisites)
 
 	err = ac.validateCleanupPrerequisites(vpcID)
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to validate prerequisites")
 	}
 
-	reporter.Succeeded(messageValidatedPrerequisites)
+	status.Success(messageValidatedPrerequisites)
 
-	reporter.Started("Revoking intra-cluster communication permissions")
+	status.Start("Revoking intra-cluster communication permissions")
 
 	err = ac.revokePortsInCluster(vpcID)
 	if err != nil {
-		reporter.Failed(err)
-		return err
+		return status.Error(err, "unable to revoke permissions")
 	}
 
-	reporter.Succeeded("Revoked intra-cluster communication permissions")
+	status.Success("Revoked intra-cluster communication permissions")
 
 	return nil
 }

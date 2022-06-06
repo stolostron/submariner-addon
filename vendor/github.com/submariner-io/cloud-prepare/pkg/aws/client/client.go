@@ -35,12 +35,10 @@ import (
 type Interface interface {
 	AuthorizeSecurityGroupIngress(ctx context.Context, params *ec2.AuthorizeSecurityGroupIngressInput,
 		optFns ...func(*ec2.Options)) (*ec2.AuthorizeSecurityGroupIngressOutput, error)
-
 	CreateSecurityGroup(ctx context.Context, params *ec2.CreateSecurityGroupInput,
 		optFns ...func(*ec2.Options)) (*ec2.CreateSecurityGroupOutput, error)
 	CreateTags(ctx context.Context, params *ec2.CreateTagsInput,
 		optFns ...func(*ec2.Options)) (*ec2.CreateTagsOutput, error)
-
 	DescribeInstances(ctx context.Context, params *ec2.DescribeInstancesInput,
 		optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error)
 	DescribeVpcs(ctx context.Context, params *ec2.DescribeVpcsInput,
@@ -51,11 +49,9 @@ type Interface interface {
 		optFns ...func(*ec2.Options)) (*ec2.DescribeSubnetsOutput, error)
 	DescribeInstanceTypeOfferings(ctx context.Context, params *ec2.DescribeInstanceTypeOfferingsInput,
 		optFns ...func(*ec2.Options)) (*ec2.DescribeInstanceTypeOfferingsOutput, error)
-
 	DeleteSecurityGroup(ctx context.Context, params *ec2.DeleteSecurityGroupInput,
 		optFns ...func(*ec2.Options)) (*ec2.DeleteSecurityGroupOutput, error)
 	DeleteTags(ctx context.Context, params *ec2.DeleteTagsInput, optFns ...func(*ec2.Options)) (*ec2.DeleteTagsOutput, error)
-
 	RevokeSecurityGroupIngress(ctx context.Context, params *ec2.RevokeSecurityGroupIngressInput,
 		optFns ...func(*ec2.Options)) (*ec2.RevokeSecurityGroupIngressOutput, error)
 }
@@ -65,57 +61,68 @@ type awsClient struct {
 }
 
 func (ac *awsClient) AuthorizeSecurityGroupIngress(ctx context.Context, input *ec2.AuthorizeSecurityGroupIngressInput,
-	optFns ...func(*ec2.Options)) (*ec2.AuthorizeSecurityGroupIngressOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.AuthorizeSecurityGroupIngressOutput, error) {
 	return ac.ec2Client.AuthorizeSecurityGroupIngress(ctx, input, optFns...)
 }
 
 func (ac *awsClient) CreateSecurityGroup(ctx context.Context, input *ec2.CreateSecurityGroupInput,
-	optFns ...func(*ec2.Options)) (*ec2.CreateSecurityGroupOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.CreateSecurityGroupOutput, error) {
 	return ac.ec2Client.CreateSecurityGroup(ctx, input, optFns...)
 }
 
 func (ac *awsClient) CreateTags(ctx context.Context, input *ec2.CreateTagsInput,
-	optFns ...func(*ec2.Options)) (*ec2.CreateTagsOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.CreateTagsOutput, error) {
 	return ac.ec2Client.CreateTags(ctx, input, optFns...)
 }
 
 func (ac *awsClient) DescribeInstances(ctx context.Context, input *ec2.DescribeInstancesInput,
-	optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.DescribeInstancesOutput, error) {
 	return ac.ec2Client.DescribeInstances(ctx, input, optFns...)
 }
 
 func (ac *awsClient) DescribeVpcs(ctx context.Context, input *ec2.DescribeVpcsInput,
-	optFns ...func(*ec2.Options)) (*ec2.DescribeVpcsOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.DescribeVpcsOutput, error) {
 	return ac.ec2Client.DescribeVpcs(ctx, input, optFns...)
 }
 
 func (ac *awsClient) DescribeSecurityGroups(ctx context.Context, input *ec2.DescribeSecurityGroupsInput,
-	optFns ...func(*ec2.Options)) (*ec2.DescribeSecurityGroupsOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.DescribeSecurityGroupsOutput, error) {
 	return ac.ec2Client.DescribeSecurityGroups(ctx, input, optFns...)
 }
 
 func (ac *awsClient) DescribeSubnets(ctx context.Context, input *ec2.DescribeSubnetsInput,
-	optFns ...func(*ec2.Options)) (*ec2.DescribeSubnetsOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.DescribeSubnetsOutput, error) {
 	return ac.ec2Client.DescribeSubnets(ctx, input, optFns...)
 }
 
 func (ac *awsClient) DeleteSecurityGroup(ctx context.Context, input *ec2.DeleteSecurityGroupInput,
-	optFns ...func(*ec2.Options)) (*ec2.DeleteSecurityGroupOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.DeleteSecurityGroupOutput, error) {
 	return ac.ec2Client.DeleteSecurityGroup(ctx, input, optFns...)
 }
 
 func (ac *awsClient) DeleteTags(ctx context.Context, input *ec2.DeleteTagsInput,
-	optFns ...func(*ec2.Options)) (*ec2.DeleteTagsOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.DeleteTagsOutput, error) {
 	return ac.ec2Client.DeleteTags(ctx, input, optFns...)
 }
 
 func (ac *awsClient) RevokeSecurityGroupIngress(ctx context.Context, input *ec2.RevokeSecurityGroupIngressInput,
-	optFns ...func(*ec2.Options)) (*ec2.RevokeSecurityGroupIngressOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.RevokeSecurityGroupIngressOutput, error) {
 	return ac.ec2Client.RevokeSecurityGroupIngress(ctx, input, optFns...)
 }
 
 func (ac *awsClient) DescribeInstanceTypeOfferings(ctx context.Context, input *ec2.DescribeInstanceTypeOfferingsInput,
-	optFns ...func(*ec2.Options)) (*ec2.DescribeInstanceTypeOfferingsOutput, error) {
+	optFns ...func(*ec2.Options),
+) (*ec2.DescribeInstanceTypeOfferingsOutput, error) {
 	return ac.ec2Client.DescribeInstanceTypeOfferings(ctx, input, optFns...)
 }
 

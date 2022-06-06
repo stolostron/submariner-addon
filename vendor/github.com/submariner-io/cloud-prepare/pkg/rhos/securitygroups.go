@@ -37,7 +37,8 @@ type CloudInfo struct {
 }
 
 func (c *CloudInfo) openInternalPorts(infraID string, ports []api.PortSpec,
-	computeClient, networkClient *gophercloud.ServiceClient) error {
+	computeClient, networkClient *gophercloud.ServiceClient,
+) error {
 	groupName := infraID + internalSecurityGroupSuffix
 	opts := secgroups.CreateOpts{
 		Name:        groupName,
@@ -85,7 +86,8 @@ func (c *CloudInfo) openInternalPorts(infraID string, ports []api.PortSpec,
 }
 
 func (c *CloudInfo) removeInternalFirewallRules(infraID string,
-	computeClient *gophercloud.ServiceClient) error {
+	computeClient *gophercloud.ServiceClient,
+) error {
 	groupName := infraID + internalSecurityGroupSuffix
 
 	pager := servers.List(computeClient, servers.ListOpts{Name: c.InfraID})
@@ -115,7 +117,8 @@ func (c *CloudInfo) removeInternalFirewallRules(infraID string,
 }
 
 func (c *CloudInfo) createGWSecurityGroup(ports []api.PortSpec, groupName string, computeClient *gophercloud.ServiceClient,
-	networkClient *gophercloud.ServiceClient) error {
+	networkClient *gophercloud.ServiceClient,
+) error {
 	isFound, err := checkIfSecurityGroupPresent(groupName, computeClient)
 	if err != nil {
 		return err
@@ -242,7 +245,8 @@ func (c *CloudInfo) deleteSG(groupName string, computeClient *gophercloud.Servic
 }
 
 func (c *CloudInfo) createSGRule(group, remoteGroupID, remoteIPPrefix string, port uint16,
-	protocol string, networkClient *gophercloud.ServiceClient) error {
+	protocol string, networkClient *gophercloud.ServiceClient,
+) error {
 	opts := rules.CreateOpts{
 		Direction:      "ingress",
 		EtherType:      rules.EtherType4,

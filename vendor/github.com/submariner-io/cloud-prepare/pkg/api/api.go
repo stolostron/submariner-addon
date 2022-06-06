@@ -18,17 +18,7 @@ limitations under the License.
 
 package api
 
-// Reporter is responsible for reporting back on the progress of the cloud preparation.
-type Reporter interface {
-	// Started will report that an operation started on the cloud.
-	Started(message string, args ...interface{})
-
-	// Succeeded will report that the last operation on the cloud has succeeded.
-	Succeeded(message string, args ...interface{})
-
-	// Failed will report that the last operation on the cloud has failed.
-	Failed(errs ...error)
-}
+import "github.com/submariner-io/admiral/pkg/reporter"
 
 // PortSpec is a specification of port+protocol to open.
 type PortSpec struct {
@@ -44,10 +34,10 @@ type PrepareForSubmarinerInput struct {
 // Cloud is a potential cloud for installing Submariner on.
 type Cloud interface {
 	// PrepareForSubmariner will prepare the cloud for Submariner to operate on.
-	PrepareForSubmariner(input PrepareForSubmarinerInput, reporter Reporter) error
+	PrepareForSubmariner(input PrepareForSubmarinerInput, status reporter.Interface) error
 
 	// CleanupAfterSubmariner will clean up the cloud after Submariner is removed.
-	CleanupAfterSubmariner(reporter Reporter) error
+	CleanupAfterSubmariner(status reporter.Interface) error
 }
 
 type GatewayDeployInput struct {
@@ -65,8 +55,8 @@ type GatewayDeployInput struct {
 // GatewayDeployer will deploy and cleanup dedicated gateways according to the requested policy.
 type GatewayDeployer interface {
 	// Deploy dedicated gateways as requested.
-	Deploy(input GatewayDeployInput, reporter Reporter) error
+	Deploy(input GatewayDeployInput, status reporter.Interface) error
 
 	// Cleanup any dedicated gateways that were previously deployed.
-	Cleanup(reporter Reporter) error
+	Cleanup(status reporter.Interface) error
 }

@@ -21,7 +21,7 @@ import (
 	coreresource "github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
-	"github.com/submariner-io/submariner-operator/pkg/broker"
+	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -544,12 +544,12 @@ func (t *testDriver) createAddon() {
 }
 
 func (t *testDriver) createGlobalnetConfigMap() {
-	err := broker.CreateGlobalnetConfigMap(t.kubeClient, false, "", 0, brokerNamespace)
+	err := globalnet.CreateConfigMap(t.kubeClient, false, "", 0, brokerNamespace)
 	Expect(err).To(Succeed())
 }
 
 func (t *testDriver) deleteGlobalnetConfigMap() {
-	err := t.kubeClient.CoreV1().ConfigMaps(brokerNamespace).Delete(context.TODO(), broker.GlobalCIDRConfigMapName, metav1.DeleteOptions{})
+	err := globalnet.DeleteConfigMap(t.kubeClient, brokerNamespace)
 	Expect(err).To(Succeed())
 }
 

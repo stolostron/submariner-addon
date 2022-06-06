@@ -26,8 +26,7 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
-	"github.com/submariner-io/submariner-operator/pkg/broker"
-	"github.com/submariner-io/submariner-operator/pkg/reporter"
+	"github.com/submariner-io/admiral/pkg/reporter"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
@@ -105,7 +104,7 @@ func LastIP(network *net.IPNet) uint {
 	ones, total := network.Mask.Size()
 	clusterSize := uint(total - ones)
 	firstIPInt := ipToUint(network.IP)
-	lastIPUint := (firstIPInt + 1<<clusterSize) - 1
+	lastIPUint := firstIPInt + 1<<clusterSize - 1
 
 	return lastIPUint
 }
@@ -326,33 +325,33 @@ func ValidateGlobalnetConfiguration(globalnetInfo *Info, netconfig Config, statu
 }
 
 func GetGlobalNetworks(kubeClient kubernetes.Interface, brokerNamespace string) (*Info, *v1.ConfigMap, error) {
-	configMap, err := broker.GetGlobalnetConfigMap(kubeClient, brokerNamespace)
+	configMap, err := GetConfigMap(kubeClient, brokerNamespace)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error retrieving globalnet ConfigMap")
 	}
 
 	globalnetInfo := Info{}
 
-	err = json.Unmarshal([]byte(configMap.Data[broker.GlobalnetStatusKey]), &globalnetInfo.Enabled)
+	err = json.Unmarshal([]byte(configMap.Data[globalnetEnabledKey]), &globalnetInfo.Enabled)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error reading globalnetEnabled status")
 	}
 
 	if globalnetInfo.Enabled {
-		err = json.Unmarshal([]byte(configMap.Data[broker.GlobalnetClusterSize]), &globalnetInfo.ClusterSize)
+		err = json.Unmarshal([]byte(configMap.Data[globalnetClusterSize]), &globalnetInfo.ClusterSize)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "error reading GlobalnetClusterSize")
 		}
 
-		err = json.Unmarshal([]byte(configMap.Data[broker.GlobalnetCidrRange]), &globalnetInfo.CidrRange)
+		err = json.Unmarshal([]byte(configMap.Data[globalnetCidrRange]), &globalnetInfo.CidrRange)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "error reading GlobalnetCidrRange")
 		}
 	}
 
-	var clusterInfo []broker.ClusterInfo
+	var clusterInfo []clusterInfo
 
-	err = json.Unmarshal([]byte(configMap.Data[broker.ClusterInfoKey]), &clusterInfo)
+	err = json.Unmarshal([]byte(configMap.Data[clusterInfoKey]), &clusterInfo)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error reading globalnet clusterInfo")
 	}
@@ -461,7 +460,8 @@ func ValidateExistingGlobalNetworks(kubeClient kubernetes.Interface, namespace s
 }
 
 func AllocateAndUpdateGlobalCIDRConfigMap(brokerAdminClientset kubernetes.Interface, brokerNamespace string,
-	netconfig *Config, status reporter.Interface) error {
+	netconfig *Config, status reporter.Interface,
+) error {
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		status.Start("Retrieving Globalnet information from the Broker")
 		defer status.End()
@@ -484,20 +484,20 @@ func AllocateAndUpdateGlobalCIDRConfigMap(brokerAdminClientset kubernetes.Interf
 
 			if globalnetInfo.CidrInfo[netconfig.ClusterID] == nil ||
 				globalnetInfo.CidrInfo[netconfig.ClusterID].GlobalCIDRs[0] != netconfig.GlobalCIDR {
-				var newClusterInfo broker.ClusterInfo
+				var newClusterInfo clusterInfo
 				newClusterInfo.ClusterID = netconfig.ClusterID
 				newClusterInfo.GlobalCidr = []string{netconfig.GlobalCIDR}
 
 				status.Start("Updating the Globalnet information on the Broker")
 
-				err = broker.UpdateGlobalnetConfigMap(brokerAdminClientset, brokerNamespace, globalnetConfigMap, newClusterInfo)
+				err = updateConfigMap(brokerAdminClientset, brokerNamespace, globalnetConfigMap, newClusterInfo)
 				if apierrors.IsConflict(err) {
 					status.Warning("Conflict occurred updating the Globalnet ConfigMap - retrying")
 				} else {
 					return status.Error(err, "error updating the Globalnet ConfigMap")
 				}
 
-				return err // nolint:wrapcheck // No need to wrap here
+				return err
 			}
 		}
 

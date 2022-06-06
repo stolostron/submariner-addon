@@ -5,31 +5,27 @@ import (
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/stolostron/submariner-addon/pkg/constants"
-
 	"github.com/stolostron/submariner-addon/pkg/cloud/manifestwork"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
-	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
+	"github.com/stolostron/submariner-addon/pkg/constants"
+	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	cpapi "github.com/submariner-io/cloud-prepare/pkg/api"
 	cpaws "github.com/submariner-io/cloud-prepare/pkg/aws"
 	cpclient "github.com/submariner-io/cloud-prepare/pkg/aws/client"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 )
 
 const (
 	defaultInstanceType  = "m5n.large"
 	accessKeyIDSecretKey = "aws_access_key_id"
 	accessKeySecretKey   = "aws_secret_access_key"
-	internalELBLabel     = "kubernetes.io/role/internal-elb"
-	internalGatewayLabel = "submariner.io/gateway"
 	workName             = "aws-submariner-gateway-machineset"
 )
 
 type awsProvider struct {
-	reporter          cpapi.Reporter
+	reporter          submreporter.Interface
 	nattPort          int64
 	nattDiscoveryPort int64
 	instanceType      string
@@ -108,7 +104,7 @@ func NewAWSProvider(
 
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on AWS
 func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
-	// See prepareAws() in https://github.com/submariner-io/submariner-operator/blob/devel/pkg/subctl/cmd/cloud/prepare/aws.go
+	// See AWS() in https://github.com/submariner-io/subctl/blob/devel/pkg/cloud/prepare/aws.go
 	// For now we only support at least one gateway (no load-balancer)
 	if err := a.gatewayDeployer.Deploy(cpapi.GatewayDeployInput{
 		PublicPorts: []cpapi.PortSpec{
@@ -132,7 +128,7 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	a.reporter.Succeeded("The Submariner cluster environment has been set up on AWS")
+	a.reporter.Success("The Submariner cluster environment has been set up on AWS")
 
 	return nil
 }
@@ -147,7 +143,7 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 		return err
 	}
 
-	a.reporter.Succeeded("The Submariner cluster environment has been cleaned up on AWS")
+	a.reporter.Success("The Submariner cluster environment has been cleaned up on AWS")
 
 	return nil
 }
