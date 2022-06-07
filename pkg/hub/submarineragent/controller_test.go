@@ -544,20 +544,7 @@ func (t *testDriver) createAddon() {
 }
 
 func (t *testDriver) createGlobalnetConfigMap() {
-	data := map[string]string{
-		broker.GlobalnetStatusKey: "false",
-		broker.ClusterInfoKey:     "[]",
-	}
-
-	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      broker.GlobalCIDRConfigMapName,
-			Namespace: brokerNamespace,
-		},
-		Data: data,
-	}
-
-	_, err := t.kubeClient.CoreV1().ConfigMaps(brokerNamespace).Create(context.TODO(), cm, metav1.CreateOptions{})
+	err := broker.CreateGlobalnetConfigMap(t.kubeClient, false, "", 0, brokerNamespace)
 	Expect(err).To(Succeed())
 }
 
