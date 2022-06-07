@@ -2,8 +2,6 @@ package submarinerbrokerinfo_test
 
 import (
 	"encoding/base64"
-	"encoding/json"
-	"fmt"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -97,22 +95,17 @@ var _ = Describe("Function Get", func() {
 			Type: corev1.SecretTypeServiceAccountToken,
 		}
 
-		gnConfigMap = &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      broker.GlobalCIDRConfigMapName,
-				Namespace: brokerNamespace,
-			},
-			Data: map[string]string{
-				broker.GlobalnetStatusKey: "false",
-				broker.ClusterInfoKey:     "[]",
-			},
-		}
+		gnConfigMap = newGlobalnetConfigMap(false, "", 0)
 
-		kubeObjs = []runtime.Object{ipsecSecret, serviceAccount, serviceAccountSecret, gnConfigMap}
+		kubeObjs = []runtime.Object{ipsecSecret, serviceAccount, serviceAccountSecret}
 		dynamicObjs = []runtime.Object{infrastructure}
 	})
 
 	JustBeforeEach(func() {
+		if gnConfigMap != nil {
+			kubeObjs = append(kubeObjs, gnConfigMap)
+		}
+
 		brokerInfo, err = submarinerbrokerinfo.Get(
 			kubefake.NewSimpleClientset(kubeObjs...),
 			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), dynamicObjs...),
@@ -250,13 +243,7 @@ var _ = Describe("Function Get", func() {
 
 		When("globalnet is enabled in the clusterSet", func() {
 			BeforeEach(func() {
-				cidrRange, _ := json.Marshal("242.0.0.0/8")
-				gnConfigMap.Data = map[string]string{
-					broker.GlobalnetStatusKey:   "true",
-					broker.ClusterInfoKey:       "[]",
-					broker.GlobalnetClusterSize: fmt.Sprint(65535),
-					broker.GlobalnetCidrRange:   string(cidrRange),
-				}
+				gnConfigMap = newGlobalnetConfigMap(true, "242.0.0.0/8", 65535)
 			})
 
 			It("should allocate a GlobalCIDR", func() {
@@ -311,7 +298,7 @@ var _ = Describe("Function Get", func() {
 
 	When("globalnet configMap is missing in the clusterSet", func() {
 		BeforeEach(func() {
-			kubeObjs = []runtime.Object{ipsecSecret, serviceAccount, serviceAccountSecret}
+			gnConfigMap = nil
 		})
 
 		It("should return an error", func() {
@@ -379,3 +366,10 @@ var _ = Describe("Function Get", func() {
 		})
 	})
 })
+
+func newGlobalnetConfigMap(globalnetEnabled bool, cidrRange string, clusterSize uint) *corev1.ConfigMap {
+	configMap, err := broker.NewGlobalnetConfigMap(globalnetEnabled, cidrRange, clusterSize, brokerNamespace)
+	Expect(err).To(Succeed())
+
+	return configMap
+}
