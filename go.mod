@@ -9,7 +9,7 @@ require (
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
-	github.com/openshift/api v0.0.0-20210915110300-3cd8091317c4
+	github.com/openshift/api v0.0.0-20211201215911-5a82bae32e46
 	github.com/openshift/build-machinery-go v0.0.0-20220121085309-f94edc2d6874
 	github.com/openshift/library-go v0.0.0-20210916194400-ae21aab32431
 	github.com/operator-framework/api v0.5.2
@@ -18,21 +18,21 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/submariner-io/admiral v0.13.0-m2
 	github.com/submariner-io/cloud-prepare v0.13.0-m2
-	github.com/submariner-io/submariner v0.13.0-m2
-	github.com/submariner-io/submariner-operator v0.13.0-m2.0.20220608090053-600dbf9c25c3
+	github.com/submariner-io/submariner v0.13.0-m2.0.20220608112640-7f4a6a79da0d
+	github.com/submariner-io/submariner-operator v0.13.0-m2.0.20220610102059-d0e6ba625180
 	golang.org/x/oauth2 v0.0.0-20220524215830-622c5d57e401
 	google.golang.org/api v0.83.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.22.1
-	k8s.io/apiextensions-apiserver v0.22.1
-	k8s.io/apimachinery v0.22.1
+	k8s.io/api v0.23.5
+	k8s.io/apiextensions-apiserver v0.23.5
+	k8s.io/apimachinery v0.23.5
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/code-generator v0.22.1
-	k8s.io/component-base v0.22.1
+	k8s.io/code-generator v0.23.5
+	k8s.io/component-base v0.23.5
 	k8s.io/klog/v2 v2.40.1
 	open-cluster-management.io/addon-framework v0.1.0
 	open-cluster-management.io/api v0.6.1-0.20220302050849-83dafb2a3afd
-	sigs.k8s.io/controller-runtime v0.9.7
+	sigs.k8s.io/controller-runtime v0.11.2
 )
 
 require (
@@ -59,12 +59,12 @@ require (
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
+	github.com/emicklei/go-restful v2.10.0+incompatible // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/go-logr/logr v1.2.0 // indirect
-	github.com/go-logr/zapr v0.4.0 // indirect
+	github.com/go-logr/logr v1.2.2 // indirect
+	github.com/go-logr/zapr v1.2.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
@@ -98,6 +98,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/spf13/afero v1.6.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.1 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.1 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.0 // indirect
@@ -134,7 +135,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/apiserver v0.22.1 // indirect
+	k8s.io/apiserver v0.23.5 // indirect
 	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kube-aggregator v0.22.1 // indirect
@@ -148,7 +149,14 @@ require (
 
 replace (
 	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
+	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
+	k8s.io/api => k8s.io/api v0.22.1
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.1
+	k8s.io/apimachinery => k8s.io/apimachinery v0.22.1
+	k8s.io/apiserver v0.23.5 => k8s.io/apiserver v0.22.1
 	k8s.io/client-go => k8s.io/client-go v0.22.1
+	k8s.io/code-generator => k8s.io/code-generator v0.22.1
+	k8s.io/component-base => k8s.io/component-base v0.22.1
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.9.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.1
 )

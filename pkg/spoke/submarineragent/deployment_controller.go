@@ -10,6 +10,8 @@ import (
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/addon"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
+	"github.com/submariner-io/submariner-operator/pkg/names"
+	"github.com/submariner-io/submariner/pkg/cni"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,15 +23,7 @@ import (
 )
 
 const (
-	subscriptionName           = "submariner"
-	operatorName               = "submariner-operator"
-	gatewayName                = "submariner-gateway"
-	routeAgentName             = "submariner-routeagent"
-	globalnetName              = "submariner-globalnet"
-	networkPluginSyncerName    = "submariner-networkplugin-syncer"
-	lighthouseAgentName        = "submariner-lighthouse-agent"
-	lighthouseCoreDNSName      = "submariner-lighthouse-coredns"
-	networkPluginOVNKubernetes = "OVNKubernetes"
+	subscriptionName = "submariner"
 )
 
 const submarinerAgentDegraded = "SubmarinerAgentDegraded"
@@ -178,17 +172,17 @@ func (c *deploymentStatusController) checkDeployment(name, reasonName string, de
 }
 
 func (c *deploymentStatusController) checkDeployments(degradedConditionReasons, degradedConditionMessages *[]string) error {
-	err := c.checkDeployment(operatorName, "Operator", degradedConditionReasons, degradedConditionMessages)
+	err := c.checkDeployment(names.OperatorComponent, "Operator", degradedConditionReasons, degradedConditionMessages)
 	if err != nil {
 		return err
 	}
 
-	err = c.checkDeployment(lighthouseAgentName, "LighthouseAgent", degradedConditionReasons, degradedConditionMessages)
+	err = c.checkDeployment(names.ServiceDiscoveryComponent, "LighthouseAgent", degradedConditionReasons, degradedConditionMessages)
 	if err != nil {
 		return err
 	}
 
-	err = c.checkDeployment(lighthouseCoreDNSName, "LighthouseCoreDNS", degradedConditionReasons, degradedConditionMessages)
+	err = c.checkDeployment(names.LighthouseCoreDNSComponent, "LighthouseCoreDNS", degradedConditionReasons, degradedConditionMessages)
 	if err != nil {
 		return err
 	}
@@ -208,14 +202,14 @@ func (c *deploymentStatusController) checkOptionalDeployments(key string, degrad
 	}
 
 	if submariner.Spec.GlobalCIDR != "" {
-		err = c.checkDeployment(globalnetName, "Globalnet", degradedConditionReasons, degradedConditionMessages)
+		err = c.checkDeployment(names.GlobalnetComponent, "Globalnet", degradedConditionReasons, degradedConditionMessages)
 		if err != nil {
 			return err
 		}
 	}
 
-	if submariner.Status.NetworkPlugin == networkPluginOVNKubernetes {
-		err = c.checkDeployment(networkPluginSyncerName, "NetworkPluginSyncer", degradedConditionReasons, degradedConditionMessages)
+	if submariner.Status.NetworkPlugin == cni.OVNKubernetes {
+		err = c.checkDeployment(names.NetworkPluginSyncerComponent, "NetworkPluginSyncer", degradedConditionReasons, degradedConditionMessages)
 		if err != nil {
 			return err
 		}
@@ -225,7 +219,7 @@ func (c *deploymentStatusController) checkOptionalDeployments(key string, degrad
 }
 
 func (c *deploymentStatusController) checkGatewayDaemonSet(degradedConditionReasons, degradedConditionMessages *[]string) error {
-	gateways, err := c.daemonSetLister.DaemonSets(c.namespace).Get(gatewayName)
+	gateways, err := c.daemonSetLister.DaemonSets(c.namespace).Get(names.GatewayComponent)
 
 	switch {
 	case errors.IsNotFound(err):
@@ -250,7 +244,7 @@ func (c *deploymentStatusController) checkGatewayDaemonSet(degradedConditionReas
 }
 
 func (c *deploymentStatusController) checkRouteAgentDaemonSet(degradedConditionReasons, degradedConditionMessages *[]string) error {
-	routeAgent, err := c.daemonSetLister.DaemonSets(c.namespace).Get(routeAgentName)
+	routeAgent, err := c.daemonSetLister.DaemonSets(c.namespace).Get(names.RouteAgentComponent)
 
 	switch {
 	case errors.IsNotFound(err):

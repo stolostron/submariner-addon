@@ -11,6 +11,8 @@ import (
 	fakereactor "github.com/submariner-io/admiral/pkg/fake"
 	"github.com/submariner-io/admiral/pkg/syncer/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
+	"github.com/submariner-io/submariner-operator/pkg/names"
+	"github.com/submariner-io/submariner/pkg/cni"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
@@ -20,8 +22,7 @@ import (
 )
 
 const (
-	deploymentDegradedType     = "SubmarinerAgentDegraded"
-	networkPluginOVNKubernetes = "OVNKubernetes"
+	deploymentDegradedType = "SubmarinerAgentDegraded"
 )
 
 var _ = Describe("Deployment Status Controller", func() {
@@ -258,7 +259,7 @@ var _ = Describe("Deployment Status Controller", func() {
 
 	When("network plugin is OVNKubernetes", func() {
 		BeforeEach(func() {
-			t.submariner.Status.NetworkPlugin = networkPluginOVNKubernetes
+			t.submariner.Status.NetworkPlugin = cni.OVNKubernetes
 		})
 
 		When("the network plugin syncer deployment doesn't initially exist", func() {
@@ -516,7 +517,7 @@ func newOperatorDeployment() *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: submarinerNS,
-			Name:      "submariner-operator",
+			Name:      names.OperatorComponent,
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -528,7 +529,7 @@ func newGatewayDaemonSet() *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: submarinerNS,
-			Name:      "submariner-gateway",
+			Name:      names.GatewayComponent,
 		},
 		Status: appsv1.DaemonSetStatus{
 			DesiredNumberScheduled: 1,
@@ -540,7 +541,7 @@ func newRouteAgentDaemonSet() *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: submarinerNS,
-			Name:      "submariner-routeagent",
+			Name:      names.RouteAgentComponent,
 		},
 	}
 }
@@ -549,7 +550,7 @@ func newLighthouseAgentDeployment() *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: submarinerNS,
-			Name:      "submariner-lighthouse-agent",
+			Name:      names.ServiceDiscoveryComponent,
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -561,7 +562,7 @@ func newLighthouseCoreDNSDeployment() *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: submarinerNS,
-			Name:      "submariner-lighthouse-coredns",
+			Name:      names.LighthouseCoreDNSComponent,
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -573,7 +574,7 @@ func newGlobalnetDeployment() *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: submarinerNS,
-			Name:      "submariner-globalnet",
+			Name:      names.GlobalnetComponent,
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -585,7 +586,7 @@ func newNetworkPluginsyncerDeployment() *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: submarinerNS,
-			Name:      "submariner-networkplugin-syncer",
+			Name:      names.NetworkPluginSyncerComponent,
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
