@@ -226,14 +226,9 @@ var _ = Describe("Deployment Status Controller", func() {
 	When("globalnet is enabled", func() {
 		BeforeEach(func() {
 			t.submariner.Spec.GlobalCIDR = "242.0.0.0/16"
-			t.updateSubmariner()
 		})
 
 		When("the globalnet deployment doesn't initially exist", func() {
-			BeforeEach(func() {
-				t.globalnetDeployment = nil
-			})
-
 			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
 				t.awaitStatusCondition(metav1.ConditionTrue, "NoGlobalnetDeployment")
 
@@ -248,7 +243,6 @@ var _ = Describe("Deployment Status Controller", func() {
 			BeforeEach(func() {
 				t.globalnetDeployment = newGlobalnetDeployment()
 				t.globalnetDeployment.Status.AvailableReplicas = 0
-				t.createGlobalnetDeployment()
 			})
 
 			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
@@ -265,14 +259,9 @@ var _ = Describe("Deployment Status Controller", func() {
 	When("network plugin is OVNKubernetes", func() {
 		BeforeEach(func() {
 			t.submariner.Status.NetworkPlugin = networkPluginOVNKubernetes
-			t.updateSubmariner()
 		})
 
-		When("the networkplugin syncer deployment doesn't initially exist", func() {
-			BeforeEach(func() {
-				t.networkPluginSyncerDeployment = nil
-			})
-
+		When("the network plugin syncer deployment doesn't initially exist", func() {
 			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
 				t.awaitStatusCondition(metav1.ConditionTrue, "NoNetworkPluginSyncerDeployment")
 
@@ -283,11 +272,10 @@ var _ = Describe("Deployment Status Controller", func() {
 			})
 		})
 
-		When("no networkplugin syncer deployment replica is initially available", func() {
+		When("no network plugin syncer deployment replica is initially available", func() {
 			BeforeEach(func() {
 				t.networkPluginSyncerDeployment = newNetworkPluginsyncerDeployment()
 				t.networkPluginSyncerDeployment.Status.AvailableReplicas = 0
-				t.createNetworkPluginSyncerDeployment()
 			})
 
 			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
@@ -355,6 +343,8 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 		t.routeAgentDaemonSet = newRouteAgentDaemonSet()
 		t.lighthouseAgentDeployment = newLighthouseAgentDeployment()
 		t.lighthouseCoreDNSDeployment = newLighthouseCoreDNSDeployment()
+		t.networkPluginSyncerDeployment = nil
+		t.globalnetDeployment = nil
 	})
 
 	JustBeforeEach(func() {
@@ -389,6 +379,14 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 
 		if t.lighthouseCoreDNSDeployment != nil {
 			t.createLighthouseCoreDNSDeployment()
+		}
+
+		if t.globalnetDeployment != nil {
+			t.createGlobalnetDeployment()
+		}
+
+		if t.networkPluginSyncerDeployment != nil {
+			t.createNetworkPluginSyncerDeployment()
 		}
 
 		kubeInformerFactory := kubeInformers.NewSharedInformerFactory(t.kubeClient, 0)
@@ -431,11 +429,6 @@ func (t *deploymentControllerTestDriver) createSubmariner() {
 
 func (t *deploymentControllerTestDriver) updateSubscription() {
 	_, err := t.subscriptionClient.Update(context.TODO(), test.ToUnstructured(t.subscription), metav1.UpdateOptions{})
-	Expect(err).To(Succeed())
-}
-
-func (t *deploymentControllerTestDriver) updateSubmariner() {
-	_, err := t.submarinerClient.Update(context.TODO(), test.ToUnstructured(t.submariner), metav1.UpdateOptions{})
 	Expect(err).To(Succeed())
 }
 
@@ -592,7 +585,7 @@ func newNetworkPluginsyncerDeployment() *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: submarinerNS,
-			Name:      "submariner-netwworkplugin-syncer",
+			Name:      "submariner-networkplugin-syncer",
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
