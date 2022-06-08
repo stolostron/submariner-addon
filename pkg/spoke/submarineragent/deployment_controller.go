@@ -123,13 +123,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	submariner, err := c.getSubmariner(syncCtx.QueueKey())
-
-	if submariner == nil {
-		return err
-	}
-
-	err = c.checkOptionalDeployments(submariner, &degradedConditionReasons, &degradedConditionMessages)
+	err = c.checkOptionalDeployments(syncCtx.QueueKey(), &degradedConditionReasons, &degradedConditionMessages)
 	if err != nil {
 		return err
 	}
@@ -202,9 +196,17 @@ func (c *deploymentStatusController) checkDeployments(degradedConditionReasons, 
 	return nil
 }
 
-func (c *deploymentStatusController) checkOptionalDeployments(submariner *submarinerv1alpha1.Submariner,
-	degradedConditionReasons, degradedConditionMessages *[]string,
+func (c *deploymentStatusController) checkOptionalDeployments(key string, degradedConditionReasons, degradedConditionMessages *[]string,
 ) (err error) {
+	submariner, err := c.getSubmariner(key)
+	if err != nil {
+		return err
+	}
+
+	if submariner == nil {
+		return nil
+	}
+
 	if submariner.Spec.GlobalCIDR != "" {
 		err = c.checkDeployment(globalnetName, "Globalnet", degradedConditionReasons, degradedConditionMessages)
 		if err != nil {
