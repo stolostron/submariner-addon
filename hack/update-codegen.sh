@@ -10,17 +10,8 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-ge
 verify="${VERIFY:-}"
 
 set -x
-# Because go mod sux, we have to fake the vendor for generator in order to be able to build it...
-mv ${CODEGEN_PKG}/generate-groups.sh ${CODEGEN_PKG}/generate-groups.sh.orig
-sed 's/ go install/#go install/g' ${CODEGEN_PKG}/generate-groups.sh.orig > ${CODEGEN_PKG}/generate-groups.sh
-function cleanup {
-  mv ${CODEGEN_PKG}/generate-groups.sh.orig ${CODEGEN_PKG}/generate-groups.sh
-}
-trap cleanup EXIT
 
-go install -mod=vendor ./${CODEGEN_PKG}/cmd/{defaulter-gen,client-gen,lister-gen,informer-gen,deepcopy-gen}
-
-for group in submarinerconfig; do
+for group in submarinerconfig submarinerdiagnoseconfig; do
   bash ${CODEGEN_PKG}/generate-groups.sh "client,lister,informer" \
     github.com/stolostron/submariner-addon/pkg/client/${group} \
     github.com/stolostron/submariner-addon/pkg/apis \
@@ -29,11 +20,3 @@ for group in submarinerconfig; do
     ${verify}
 done
 
-for group in submarinerdiagnoseconfig; do
-  bash ${CODEGEN_PKG}/generate-groups.sh "client,lister,informer" \
-    github.com/stolostron/submariner-addon/pkg/client/${group} \
-    github.com/stolostron/submariner-addon/pkg/apis \
-    "${group}:v1alpha1" \
-    --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
-    ${verify}
-done

@@ -70,17 +70,19 @@ var manifestFiles embed.FS
 
 // addOnAgent monitors the Submariner agent status and configure Submariner cluster environment on the managed cluster.
 type addOnAgent struct {
-	kubeClient kubernetes.Interface
-	recorder   events.Recorder
-	agentImage string
+	kubeClient    kubernetes.Interface
+	recorder      events.Recorder
+	agentImage    string
+	resourceCache resourceapply.ResourceCache
 }
 
 // NewAddOnAgent returns an instance of addOnAgent.
 func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, agentImage string) *addOnAgent {
 	return &addOnAgent{
-		kubeClient: kubeClient,
-		recorder:   recorder,
-		agentImage: agentImage,
+		kubeClient:    kubeClient,
+		recorder:      recorder,
+		agentImage:    agentImage,
+		resourceCache: resourceapply.NewResourceCache(),
 	}
 }
 
@@ -190,7 +192,7 @@ func (a *addOnAgent) csrApproveCheck(cluster *clusterv1.ManagedCluster, addon *a
 }
 
 // Generates manifestworks to deploy the required roles of submariner-addon agent.
-func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) error {
+func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, _ *addonapiv1alpha1.ManagedClusterAddOn) error {
 	config := struct {
 		ClusterName string
 		Group       string
@@ -203,6 +205,7 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, addon *
 		context.TODO(),
 		resourceapply.NewKubeClientHolder(a.kubeClient),
 		a.recorder,
+		a.resourceCache,
 		func(name string) ([]byte, error) {
 			template, err := manifestFiles.ReadFile(name)
 			if err != nil {

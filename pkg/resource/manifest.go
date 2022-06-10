@@ -25,6 +25,7 @@ import (
 var (
 	genericScheme = runtime.NewScheme()
 	genericCodec  = serializer.NewCodecFactory(genericScheme).UniversalDeserializer()
+	resourceCache = resourceapply.NewResourceCache()
 )
 
 func init() {
@@ -37,7 +38,8 @@ func init() {
 func ApplyManifests(ctx context.Context, kubeClient kubernetes.Interface, recorder events.Recorder,
 	assetFunc resourceapply.AssetFunc, files ...string,
 ) error {
-	applyResults := resourceapply.ApplyDirectly(ctx, resourceapply.NewKubeClientHolder(kubeClient), recorder, assetFunc, files...)
+	applyResults := resourceapply.ApplyDirectly(ctx, resourceapply.NewKubeClientHolder(kubeClient), recorder, resourceCache,
+		assetFunc, files...)
 
 	errs := []error{}
 

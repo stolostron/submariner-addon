@@ -101,7 +101,7 @@ func (c *FakeSubmarinerConfigs) UpdateStatus(ctx context.Context, submarinerConf
 // Delete takes name of the submarinerConfig and deletes it. Returns an error if one occurs.
 func (c *FakeSubmarinerConfigs) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(submarinerconfigsResource, c.ns, name), &v1alpha1.SubmarinerConfig{})
+		Invokes(testing.NewDeleteActionWithOptions(submarinerconfigsResource, c.ns, name, opts), &v1alpha1.SubmarinerConfig{})
 
 	return err
 }
