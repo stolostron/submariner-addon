@@ -74,7 +74,7 @@ spec:
                         default: Standard_D4s_v3
                         description: InstanceType represents the Azure Cloud Platform instance type of the gateway node that will be created on the managed cluster. The default value is `Standard_D4s_v3`.
                         type: string
-                      type: object
+                    type: object
                   gateways:
                     default: 1
                     description: Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway component on the managed cluster. If the platform of managed cluster is Amazon Web Services, the submariner-addon will create the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster, for other platforms, the submariner-addon will select the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster. The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled automatically.
