@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.5.0
+  creationTimestamp: null
   name: submarinerconfigs.submarineraddon.open-cluster-management.io
 spec:
   group: submarineraddon.open-cluster-management.io
@@ -77,7 +78,7 @@ spec:
                     type: object
                   gateways:
                     default: 1
-                    description: Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway component on the managed cluster. If the platform of managed cluster is Amazon Web Services, the submariner-addon will create the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster, for other platforms, the submariner-addon will select the specified number of worker nodes and label them with `submariner.io/gateway` on the managed cluster. The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled automatically.
+                    description: Gateways represents the count of worker nodes that will be used to deploy the Submariner gateway component on the managed cluster. The default value is 1, if the value is greater than 1, the Submariner gateway HA will be enabled automatically.
                     type: integer
                   gcp:
                     description: GCP represents the configuration for Google Cloud Platform. If the platform of managed cluster is not Google Cloud Platform, this field will be ignored.
@@ -115,8 +116,7 @@ spec:
                     description: SubmarinerImagePullSpec represents the desired image of submariner.
                     type: string
                   submarinerNetworkPluginSyncerImagePullSpec:
-                    description: SubmarinerNetworkPluginSyncerImagePullSpec represents
-                      the desired image of the submariner networkplugin syncer.
+                    description: SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer.
                     type: string
                   submarinerRouteAgentImagePullSpec:
                     description: SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.

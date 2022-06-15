@@ -87,13 +87,13 @@ spec:
           - bind
           - escalate
         - apiGroups:
-            - rbac.authorization.k8s.io
+          - rbac.authorization.k8s.io
           resources:
-            - clusterroles
+          - clusterroles
           verbs:
-            - create
-            - get
-            - delete
+          - create
+          - get
+          - delete
         - apiGroups:
           - rbac.authorization.k8s.io
           resources:
