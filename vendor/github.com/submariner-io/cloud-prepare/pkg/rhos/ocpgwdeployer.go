@@ -157,13 +157,21 @@ func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, status reporte
 		return status.Error(err, "creating gateway security group failed")
 	}
 
-	status.Success("Opened External ports %q in security group %q on RHOS",
-		formatPorts(input.PublicPorts), groupName)
-
 	gwNodes, err := d.K8sClient.ListGatewayNodes()
 	if err != nil {
 		return status.Error(err, "listing the existing gateway nodes failed")
 	}
+
+	gwNodesList := gwNodes.Items
+	for i := range gwNodesList {
+		err := d.openGatewayPort(groupName, gwNodesList[i].Name, computeClient)
+		if err != nil {
+			return status.Error(err, "failed to open the gateway port in the existing g/w node")
+		}
+	}
+
+	status.Success("Opened external ports %q in security group %q on RHOS for existing g/w nodes",
+		formatPorts(input.PublicPorts), groupName)
 
 	return d.deployGWNode(gwNodes, input.Gateways, groupName, computeClient, status)
 }
