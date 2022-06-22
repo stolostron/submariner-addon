@@ -440,7 +440,7 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/submariner-io/admiral v0.13.0-m2
+# github.com/submariner-io/admiral v0.13.0-rc0
 ## explicit; go 1.17
 github.com/submariner-io/admiral/pkg/fake
 github.com/submariner-io/admiral/pkg/federate
