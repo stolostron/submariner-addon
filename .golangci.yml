@@ -30,7 +30,7 @@ linters:
     - dupl
     - durationcheck
     - errcheck
-    # - errname # TODO: Not supported with our version of golangci-lint
+    - errname
     - errorlint
     - exhaustive
     # - exhaustivestruct # Not recommended for general use - meant to be used only for special cases
