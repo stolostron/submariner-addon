@@ -526,7 +526,6 @@ func (c *submarinerConfigController) updateGatewayStatus(ctx context.Context, re
 	config *configv1alpha1.SubmarinerConfig,
 ) error {
 	gateways, err := c.getLabeledNodes(
-		nodeLabelSelector{workerNodeLabel, selection.Exists},
 		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},
 	)
 	if err != nil {
