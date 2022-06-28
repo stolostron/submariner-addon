@@ -3,6 +3,7 @@ package manifestwork
 import (
 	"bytes"
 	"context"
+	"reflect"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/stolostron/submariner-addon/pkg/manifestwork"
@@ -36,6 +37,20 @@ func NewMachineSetDeployer(client workclient.Interface, workName, clusterName st
 }
 
 func (msd *manifestWorkMachineSetDeployer) Deploy(machineSet *unstructured.Unstructured) error {
+	existingManifestWork, err := msd.client.WorkV1().ManifestWorks(msd.clusterName).Get(context.TODO(), msd.workName, metav1.GetOptions{})
+
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+
+		existingManifestWork = nil
+	}
+
+	if existingManifestWork != nil {
+		return msd.deployAdditionalMachineset(machineSet, existingManifestWork)
+	}
+
 	manifests := []workv1.Manifest{}
 
 	// Ensure that we're allowed to manipulate machinesets
@@ -80,6 +95,35 @@ func (msd *manifestWorkMachineSetDeployer) Deploy(machineSet *unstructured.Unstr
 			Workload: workv1.ManifestsTemplate{Manifests: manifests},
 		},
 	}, msd.eventRecorder)
+}
+
+// deployAdditionalMachineset only if it doesn't already exist in the manifest work
+func (msd *manifestWorkMachineSetDeployer) deployAdditionalMachineset(machineSet *unstructured.Unstructured, existingManifestWork *workv1.ManifestWork) error {
+	manifests := existingManifestWork.Spec.Workload.Manifests
+
+	// In case the machineset is already in the manifestwork, skip it not to cause disruptions
+	for _, manifest := range manifests {
+		existingMachineSet := &unstructured.Unstructured{}
+		if err := existingMachineSet.UnmarshalJSON(manifest.RawExtension.Raw); err != nil {
+			return err
+		}
+
+		if reflect.DeepEqual(machineSet, existingMachineSet) {
+			return nil
+		}
+	}
+
+	machineSetJson, err := machineSet.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	manifests = append(manifests, workv1.Manifest{RawExtension: runtime.RawExtension{Raw: machineSetJson}})
+	existingManifestWork.Spec.Workload.Manifests = manifests
+
+	msd.eventRecorder.Eventf("ManifestWorkMachineSetDeployer",
+		"Adding MachineSet %s to ManifestWork %s", machineSet.GetName(), existingManifestWork.Name)
+	return manifestwork.Apply(context.TODO(), msd.client, existingManifestWork, msd.eventRecorder)
 }
 
 func (msd *manifestWorkMachineSetDeployer) GetWorkerNodeImage(workerNodeList []string, machineSet *unstructured.Unstructured, infraID string) (string, error) {
