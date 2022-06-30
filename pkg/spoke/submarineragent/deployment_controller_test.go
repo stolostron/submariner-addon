@@ -349,10 +349,11 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 	})
 
 	JustBeforeEach(func() {
-		subscriptionClient, dynamicInformerFactory, subscriptionInformer := newDynamicClientWithInformer(submarinerNS)
-
+		subscriptionClient, subscriptionInformerFactory, subscriptionInformer := newDynamicClientWithInformer(submarinerNS)
 		t.subscriptionClient = subscriptionClient
-		t.submarinerClient = subscriptionClient
+
+		submarinerClient, submarinerInformerFactory, submarinerInformer := newDynamicClientWithInformer(submarinerNS)
+		t.submarinerClient = submarinerClient
 
 		if t.subscription != nil {
 			t.createSubscription()
@@ -396,14 +397,15 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 
 		controller := submarineragent.NewDeploymentStatusController(clusterName, submarinerNS, t.addOnClient,
 			kubeInformerFactory.Apps().V1().DaemonSets(), kubeInformerFactory.Apps().V1().Deployments(),
-			subscriptionInformer, subscriptionInformer, events.NewLoggingEventRecorder("test"))
+			subscriptionInformer, submarinerInformer, events.NewLoggingEventRecorder("test"))
 
 		var ctx context.Context
 
 		ctx, t.stop = context.WithCancel(context.TODO())
 
 		kubeInformerFactory.Start(ctx.Done())
-		dynamicInformerFactory.Start(ctx.Done())
+		subscriptionInformerFactory.Start(ctx.Done())
+		submarinerInformerFactory.Start(ctx.Done())
 
 		cache.WaitForCacheSync(ctx.Done(), kubeInformerFactory.Apps().V1().DaemonSets().Informer().HasSynced,
 			kubeInformerFactory.Apps().V1().Deployments().Informer().HasSynced)

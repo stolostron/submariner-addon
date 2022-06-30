@@ -14,6 +14,7 @@ import (
 	"github.com/submariner-io/submariner/pkg/cni"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	appsv1informers "k8s.io/client-go/informers/apps/v1"
@@ -117,7 +118,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	err = c.checkOptionalDeployments(syncCtx.QueueKey(), &degradedConditionReasons, &degradedConditionMessages)
+	err = c.checkOptionalDeployments(&degradedConditionReasons, &degradedConditionMessages)
 	if err != nil {
 		return err
 	}
@@ -190,9 +191,9 @@ func (c *deploymentStatusController) checkDeployments(degradedConditionReasons, 
 	return nil
 }
 
-func (c *deploymentStatusController) checkOptionalDeployments(key string, degradedConditionReasons, degradedConditionMessages *[]string,
+func (c *deploymentStatusController) checkOptionalDeployments(degradedConditionReasons, degradedConditionMessages *[]string,
 ) (err error) {
-	submariner, err := c.getSubmariner(key)
+	submariner, err := c.getSubmariner()
 	if err != nil {
 		return err
 	}
@@ -277,19 +278,17 @@ func (c *deploymentStatusController) checkDaemonSets(degradedConditionReasons, d
 	return nil
 }
 
-func (c *deploymentStatusController) getSubmariner(queueKey string) (*submarinerv1alpha1.Submariner, error) {
-	namespace, name, _ := cache.SplitMetaNamespaceKey(queueKey)
-	runtimeSubmariner, err := c.submarinerLister.ByNamespace(namespace).Get(name)
-	if errors.IsNotFound(err) {
-		// submariner cr is not found, could be deleted, ignore it.
-		return nil, nil
-	}
-
+func (c *deploymentStatusController) getSubmariner() (*submarinerv1alpha1.Submariner, error) {
+	list, err := c.submarinerLister.ByNamespace(c.namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
 
-	unstructuredSubmariner, err := runtime.DefaultUnstructuredConverter.ToUnstructured(runtimeSubmariner)
+	if len(list) == 0 {
+		return nil, nil
+	}
+
+	unstructuredSubmariner, err := runtime.DefaultUnstructuredConverter.ToUnstructured(list[0])
 	if err != nil {
 		return nil, err
 	}
