@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/ghodss/yaml"
 	"github.com/openshift/library-go/pkg/assets"
@@ -105,6 +106,7 @@ type submarinerAgentController struct {
 	addOnLister          addonlisterv1alpha1.ManagedClusterAddOnLister
 	cloudProviderFactory cloud.ProviderFactory
 	eventRecorder        events.Recorder
+	knownConfigs         map[string]*configv1alpha1.SubmarinerConfig
 }
 
 // NewSubmarinerAgentController returns a submarinerAgentController instance.
@@ -137,6 +139,7 @@ func NewSubmarinerAgentController(
 		addOnLister:          addOnInformer.Lister(),
 		cloudProviderFactory: cloudProviderFactory,
 		eventRecorder:        recorder.WithComponentSuffix("submariner-agent-controller"),
+		knownConfigs:         make(map[string]*configv1alpha1.SubmarinerConfig),
 	}
 
 	return factory.New().
@@ -334,6 +337,13 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	managedCluster *clusterv1.ManagedCluster,
 	config *configv1alpha1.SubmarinerConfig,
 ) error {
+	if c.skipSyncingUnchangedConfig(config) {
+		klog.V(4).Infof("Skip syncing submariner config %q as it didn't change", config.Namespace+"/"+config.Name)
+		return nil
+	}
+
+	c.knownConfigs[config.Namespace] = config
+
 	// add a finalizer to the submarinerconfigfinalizer.Remove(ctx, resource.ForSubmarinerConfig(
 	added, err := finalizer.Add(ctx, resource.ForSubmarinerConfig(
 		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace)), config, submarinerConfigFinalizer)
@@ -343,6 +353,8 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 	// config is deleting, we remove its related resources
 	if !config.DeletionTimestamp.IsZero() {
+		delete(c.knownConfigs, config.Namespace)
+
 		if config.Status.ManagedClusterInfo.Platform != "GCP" && config.Status.ManagedClusterInfo.Platform != "OpenStack" {
 			if err := c.cleanUpSubmarinerClusterEnv(config); err != nil {
 				return err
@@ -396,6 +408,12 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	}
 
 	return operatorhelpers.NewMultiLineAggregate(errs)
+}
+
+// skipSyncingUnchangedConfig if last submariner config is known and is equal to the given config.
+func (c *submarinerAgentController) skipSyncingUnchangedConfig(config *configv1alpha1.SubmarinerConfig) bool {
+	lastConfig, known := c.knownConfigs[config.Namespace]
+	return known && reflect.DeepEqual(lastConfig.Spec, config.Spec) && config.DeletionTimestamp.IsZero()
 }
 
 // clean up the submariner agent from this managedCluster.
