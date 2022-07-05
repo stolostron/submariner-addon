@@ -41,7 +41,7 @@ type ocpGatewayDeployer struct {
 	instanceType string
 }
 
-var preferredInstances = []string{"c5d.large", "m5n.large"}
+var PreferredInstances = []string{"c5d.large", "m5n.large"}
 
 // NewOcpGatewayDeployer returns a GatewayDeployer capable deploying gateways using OCP.
 // If the supplied cloud is not an awsCloud, an error is returned.
@@ -159,7 +159,7 @@ func (d *ocpGatewayDeployer) validateDeployPrerequisites(vpcID string, input api
 
 	// If instanceType is not specified, auto-select the most suitable one.
 	if d.instanceType == "" {
-		for _, instanceType := range preferredInstances {
+		for _, instanceType := range PreferredInstances {
 			subnets, err = d.aws.getSubnetsSupportingInstanceType(publicSubnets, instanceType)
 			if err != nil {
 				return err
@@ -178,12 +178,9 @@ func (d *ocpGatewayDeployer) validateDeployPrerequisites(vpcID string, input api
 	}
 
 	subnetsCount := len(subnets)
-	if subnetsCount == 0 {
-		errs = append(errs, errors.New("found no public subnets to deploy Submariner gateway(s)"))
-	}
-
-	if input.Gateways > 0 && len(subnets) < input.Gateways {
-		errs = append(errs, fmt.Errorf("not enough public subnets to deploy %v Submariner gateway(s)", input.Gateways))
+	if input.Gateways > 0 && subnetsCount < input.Gateways {
+		errs = append(errs, fmt.Errorf("insufficient number of public subnets (%d) to deploy %v Submariner gateway(s)",
+			subnetsCount, input.Gateways))
 	}
 
 	if len(subnets) > 0 {

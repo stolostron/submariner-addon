@@ -39,6 +39,7 @@ type CloudInfo struct {
 func (c *CloudInfo) openInternalPorts(infraID string, ports []api.PortSpec,
 	computeClient, networkClient *gophercloud.ServiceClient,
 ) error {
+	var group *secgroups.SecurityGroup
 	groupName := infraID + internalSecurityGroupSuffix
 	opts := secgroups.CreateOpts{
 		Name:        groupName,
@@ -46,23 +47,21 @@ func (c *CloudInfo) openInternalPorts(infraID string, ports []api.PortSpec,
 	}
 
 	isFound, err := checkIfSecurityGroupPresent(groupName, computeClient)
-	if isFound {
-		return nil
-	}
-
 	if err != nil {
 		return err
 	}
 
-	group, err := secgroups.Create(computeClient, opts).Extract()
-	if err != nil {
-		return errors.WithMessagef(err, "creating security group failed")
-	}
-
-	for _, port := range ports {
-		err = c.createSGRule(group.ID, group.ID, "", port.Port, port.Protocol, networkClient)
+	if !isFound {
+		group, err = secgroups.Create(computeClient, opts).Extract()
 		if err != nil {
-			return errors.WithMessage(err, "creating security group rule failed")
+			return errors.WithMessagef(err, "creating security group failed")
+		}
+
+		for _, port := range ports {
+			err = c.createSGRule(group.ID, group.ID, "", port.Port, port.Protocol, networkClient)
+			if err != nil {
+				return errors.WithMessage(err, "creating security group rule failed")
+			}
 		}
 	}
 
@@ -73,9 +72,19 @@ func (c *CloudInfo) openInternalPorts(infraID string, ports []api.PortSpec,
 			return false, errors.WithMessage(err, "getting the server List failed")
 		}
 		for i := range serverList {
-			err := secgroups.AddServer(computeClient, serverList[i].ID, groupName).ExtractErr()
-			if err != nil {
-				return false, errors.WithMessage(err, "failed to add the security group to the server")
+			found := false
+			securityGroups := serverList[i].SecurityGroups
+			for j := range securityGroups {
+				existingGroupName, ok := securityGroups[j]["name"]
+				if ok && existingGroupName == groupName {
+					found = true
+				}
+			}
+			if !found {
+				err := secgroups.AddServer(computeClient, serverList[i].ID, groupName).ExtractErr()
+				if err != nil {
+					return false, errors.WithMessage(err, "failed to add the security group to the server")
+				}
 			}
 		}
 
@@ -176,6 +185,13 @@ func (c *CloudInfo) openGatewayPort(groupName, nodeName string, computeClient *g
 			return false, errors.WithMessagef(err, "getting the server List failed for node %q", nodeName)
 		}
 		for i := range serverList {
+			securityGroups := serverList[i].SecurityGroups
+			for j := range securityGroups {
+				existingGroupName, ok := securityGroups[j]["name"]
+				if ok && existingGroupName == groupName {
+					return true, nil
+				}
+			}
 			err = secgroups.AddServer(computeClient, serverList[i].ID, groupName).ExtractErr()
 			if err != nil {
 				return false, errors.WithMessagef(err, "adding security group %q to the server %q failed",
