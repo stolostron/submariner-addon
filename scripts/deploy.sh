@@ -206,13 +206,14 @@ spec:
 EOF
 
     submrepo="quay.io/submariner"
-    submver=0.12.1
+    submver=0.12.2
     kubectl patch submarinerconfigs submariner -n ${cluster} --type "json" -p '[
 {"op":"add","path":"/spec/imagePullSpecs/submarinerImagePullSpec","value":"'${submrepo}'/submariner-gateway:'${submver}'"},
 {"op":"add","path":"/spec/imagePullSpecs/submarinerRouteAgentImagePullSpec","value":"'${submrepo}'/submariner-route-agent:'${submver}'"},
 {"op":"add","path":"/spec/imagePullSpecs/lighthouseAgentImagePullSpec","value":"'${submrepo}'/lighthouse-agent:'${submver}'"},
 {"op":"add","path":"/spec/imagePullSpecs/lighthouseCoreDNSImagePullSpec","value":"'${submrepo}'/lighthouse-coredns:'${submver}'"},
 {"op":"add","path":"/spec/imagePullSpecs/submarinerGlobalnetImagePullSpec","value":"'${submrepo}'/submariner-globalnet:'${submver}'"},
+{"op":"add","path":"/spec/imagePullSpecs/submarinerNetworkPluginSyncerImagePullSpec","value":"'${submrepo}'/submariner-networkplugin-syncer:'${submver}'"},
 {"op":"add","path":"/spec/NATTEnable","value":false}]'
 
 }
@@ -249,9 +250,9 @@ do
     deploy_olm "$cluster"
 done
 
-# downlaod registration-operator
+# download registration-operator
 registration_operator_dir="${work_dir}/registration-operator"
-git clone --depth 1 --branch release-2.2 https://github.com/stolostron/registration-operator.git ${registration_operator_dir}
+git clone --depth 1 https://github.com/stolostron/registration-operator.git ${registration_operator_dir}
 
 # the first cluster is hub cluster
 hub="${clusters[0]}"
