@@ -78,3 +78,6 @@ rules:
   resources: ["signers"]
   resourceNames: ["kubernetes.io/kube-apiserver-client"]
   verbs: ["approve"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
