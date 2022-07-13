@@ -2,14 +2,18 @@ package agentdeploy
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
-	"github.com/openshift/library-go/pkg/operator/events"
+	jsonpatch "github.com/evanphx/json-patch"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	workv1client "open-cluster-management.io/api/client/work/clientset/versioned"
 	worklister "open-cluster-management.io/api/client/work/listers/work/v1"
@@ -89,9 +93,9 @@ func newManifestWork(workName, addonName, clusterName string, manifests []workap
 // isPreDeleteHookObject check the object is a pre-delete hook resources.
 // currently, we only support job and pod as hook resources.
 // we use WellKnownStatus here to get the job/pad status fields to check if the job/pod is completed.
-func isPreDeleteHookObject(obj *unstructured.Unstructured) (bool, *workapiv1.ManifestConfigOption) {
+func isPreDeleteHookObject(obj runtime.Object) (bool, *workapiv1.ManifestConfigOption) {
 	var resource string
-	gvk := obj.GroupVersionKind()
+	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch gvk.Kind {
 	case "Job":
 		resource = "jobs"
@@ -100,7 +104,12 @@ func isPreDeleteHookObject(obj *unstructured.Unstructured) (bool, *workapiv1.Man
 	default:
 		return false, nil
 	}
-	labels := obj.GetLabels()
+
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return false, nil
+	}
+	labels := accessor.GetLabels()
 	if _, ok := labels[constants.PreDeleteHookLabel]; !ok {
 		return false, nil
 	}
@@ -109,8 +118,8 @@ func isPreDeleteHookObject(obj *unstructured.Unstructured) (bool, *workapiv1.Man
 		ResourceIdentifier: workapiv1.ResourceIdentifier{
 			Group:     gvk.Group,
 			Resource:  resource,
-			Name:      obj.GetName(),
-			Namespace: obj.GetNamespace(),
+			Name:      accessor.GetName(),
+			Namespace: accessor.GetNamespace(),
 		},
 		FeedbackRules: []workapiv1.FeedbackRule{
 			{
@@ -132,12 +141,7 @@ func buildManifestWorkFromObject(
 		if err != nil {
 			return nil, nil, err
 		}
-		unstructuredObj := &unstructured.Unstructured{}
-		err = unstructuredObj.UnmarshalJSON(rawObject)
-		if err != nil {
-			return nil, nil, err
-		}
-		isHookObject, manifestConfig := isPreDeleteHookObject(unstructuredObj)
+		isHookObject, manifestConfig := isPreDeleteHookObject(object)
 		if isHookObject {
 			hookManifests = append(hookManifests, workapiv1.Manifest{
 				RawExtension: runtime.RawExtension{Raw: rawObject},
@@ -164,7 +168,6 @@ func applyWork(
 	workClient workv1client.Interface,
 	workLister worklister.ManifestWorkLister,
 	cache *workCache,
-	eventRecorder events.Recorder,
 	required *workapiv1.ManifestWork) (*workapiv1.ManifestWork, error) {
 	existingWork, err := workLister.ManifestWorks(required.Namespace).Get(required.Name)
 	existingWork = existingWork.DeepCopy()
@@ -172,11 +175,9 @@ func applyWork(
 		if errors.IsNotFound(err) {
 			existingWork, err = workClient.WorkV1().ManifestWorks(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
 			if err == nil {
-				eventRecorder.Eventf("ManifestWorkCreated", "Created %s/%s because it was missing", required.Namespace, required.Name)
 				cache.updateCache(required, existingWork)
 				return existingWork, nil
 			}
-			eventRecorder.Warningf("ManifestWorkCreateFailed", "Failed to create ManifestWork %s/%s: %v", required.Namespace, required.Name, err)
 			return nil, err
 		}
 		return nil, err
@@ -190,14 +191,35 @@ func applyWork(
 		return existingWork, nil
 	}
 
-	existingWork.Spec = required.Spec
-	existingWork, err = workClient.WorkV1().ManifestWorks(existingWork.Namespace).Update(ctx, existingWork, metav1.UpdateOptions{})
+	oldData, err := json.Marshal(&workapiv1.ManifestWork{
+		Spec: existingWork.Spec,
+	})
+	if err != nil {
+		return existingWork, err
+	}
+
+	newData, err := json.Marshal(&workapiv1.ManifestWork{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:             existingWork.UID,
+			ResourceVersion: existingWork.ResourceVersion,
+		},
+		Spec: required.Spec,
+	})
+	if err != nil {
+		return existingWork, err
+	}
+
+	patchBytes, err := jsonpatch.CreateMergePatch(oldData, newData)
+	if err != nil {
+		return existingWork, fmt.Errorf("failed to create patch for addon %s: %w", existingWork.Name, err)
+	}
+
+	klog.V(2).Infof("Patching work %s/%s with %s", existingWork.Namespace, existingWork.Name, string(patchBytes))
+	updated, err := workClient.WorkV1().ManifestWorks(existingWork.Namespace).Patch(ctx, existingWork.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
 	if err == nil {
 		cache.updateCache(required, existingWork)
-		eventRecorder.Eventf("ManifestWorkUpdate", "Updated %s/%s because it was changing", required.Namespace, required.Name)
-		return existingWork, nil
+		return updated, nil
 	}
-	eventRecorder.Warningf("ManifestWorkUpdateFailed", "Failed to update ManifestWork %s/%s: %v", required.Namespace, required.Name, err)
 	return nil, err
 }
 
@@ -223,12 +245,4 @@ func FindManifestValue(
 		}
 	}
 	return workapiv1.FieldValue{}
-}
-
-func Int64Ptr(val int64) *int64 {
-	return &val
-}
-
-func StringPtr(val string) *string {
-	return &val
 }
