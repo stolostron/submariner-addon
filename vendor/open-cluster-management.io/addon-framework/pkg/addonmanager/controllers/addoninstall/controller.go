@@ -3,8 +3,6 @@ package addoninstall
 import (
 	"context"
 
-	"github.com/openshift/library-go/pkg/controller/factory"
-	"github.com/openshift/library-go/pkg/operator/events"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/agent"
+	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
@@ -26,7 +25,6 @@ type addonInstallController struct {
 	managedClusterLister      clusterlister.ManagedClusterLister
 	managedClusterAddonLister addonlisterv1alpha1.ManagedClusterAddOnLister
 	agentAddons               map[string]agent.AgentAddon
-	eventRecorder             events.Recorder
 }
 
 func NewAddonInstallController(
@@ -34,20 +32,18 @@ func NewAddonInstallController(
 	clusterInformers clusterinformers.ManagedClusterInformer,
 	addonInformers addoninformerv1alpha1.ManagedClusterAddOnInformer,
 	agentAddons map[string]agent.AgentAddon,
-	recorder events.Recorder,
 ) factory.Controller {
 	c := &addonInstallController{
 		addonClient:               addonClient,
 		managedClusterLister:      clusterInformers.Lister(),
 		managedClusterAddonLister: addonInformers.Lister(),
 		agentAddons:               agentAddons,
-		eventRecorder:             recorder.WithComponentSuffix("addon-install-controller"),
 	}
 
-	return factory.New().WithFilteredEventsInformersQueueKeyFunc(
-		func(obj runtime.Object) string {
+	return factory.New().WithFilteredEventsInformersQueueKeysFunc(
+		func(obj runtime.Object) []string {
 			accessor, _ := meta.Accessor(obj)
-			return accessor.GetNamespace()
+			return []string{accessor.GetNamespace()}
 		},
 		func(obj interface{}) bool {
 			accessor, _ := meta.Accessor(obj)
@@ -58,18 +54,17 @@ func NewAddonInstallController(
 			return true
 		},
 		addonInformers.Informer()).
-		WithInformersQueueKeyFunc(
-			func(obj runtime.Object) string {
+		WithInformersQueueKeysFunc(
+			func(obj runtime.Object) []string {
 				accessor, _ := meta.Accessor(obj)
-				return accessor.GetName()
+				return []string{accessor.GetName()}
 			},
 			clusterInformers.Informer(),
 		).
-		WithSync(c.sync).ToController("addon-install-controller", recorder)
+		WithSync(c.sync).ToController("addon-install-controller")
 }
 
-func (c *addonInstallController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
-	clusterName := syncCtx.QueueKey()
+func (c *addonInstallController) sync(ctx context.Context, syncCtx factory.SyncContext, clusterName string) error {
 	klog.V(4).Infof("Reconciling addon deploy on cluster %q", clusterName)
 
 	cluster, err := c.managedClusterLister.Get(clusterName)
@@ -78,6 +73,12 @@ func (c *addonInstallController) sync(ctx context.Context, syncCtx factory.SyncC
 	}
 	if err != nil {
 		return err
+	}
+
+	// if cluster is deleting, do not install addon
+	if !cluster.DeletionTimestamp.IsZero() {
+		klog.V(4).Infof("Cluster %q is deleting, skip addon deploy", clusterName)
+		return nil
 	}
 
 	for addonName, addon := range c.agentAddons {
@@ -113,10 +114,11 @@ func (c *addonInstallController) sync(ctx context.Context, syncCtx factory.SyncC
 }
 
 func (c *addonInstallController) applyAddon(ctx context.Context, addonName, clusterName, installNamespace string) error {
-	addon, err := c.managedClusterAddonLister.ManagedClusterAddOns(clusterName).Get(addonName)
-	switch {
-	case errors.IsNotFound(err):
-		addon = &addonapiv1alpha1.ManagedClusterAddOn{
+	_, err := c.managedClusterAddonLister.ManagedClusterAddOns(clusterName).Get(addonName)
+
+	// only create addon when it is missing, if user update the addon resource ,it should not be reverted
+	if errors.IsNotFound(err) {
+		addon := &addonapiv1alpha1.ManagedClusterAddOn{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      addonName,
 				Namespace: clusterName,
@@ -127,17 +129,7 @@ func (c *addonInstallController) applyAddon(ctx context.Context, addonName, clus
 		}
 		_, err = c.addonClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Create(ctx, addon, metav1.CreateOptions{})
 		return err
-	case err != nil:
-		return err
 	}
-
-	if addon.Spec.InstallNamespace == installNamespace {
-		return nil
-	}
-
-	addon = addon.DeepCopy()
-	addon.Spec.InstallNamespace = installNamespace
-	_, err = c.addonClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Update(ctx, addon, metav1.UpdateOptions{})
 
 	return err
 }
