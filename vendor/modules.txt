@@ -699,7 +699,7 @@ golang.org/x/tools/internal/typesinternal
 ## explicit; go 1.17
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.86.0
+# google.golang.org/api v0.87.0
 ## explicit; go 1.15
 google.golang.org/api/compute/v1
 google.golang.org/api/dns/v1
@@ -1489,7 +1489,7 @@ k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/strings/slices
 k8s.io/utils/trace
-# open-cluster-management.io/addon-framework v0.3.0
+# open-cluster-management.io/addon-framework v0.4.0
 ## explicit; go 1.17
 open-cluster-management.io/addon-framework/pkg/addonmanager
 open-cluster-management.io/addon-framework/pkg/addonmanager/constants
@@ -1500,6 +1500,7 @@ open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/certific
 open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/clustermanagement
 open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/registration
 open-cluster-management.io/addon-framework/pkg/agent
+open-cluster-management.io/addon-framework/pkg/basecontroller/factory
 open-cluster-management.io/addon-framework/pkg/lease
 open-cluster-management.io/addon-framework/pkg/utils
 # open-cluster-management.io/api v0.6.1-0.20220302050849-83dafb2a3afd
