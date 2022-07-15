@@ -80,6 +80,26 @@ var _ = Describe("Controller", func() {
 		})
 	})
 
+	When("a ManagedClusterSet with SelectorType set to LabelSelector is created", func() {
+		BeforeEach(func() {
+			t.clusterSet.Spec.ClusterSelector.SelectorType = clusterv1beta1.LabelSelector
+		})
+
+		It("should not deploy the broker components", func() {
+			t.ensureNoNamespace()
+		})
+	})
+
+	When("a ManagedClusterSet with SelectorType set to LegacyClusterSetLabel is created", func() {
+		BeforeEach(func() {
+			t.clusterSet.Spec.ClusterSelector.SelectorType = clusterv1beta1.LegacyClusterSetLabel
+		})
+
+		It("should deploy the broker components", func() {
+			t.awaitNamespace()
+		})
+	})
+
 	When("a ManagedClusterSet is being deleted", func() {
 		BeforeEach(func() {
 			t.clusterSet.Finalizers = []string{finalizerName}
@@ -217,4 +237,12 @@ func (t *brokerControllerTestDriver) awaitNoNamespace() {
 
 		return errors.IsNotFound(err)
 	}).Should(BeTrue(), "Broker Namespace still exists")
+}
+
+func (t *brokerControllerTestDriver) ensureNoNamespace() {
+	Consistently(func() bool {
+		_, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), brokerNS, metav1.GetOptions{})
+
+		return errors.IsNotFound(err)
+	}).Should(BeTrue(), "Broker Namespace exists")
 }
