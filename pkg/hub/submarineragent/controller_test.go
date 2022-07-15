@@ -240,7 +240,7 @@ func newTestDriver() *testDriver {
 		t.managedCluster = &clusterv1.ManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   clusterName,
-				Labels: map[string]string{submarineragent.ClusterSetLabel: clusterSetName},
+				Labels: map[string]string{clusterv1beta1.ClusterSetLabel: clusterSetName},
 			},
 		}
 

@@ -50,11 +50,11 @@ import (
 	workinformer "open-cluster-management.io/api/client/work/informers/externalversions/work/v1"
 	worklister "open-cluster-management.io/api/client/work/listers/work/v1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	workv1 "open-cluster-management.io/api/work/v1"
 )
 
 const (
-	ClusterSetLabel              = "cluster.open-cluster-management.io/clusterset"
 	serviceAccountLabel          = "cluster.open-cluster-management.io/submariner-cluster-sa"
 	OperatorManifestWorkName     = "submariner-operator"
 	SubmarinerCRManifestWorkName = "submariner-resource"
@@ -293,7 +293,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	}
 
-	clusterSetName, existed := managedCluster.Labels[ClusterSetLabel]
+	clusterSetName, existed := managedCluster.Labels[clusterv1beta1.ClusterSetLabel]
 	if !existed {
 		// the cluster does not have the clusterset label, try to clean up the submariner agent
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
