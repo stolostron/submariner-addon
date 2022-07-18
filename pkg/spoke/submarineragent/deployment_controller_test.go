@@ -228,29 +228,44 @@ var _ = Describe("Deployment Status Controller", func() {
 		BeforeEach(func() {
 			t.submariner.Spec.GlobalCIDR = "242.0.0.0/16"
 		})
-
-		When("the globalnet deployment doesn't initially exist", func() {
+		When("the globalnet daemon set doesn't initially exist", func() {
 			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-				t.awaitStatusCondition(metav1.ConditionTrue, "NoGlobalnetDeployment")
+				t.awaitStatusCondition(metav1.ConditionTrue, "NoGlobalnetDaemonSet")
 
-				t.globalnetDeployment = newGlobalnetDeployment()
-				t.createGlobalnetDeployment()
+				t.globalnetDaemonSet = newGlobalnetDaemonSet()
+				t.createDaemonSet(t.globalnetDaemonSet)
 
 				t.awaitStatusConditionDeployed()
 			})
 		})
 
-		When("no globalnet deployment replica is initially available", func() {
+		When("a globalnet daemon set pod isn't initially available", func() {
 			BeforeEach(func() {
-				t.globalnetDeployment = newGlobalnetDeployment()
-				t.globalnetDeployment.Status.AvailableReplicas = 0
+				t.globalnetDaemonSet = newGlobalnetDaemonSet()
+				t.globalnetDaemonSet.Status.NumberUnavailable = 1
 			})
 
 			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-				t.awaitStatusCondition(metav1.ConditionTrue, "NoGlobalnetAvailable")
+				t.awaitStatusCondition(metav1.ConditionTrue, "GlobalnetUnavailable")
 
-				t.globalnetDeployment.Status.AvailableReplicas = 1
-				t.updateDeployment(t.globalnetDeployment)
+				t.globalnetDaemonSet.Status.NumberUnavailable = 0
+				t.updateDaemonSet(t.globalnetDaemonSet)
+
+				t.awaitStatusConditionDeployed()
+			})
+		})
+
+		When("no globalnet daemon set pod is initially scheduled", func() {
+			BeforeEach(func() {
+				t.globalnetDaemonSet = newGlobalnetDaemonSet()
+				t.globalnetDaemonSet.Status.DesiredNumberScheduled = 0
+			})
+
+			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+				t.awaitStatusCondition(metav1.ConditionTrue, "NoScheduledGlobalnet")
+
+				t.globalnetDaemonSet.Status.DesiredNumberScheduled = 1
+				t.updateDaemonSet(t.globalnetDaemonSet)
 
 				t.awaitStatusConditionDeployed()
 			})
@@ -325,7 +340,7 @@ type deploymentControllerTestDriver struct {
 	routeAgentDaemonSet           *appsv1.DaemonSet
 	lighthouseAgentDeployment     *appsv1.Deployment
 	lighthouseCoreDNSDeployment   *appsv1.Deployment
-	globalnetDeployment           *appsv1.Deployment
+	globalnetDaemonSet            *appsv1.DaemonSet
 	networkPluginSyncerDeployment *appsv1.Deployment
 	stop                          context.CancelFunc
 }
@@ -345,7 +360,7 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 		t.lighthouseAgentDeployment = newLighthouseAgentDeployment()
 		t.lighthouseCoreDNSDeployment = newLighthouseCoreDNSDeployment()
 		t.networkPluginSyncerDeployment = nil
-		t.globalnetDeployment = nil
+		t.globalnetDaemonSet = nil
 	})
 
 	JustBeforeEach(func() {
@@ -383,8 +398,8 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 			t.createLighthouseCoreDNSDeployment()
 		}
 
-		if t.globalnetDeployment != nil {
-			t.createGlobalnetDeployment()
+		if t.globalnetDaemonSet != nil {
+			t.createDaemonSet(t.globalnetDaemonSet)
 		}
 
 		if t.networkPluginSyncerDeployment != nil {
@@ -447,11 +462,6 @@ func (t *deploymentControllerTestDriver) createLighthouseAgentDeployment() {
 
 func (t *deploymentControllerTestDriver) createLighthouseCoreDNSDeployment() {
 	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(context.TODO(), t.lighthouseCoreDNSDeployment, metav1.CreateOptions{})
-	Expect(err).To(Succeed())
-}
-
-func (t *deploymentControllerTestDriver) createGlobalnetDeployment() {
-	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(context.TODO(), t.globalnetDeployment, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
@@ -572,14 +582,14 @@ func newLighthouseCoreDNSDeployment() *appsv1.Deployment {
 	}
 }
 
-func newGlobalnetDeployment() *appsv1.Deployment {
-	return &appsv1.Deployment{
+func newGlobalnetDaemonSet() *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: submarinerNS,
 			Name:      names.GlobalnetComponent,
 		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
+		Status: appsv1.DaemonSetStatus{
+			DesiredNumberScheduled: 1,
 		},
 	}
 }

@@ -118,7 +118,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	err = c.checkOptionalDeployments(&degradedConditionReasons, &degradedConditionMessages)
+	err = c.checkOptionals(&degradedConditionReasons, &degradedConditionMessages)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (c *deploymentStatusController) checkDeployments(degradedConditionReasons, 
 	return nil
 }
 
-func (c *deploymentStatusController) checkOptionalDeployments(degradedConditionReasons, degradedConditionMessages *[]string,
+func (c *deploymentStatusController) checkOptionals(degradedConditionReasons, degradedConditionMessages *[]string,
 ) (err error) {
 	submariner, err := c.getSubmariner()
 	if err != nil {
@@ -203,7 +203,7 @@ func (c *deploymentStatusController) checkOptionalDeployments(degradedConditionR
 	}
 
 	if submariner.Spec.GlobalCIDR != "" {
-		err = c.checkDeployment(names.GlobalnetComponent, "Globalnet", degradedConditionReasons, degradedConditionMessages)
+		err = c.checkGlobalnetDaemonSet(degradedConditionReasons, degradedConditionMessages)
 		if err != nil {
 			return err
 		}
@@ -256,6 +256,31 @@ func (c *deploymentStatusController) checkRouteAgentDaemonSet(degradedConditionR
 			*degradedConditionReasons = append(*degradedConditionReasons, "RouteAgentsUnavailable")
 			*degradedConditionMessages = append(*degradedConditionMessages,
 				fmt.Sprintf("There are %d unavailable route agents", routeAgent.Status.NumberUnavailable))
+		}
+	case err != nil:
+		return err
+	}
+
+	return nil
+}
+
+func (c *deploymentStatusController) checkGlobalnetDaemonSet(degradedConditionReasons, degradedConditionMessages *[]string) error {
+	globalnet, err := c.daemonSetLister.DaemonSets(c.namespace).Get(names.GlobalnetComponent)
+
+	switch {
+	case errors.IsNotFound(err):
+		*degradedConditionReasons = append(*degradedConditionReasons, "NoGlobalnetDaemonSet")
+		*degradedConditionMessages = append(*degradedConditionMessages, "The globalnet daemon set does not exist")
+	case err == nil:
+		if globalnet.Status.DesiredNumberScheduled == 0 {
+			*degradedConditionReasons = append(*degradedConditionReasons, "NoScheduledGlobalnet")
+			*degradedConditionMessages = append(*degradedConditionMessages, "There are no nodes to run the globalnet pods")
+		}
+
+		if globalnet.Status.NumberUnavailable != 0 {
+			*degradedConditionReasons = append(*degradedConditionReasons, "GlobalnetUnavailable")
+			*degradedConditionMessages = append(*degradedConditionMessages,
+				fmt.Sprintf("There are %d unavailable globalnet pods", globalnet.Status.NumberUnavailable))
 		}
 	case err != nil:
 		return err
