@@ -262,12 +262,16 @@ func getBrokerAPIServer(dynamicClient dynamic.Interface) (string, error) {
 			return apiServer, nil
 		}
 
-		return "", fmt.Errorf("failed to get infrastructures cluster: %w", err)
+		return "", errors.Wrap(err, "failed to get infrastructures cluster")
 	}
 
 	apiServer, found, err := unstructured.NestedString(infrastructureConfig.Object, "status", "apiServerURL")
-	if err != nil || !found {
-		return "", fmt.Errorf("failed to get apiServerURL in infrastructures cluster: %v: %w", found, err)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get apiServerURL in infrastructures cluster")
+	}
+
+	if !found {
+		return "", errors.New("apiServerURL not found in infrastructures cluster")
 	}
 
 	return strings.Trim(apiServer, "/:hpst"), nil
