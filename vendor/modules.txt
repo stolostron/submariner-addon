@@ -442,7 +442,7 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/submariner-io/admiral v0.13.0-rc1
+# github.com/submariner-io/admiral v0.13.0
 ## explicit; go 1.17
 github.com/submariner-io/admiral/pkg/fake
 github.com/submariner-io/admiral/pkg/federate
@@ -464,7 +464,7 @@ github.com/submariner-io/cloud-prepare/pkg/gcp/client
 github.com/submariner-io/cloud-prepare/pkg/k8s
 github.com/submariner-io/cloud-prepare/pkg/ocp
 github.com/submariner-io/cloud-prepare/pkg/rhos
-# github.com/submariner-io/submariner v0.13.0-rc1
+# github.com/submariner-io/submariner v0.13.0
 ## explicit; go 1.17
 github.com/submariner-io/submariner/pkg/apis/submariner.io/v1
 github.com/submariner-io/submariner/pkg/cni
