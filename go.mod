@@ -1,6 +1,6 @@
 module github.com/stolostron/submariner-addon
 
-go 1.17
+go 1.18
 
 require (
 	github.com/aws/aws-sdk-go v1.38.28
