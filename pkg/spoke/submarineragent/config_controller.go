@@ -242,8 +242,8 @@ func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, c
 func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
 	recorder events.Recorder,
 ) error {
-	switch config.Status.ManagedClusterInfo.Platform {
-	case "GCP", "Openstack", "Azure":
+	platform := config.Status.ManagedClusterInfo.Platform
+	if isSpokePrepared(platform) {
 		var cloudProvider cloud.Provider
 
 		cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, recorder)
@@ -252,14 +252,12 @@ func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Conte
 		}
 
 		return errors.WithMessagef(err, "Failed to clean up the submariner cluster environment")
-	case "AWS":
+	} else if platform == "AWS" {
 		// Cloud-prepare for AWS done from hub, Nothing to do on spoke
-		break
-	default:
-		return errors.WithMessagef(c.removeAllGateways(ctx), "Failed to unlabel the gateway nodes")
+		return nil
 	}
 
-	return nil
+	return errors.WithMessagef(c.removeAllGateways(ctx), "Failed to unlabel the gateway nodes")
 }
 
 func (c *submarinerConfigController) updateSubmarinerConfigStatus(ctx context.Context, recorder events.Recorder,
