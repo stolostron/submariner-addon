@@ -9,7 +9,7 @@ require (
 	github.com/gophercloud/gophercloud v0.25.0
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.19.0
+	github.com/onsi/gomega v1.20.0
 	github.com/openshift/api v0.0.0-20220525145417-ee5b62754c68
 	github.com/openshift/build-machinery-go v0.0.0-20220121085309-f94edc2d6874
 	github.com/openshift/library-go v0.0.0-20220525173854-9b950a41acdc
@@ -147,7 +147,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiserver v0.24.1 // indirect
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
 	k8s.io/klog v1.0.0 // indirect
