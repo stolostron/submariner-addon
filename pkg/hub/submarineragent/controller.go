@@ -418,7 +418,8 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 // skipSyncingUnchangedConfig if last submariner config is known and is equal to the given config.
 func (c *submarinerAgentController) skipSyncingUnchangedConfig(config *configv1alpha1.SubmarinerConfig) bool {
 	lastConfig, known := c.knownConfigs[config.Namespace]
-	return known && reflect.DeepEqual(lastConfig.Spec, config.Spec) && config.DeletionTimestamp.IsZero()
+	return known && reflect.DeepEqual(lastConfig.Spec, config.Spec) && config.DeletionTimestamp.IsZero() &&
+		reflect.DeepEqual(lastConfig.Finalizers, config.Finalizers)
 }
 
 // clean up the submariner agent from this managedCluster.
