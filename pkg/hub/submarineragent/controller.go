@@ -787,5 +787,9 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace
 }
 
 func isSpokePrepared(cloudName string) bool {
-	return cloudName != "AWS"
+	if cloudName == "GCP" || cloudName == "OpenStack" || cloudName == "Azure" {
+		return true
+	}
+
+	return false
 }

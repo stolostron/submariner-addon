@@ -21,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 )
 
 const (
@@ -76,8 +75,7 @@ func NewAzureProvider(
 	authorizer, err := auth.NewAuthorizerFromEnvironment()
 
 	if err != nil {
-		klog.Errorf("unable to create the Azure  authorizer :%v", err)
-		return nil, err
+		return nil, errors.Wrap(err, "unable to create the Azure authorizer")
 	}
 
 	k8sClient := k8s.NewInterface(kubeClient)
