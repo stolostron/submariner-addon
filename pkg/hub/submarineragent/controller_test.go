@@ -186,6 +186,37 @@ var _ = Describe("Controller", func() {
 			t.assertSubmarinerManifestWork(test.AwaitUpdateAction(&t.manifestWorkClient.Fake, "manifestworks",
 				submarineragent.SubmarinerCRManifestWorkName).(*workv1.ManifestWork))
 		})
+
+		Context("and the platform is set to AWS", func() {
+			BeforeEach(func() {
+				t.managedCluster.Status.ClusterClaims = []clusterv1.ManagedClusterClaim{
+					{
+						Name:  "platform.open-cluster-management.io",
+						Value: "AWS",
+					},
+				}
+
+				t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(nil).MinTimes(1)
+			})
+
+			It("should invoke cloud prepare", func() {
+				expCond := &metav1.Condition{
+					Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+					Status: metav1.ConditionTrue,
+					Reason: "SubmarinerClusterEnvPrepared",
+				}
+
+				test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
+					config, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(clusterName).Get(context.TODO(),
+						constants.SubmarinerConfigName, metav1.GetOptions{})
+					if err != nil {
+						return nil, err
+					}
+
+					return config.Status.Conditions, nil
+				})
+			})
+		})
 	})
 
 	When("the ManagedClusterAddon is being deleted", func() {
@@ -231,6 +262,7 @@ type testDriver struct {
 	addOnClient        addonclient.Interface
 	stop               context.CancelFunc
 	mockCtrl           *gomock.Controller
+	cloudProvider      *cloudFake.MockProvider
 }
 
 func newTestDriver() *testDriver {
@@ -261,6 +293,7 @@ func newTestDriver() *testDriver {
 		t.manifestWorkClient = fakeworkclient.NewSimpleClientset()
 		t.configClient = fakeconfigclient.NewSimpleClientset()
 		t.addOnClient = addonfake.NewSimpleClientset()
+		t.cloudProvider = cloudFake.NewMockProvider(t.mockCtrl)
 
 		t.kubeClient = kubefake.NewSimpleClientset(
 			&corev1.Secret{
@@ -298,12 +331,8 @@ func newTestDriver() *testDriver {
 		configInformerFactory := configinformers.NewSharedInformerFactory(t.configClient, 0)
 		addOnInformerFactory := addoninformers.NewSharedInformerFactory(t.addOnClient, 0)
 
-		cloudProvider := cloudFake.NewMockProvider(t.mockCtrl)
-		cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(nil).AnyTimes()
-		cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(nil).AnyTimes()
-
 		providerFactory := cloudFake.NewMockProviderFactory(t.mockCtrl)
-		providerFactory.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(cloudProvider, nil).AnyTimes()
+		providerFactory.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(t.cloudProvider, nil).AnyTimes()
 
 		controller := submarineragent.NewSubmarinerAgentController(t.kubeClient, t.dynamicClient, t.clusterClient,
 			t.manifestWorkClient, t.configClient, t.addOnClient,
