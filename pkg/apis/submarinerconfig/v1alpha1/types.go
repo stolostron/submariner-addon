@@ -238,6 +238,12 @@ type ManagedClusterInfo struct {
 	// InfraId represents the infrastructure id of the managed cluster.
 	// +optional
 	InfraID string `json:"infraId,omitempty"`
+	// VendorVersion represents k8s vendor version of the managed cluster.
+	// +optional
+	VendorVersion string `json:"vendorVersion,omitempty"`
+	// NetworkType represents the network type (cni) of the managed cluster.
+	// +optional
+	NetworkType string `json:"networkType,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

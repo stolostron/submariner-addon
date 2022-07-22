@@ -206,6 +206,9 @@ spec:
                   infraId:
                     description: InfraId represents the infrastructure id of the managed cluster.
                     type: string
+                  networkType:
+                    description: NetworkType represents the network type (cni) of the managed cluster.
+                    type: string
                   platform:
                     description: Platform represents the cloud provider of the managed cluster.
                     type: string
@@ -214,6 +217,9 @@ spec:
                     type: string
                   vendor:
                     description: Vendor represents the kubernetes vendor of the managed cluster.
+                    type: string
+                  vendorVersion:
+                    description: VendorVersion represents the k8s vendor version of the managed cluster.
                     type: string
                 type: object
             type: object

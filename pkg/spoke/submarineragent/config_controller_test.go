@@ -22,6 +22,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubeInformers "k8s.io/client-go/informers"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
 	clientTesting "k8s.io/client-go/testing"
@@ -557,6 +559,7 @@ type configControllerTestDriver struct {
 	stop          context.CancelFunc
 	kubeClient    *kubeFake.Clientset
 	configClient  *configFake.Clientset
+	dynamicClient *dynamicfake.FakeDynamicClient
 	cloudProvider *cloudFake.MockProvider
 	mockCtrl      *gomock.Controller
 }
@@ -580,6 +583,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 
 		t.kubeClient = kubeFake.NewSimpleClientset()
 		t.configClient = configFake.NewSimpleClientset()
+		t.dynamicClient = dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
 
 		t.managedClusterAddOnTestBase.init()
 
@@ -624,6 +628,8 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 			ClusterName:          clusterName,
 			KubeClient:           t.kubeClient,
 			ConfigClient:         t.configClient,
+			DynamicClient:        t.dynamicClient,
+			AddOnClient:          t.addOnClient,
 			NodeInformer:         kubeInformerFactory.Core().V1().Nodes(),
 			AddOnInformer:        addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
 			ConfigInformer:       configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),

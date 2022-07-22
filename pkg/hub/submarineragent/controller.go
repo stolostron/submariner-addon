@@ -730,6 +730,10 @@ func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 				clusterInfo.InfraID = fmt.Sprintf("%v", infraInfo["infraName"])
 			}
 		}
+
+		if claim.Name == "version.openshift.io" {
+			clusterInfo.VendorVersion = claim.Value
+		}
 	}
 
 	return clusterInfo

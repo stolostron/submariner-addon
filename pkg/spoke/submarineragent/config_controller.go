@@ -7,10 +7,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/coreos/go-semver/semver"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/pkg/errors"
+	"github.com/stolostron/submariner-addon/pkg/addon"
 	"github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
@@ -18,29 +20,42 @@ import (
 	configlister "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/cloud"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	"github.com/submariner-io/submariner/pkg/cni"
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/dynamic"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/retry"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 )
 
-// TODO expose this as a flag to allow user to specify their zone label.
-var defaultZoneLabel = ""
+var (
+	// TODO expose this as a flag to allow user to specify their zone label.
+	defaultZoneLabel = ""
+	networksGVR      = schema.GroupVersionResource{
+		Group:    "config.openshift.io",
+		Version:  "v1",
+		Resource: "networks",
+	}
+)
 
 const submarinerGatewayCondition = "SubmarinerGatewaysLabeled"
 
 const (
 	submarinerUDPPortLabel = "gateway.submariner.io/udp-port"
 	workerNodeLabel        = "node-role.kubernetes.io/worker"
+	networksConfigName     = "cluster"
 )
 
 type nodeLabelSelector struct {
@@ -53,6 +68,8 @@ type nodeLabelSelector struct {
 type submarinerConfigController struct {
 	kubeClient           kubernetes.Interface
 	configClient         configclient.Interface
+	addOnClient          addonclient.Interface
+	dynamicClient        dynamic.Interface
 	nodeLister           corev1lister.NodeLister
 	addOnLister          addonlisterv1alpha1.ManagedClusterAddOnLister
 	configLister         configlister.SubmarinerConfigLister
@@ -65,6 +82,8 @@ type SubmarinerConfigControllerInput struct {
 	ClusterName          string
 	KubeClient           kubernetes.Interface
 	ConfigClient         configclient.Interface
+	AddOnClient          addonclient.Interface
+	DynamicClient        dynamic.Interface
 	NodeInformer         corev1informers.NodeInformer
 	AddOnInformer        addoninformerv1alpha1.ManagedClusterAddOnInformer
 	ConfigInformer       configinformer.SubmarinerConfigInformer
@@ -79,6 +98,8 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 	c := &submarinerConfigController{
 		kubeClient:           input.KubeClient,
 		configClient:         input.ConfigClient,
+		addOnClient:          input.AddOnClient,
+		dynamicClient:        input.DynamicClient,
 		nodeLister:           input.NodeInformer.Lister(),
 		addOnLister:          input.AddOnInformer.Lister(),
 		configLister:         input.ConfigInformer.Lister(),
@@ -111,6 +132,7 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 		ToController("SubmarinerAgentConfigController", input.Recorder)
 }
 
+//nolint:gocyclo // Codes need serious refactor to reduce complexity
 func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	if c.onSyncDefer != nil {
 		defer c.onSyncDefer()
@@ -169,6 +191,12 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	// TODO: add finalizer in next release
 	if !config.DeletionTimestamp.IsZero() {
 		return c.cleanupClusterEnvironment(ctx, config, syncCtx.Recorder())
+	}
+
+	isValid, err := c.validateOCPVersion(ctx, config, syncCtx.Recorder())
+
+	if !isValid || err != nil {
+		return err
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "AWS" {
@@ -551,6 +579,87 @@ func (c *submarinerConfigController) updateGatewayStatus(ctx context.Context, re
 	}
 
 	return c.updateSubmarinerConfigStatus(ctx, recorder, config, &condition)
+}
+
+func (c *submarinerConfigController) setNetworkTypeIfAbsent(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
+	recorder events.Recorder,
+) error {
+	if config.Status.ManagedClusterInfo.NetworkType != "" {
+		return nil
+	}
+
+	networks, err := c.dynamicClient.Resource(networksGVR).Get(context.TODO(), networksConfigName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	networkType, _, err := unstructured.NestedString(networks.Object, "spec", "networkType")
+	if err != nil {
+		return err
+	}
+
+	config.Status.ManagedClusterInfo.NetworkType = networkType
+	_, updated, updatedErr := submarinerconfig.UpdateStatus(ctx, c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace),
+		config.Name, submarinerconfig.UpdateStatusFn(nil, &config.Status.ManagedClusterInfo))
+
+	if updated {
+		recorder.Eventf("SubmarinerConfigNetworkTypeSet",
+			"submarinerconfig network type was set to %s for managed cluster %s", networkType, config.Namespace)
+	}
+
+	return updatedErr
+}
+
+func (c *submarinerConfigController) validateOCPVersion(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
+	recorder events.Recorder,
+) (bool, error) {
+	if config.Status.ManagedClusterInfo.Vendor != constants.ProductOCP {
+		// we only check OCP version if vendor is OCP
+		return true, nil
+	}
+
+	ocpVersion := config.Status.ManagedClusterInfo.VendorVersion
+	vOCP411 := semver.New(constants.OCPVersionForOVNK)
+	vOCPVersion := semver.New(ocpVersion)
+
+	// We need OCP 4.11+ if using OVNK
+	if !vOCPVersion.LessThan(*vOCP411) {
+		return true, nil
+	}
+
+	err := c.setNetworkTypeIfAbsent(ctx, config, recorder)
+	if apiErrors.IsNotFound(err) {
+		// networks not found, deletion in progress, ignore
+		return false, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	networkType := config.Status.ManagedClusterInfo.NetworkType
+
+	if networkType == cni.OVNKubernetes {
+		ovnCondition := metav1.Condition{
+			Type:    submarinerGatewayNodesLabeled,
+			Status:  metav1.ConditionFalse,
+			Reason:  "UnsupportedOCPVersion",
+			Message: fmt.Sprintf("OCP version is %s, submariner OVN requires %s+", ocpVersion, constants.OCPVersionForOVNK),
+		}
+		updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(&ovnCondition))
+		if updated {
+			recorder.Eventf("ManagedClusterAddOnStatusUpdated", "Updated status conditions:  %#v",
+				updatedStatus.Conditions)
+		}
+
+		if err == nil {
+			err = errors.Errorf("OCP version is %s, Submariner OVN requires %s+", ocpVersion, constants.OCPVersionForOVNK)
+		}
+
+		return false, err
+	}
+
+	return true, nil
 }
 
 func failedCondition(formatMsg string, args ...interface{}) metav1.Condition {
