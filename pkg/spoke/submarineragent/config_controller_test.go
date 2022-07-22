@@ -55,7 +55,11 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 	When("no existing worker nodes are labeled as gateways", func() {
 		It("should label the desired number of gateway nodes", func() {
 			t.awaitLabeledNodes()
-			t.awaitSuccessStatusCondition()
+			t.awaitGatewaysLabeledSuccessCondition()
+		})
+
+		It("should update the SubmarinerConfig cluster environment prepared condition", func() {
+			t.awaitClusterEnvPreparedSuccessCondition()
 		})
 	})
 
@@ -67,7 +71,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 		Context("partially labeled", func() {
 			It("should fully label them", func() {
 				t.awaitLabeledNodes()
-				t.awaitSuccessStatusCondition()
+				t.awaitGatewaysLabeledSuccessCondition()
 			})
 		})
 
@@ -107,7 +111,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 			Expect(err).To(Succeed())
 
 			t.awaitLabeledNodes()
-			t.awaitSuccessStatusCondition()
+			t.awaitGatewaysLabeledSuccessCondition()
 		})
 	})
 
@@ -118,7 +122,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 		})
 
 		It("should label the additional gateway nodes", func() {
-			t.awaitSuccessStatusCondition()
+			t.awaitGatewaysLabeledSuccessCondition()
 
 			t.config.Spec.Gateways = 2
 			_, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(t.config.Namespace).Update(context.TODO(),
@@ -140,7 +144,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 		})
 
 		JustBeforeEach(func() {
-			t.awaitSuccessStatusCondition()
+			t.awaitGatewaysLabeledSuccessCondition()
 
 			t.config.Spec.Gateways = 1
 			_, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(t.config.Namespace).Update(context.TODO(),
@@ -160,10 +164,10 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 			})
 
 			It("should eventually unlabel it", func() {
-				t.awaitFailureStatusCondition()
+				t.awaitGatewaysLabeledFailureCondition()
 				reactor.Fail(false)
 				t.awaitLabeledNodes()
-				t.awaitSuccessStatusCondition()
+				t.awaitGatewaysLabeledSuccessCondition()
 			})
 		})
 
@@ -186,12 +190,12 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 		})
 
 		It("should eventually label it", func() {
-			t.awaitFailureStatusCondition()
+			t.awaitGatewaysLabeledFailureCondition()
 
 			reactor.Fail(false)
 
 			t.awaitLabeledNodes()
-			t.awaitSuccessStatusCondition()
+			t.awaitGatewaysLabeledSuccessCondition()
 		})
 	})
 
@@ -202,7 +206,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 
 		It("should eventually label it", func() {
 			t.awaitLabeledNodes()
-			t.awaitSuccessStatusCondition()
+			t.awaitGatewaysLabeledSuccessCondition()
 
 			// Ensure there was no failure condition update due to the conflict error.
 			for _, a := range t.configClient.Actions() {
@@ -229,6 +233,8 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 			t.ensureNoLabeledNodes()
 
 			t.config = newSubmarinerConfig()
+			t.expectProviderFactoryGet()
+
 			_, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(t.config.Namespace).Create(context.TODO(),
 				t.config, metav1.CreateOptions{})
 			Expect(err).To(Succeed())
@@ -246,6 +252,8 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 			t.ensureNoLabeledNodes()
 
 			t.config.Status.ManagedClusterInfo.Platform = "Other"
+			t.expectProviderFactoryGet()
+
 			_, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(t.config.Namespace).Update(context.TODO(),
 				t.config, metav1.UpdateOptions{})
 			Expect(err).To(Succeed())
@@ -265,7 +273,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 			})
 
 			It("should update the SubmarinerConfig status with a success condition", func() {
-				t.awaitSuccessStatusCondition()
+				t.awaitGatewaysLabeledSuccessCondition()
 			})
 		})
 
@@ -291,10 +299,26 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 			})
 
 			It("should invoke the cloud provider and update the SubmarinerConfig status condition", func() {
-				t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
-					Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
-					Status: metav1.ConditionTrue,
-					Reason: "SubmarinerClusterEnvPrepared",
+				t.awaitClusterEnvPreparedSuccessCondition()
+			})
+
+			Context("and the number of labeled worker nodes matches the desired number", func() {
+				BeforeEach(func() {
+					labelGateway(t.nodes[0], true)
+				})
+
+				It("should update the SubmarinerConfig status with a success condition", func() {
+					t.awaitGatewaysLabeledSuccessCondition()
+				})
+			})
+
+			Context("and the number of labeled worker nodes does not match the desired number", func() {
+				It("should update the SubmarinerConfig status appropriately", func() {
+					t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
+						Type:   gatewayConditionType,
+						Status: metav1.ConditionFalse,
+						Reason: "InsufficientNodes",
+					})
 				})
 			})
 		})
@@ -409,7 +433,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 		})
 
 		It("should eventually update it", func() {
-			t.awaitSuccessStatusCondition()
+			t.awaitGatewaysLabeledSuccessCondition()
 		})
 	})
 }
@@ -462,7 +486,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 			})
 
 			It("should eventually unlabel it", func() {
-				t.awaitFailureStatusCondition()
+				t.awaitGatewaysLabeledFailureCondition()
 
 				reactor.Fail(false)
 
@@ -535,7 +559,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 				})
 
 				It("should initially set a failure status condition", func() {
-					t.awaitFailureStatusCondition()
+					t.awaitGatewaysLabeledFailureCondition()
 
 					close(waitCh)
 
@@ -553,15 +577,16 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 type configControllerTestDriver struct {
 	managedClusterAddOnTestBase
-	controller    factory.Controller
-	config        *configv1alpha1.SubmarinerConfig
-	nodes         []*corev1.Node
-	stop          context.CancelFunc
-	kubeClient    *kubeFake.Clientset
-	configClient  *configFake.Clientset
-	dynamicClient *dynamicfake.FakeDynamicClient
-	cloudProvider *cloudFake.MockProvider
-	mockCtrl      *gomock.Controller
+	controller      factory.Controller
+	config          *configv1alpha1.SubmarinerConfig
+	nodes           []*corev1.Node
+	stop            context.CancelFunc
+	kubeClient      *kubeFake.Clientset
+	configClient    *configFake.Clientset
+	dynamicClient   *dynamicfake.FakeDynamicClient
+	cloudProvider   *cloudFake.MockProvider
+	providerFactory *cloudFake.MockProviderFactory
+	mockCtrl        *gomock.Controller
 }
 
 func newConfigControllerTestDriver() *configControllerTestDriver {
@@ -588,6 +613,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 		t.managedClusterAddOnTestBase.init()
 
 		t.cloudProvider = cloudFake.NewMockProvider(t.mockCtrl)
+		t.providerFactory = cloudFake.NewMockProviderFactory(t.mockCtrl)
 	})
 
 	JustBeforeEach(func() {
@@ -615,14 +641,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 
 		addOnInformerFactory := addonInformers.NewSharedInformerFactory(t.addOnClient, defaultResync)
 
-		providerFactory := cloudFake.NewMockProviderFactory(t.mockCtrl)
-
-		if t.config != nil {
-			providerFactory.EXPECT().Get(t.config.Status.ManagedClusterInfo, gomock.Not(gomock.Nil()), gomock.Any()).
-				Return(t.cloudProvider, nil).AnyTimes()
-		} else {
-			providerFactory.EXPECT().Get(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).Return(t.cloudProvider, nil).AnyTimes()
-		}
+		t.expectProviderFactoryGet()
 
 		t.controller = submarineragent.NewSubmarinerConfigController(&submarineragent.SubmarinerConfigControllerInput{
 			ClusterName:          clusterName,
@@ -633,7 +652,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 			NodeInformer:         kubeInformerFactory.Core().V1().Nodes(),
 			AddOnInformer:        addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
 			ConfigInformer:       configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
-			CloudProviderFactory: providerFactory,
+			CloudProviderFactory: t.providerFactory,
 			Recorder:             events.NewLoggingEventRecorder("test"),
 			OnSyncDefer:          GinkgoRecover,
 		})
@@ -661,7 +680,19 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 	return t
 }
 
-func (t *configControllerTestDriver) awaitSuccessStatusCondition() {
+func (t *configControllerTestDriver) expectProviderFactoryGet() {
+	if t.config != nil && t.config.Status.ManagedClusterInfo.Platform != "" {
+		provider := t.cloudProvider
+		if t.config.Status.ManagedClusterInfo.Platform == "Other" {
+			provider = nil
+		}
+
+		t.providerFactory.EXPECT().Get(&t.config.Status.ManagedClusterInfo, gomock.Not(gomock.Nil()), gomock.Any()).
+			Return(provider, provider != nil, nil).AnyTimes()
+	}
+}
+
+func (t *configControllerTestDriver) awaitGatewaysLabeledSuccessCondition() {
 	t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 		Type:   gatewayConditionType,
 		Status: metav1.ConditionTrue,
@@ -669,11 +700,19 @@ func (t *configControllerTestDriver) awaitSuccessStatusCondition() {
 	})
 }
 
-func (t *configControllerTestDriver) awaitFailureStatusCondition() {
+func (t *configControllerTestDriver) awaitGatewaysLabeledFailureCondition() {
 	t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 		Type:   gatewayConditionType,
 		Status: metav1.ConditionFalse,
 		Reason: "Failure",
+	})
+}
+
+func (t *configControllerTestDriver) awaitClusterEnvPreparedSuccessCondition() {
+	t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
+		Type:   configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+		Status: metav1.ConditionTrue,
+		Reason: "SubmarinerClusterEnvPrepared",
 	})
 }
 

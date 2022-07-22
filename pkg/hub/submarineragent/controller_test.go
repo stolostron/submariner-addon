@@ -332,7 +332,7 @@ func newTestDriver() *testDriver {
 		addOnInformerFactory := addoninformers.NewSharedInformerFactory(t.addOnClient, 0)
 
 		providerFactory := cloudFake.NewMockProviderFactory(t.mockCtrl)
-		providerFactory.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(t.cloudProvider, nil).AnyTimes()
+		providerFactory.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(t.cloudProvider, true, nil).AnyTimes()
 
 		controller := submarineragent.NewSubmarinerAgentController(t.kubeClient, t.dynamicClient, t.clusterClient,
 			t.manifestWorkClient, t.configClient, t.addOnClient,
