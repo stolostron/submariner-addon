@@ -4,7 +4,8 @@ const (
 	SubmarinerAddOnName  = "submariner"
 	SubmarinerConfigName = "submariner"
 
-	ProductOCP = "OpenShift"
+	ProductOCP        = "OpenShift"
+	OCPVersionForOVNK = "4.11.0-rc"
 
 	IPSecPSKSecretName = "submariner-ipsec-psk"
 

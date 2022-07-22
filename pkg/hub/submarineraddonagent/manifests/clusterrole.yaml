@@ -19,5 +19,5 @@ rules:
   resources: ["machinesets"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: ["config.openshift.io"]
-  resources: ["apiservers", "infrastructures", "infrastructures/status"]
+  resources: ["apiservers", "networks", "infrastructures", "infrastructures/status"]
   verbs: ["get"]

@@ -48,11 +48,13 @@ func (GatewayConfig) SwaggerDoc() map[string]string {
 }
 
 var map_ManagedClusterInfo = map[string]string{
-	"clusterName": "ClusterName represents the name of the managed cluster.",
-	"vendor":      "Vendor represents the kubernetes vendor of the managed cluster.",
-	"platform":    "Platform represents the cloud provider of the managed cluster.",
-	"region":      "Region represents the cloud region of the managed cluster.",
-	"infraId":     "InfraId represents the infrastructure id of the managed cluster.",
+	"clusterName":   "ClusterName represents the name of the managed cluster.",
+	"vendor":        "Vendor represents the kubernetes vendor of the managed cluster.",
+	"platform":      "Platform represents the cloud provider of the managed cluster.",
+	"region":        "Region represents the cloud region of the managed cluster.",
+	"infraId":       "InfraId represents the infrastructure id of the managed cluster.",
+	"vendorVersion": "VendorVersion represents k8s vendor version of the managed cluster.",
+	"networkType":   "NetworkType represents the network type (cni) of the managed cluster.",
 }
 
 func (ManagedClusterInfo) SwaggerDoc() map[string]string {

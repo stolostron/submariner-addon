@@ -139,6 +139,8 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		ClusterName:          o.ClusterName,
 		KubeClient:           spokeKubeClient,
 		ConfigClient:         configHubKubeClient,
+		AddOnClient:          addOnHubKubeClient,
+		DynamicClient:        spokeDynamicClient,
 		NodeInformer:         spokeKubeInformers.Core().V1().Nodes(),
 		AddOnInformer:        addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 		ConfigInformer:       configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
