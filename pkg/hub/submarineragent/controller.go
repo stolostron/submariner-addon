@@ -375,7 +375,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	errs := []error{}
 	var condition *metav1.Condition
 	if !isSpokePrepared(managedClusterInfo.Platform) {
-		cloudProvider, preparedErr := c.cloudProviderFactory.Get(managedClusterInfo, config, c.eventRecorder)
+		cloudProvider, _, preparedErr := c.cloudProviderFactory.Get(&managedClusterInfo, config, c.eventRecorder)
 		if preparedErr == nil {
 			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
 		}
@@ -627,7 +627,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 }
 
 func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(config *configv1alpha1.SubmarinerConfig) error {
-	cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, c.eventRecorder)
+	cloudProvider, _, err := c.cloudProviderFactory.Get(&config.Status.ManagedClusterInfo, config, c.eventRecorder)
 	if err != nil {
 		// TODO handle the error gracefully in the future
 		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to get cloud provider: %v", err)
@@ -792,9 +792,5 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace
 }
 
 func isSpokePrepared(cloudName string) bool {
-	if cloudName == "GCP" || cloudName == "OpenStack" || cloudName == "Azure" {
-		return true
-	}
-
-	return false
+	return cloudName != "AWS"
 }

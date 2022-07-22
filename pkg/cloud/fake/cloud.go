@@ -88,12 +88,13 @@ func (m *MockProviderFactory) EXPECT() *MockProviderFactoryMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockProviderFactory) Get(managedClusterInfo v1alpha1.ManagedClusterInfo, config *v1alpha1.SubmarinerConfig, eventsRecorder events.Recorder) (cloud.Provider, error) {
+func (m *MockProviderFactory) Get(managedClusterInfo *v1alpha1.ManagedClusterInfo, config *v1alpha1.SubmarinerConfig, eventsRecorder events.Recorder) (cloud.Provider, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", managedClusterInfo, config, eventsRecorder)
 	ret0, _ := ret[0].(cloud.Provider)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // Get indicates an expected call of Get.

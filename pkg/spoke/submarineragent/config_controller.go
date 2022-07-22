@@ -132,7 +132,6 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 		ToController("SubmarinerAgentConfigController", input.Recorder)
 }
 
-//nolint:gocyclo // Codes need serious refactor to reduce complexity
 func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	if c.onSyncDefer != nil {
 		defer c.onSyncDefer()
@@ -205,30 +204,18 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return c.updateGatewayStatus(ctx, syncCtx.Recorder(), config)
 	}
 
-	if isSpokePrepared(config.Status.ManagedClusterInfo.Platform) {
-		return c.prepareForSubmariner(ctx, config, syncCtx)
-	}
-
-	// ensure the expected count of gateways
-	condition, err := c.ensureGateways(ctx, config)
-
-	updateErr := c.updateSubmarinerConfigStatus(ctx, syncCtx.Recorder(), config, &condition)
-
-	if err != nil {
-		return err
-	}
-
-	return updateErr
+	return c.prepareForSubmariner(ctx, config, syncCtx)
 }
 
 func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
 	syncCtx factory.SyncContext,
 ) error {
+	cloudProvider, providerFound, preparedErr := c.cloudProviderFactory.Get(&config.Status.ManagedClusterInfo, config, syncCtx.Recorder())
+
 	if !meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
 		errs := []error{}
 
-		cloudProvider, preparedErr := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, syncCtx.Recorder())
-		if preparedErr == nil {
+		if providerFound && preparedErr == nil {
 			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
 		}
 
@@ -264,28 +251,40 @@ func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, c
 		}
 	}
 
-	return c.updateGatewayStatus(ctx, syncCtx.Recorder(), config)
+	if providerFound {
+		return c.updateGatewayStatus(ctx, syncCtx.Recorder(), config)
+	}
+
+	// No provider - ensure the expected count of gateways
+	condition, err := c.ensureGateways(ctx, config)
+
+	updateErr := c.updateSubmarinerConfigStatus(ctx, syncCtx.Recorder(), config, &condition)
+
+	if err != nil {
+		return err
+	}
+
+	return updateErr
 }
 
 func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
 	recorder events.Recorder,
 ) error {
-	platform := config.Status.ManagedClusterInfo.Platform
-	if isSpokePrepared(platform) {
-		var cloudProvider cloud.Provider
-
-		cloudProvider, err := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, recorder)
-		if err == nil {
-			err = cloudProvider.CleanUpSubmarinerClusterEnv()
-		}
-
-		return errors.WithMessagef(err, "Failed to clean up the submariner cluster environment")
-	} else if platform == "AWS" {
+	if config.Status.ManagedClusterInfo.Platform == "AWS" {
 		// Cloud-prepare for AWS done from hub, Nothing to do on spoke
 		return nil
 	}
 
-	return errors.WithMessagef(c.removeAllGateways(ctx), "Failed to unlabel the gateway nodes")
+	cloudProvider, found, err := c.cloudProviderFactory.Get(&config.Status.ManagedClusterInfo, config, recorder)
+	if !found {
+		return errors.WithMessagef(c.removeAllGateways(ctx), "failed to unlabel the gateway nodes")
+	}
+
+	if err == nil {
+		err = cloudProvider.CleanUpSubmarinerClusterEnv()
+	}
+
+	return errors.WithMessagef(err, "failed to clean up the submariner cluster environment")
 }
 
 func (c *submarinerConfigController) updateSubmarinerConfigStatus(ctx context.Context, recorder events.Recorder,
@@ -679,12 +678,4 @@ func successCondition(gatewayNames []string) metav1.Condition {
 		Message: fmt.Sprintf("%d node(s) (%q) are labeled as gateways", len(gatewayNames),
 			strings.Join(gatewayNames, ",")),
 	}
-}
-
-func isSpokePrepared(cloudName string) bool {
-	if cloudName == "GCP" || cloudName == "OpenStack" || cloudName == "Azure" {
-		return true
-	}
-
-	return false
 }
