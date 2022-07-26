@@ -274,6 +274,14 @@ func newTestDriver() *testDriver {
 				Name:   clusterName,
 				Labels: map[string]string{submarineragent.ClusterSetLabel: clusterSetName},
 			},
+			Status: clusterv1.ManagedClusterStatus{
+				ClusterClaims: []clusterv1.ManagedClusterClaim{
+					{
+						Name:  "platform.open-cluster-management.io",
+						Value: "GCP",
+					},
+				},
+			},
 		}
 
 		t.addOn = &addonv1alpha1.ManagedClusterAddOn{
