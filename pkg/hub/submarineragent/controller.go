@@ -342,8 +342,6 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 		return nil
 	}
 
-	c.knownConfigs[config.Namespace] = config
-
 	// add a finalizer to the submarinerconfigfinalizer.Remove(ctx, resource.ForSubmarinerConfig(
 	added, err := finalizer.Add(ctx, resource.ForSubmarinerConfig(
 		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace)), config, submarinerConfigFinalizer)
@@ -353,16 +351,19 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 	// config is deleting, we remove its related resources
 	if !config.DeletionTimestamp.IsZero() {
-		delete(c.knownConfigs, config.Namespace)
-
 		if !isSpokePrepared(config.Status.ManagedClusterInfo.Platform) {
 			if err := c.cleanUpSubmarinerClusterEnv(config); err != nil {
 				return err
 			}
 		}
 
-		return finalizer.Remove(ctx, resource.ForSubmarinerConfig(
+		err = finalizer.Remove(ctx, resource.ForSubmarinerConfig(
 			c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace)), config, submarinerConfigFinalizer)
+		if err == nil {
+			delete(c.knownConfigs, config.Namespace)
+		}
+
+		return err
 	}
 
 	if managedCluster == nil {
@@ -405,6 +406,10 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	if updated {
 		c.eventRecorder.Eventf("SubmarinerClusterEnvPrepared",
 			"submariner cluster environment was prepared for managed cluster %s", config.Namespace)
+	}
+
+	if len(errs) == 0 {
+		c.knownConfigs[config.Namespace] = config
 	}
 
 	return operatorhelpers.NewMultiLineAggregate(errs)
