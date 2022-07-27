@@ -50,12 +50,12 @@ const (
 const agentInstallationNamespaceFile = "manifests/namespace.yaml"
 
 var agentDeploymentFiles = []string{
+	"manifests/serviceaccount.yaml",
 	"manifests/clusterrole.yaml",
 	"manifests/clusterrolebinding.yaml",
-	"manifests/deployment.yaml",
 	"manifests/role.yaml",
 	"manifests/rolebinding.yaml",
-	"manifests/serviceaccount.yaml",
+	"manifests/deployment.yaml",
 }
 
 var agentHubPermissionFiles = []string{
