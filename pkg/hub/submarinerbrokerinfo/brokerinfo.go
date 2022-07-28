@@ -18,6 +18,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -347,22 +348,54 @@ func getBrokerTokenAndCA(kubeClient kubernetes.Interface, dynamicClient dynamic.
 			}
 
 			if tokenSecret.Type == corev1.SecretTypeServiceAccountToken {
-				// try to get ca from apiserver secret firstly, if the ca cannot be found, get it from sa
-				kubeAPIServerCA, err := getKubeAPIServerCA(kubeAPIServer, kubeClient, dynamicClient)
-				if err != nil {
-					return "", "", err
-				}
-
-				if kubeAPIServerCA == nil {
-					return string(tokenSecret.Data["token"]), base64.StdEncoding.EncodeToString(tokenSecret.Data["ca.crt"]), nil
-				}
-
-				return string(tokenSecret.Data["token"]), base64.StdEncoding.EncodeToString(kubeAPIServerCA), nil
+				return getTokenAndCAFromSecret(tokenSecret, kubeAPIServer, kubeClient, dynamicClient)
 			}
 		}
 	}
 
-	return "", "", fmt.Errorf("ServiceAccount %v/%v does not have a secret of type token", brokerNS, clusterName)
+	// OCP 4.11.0+ doesn't store secret in SA
+	tokenSecret, err := getTokenSecretForSA(kubeClient, sa)
+	if err != nil {
+		return "", "", err
+	}
+
+	return getTokenAndCAFromSecret(tokenSecret, kubeAPIServer, kubeClient, dynamicClient)
+}
+
+func getTokenSecretForSA(client kubernetes.Interface, sa *corev1.ServiceAccount) (*corev1.Secret, error) {
+	saSecrets, err := client.CoreV1().Secrets(sa.Namespace).List(context.TODO(), metav1.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("type", string(corev1.SecretTypeServiceAccountToken)).String(),
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get secrets of type service-account-token in %v", sa.Namespace)
+	}
+
+	for i := 0; i < len(saSecrets.Items); i++ {
+		if saSecrets.Items[i].Annotations[corev1.ServiceAccountNameKey] == sa.Name {
+			return &saSecrets.Items[i], nil
+		}
+	}
+
+	return nil, apierrors.NewNotFound(schema.GroupResource{
+		Group:    corev1.SchemeGroupVersion.Group,
+		Resource: "secrets",
+	}, sa.Name)
+}
+
+func getTokenAndCAFromSecret(tokenSecret *corev1.Secret, kubeAPIServer string, kubeClient kubernetes.Interface,
+	dynamicClient dynamic.Interface,
+) (token, ca string, err error) {
+	// try to get ca from apiserver secret firstly, if the ca cannot be found, get it from sa
+	kubeAPIServerCA, err := getKubeAPIServerCA(kubeAPIServer, kubeClient, dynamicClient)
+	if err != nil {
+		return "", "", err
+	}
+
+	if kubeAPIServerCA == nil {
+		return string(tokenSecret.Data["token"]), base64.StdEncoding.EncodeToString(tokenSecret.Data["ca.crt"]), nil
+	}
+
+	return string(tokenSecret.Data["token"]), base64.StdEncoding.EncodeToString(kubeAPIServerCA), nil
 }
 
 func GenerateBrokerName(clusterSetName string) string {
