@@ -20,8 +20,9 @@ import (
 const (
 	defaultInstanceType  = "m5n.large"
 	accessKeyIDSecretKey = "aws_access_key_id"
-	accessKeySecretKey   = "aws_secret_access_key"
-	workName             = "aws-submariner-gateway-machineset"
+	//#nosec G101 -- This is the name of a key that will store a secret, but not a default secret
+	accessKeySecretKey = "aws_secret_access_key"
+	workName           = "aws-submariner-gateway-machineset"
 )
 
 type awsProvider struct {
