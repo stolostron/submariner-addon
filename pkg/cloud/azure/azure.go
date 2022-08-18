@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"os"
 	"strconv"
+
+	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -71,6 +72,9 @@ func NewAzureProvider(
 	}
 
 	subscriptionID, err := initializeFromAuthFile(hubKubeClient, clusterName, credentialsSecretName)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to initialize from auth file")
+	}
 
 	authorizer, err := auth.NewAuthorizerFromEnvironment()
 
