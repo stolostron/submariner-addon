@@ -22,8 +22,8 @@ require (
 	github.com/submariner-io/cloud-prepare v0.13.0
 	github.com/submariner-io/submariner v0.13.0
 	github.com/submariner-io/submariner-operator v0.13.0
-	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2
-	google.golang.org/api v0.93.0
+	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094
+	google.golang.org/api v0.94.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.24.1
 	k8s.io/apiextensions-apiserver v0.24.1
