@@ -10,7 +10,7 @@ require (
 	github.com/gophercloud/gophercloud v1.0.0
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.20.1
+	github.com/onsi/gomega v1.20.2
 	github.com/openshift/api v0.0.0-20220525145417-ee5b62754c68
 	github.com/openshift/build-machinery-go v0.0.0-20220121085309-f94edc2d6874
 	github.com/openshift/library-go v0.0.0-20220525173854-9b950a41acdc
@@ -132,9 +132,9 @@ require (
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
-	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
-	golang.org/x/sys v0.0.0-20220624220833-87e55d714810 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
