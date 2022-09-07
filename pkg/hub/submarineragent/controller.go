@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ghodss/yaml"
 	"github.com/openshift/library-go/pkg/assets"
@@ -25,7 +26,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/manifestwork"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/finalizer"
-	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
+	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -107,6 +108,7 @@ type submarinerAgentController struct {
 	cloudProviderFactory cloud.ProviderFactory
 	eventRecorder        events.Recorder
 	knownConfigs         map[string]*configv1alpha1.SubmarinerConfig
+	controllerClient     client.Client
 }
 
 // NewSubmarinerAgentController returns a submarinerAgentController instance.
@@ -484,6 +486,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	brokerInfo, err := brokerinfo.Get(
 		c.kubeClient,
 		c.dynamicClient,
+		c.controllerClient,
 		managedCluster.Name,
 		brokerNamespace,
 		submarinerConfig,
@@ -745,7 +748,7 @@ func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 }
 
 func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace string) error {
-	_, gnCmErr := globalnet.GetConfigMap(c.kubeClient, brokerNamespace)
+	_, gnCmErr := globalnet.GetConfigMap(c.controllerClient, brokerNamespace)
 	if gnCmErr != nil && !apierrors.IsNotFound(gnCmErr) {
 		return errors.Wrapf(gnCmErr, "error getting globalnet configmap from broker namespace %q", brokerNamespace)
 	}
@@ -788,7 +791,7 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace
 		klog.Infof("Globalnet is disabled in the managedClusterSet namespace %q", brokerNamespace)
 	}
 
-	if err := globalnet.CreateConfigMap(c.kubeClient, brokerObj.Spec.GlobalnetEnabled,
+	if err := globalnet.CreateConfigMap(c.controllerClient, brokerObj.Spec.GlobalnetEnabled,
 		brokerObj.Spec.GlobalnetCIDRRange, brokerObj.Spec.DefaultGlobalnetClusterSize, brokerNamespace); err != nil {
 		return errors.Wrapf(err, "error creating globalnet configmap on Broker")
 	}

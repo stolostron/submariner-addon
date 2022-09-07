@@ -25,9 +25,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2021-12-01/compute"
-	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2021-03-01/network"
-	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork"
+	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/pkg/errors"
 	"github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/admiral/pkg/stringset"
@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	submarinerGatewayGW      = "subgw"
+	submarinerGatewayGW      = "-subgw-"
 	azureVirtualMachines     = "virtualMachines"
 	topologyLabel            = "topology.kubernetes.io/zone"
 	submarinerGatewayNodeTag = "submariner-io-gateway-node"
@@ -79,9 +79,21 @@ func (d *ocpGatewayDeployer) Deploy(input api.GatewayDeployInput, status reporte
 
 	status.Start("Deploying gateway node")
 
-	nsgClient := getNsgClient(d.SubscriptionID, d.Authorizer)
-	nwClient := getInterfacesClient(d.SubscriptionID, d.Authorizer)
-	pubIPClient := getIPClient(d.SubscriptionID, d.Authorizer)
+	nsgClient, err := d.getNsgClient()
+	if err != nil {
+		return status.Error(err, "Failed to get network security groups client")
+	}
+
+	nwClient, err := d.getInterfacesClient()
+	if err != nil {
+		return status.Error(err, "Failed to get network interfaces client")
+	}
+
+	pubIPClient, err := d.getPublicIPClient()
+	if err != nil {
+		return status.Error(err, "Failed to get network public IP addresses client")
+	}
+
 	groupName := d.InfraID + externalSecurityGroupSuffix
 
 	gwNodes, err := d.azure.K8sClient.ListGatewayNodes()
@@ -160,8 +172,8 @@ func (d *ocpGatewayDeployer) deployDedicatedGWNode(gwNodes []v1.Node, gatewayNod
 	return nil
 }
 
-func (d *ocpGatewayDeployer) tagExistingNode(nsgClient *network.SecurityGroupsClient, nwClient *network.InterfacesClient,
-	pubIPClient *network.PublicIPAddressesClient, gatewayNodesToDeploy int, status reporter.Interface,
+func (d *ocpGatewayDeployer) tagExistingNode(nsgClient *armnetwork.SecurityGroupsClient, nwClient *armnetwork.InterfacesClient,
+	pubIPClient *armnetwork.PublicIPAddressesClient, gatewayNodesToDeploy int, status reporter.Interface,
 ) error {
 	groupName := d.InfraID + externalSecurityGroupSuffix
 
@@ -255,14 +267,39 @@ func (d *ocpGatewayDeployer) initMachineSet(name, zone string) (*unstructured.Un
 }
 
 func (d *ocpGatewayDeployer) deployGateway(zone string) error {
-	name := d.azure.InfraID + submarinerGatewayGW + d.azure.Region + "-" + zone
-
-	machineSet, err := d.initMachineSet(name, zone)
+	machineSet, err := d.initMachineSet(MachineName(d.azure.InfraID, d.azure.Region, zone), zone)
 	if err != nil {
 		return err
 	}
 
 	return errors.Wrapf(d.msDeployer.Deploy(machineSet), "error deploying machine set %q", machineSet.GetName())
+}
+
+// MachineName generates a machine name for the gateway.
+// The name length is limited to 40 characters to ensure we don't hit the 63-character limit
+// when generating the "machine public IP name".
+// At most 6 characters for the zone (which is usually very short),
+// at most 12 for the region and zone combined,
+// at most 32 for the infra id, region and zone combined
+// (the infra id is the longest significant piece of information here).
+// We add "-subgw-", 7 characters, for a total of 40 with the hyphen between region and zone.
+func MachineName(infraID, region, zone string) string {
+	if len(infraID)+len(region)+len(zone) > 32 {
+		// Limit the name length to 40 characters
+		if len(zone) > 6 {
+			zone = zone[0:6]
+		}
+
+		if len(region) > 12-len(zone) {
+			region = region[0 : 12-len(zone)]
+		}
+
+		if len(infraID) > 32-len(zone)-len(region) {
+			infraID = infraID[0 : 32-len(zone)-len(region)]
+		}
+	}
+
+	return infraID + submarinerGatewayGW + region + "-" + zone
 }
 
 func (d *ocpGatewayDeployer) getAvailabilityZones(gwNodes []v1.Node) (stringset.Interface, error) {
@@ -275,20 +312,29 @@ func (d *ocpGatewayDeployer) getAvailabilityZones(gwNodes []v1.Node) (stringset.
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
-	resourceSKUClient := getResourceSkuClient(d.azure.SubscriptionID, d.azure.Authorizer)
-
-	resourceSKUs, err := resourceSKUClient.List(ctx, d.azure.Region, "")
+	resourceSKUClient, err := d.getResourceSKUClient()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting the resource sku in the regiom %q", d.azure.Region)
+		return nil, errors.Wrap(err, "Failed to get resource SKU client")
 	}
+
+	pager := resourceSKUClient.NewListPager(&armcompute.ResourceSKUsClientListOptions{
+		Filter: to.StringPtr(d.azure.Region),
+	})
 
 	eligibleZonesForSubmarinerGW := stringset.New()
 
-	for _, resourceSKUValue := range resourceSKUs.Values() {
-		if *resourceSKUValue.ResourceType == azureVirtualMachines && *resourceSKUValue.Name == d.instanceType {
-			for _, zone := range *(*resourceSKUValue.LocationInfo)[0].Zones {
-				if !zonesWithSubmarinerGW.Contains(d.azure.Region + "-" + zone) {
-					eligibleZonesForSubmarinerGW.Add(zone)
+	for pager.More() {
+		nextResult, err := pager.NextPage(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error paging the resource SKUs in the regiom %q", d.azure.Region)
+		}
+
+		for _, resourceSKU := range nextResult.Value {
+			if *resourceSKU.ResourceType == azureVirtualMachines && *resourceSKU.Name == d.instanceType {
+				for _, zone := range resourceSKU.LocationInfo[0].Zones {
+					if !zonesWithSubmarinerGW.Contains(d.azure.Region + "-" + *zone) {
+						eligibleZonesForSubmarinerGW.Add(*zone)
+					}
 				}
 			}
 		}
@@ -300,14 +346,21 @@ func (d *ocpGatewayDeployer) getAvailabilityZones(gwNodes []v1.Node) (stringset.
 func (d *ocpGatewayDeployer) Cleanup(status reporter.Interface) error {
 	status.Start("Removing gateway node")
 
-	nsgClient := getNsgClient(d.SubscriptionID, d.Authorizer)
-	nwClient := getInterfacesClient(d.SubscriptionID, d.Authorizer)
+	nsgClient, err := d.getNsgClient()
+	if err != nil {
+		return status.Error(err, "Failed to get network security groups client")
+	}
+
+	nwClient, err := d.getInterfacesClient()
+	if err != nil {
+		return status.Error(err, "Failed to get network interfaces client")
+	}
 
 	if err := d.cleanupGWInterface(d.InfraID, nsgClient, nwClient); err != nil {
 		return status.Error(err, "deleting gateway security group failed")
 	}
 
-	err := d.deleteGateway()
+	err = d.deleteGateway()
 	if err != nil {
 		return status.Error(err, "removing gateway node failed")
 	}
@@ -324,7 +377,11 @@ func (d *ocpGatewayDeployer) deleteGateway() error {
 	}
 
 	gwNodesList := gwNodes.Items
-	pubIPClient := getIPClient(d.SubscriptionID, d.Authorizer)
+
+	pubIPClient, err := d.getPublicIPClient()
+	if err != nil {
+		return errors.Wrapf(err, "Failed to get network public IP addresses client")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
@@ -338,7 +395,7 @@ func (d *ocpGatewayDeployer) deleteGateway() error {
 
 			publicIPName := gwNodesList[i].Name + "-pub"
 
-			err = d.DeletePublicIP(ctx, pubIPClient, publicIPName)
+			err = d.deletePublicIP(ctx, pubIPClient, publicIPName)
 			if err != nil {
 				return errors.Wrapf(err, "failed to delete public-ip")
 			}
@@ -357,18 +414,4 @@ func (d *ocpGatewayDeployer) deleteGateway() error {
 	}
 
 	return nil
-}
-
-func getResourceSkuClient(subscriptionID string, authorizer autorest.Authorizer) *compute.ResourceSkusClient {
-	resourceSkusClient := compute.NewResourceSkusClient(subscriptionID)
-	resourceSkusClient.Authorizer = authorizer
-
-	return &resourceSkusClient
-}
-
-func getIPClient(subscriptionID string, authorizer autorest.Authorizer) *network.PublicIPAddressesClient {
-	ipClient := network.NewPublicIPAddressesClient(subscriptionID)
-	ipClient.Authorizer = authorizer
-
-	return &ipClient
 }

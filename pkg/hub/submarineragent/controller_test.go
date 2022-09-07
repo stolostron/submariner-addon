@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/golang/mock/gomock"
@@ -20,7 +21,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	coreresource "github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/test"
-	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -263,6 +264,7 @@ type testDriver struct {
 	stop               context.CancelFunc
 	mockCtrl           *gomock.Controller
 	cloudProvider      *cloudFake.MockProvider
+	client             client.Client
 }
 
 func newTestDriver() *testDriver {
@@ -573,12 +575,12 @@ func (t *testDriver) createAddon() {
 }
 
 func (t *testDriver) createGlobalnetConfigMap() {
-	err := globalnet.CreateConfigMap(t.kubeClient, false, "", 0, brokerNamespace)
+	err := globalnet.CreateConfigMap(t.client, false, "", 0, brokerNamespace)
 	Expect(err).To(Succeed())
 }
 
 func (t *testDriver) deleteGlobalnetConfigMap() {
-	err := globalnet.DeleteConfigMap(t.kubeClient, brokerNamespace)
+	err := globalnet.DeleteConfigMap(t.client, brokerNamespace)
 	Expect(err).To(Succeed())
 }
 

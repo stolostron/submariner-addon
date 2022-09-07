@@ -1,3 +1,71 @@
+# v1.54.0 (2022-08-22)
+
+* **Feature**: R6a instances are powered by 3rd generation AMD EPYC (Milan) processors delivering all-core turbo frequency of 3.6 GHz. C6id, M6id, and R6id instances are powered by 3rd generation Intel Xeon Scalable processor (Ice Lake) delivering all-core turbo frequency of 3.5 GHz.
+
+# v1.53.0 (2022-08-18)
+
+* **Feature**: This release adds support for VPN log options , a new feature allowing S2S VPN connections to send IKE activity logs to CloudWatch Logs
+
+# v1.52.1 (2022-08-11)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.52.0 (2022-08-10)
+
+* **Feature**: This release adds support for excluding specific data (non-root) volumes from multi-volume snapshot sets created from instances.
+
+# v1.51.3 (2022-08-09)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.51.2 (2022-08-08)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.51.1 (2022-08-01)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.51.0 (2022-07-29)
+
+* **Feature**: Documentation updates for Amazon EC2.
+
+# v1.50.1 (2022-07-28)
+
+* **Documentation**: Documentation updates for VM Import/Export.
+
+# v1.50.0 (2022-07-22)
+
+* **Feature**: Added support for EC2 M1 Mac instances. For more information, please visit aws.amazon.com/mac.
+
+# v1.49.1 (2022-07-18)
+
+* **Documentation**: Documentation updates for Amazon EC2.
+
+# v1.49.0 (2022-07-14)
+
+* **Feature**: This release adds flow logs for Transit Gateway to  allow customers to gain deeper visibility and insights into network traffic through their Transit Gateways.
+
+# v1.48.0 (2022-07-11)
+
+* **Feature**: Build, manage, and monitor a unified global network that connects resources running across your cloud and on-premises environments using the AWS Cloud WAN APIs.
+
+# v1.47.2 (2022-07-05)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.47.1 (2022-06-29)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.47.0 (2022-06-28)
+
+* **Feature**: This release adds a new spread placement group to EC2 Placement Groups: host level spread, which spread instances between physical hosts, available to Outpost customers only. CreatePlacementGroup and DescribePlacementGroups APIs were updated with a new parameter: SpreadLevel to support this feature.
+
+# v1.46.0 (2022-06-21)
+
+* **Feature**: This release adds support for Private IP VPNs, a new feature allowing S2S VPN connections to use private ip addresses as the tunnel outside ip address over Direct Connect as transport.
+
 # v1.45.1 (2022-06-07)
 
 * **Dependency Update**: Updated to the latest SDK module versions

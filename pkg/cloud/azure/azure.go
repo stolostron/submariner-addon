@@ -9,7 +9,7 @@ import (
 
 	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 
-	"github.com/Azure/go-autorest/autorest/azure/auth"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
@@ -76,8 +76,7 @@ func NewAzureProvider(
 		return nil, errors.Wrap(err, "unable to initialize from auth file")
 	}
 
-	authorizer, err := auth.NewAuthorizerFromEnvironment()
-
+	credentials, err := azidentity.NewEnvironmentCredential(nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create the Azure authorizer")
 	}
@@ -88,11 +87,11 @@ func NewAzureProvider(
 
 	cloudInfo := azure.CloudInfo{
 		SubscriptionID: subscriptionID,
-		InfraID:        infraID,
-		Region:         region,
-		BaseGroupName:  infraID + "-rg",
-		Authorizer:     authorizer,
-		K8sClient:      k8sClient,
+		InfraID:         infraID,
+		Region:          region,
+		BaseGroupName:   infraID + "-rg",
+		TokenCredential: credentials,
+		K8sClient:       k8sClient,
 	}
 
 	azureCloud := azure.NewCloud(&cloudInfo)

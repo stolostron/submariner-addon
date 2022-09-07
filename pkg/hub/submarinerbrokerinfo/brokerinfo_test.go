@@ -2,6 +2,7 @@ package submarinerbrokerinfo_test
 
 import (
 	"encoding/base64"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -109,6 +110,7 @@ var _ = Describe("Function Get", func() {
 		brokerInfo, err = submarinerbrokerinfo.Get(
 			kubefake.NewSimpleClientset(kubeObjs...),
 			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), dynamicObjs...),
+			client.Client(nil),
 			clusterName,
 			brokerNamespace,
 			submarinerConfig,

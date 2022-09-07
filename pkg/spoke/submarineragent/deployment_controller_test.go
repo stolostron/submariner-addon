@@ -10,7 +10,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/spoke/submarineragent"
 	fakereactor "github.com/submariner-io/admiral/pkg/fake"
 	"github.com/submariner-io/admiral/pkg/syncer/test"
-	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/names"
 	"github.com/submariner-io/submariner/pkg/cni"
 	appsv1 "k8s.io/api/apps/v1"
