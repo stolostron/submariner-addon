@@ -64,7 +64,7 @@ func NewRHOSProvider(
 		nattPort = constants.SubmarinerNatTPort
 	}
 
-	if instanceType != "" {
+	if instanceType == "" {
 		instanceType = gwInstanceType
 	}
 
@@ -93,7 +93,7 @@ func NewRHOSProvider(
 	cloudPrepare := cloudpreparerhos.NewCloud(cloudInfo)
 	msDeployer := ocp.NewK8sMachinesetDeployer(restMapper, dynamicClient)
 
-	gwDeployer := cloudpreparerhos.NewOcpGatewayDeployer(cloudInfo, msDeployer, projectID, gwInstanceType,
+	gwDeployer := cloudpreparerhos.NewOcpGatewayDeployer(cloudInfo, msDeployer, projectID, instanceType,
 		"", cloudEntry, true)
 
 	return &rhosProvider{
