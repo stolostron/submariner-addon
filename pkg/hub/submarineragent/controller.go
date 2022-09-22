@@ -78,8 +78,12 @@ var sccFiles = []string{
 	"manifests/rbac/submariner-agent-scc.yaml",
 }
 
-var operatorFiles = []string{
+var operatorAllFiles = []string{
 	"manifests/operator/submariner-operator-group.yaml",
+	"manifests/operator/submariner-operator-subscription.yaml",
+}
+
+var operatorSkipFiles = []string{
 	"manifests/operator/submariner-operator-subscription.yaml",
 }
 
@@ -498,15 +502,19 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		return fmt.Errorf("failed to create submariner brokerInfo of cluster %v : %w", managedCluster.Name, err)
 	}
 
+	skipOperatorGroup := false
+
 	if submarinerConfig != nil {
 		err := c.updateSubmarinerConfigStatus(ctx, submarinerConfig, managedCluster.Name)
 		if err != nil {
 			return err
 		}
+
+		_, skipOperatorGroup = submarinerConfig.GetAnnotations()["skipOperatorGroup"]
 	}
 
 	// Apply submariner operator manifest work
-	operatorManifestWork, err := newOperatorManifestWork(managedCluster, brokerInfo)
+	operatorManifestWork, err := newOperatorManifestWork(managedCluster, brokerInfo, skipOperatorGroup)
 	if err != nil {
 		return err
 	}
@@ -662,14 +670,19 @@ func newSubmarinerManifestWork(managedCluster *clusterv1.ManagedCluster, config 
 	return newManifestWork(SubmarinerCRManifestWorkName, managedCluster.Name, config, submarinerCRFile)
 }
 
-func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
+func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}, skipOperatorGroup bool,
+) (*workv1.ManifestWork, error) {
 	files := []string{agentRBACFile}
 	clusterProduct := getClusterProduct(managedCluster)
 	if clusterProduct == constants.ProductOCP || clusterProduct == constants.ProductROSA || clusterProduct == constants.ProductARO {
 		files = append(files, sccFiles...)
 	}
 
-	files = append(files, operatorFiles...)
+	if skipOperatorGroup {
+		files = append(files, operatorSkipFiles...)
+	} else {
+		files = append(files, operatorAllFiles...)
+	}
 
 	return newManifestWork(OperatorManifestWorkName, managedCluster.Name, config, files...)
 }
