@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	submarinerGatewayGW      = "subgw"
+	submarinerGatewayGW      = "-subgw-"
 	azureVirtualMachines     = "virtualMachines"
 	topologyLabel            = "topology.kubernetes.io/zone"
 	submarinerGatewayNodeTag = "submariner-io-gateway-node"
@@ -255,14 +255,39 @@ func (d *ocpGatewayDeployer) initMachineSet(name, zone string) (*unstructured.Un
 }
 
 func (d *ocpGatewayDeployer) deployGateway(zone string) error {
-	name := d.azure.InfraID + submarinerGatewayGW + d.azure.Region + "-" + zone
-
-	machineSet, err := d.initMachineSet(name, zone)
+	machineSet, err := d.initMachineSet(MachineName(d.azure.InfraID, d.azure.Region, zone), zone)
 	if err != nil {
 		return err
 	}
 
 	return errors.Wrapf(d.msDeployer.Deploy(machineSet), "error deploying machine set %q", machineSet.GetName())
+}
+
+// MachineName generates a machine name for the gateway.
+// The name length is limited to 40 characters to ensure we don't hit the 63-character limit
+// when generating the "machine public IP name".
+// At most 6 characters for the zone (which is usually very short),
+// at most 12 for the region and zone combined,
+// at most 32 for the infra id, region and zone combined
+// (the infra id is the longest significant piece of information here).
+// We add "-subgw-", 7 characters, for a total of 40 with the hyphen between region and zone.
+func MachineName(infraID, region, zone string) string {
+	if len(infraID)+len(region)+len(zone) > 32 {
+		// Limit the name length to 40 characters
+		if len(zone) > 6 {
+			zone = zone[0:6]
+		}
+
+		if len(region) > 12-len(zone) {
+			region = region[0 : 12-len(zone)]
+		}
+
+		if len(infraID) > 32-len(zone)-len(region) {
+			infraID = infraID[0 : 32-len(zone)-len(region)]
+		}
+	}
+
+	return infraID + submarinerGatewayGW + region + "-" + zone
 }
 
 func (d *ocpGatewayDeployer) getAvailabilityZones(gwNodes []v1.Node) (stringset.Interface, error) {
