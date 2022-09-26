@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2021-03-01/network"
-	"github.com/Azure/go-autorest/autorest"
 	reporterInterface "github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 )
@@ -42,7 +40,10 @@ func NewCloud(info *CloudInfo) api.Cloud {
 func (az *azureCloud) PrepareForSubmariner(input api.PrepareForSubmarinerInput, reporter reporterInterface.Interface) error {
 	reporter.Start("Opening internal ports for intra-cluster communications on Azure")
 
-	nsgClient := getNsgClient(az.CloudInfo.SubscriptionID, az.CloudInfo.Authorizer)
+	nsgClient, err := az.getNsgClient()
+	if err != nil {
+		return reporter.Error(err, "Failed to get network security groups client")
+	}
 
 	if err := az.openInternalPorts(az.InfraID, input.InternalPorts, nsgClient); err != nil {
 		return reporter.Error(err, "Failed to open internal ports")
@@ -57,7 +58,10 @@ func (az *azureCloud) PrepareForSubmariner(input api.PrepareForSubmarinerInput, 
 func (az *azureCloud) CleanupAfterSubmariner(reporter reporterInterface.Interface) error {
 	reporter.Start("Revoking intra-cluster communication permissions")
 
-	nsgClient := getNsgClient(az.CloudInfo.SubscriptionID, az.CloudInfo.Authorizer)
+	nsgClient, err := az.getNsgClient()
+	if err != nil {
+		return reporter.Error(err, "Failed to get network security groups client")
+	}
 
 	if err := az.removeInternalFirewallRules(az.InfraID, nsgClient); err != nil {
 		return reporter.Error(err, "Failed to revoke intra-cluster communication permissions")
@@ -66,20 +70,6 @@ func (az *azureCloud) CleanupAfterSubmariner(reporter reporterInterface.Interfac
 	reporter.Success("Revoked intra-cluster communication permissions")
 
 	return nil
-}
-
-func getNsgClient(subscriptionID string, authorizer autorest.Authorizer) *network.SecurityGroupsClient {
-	nsgClient := network.NewSecurityGroupsClient(subscriptionID)
-	nsgClient.Authorizer = authorizer
-
-	return &nsgClient
-}
-
-func getInterfacesClient(subscriptionID string, authorizer autorest.Authorizer) *network.InterfacesClient {
-	interfacesClient := network.NewInterfacesClient(subscriptionID)
-	interfacesClient.Authorizer = authorizer
-
-	return &interfacesClient
 }
 
 func formatPorts(ports []api.PortSpec) string {
