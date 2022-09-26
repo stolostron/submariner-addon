@@ -507,8 +507,8 @@ github.com/submariner-io/cloud-prepare/pkg/gcp/client
 github.com/submariner-io/cloud-prepare/pkg/k8s
 github.com/submariner-io/cloud-prepare/pkg/ocp
 github.com/submariner-io/cloud-prepare/pkg/rhos
-# github.com/submariner-io/submariner v0.13.0
-## explicit; go 1.17
+# github.com/submariner-io/submariner v0.14.0-m1
+## explicit; go 1.18
 github.com/submariner-io/submariner/pkg/apis/submariner.io/v1
 github.com/submariner-io/submariner/pkg/cni
 # github.com/submariner-io/submariner-operator v0.13.0

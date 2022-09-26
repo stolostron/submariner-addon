@@ -20,7 +20,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/submariner-io/admiral v0.14.0-m1
 	github.com/submariner-io/cloud-prepare v0.13.0
-	github.com/submariner-io/submariner v0.13.0
+	github.com/submariner-io/submariner v0.14.0-m1
 	github.com/submariner-io/submariner-operator v0.13.0
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094
 	google.golang.org/api v0.98.0
