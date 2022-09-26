@@ -121,7 +121,8 @@ func (d *ocpGatewayDeployer) deployGateway(index string) error {
 	}
 
 	if d.image == "" {
-		workerNodeList := []string{}
+		// TODO: use machineSetClient.List() instead of hard coding.
+		workerNodeList := []string{d.InfraID + "-worker-0", d.InfraID + "-worker-1", d.InfraID + "-worker-2"}
 
 		d.image, err = d.msDeployer.GetWorkerNodeImage(workerNodeList, machineSet, d.InfraID)
 		if err != nil {
