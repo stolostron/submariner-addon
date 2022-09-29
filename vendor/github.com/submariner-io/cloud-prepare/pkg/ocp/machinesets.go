@@ -21,6 +21,7 @@ package ocp
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/submariner-io/admiral/pkg/resource"
@@ -41,6 +42,7 @@ type MachineSetDeployer interface {
 	Deploy(machineSet *unstructured.Unstructured) error
 
 	// GetWorkerNodeImage returns the image used by OCP worker nodes.
+	// If an empty workerNodeList is passed, the API will internally query the worker nodes.
 	GetWorkerNodeImage(workerNodeList []string, machineSet *unstructured.Unstructured, infraID string) (string, error)
 
 	// Delete will remove the given machineset.
@@ -77,6 +79,17 @@ func (msd *k8sMachineSetDeployer) GetWorkerNodeImage(workerNodeList []string, ma
 		return "", err
 	}
 
+	if len(workerNodeList) == 0 {
+		nodeList, err := machineSetClient.List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return "", errors.Wrapf(err, "error listing the machineSets")
+		}
+
+		for _, machineName := range nodeList.Items {
+			workerNodeList = append(workerNodeList, machineName.GetName())
+		}
+	}
+
 	for _, nodeName := range workerNodeList {
 		existing, err := machineSetClient.Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
@@ -85,6 +98,14 @@ func (msd *k8sMachineSetDeployer) GetWorkerNodeImage(workerNodeList []string, ma
 
 		if err != nil {
 			return "", errors.Wrapf(err, "error retrieving machine set %q", nodeName)
+		}
+
+		labels, found, _ := unstructured.NestedStringMap(existing.Object, "spec", "template", "metadata", "labels")
+		if found {
+			role := labels["machine.openshift.io/cluster-api-machine-role"]
+			if strings.Compare(strings.ToLower(role), "worker") != 0 {
+				continue
+			}
 		}
 
 		disks, _, _ := unstructured.NestedSlice(existing.Object, "spec", "template", "spec", "providerSpec", "value", "disks")
