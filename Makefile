@@ -80,6 +80,7 @@ verify-scripts:
 	bash -x hack/verify-deepcopy.sh
 	bash -x hack/verify-swagger-docs.sh
 	bash -x hack/verify-crds.sh
+	bash -x hack/verify-csv.sh
 	bash -x hack/verify-codegen.sh
 .PHONY: verify-scripts
 
