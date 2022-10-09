@@ -66,6 +66,10 @@ func (f *providerFactory) Get(managedClusterInfo *configv1alpha1.ManagedClusterI
 		credentialsSecret = &v1.LocalObjectReference{}
 	}
 
+	if vendor == constants.ProductROSA {
+		return nil, false, nil
+	}
+
 	if vendor != constants.ProductOCP {
 		return nil, false, fmt.Errorf("unsupported vendor %q of cluster %q", vendor, clusterName)
 	}

@@ -5,6 +5,7 @@ const (
 	SubmarinerConfigName = "submariner"
 
 	ProductOCP        = "OpenShift"
+	ProductROSA       = "ROSA"
 	OCPVersionForOVNK = "4.11.0-rc"
 
 	IPSecPSKSecretName = "submariner-ipsec-psk"
