@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -12,7 +13,6 @@ import (
 	configclientset "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/stolostron/submariner-addon/pkg/hub"
 	"github.com/stolostron/submariner-addon/test/util"
-	submClientSet "github.com/submariner-io/submariner-operator/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -46,13 +46,13 @@ var testEnv *envtest.Environment
 var cfg *rest.Config
 
 var (
-	kubeClient    kubernetes.Interface
-	clusterClient clusterclientset.Interface
-	submClient    submClientSet.Interface
-	workClient    workclientset.Interface
-	configClinet  configclientset.Interface
-	addOnClient   addonclientset.Interface
-	dynamicClient dynamic.Interface
+	kubeClient       kubernetes.Interface
+	clusterClient    clusterclientset.Interface
+	controllerClient client.Client
+	workClient       workclientset.Interface
+	configClinet     configclientset.Interface
+	addOnClient      addonclientset.Interface
+	dynamicClient    dynamic.Interface
 )
 
 var _ = BeforeSuite(func() {
@@ -108,9 +108,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(dynamicClient).ToNot(BeNil())
 
-	submClient, err = submClientSet.NewForConfig(cfg)
+	controllerClient, err = client.New(cfg, client.Options{})
 	Expect(err).ToNot(HaveOccurred())
-	Expect(submClient).ToNot(BeNil())
+	Expect(controllerClient).ToNot(BeNil())
 
 	// prepare open-cluster-management namespaces
 	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace("open-cluster-management"),
