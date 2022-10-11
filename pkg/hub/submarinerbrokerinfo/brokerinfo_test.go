@@ -2,6 +2,8 @@ package submarinerbrokerinfo_test
 
 import (
 	"encoding/base64"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -45,6 +47,7 @@ var _ = Describe("Function Get", func() {
 		gnConfigMap           *corev1.ConfigMap
 		kubeObjs              []runtime.Object
 		dynamicObjs           []runtime.Object
+		brokerObjs            []client.Object
 		brokerInfo            *submarinerbrokerinfo.SubmarinerBrokerInfo
 		err                   error
 	)
@@ -99,6 +102,7 @@ var _ = Describe("Function Get", func() {
 
 		kubeObjs = []runtime.Object{ipsecSecret, serviceAccount, serviceAccountSecret}
 		dynamicObjs = []runtime.Object{infrastructure}
+		brokerObjs = []client.Object{ipsecSecret, serviceAccount, serviceAccountSecret, infrastructure}
 	})
 
 	JustBeforeEach(func() {
@@ -109,6 +113,7 @@ var _ = Describe("Function Get", func() {
 		brokerInfo, err = submarinerbrokerinfo.Get(
 			kubefake.NewSimpleClientset(kubeObjs...),
 			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), dynamicObjs...),
+			fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(brokerObjs...).Build(),
 			clusterName,
 			brokerNamespace,
 			submarinerConfig,

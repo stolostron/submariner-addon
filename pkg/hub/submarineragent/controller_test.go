@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
 
 	"github.com/golang/mock/gomock"
@@ -256,6 +259,7 @@ type testDriver struct {
 	submarinerConfig   *configv1alpha1.SubmarinerConfig
 	kubeClient         kubernetes.Interface
 	dynamicClient      dynamic.Interface
+	controllerClient   client.Client
 	clusterClient      clusterclient.Interface
 	manifestWorkClient *fakeworkclient.Clientset
 	configClient       configclient.Interface
@@ -294,6 +298,7 @@ func newTestDriver() *testDriver {
 		t.configClient = fakeconfigclient.NewSimpleClientset()
 		t.addOnClient = addonfake.NewSimpleClientset()
 		t.cloudProvider = cloudFake.NewMockProvider(t.mockCtrl)
+		t.controllerClient = fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 
 		t.kubeClient = kubefake.NewSimpleClientset(
 			&corev1.Secret{
@@ -334,7 +339,7 @@ func newTestDriver() *testDriver {
 		providerFactory := cloudFake.NewMockProviderFactory(t.mockCtrl)
 		providerFactory.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(t.cloudProvider, true, nil).AnyTimes()
 
-		controller := submarineragent.NewSubmarinerAgentController(t.kubeClient, t.dynamicClient, t.clusterClient,
+		controller := submarineragent.NewSubmarinerAgentController(t.kubeClient, t.dynamicClient, t.controllerClient, t.clusterClient,
 			t.manifestWorkClient, t.configClient, t.addOnClient,
 			clusterInformerFactory.Cluster().V1().ManagedClusters(),
 			clusterInformerFactory.Cluster().V1beta1().ManagedClusterSets(),
@@ -573,12 +578,12 @@ func (t *testDriver) createAddon() {
 }
 
 func (t *testDriver) createGlobalnetConfigMap() {
-	err := globalnet.CreateConfigMap(t.kubeClient, false, "", 0, brokerNamespace)
+	err := globalnet.CreateConfigMap(t.controllerClient, false, "", 0, brokerNamespace)
 	Expect(err).To(Succeed())
 }
 
 func (t *testDriver) deleteGlobalnetConfigMap() {
-	err := globalnet.DeleteConfigMap(t.kubeClient, brokerNamespace)
+	err := globalnet.DeleteConfigMap(t.controllerClient, brokerNamespace)
 	Expect(err).To(Succeed())
 }
 

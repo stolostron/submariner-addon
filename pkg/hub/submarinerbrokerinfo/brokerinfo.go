@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	apiconfigv1 "github.com/openshift/api/config/v1"
@@ -87,6 +88,7 @@ type SubmarinerBrokerInfo struct {
 func Get(
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
+	controllerClient client.Client,
 	clusterName string,
 	brokerNamespace string,
 	submarinerConfig *configv1alpha1.SubmarinerConfig,
@@ -108,7 +110,7 @@ func Get(
 		brokerInfo.InstallationNamespace = installationNamespace
 	}
 
-	err := applyGlobalnetConfig(kubeClient, brokerNamespace, clusterName, brokerInfo, submarinerConfig)
+	err := applyGlobalnetConfig(controllerClient, brokerNamespace, clusterName, brokerInfo, submarinerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -140,10 +142,10 @@ func Get(
 	return brokerInfo, nil
 }
 
-func applyGlobalnetConfig(kubeClient kubernetes.Interface, brokerNamespace, clusterName string,
+func applyGlobalnetConfig(controllerClient client.Client, brokerNamespace, clusterName string,
 	brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig,
 ) error {
-	gnInfo, _, err := globalnet.GetGlobalNetworks(kubeClient, brokerNamespace)
+	gnInfo, _, err := globalnet.GetGlobalNetworks(controllerClient, brokerNamespace)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrapf(err, "error reading globalnet configmap from namespace %q", brokerNamespace)
 	}
@@ -164,7 +166,7 @@ func applyGlobalnetConfig(kubeClient kubernetes.Interface, brokerNamespace, clus
 		}
 
 		status := reporter.Klog()
-		err = globalnet.AllocateAndUpdateGlobalCIDRConfigMap(kubeClient, brokerNamespace, &netconfig, status)
+		err = globalnet.AllocateAndUpdateGlobalCIDRConfigMap(controllerClient, brokerNamespace, &netconfig, status)
 		if err != nil {
 			klog.Errorf("Unable to allocate globalCIDR to cluster %q: %v", clusterName, err)
 			return err

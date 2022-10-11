@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ghodss/yaml"
 	"github.com/openshift/library-go/pkg/assets"
@@ -95,6 +96,7 @@ type clusterRBACConfig struct {
 type submarinerAgentController struct {
 	kubeClient           kubernetes.Interface
 	dynamicClient        dynamic.Interface
+	controllerClient     client.Client
 	clusterClient        clusterclient.Interface
 	manifestWorkClient   workclient.Interface
 	configClient         configclient.Interface
@@ -113,6 +115,7 @@ type submarinerAgentController struct {
 func NewSubmarinerAgentController(
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
+	controllerClient client.Client,
 	clusterClient clusterclient.Interface,
 	manifestWorkClient workclient.Interface,
 	configClient configclient.Interface,
@@ -128,6 +131,7 @@ func NewSubmarinerAgentController(
 	c := &submarinerAgentController{
 		kubeClient:           kubeClient,
 		dynamicClient:        dynamicClient,
+		controllerClient:     controllerClient,
 		clusterClient:        clusterClient,
 		manifestWorkClient:   manifestWorkClient,
 		configClient:         configClient,
@@ -484,6 +488,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	brokerInfo, err := brokerinfo.Get(
 		c.kubeClient,
 		c.dynamicClient,
+		c.controllerClient,
 		managedCluster.Name,
 		brokerNamespace,
 		submarinerConfig,
@@ -745,7 +750,7 @@ func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 }
 
 func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace string) error {
-	_, gnCmErr := globalnet.GetConfigMap(c.kubeClient, brokerNamespace)
+	_, gnCmErr := globalnet.GetConfigMap(c.controllerClient, brokerNamespace)
 	if gnCmErr != nil && !apierrors.IsNotFound(gnCmErr) {
 		return errors.Wrapf(gnCmErr, "error getting globalnet configmap from broker namespace %q", brokerNamespace)
 	}
@@ -788,7 +793,7 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace
 		klog.Infof("Globalnet is disabled in the managedClusterSet namespace %q", brokerNamespace)
 	}
 
-	if err := globalnet.CreateConfigMap(c.kubeClient, brokerObj.Spec.GlobalnetEnabled,
+	if err := globalnet.CreateConfigMap(c.controllerClient, brokerObj.Spec.GlobalnetEnabled,
 		brokerObj.Spec.GlobalnetCIDRRange, brokerObj.Spec.DefaultGlobalnetClusterSize, brokerNamespace); err != nil {
 		return errors.Wrapf(err, "error creating globalnet configmap on Broker")
 	}

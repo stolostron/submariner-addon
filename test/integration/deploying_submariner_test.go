@@ -292,6 +292,6 @@ func createBrokerConfiguration(brokerNamespace string) {
 		},
 	}
 
-	_, err := submClient.SubmarinerV1alpha1().Brokers(brokerNamespace).Create(context.TODO(), brokerCfg, metav1.CreateOptions{})
+	err := controllerClient.Create(context.TODO(), brokerCfg)
 	Expect(err).NotTo(HaveOccurred())
 }
