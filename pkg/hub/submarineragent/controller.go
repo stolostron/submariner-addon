@@ -25,7 +25,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/manifestwork"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/finalizer"
-	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
+	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
