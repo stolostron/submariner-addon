@@ -1,15 +1,20 @@
 all: build
 .PHONY: all
 
+GO ?= go
 export GOPATH ?= $(shell go env GOPATH)
+GOHOSTOS ?=$(shell $(GO) env GOHOSTOS)
+GOHOSTARCH ?=$(shell $(GO) env GOHOSTARCH)
+GO_FILES ?=$(shell find . -name '*.go' -not -path '*/vendor/*' -not -path '*/_output/*' -print)
+go_files_count :=$(words $(GO_FILES))
+GO_BUILD_FLAGS ?=-trimpath
 
-# Include the library makefile
-include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
-	golang.mk \
-	targets/openshift/deps.mk \
-	targets/openshift/images.mk \
-	lib/tmp.mk \
-)
+SOURCE_GIT_TAG ?=$(shell git describe --long --tags --abbrev=7 --match 'v[0-9]*' || echo 'v0.0.0-unknown-$(SOURCE_GIT_COMMIT)')
+SOURCE_GIT_COMMIT ?=$(shell git rev-parse --short "HEAD^{commit}" 2>/dev/null)
+SOURCE_GIT_TREE_STATE ?=$(shell ( ( [ ! -d ".git/" ] || git diff --quiet ) && echo 'clean' ) || echo 'dirty')
+
+PERMANENT_TMP :=_output
+PERMANENT_TMP_GOPATH :=$(PERMANENT_TMP)/tools
 
 # Image URL to use all building/pushing image targets;
 IMAGE ?= submariner-addon
@@ -84,8 +89,6 @@ verify-scripts:
 	bash -x hack/verify-codegen.sh
 .PHONY: verify-scripts
 
-verify: verify-scripts
-
 deploy-addon: ensure-operator-sdk
 	$(OPERATOR_SDK) run packagemanifests deploy/olm-catalog/ --namespace open-cluster-management --version $(CSV_VERSION) --install-mode OwnNamespace --timeout=10m
 
@@ -121,8 +124,39 @@ CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
 # [golangci-lint] validates Go code in the project
-golangci-lint:
+golangci-lint: vendor
 	golangci-lint version
 	golangci-lint linters
 	golangci-lint cache clean
 	golangci-lint run --timeout 10m
+
+vendor: go.mod
+	$(GO) mod download
+	$(GO) mod tidy
+	$(GO) mod vendor
+
+verify: vendor verify-gofmt verify-govet verify-scripts
+
+verify-gofmt:
+	$(info Running gofmt -s -l on $(go_files_count) file(s).)
+	@TMP=$$( mktemp ); \
+	gofmt -s -l $(GO_FILES) | tee $${TMP}; \
+	if [ -s $${TMP} ]; then \
+		echo "$@ failed - please run \`make update-gofmt\`"; \
+		exit 1; \
+	fi;
+
+verify-govet:
+	$(GO) vet ./...
+
+build:
+	$(GO) build $(GO_BUILD_FLAGS) -ldflags "-X github.com/stolostron/submariner-addon/pkg/version.versionFromGit="$(SOURCE_GIT_TAG)" \
+	 -X github.com/stolostron/submariner-addon/pkg/version.commitFromGit="$(SOURCE_GIT_COMMIT)" \
+	 -X github.com/stolostron/submariner-addon/pkg/version.gitTreeState="$(SOURCE_GIT_TREE_STATE)" \
+	 -X github.com/stolostron/submariner-addon/pkg/version.buildDate="$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')"" \
+	 github.com/stolostron/submariner-addon/cmd/submariner
+
+test:
+	$(GO) test -race ./pkg/...
+
+test-integration: vendor
