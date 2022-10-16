@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source scripts/clusters.sh
-k8s_version="v1.20.2"
+k8s_version="v1.23.4"
 
 if [ "$1"x = "cleanup"x ]; then
     for cluster in "${clusters[@]}"; do
