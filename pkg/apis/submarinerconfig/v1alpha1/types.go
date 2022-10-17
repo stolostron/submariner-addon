@@ -83,6 +83,8 @@ type SubmarinerConfigSpec struct {
 	// GatewayConfig represents the gateways configuration of the Submariner.
 	// +optional
 	GatewayConfig `json:"gatewayConfig,omitempty"`
+
+	ChangeTest string `json:"change"`
 }
 
 // SubscriptionConfig contains configuration specified for a submariner subscription.

@@ -52,6 +52,8 @@ spec:
                 default: libreswan
                 description: CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, wireguard, and vxlan.
                 type: string
+              change:
+                type: string
               credentialsSecret:
                 description: CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.
                 properties:
@@ -219,7 +221,7 @@ spec:
                     description: Vendor represents the kubernetes vendor of the managed cluster.
                     type: string
                   vendorVersion:
-                    description: VendorVersion represents the k8s vendor version of the managed cluster.
+                    description: VendorVersion represents k8s vendor version of the managed cluster.
                     type: string
                 type: object
             type: object
