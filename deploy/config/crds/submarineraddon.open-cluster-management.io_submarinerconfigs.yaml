@@ -48,6 +48,10 @@ spec:
                 default: true
                 description: NATTEnable represents IPsec NAT-T enabled (default true).
                 type: boolean
+              airGappedDeployment:
+                default: false
+                description: AirGappedDeployment specifies that the cluster is in an air-gapped environment without access to external servers.
+                type: boolean
               cableDriver:
                 default: libreswan
                 description: CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, wireguard, and vxlan.
@@ -219,7 +223,7 @@ spec:
                     description: Vendor represents the kubernetes vendor of the managed cluster.
                     type: string
                   vendorVersion:
-                    description: VendorVersion represents the k8s vendor version of the managed cluster.
+                    description: VendorVersion represents k8s vendor version of the managed cluster.
                     type: string
                 type: object
             type: object

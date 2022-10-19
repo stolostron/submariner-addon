@@ -55,6 +55,7 @@ var (
 )
 
 type SubmarinerBrokerInfo struct {
+	AirGappedDeployment                bool
 	NATEnabled                         bool
 	LoadBalancerEnabled                bool
 	IPSecNATTPort                      int
@@ -182,6 +183,7 @@ func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *c
 		return
 	}
 
+	brokerInfo.AirGappedDeployment = submarinerConfig.Spec.AirGappedDeployment
 	brokerInfo.NATEnabled = submarinerConfig.Spec.NATTEnable
 	brokerInfo.LoadBalancerEnabled = submarinerConfig.Spec.LoadBalancerEnable
 

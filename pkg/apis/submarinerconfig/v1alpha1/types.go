@@ -56,6 +56,11 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=true
 	NATTEnable bool `json:"NATTEnable"`
 
+	// AirGappedDeployment specifies that the cluster is in an air-gapped environment without access to external servers.
+	// +optional
+	// +kubebuilder:default=false
+	AirGappedDeployment bool `json:"airGappedDeployment,omitempty"`
+
 	// LoadBalancerEnable enables or disables load balancer mode. When enabled, a LoadBalancer is created in the
 	// submariner-operator namespace (default false).
 	// +optional
