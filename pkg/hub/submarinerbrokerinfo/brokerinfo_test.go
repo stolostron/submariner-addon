@@ -171,6 +171,7 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.LighthouseCoreDNSImage).To(BeEmpty())
 				Expect(brokerInfo.NATEnabled).To(BeFalse())
 				Expect(brokerInfo.LoadBalancerEnabled).To(BeFalse())
+				Expect(brokerInfo.AirGappedDeployment).To(BeFalse())
 				Expect(brokerInfo.SubmarinerGatewayImage).To(BeEmpty())
 				Expect(brokerInfo.SubmarinerRouteAgentImage).To(BeEmpty())
 			})
@@ -193,11 +194,12 @@ var _ = Describe("Function Get", func() {
 							SubmarinerRouteAgentImagePullSpec:          "quay.io/submariner/submariner-route-agent:10.0.1",
 							SubmarinerNetworkPluginSyncerImagePullSpec: "quay.io/submariner/submariner-networkplugin-syncer:10.0.1",
 						},
-						CableDriver:        "wireguard",
-						IPSecNATTPort:      5678,
-						NATTEnable:         true,
-						LoadBalancerEnable: true,
-						GlobalCIDR:         "242.1.0.0/16",
+						CableDriver:         "wireguard",
+						IPSecNATTPort:       5678,
+						NATTEnable:          true,
+						LoadBalancerEnable:  true,
+						AirGappedDeployment: true,
+						GlobalCIDR:          "242.1.0.0/16",
 					},
 				}
 			})
@@ -214,6 +216,7 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.LighthouseCoreDNSImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec))
 				Expect(brokerInfo.NATEnabled).To(Equal(submarinerConfig.Spec.NATTEnable))
 				Expect(brokerInfo.LoadBalancerEnabled).To(Equal(submarinerConfig.Spec.LoadBalancerEnable))
+				Expect(brokerInfo.AirGappedDeployment).To(Equal(submarinerConfig.Spec.AirGappedDeployment))
 				Expect(brokerInfo.SubmarinerGatewayImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec))
 				Expect(brokerInfo.SubmarinerRouteAgentImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec))
 				Expect(brokerInfo.SubmarinerNetworkPluginSyncerImage).To(Equal(
