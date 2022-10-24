@@ -660,7 +660,7 @@ func newSubmarinerManifestWork(managedCluster *clusterv1.ManagedCluster, config 
 func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
 	files := []string{agentRBACFile}
 	clusterProduct := getClusterProduct(managedCluster)
-	if clusterProduct == constants.ProductOCP || clusterProduct == constants.ProductROSA {
+	if clusterProduct == constants.ProductOCP || clusterProduct == constants.ProductROSA || clusterProduct == constants.ProductARO {
 		files = append(files, sccFiles...)
 	}
 
