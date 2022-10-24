@@ -66,7 +66,7 @@ func (f *providerFactory) Get(managedClusterInfo *configv1alpha1.ManagedClusterI
 		credentialsSecret = &v1.LocalObjectReference{}
 	}
 
-	if vendor == constants.ProductROSA {
+	if vendor == constants.ProductROSA || vendor == constants.ProductARO {
 		return nil, false, nil
 	}
 
