@@ -122,6 +122,7 @@ endif
 
 # [golangci-lint] validates Go code in the project
 golangci-lint:
+	golangci-lint version
 	golangci-lint linters
 	golangci-lint cache clean
 	golangci-lint run --timeout 10m
