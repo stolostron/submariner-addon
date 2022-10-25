@@ -127,5 +127,7 @@ SubmarinerConfig can support OCP on AWS, GCP or VMware vSphere at the current st
           lighthouseAgentImagePullSpec: <lighthouse-agent-image-pull-spec>
           lighthouseCoreDNSImagePullSpec: <lighthouse-coredns-image-pull-spec>
           submarinerRouteAgentImagePullSpec: <submariner-route-image-pull-spec>
+          metricsProxyImagePullSpec: <metrics-proxy-image-pull-spec>
+          nettestImagePullSpec: <nettest-image-pull-spec>
         ...
     ```
