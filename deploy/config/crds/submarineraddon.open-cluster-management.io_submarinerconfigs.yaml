@@ -127,6 +127,12 @@ spec:
                   submarinerRouteAgentImagePullSpec:
                     description: SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.
                     type: string
+                  metricsProxyImagePullSpec:
+                    description: MetricsProxyImagePullSpec represents the desired image of the metrics proxy.
+                    type: string
+                  nettestImagePullSpec:
+                    description: NettestImagePullSpec represents the desired image of nettest.
+                    type: string
                 type: object
               loadBalancerEnable:
                 default: false

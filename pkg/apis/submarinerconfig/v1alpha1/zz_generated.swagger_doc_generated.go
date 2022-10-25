@@ -126,6 +126,8 @@ var map_SubmarinerImagePullSpecs = map[string]string{
 	"submarinerRouteAgentImagePullSpec":          "SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.",
 	"submarinerGlobalnetImagePullSpec":           "SubmarinerGlobalnetImagePullSpec represents the desired image of the submariner globalnet.",
 	"submarinerNetworkPluginSyncerImagePullSpec": "SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer.",
+	"metricsProxyImagePullSpec":                  "MetricsProxyImagePullSpec represents the desired image of the metrics proxy.",
+	"nettestImagePullSpec":                       "NettestImagePullSpec represents the desired image of nettest.",
 }
 
 func (SubmarinerImagePullSpecs) SwaggerDoc() map[string]string {

@@ -43,6 +43,12 @@ spec:
     {{- if .LighthouseCoreDNSImage }}
     lighthouse-coredns: {{ .LighthouseCoreDNSImage }}
     {{- end}}
+    {{- if .MetricsProxyImage }}
+    submariner-metrics-proxy: {{ .MetricsProxyImage }}
+    {{- end}}
+    {{- if .NettestImage }}
+    submariner-nettest: {{ .NettestImage }}
+    {{- end}}
 {{- end}}
   repository: registry.redhat.io/rhacm2
   version: v0.13.1

@@ -83,6 +83,8 @@ type SubmarinerBrokerInfo struct {
 	SubmarinerNetworkPluginSyncerImage string
 	LighthouseAgentImage               string
 	LighthouseCoreDNSImage             string
+	MetricsProxyImage                  string
+	NettestImage                       string
 }
 
 // Get retrieves submariner broker information consolidated with hub information.
@@ -243,6 +245,14 @@ func applySubmarinerImageConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConf
 
 	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec != "" {
 		brokerInfo.SubmarinerNetworkPluginSyncerImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.MetricsProxyImagePullSpec != "" {
+		brokerInfo.MetricsProxyImage = submarinerConfig.Spec.ImagePullSpecs.MetricsProxyImagePullSpec
+	}
+
+	if submarinerConfig.Spec.ImagePullSpecs.NettestImagePullSpec != "" {
+		brokerInfo.NettestImage = submarinerConfig.Spec.ImagePullSpecs.NettestImagePullSpec
 	}
 }
 

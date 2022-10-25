@@ -141,6 +141,14 @@ type SubmarinerImagePullSpecs struct {
 	// SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer.
 	// +optional
 	SubmarinerNetworkPluginSyncerImagePullSpec string `json:"submarinerNetworkPluginSyncerImagePullSpec,omitempty"`
+
+	// MetricsProxyImagePullSpec represents the desired image of the metrics proxy.
+	// +optional
+	MetricsProxyImagePullSpec string `json:"metricsProxyImagePullSpec,omitempty"`
+
+	// NettestImagePullSpec represents the desired image of nettest.
+	// +optional
+	NettestImagePullSpec string `json:"nettestImagePullSpec,omitempty"`
 }
 
 type GatewayConfig struct {
