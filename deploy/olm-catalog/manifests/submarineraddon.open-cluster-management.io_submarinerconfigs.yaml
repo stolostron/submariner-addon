@@ -109,6 +109,12 @@ spec:
                   lighthouseCoreDNSImagePullSpec:
                     description: LighthouseCoreDNSImagePullSpec represents the desired image of lighthouse coredns.
                     type: string
+                  metricsProxyImagePullSpec:
+                    description: MetricsProxyImagePullSpec represents the desired image of the metrics proxy.
+                    type: string
+                  nettestImagePullSpec:
+                    description: NettestImagePullSpec represents the desired image of nettest.
+                    type: string
                   submarinerGlobalnetImagePullSpec:
                     description: SubmarinerGlobalnetImagePullSpec represents the desired image of the submariner globalnet.
                     type: string
