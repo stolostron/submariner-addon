@@ -150,6 +150,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			awaitNoSubmarinerManifestMorks(managedClusterName)
+			Fail("****Mock failure****")
 		})
 
 		It("Should remove the submariner agent manifestworks after the managedcluster is removed", func() {
