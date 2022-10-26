@@ -46,6 +46,14 @@ const (
 
 type MutateFn func(existing runtime.Object) (runtime.Object, error)
 
+type opType int
+
+const (
+	opCreate     opType = 1
+	opUpdate     opType = 2
+	opMustUpdate opType = 3
+)
+
 var backOff wait.Backoff = wait.Backoff{
 	Steps:    20,
 	Duration: time.Second,
@@ -56,16 +64,21 @@ var backOff wait.Backoff = wait.Backoff{
 var logger = log.Logger{Logger: logf.Log}
 
 func CreateOrUpdate(ctx context.Context, client resource.Interface, obj runtime.Object, mutate MutateFn) (OperationResult, error) {
-	return maybeCreateOrUpdate(ctx, client, obj, mutate, true)
+	return maybeCreateOrUpdate(ctx, client, obj, mutate, opCreate)
 }
 
 func Update(ctx context.Context, client resource.Interface, obj runtime.Object, mutate MutateFn) error {
-	_, err := maybeCreateOrUpdate(ctx, client, obj, mutate, false)
+	_, err := maybeCreateOrUpdate(ctx, client, obj, mutate, opUpdate)
+	return err
+}
+
+func MustUpdate(ctx context.Context, client resource.Interface, obj runtime.Object, mutate MutateFn) error {
+	_, err := maybeCreateOrUpdate(ctx, client, obj, mutate, opMustUpdate)
 	return err
 }
 
 func maybeCreateOrUpdate(ctx context.Context, client resource.Interface, obj runtime.Object, mutate MutateFn,
-	doCreate bool,
+	op opType,
 ) (OperationResult, error) {
 	result := OperationResultNone
 
@@ -74,8 +87,13 @@ func maybeCreateOrUpdate(ctx context.Context, client resource.Interface, obj run
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		existing, err := client.Get(ctx, objMeta.GetName(), metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			if !doCreate {
+			if op != opCreate {
 				logger.V(log.LIBTRACE).Infof("Resource %q does not exist - not updating", objMeta.GetName())
+
+				if op == opMustUpdate {
+					return err //nolint:wrapcheck // No need to wrap
+				}
+
 				return nil
 			}
 
@@ -132,10 +150,10 @@ func maybeCreateOrUpdate(ctx context.Context, client resource.Interface, obj run
 // this will wait for the deletion to be complete before creating the new object:
 // with foreground propagation, Get will continue to return the object being deleted
 // and Create will fail with “already exists” until deletion is complete.
+//nolint:gocritic // hugeParam - we're matching K8s API
 func CreateAnew(ctx context.Context, client resource.Interface, obj runtime.Object,
-	createOptions metav1.CreateOptions,
-	deleteOptions metav1.DeleteOptions) (runtime.Object, error, // nolint:gocritic // Match K8s API
-) {
+	createOptions metav1.CreateOptions, deleteOptions metav1.DeleteOptions,
+) (runtime.Object, error) {
 	name := resource.ToMeta(obj).GetName()
 
 	var retObj runtime.Object

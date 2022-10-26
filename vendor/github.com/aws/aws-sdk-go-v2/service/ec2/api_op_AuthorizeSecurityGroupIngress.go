@@ -14,14 +14,19 @@ import (
 // Adds the specified inbound (ingress) rules to a security group. An inbound rule
 // permits instances to receive traffic from the specified IPv4 or IPv6 CIDR
 // address range, or from the instances that are associated with the specified
-// destination security groups. You specify a protocol for each rule (for example,
-// TCP). For TCP and UDP, you must also specify the destination port or port range.
-// For ICMP/ICMPv6, you must also specify the ICMP/ICMPv6 type and code. You can
-// use -1 to mean all types or all codes. Rule changes are propagated to instances
-// within the security group as quickly as possible. However, a small delay might
-// occur. For more information about VPC security group quotas, see Amazon VPC
-// quotas
-// (https://docs.aws.amazon.com/vpc/latest/userguide/amazon-vpc-limits.html).
+// destination security groups. When specifying an inbound rule for your security
+// group in a VPC, the IpPermissions must include a source for the traffic. You
+// specify a protocol for each rule (for example, TCP). For TCP and UDP, you must
+// also specify the destination port or port range. For ICMP/ICMPv6, you must also
+// specify the ICMP/ICMPv6 type and code. You can use -1 to mean all types or all
+// codes. Rule changes are propagated to instances within the security group as
+// quickly as possible. However, a small delay might occur. For more information
+// about VPC security group quotas, see Amazon VPC quotas
+// (https://docs.aws.amazon.com/vpc/latest/userguide/amazon-vpc-limits.html). We
+// are retiring EC2-Classic. We recommend that you migrate from EC2-Classic to a
+// VPC. For more information, see Migrate from EC2-Classic to a VPC
+// (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-migrate.html) in the
+// Amazon Elastic Compute Cloud User Guide.
 func (c *Client) AuthorizeSecurityGroupIngress(ctx context.Context, params *AuthorizeSecurityGroupIngressInput, optFns ...func(*Options)) (*AuthorizeSecurityGroupIngressOutput, error) {
 	if params == nil {
 		params = &AuthorizeSecurityGroupIngressInput{}
@@ -63,7 +68,8 @@ type AuthorizeSecurityGroupIngressInput struct {
 	GroupId *string
 
 	// [EC2-Classic, default VPC] The name of the security group. You must specify
-	// either the security group ID or the security group name in the request.
+	// either the security group ID or the security group name in the request. For
+	// security groups in a nondefault VPC, you must specify the security group ID.
 	GroupName *string
 
 	// The sets of IP permissions.

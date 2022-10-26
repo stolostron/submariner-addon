@@ -17,6 +17,8 @@ import (
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
@@ -102,13 +104,15 @@ var _ = Describe("Function Get", func() {
 	})
 
 	JustBeforeEach(func() {
+		brokerObjs := []client.Object{}
 		if gnConfigMap != nil {
-			kubeObjs = append(kubeObjs, gnConfigMap)
+			brokerObjs = append(brokerObjs, gnConfigMap)
 		}
 
 		brokerInfo, err = submarinerbrokerinfo.Get(
 			kubefake.NewSimpleClientset(kubeObjs...),
 			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), dynamicObjs...),
+			fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(brokerObjs...).Build(),
 			clusterName,
 			brokerNamespace,
 			submarinerConfig,

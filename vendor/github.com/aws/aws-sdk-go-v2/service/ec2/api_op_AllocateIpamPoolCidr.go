@@ -14,7 +14,9 @@ import (
 
 // Allocate a CIDR from an IPAM pool. In IPAM, an allocation is a CIDR assignment
 // from an IPAM pool to another resource or IPAM pool. For more information, see
-// Allocate CIDRs in the Amazon VPC IPAM User Guide.
+// Allocate CIDRs
+// (https://docs.aws.amazon.com/vpc/latest/ipam/allocate-cidrs-ipam.html) in the
+// Amazon VPC IPAM User Guide.
 func (c *Client) AllocateIpamPoolCidr(ctx context.Context, params *AllocateIpamPoolCidrInput, optFns ...func(*Options)) (*AllocateIpamPoolCidrOutput, error) {
 	if params == nil {
 		params = &AllocateIpamPoolCidrInput{}
@@ -59,7 +61,8 @@ type AllocateIpamPoolCidrInput struct {
 	// A description for the allocation.
 	Description *string
 
-	// Exclude a particular CIDR range from being returned by the pool.
+	// Exclude a particular CIDR range from being returned by the pool. Disallowed
+	// CIDRs are only allowed if using netmask length for allocation.
 	DisallowedCidrs []string
 
 	// A check for whether you have the required permissions for the action without

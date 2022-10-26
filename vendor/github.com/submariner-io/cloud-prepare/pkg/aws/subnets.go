@@ -79,7 +79,7 @@ func (ac *awsCloud) getSubnetsSupportingInstanceType(subnets []types.Subnet, ins
 			},
 		})
 		if err != nil {
-			return false, err // nolint:wrapcheck // Let the caller wrap it.
+			return false, err //nolint:wrapcheck // Let the caller wrap it.
 		}
 
 		return len(output.InstanceTypeOfferings) > 0, nil
