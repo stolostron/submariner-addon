@@ -31,6 +31,7 @@ import (
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 	workinformers "open-cluster-management.io/api/client/work/informers/externalversions"
+	controllerclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -123,6 +124,11 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
+	controllerClient, err := controllerclient.New(controllerContext.KubeConfig, controllerclient.Options{})
+	if err != nil {
+		return err
+	}
+
 	clusterInformers := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
 	workInformers := workinformers.NewSharedInformerFactory(workClient, 10*time.Minute)
 	kubeInformers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
@@ -151,6 +157,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	submarinerAgentController := submarineragent.NewSubmarinerAgentController(
 		kubeClient,
 		dynamicClient,
+		controllerClient,
 		clusterClient,
 		workClient,
 		configClient,

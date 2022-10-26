@@ -209,7 +209,7 @@ func (ac *awsCloud) deleteGatewaySG(vpcID string) error {
 			GroupId: gatewayGroupID,
 		})
 
-		return err // nolint:wrapcheck // Let the caller wrap it.
+		return err //nolint:wrapcheck // Let the caller wrap it.
 	})
 
 	if isAWSError(err, "InvalidPermission.NotFound") {

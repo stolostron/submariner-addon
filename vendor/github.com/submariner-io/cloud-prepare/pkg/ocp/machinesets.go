@@ -45,6 +45,9 @@ type MachineSetDeployer interface {
 	// If an empty workerNodeList is passed, the API will internally query the worker nodes.
 	GetWorkerNodeImage(workerNodeList []string, machineSet *unstructured.Unstructured, infraID string) (string, error)
 
+	// List will list all the machinesets that contains name.
+	List(machineSet *unstructured.Unstructured, name string) ([]unstructured.Unstructured, error)
+
 	// Delete will remove the given machineset.
 	Delete(machineSet *unstructured.Unstructured) error
 }
@@ -152,4 +155,28 @@ func (msd *k8sMachineSetDeployer) Delete(machineSet *unstructured.Unstructured) 
 	}
 
 	return errors.Wrapf(err, "error deleting machine set %q", machineSet.GetName())
+}
+
+func (msd *k8sMachineSetDeployer) List(machineSet *unstructured.Unstructured, name string) ([]unstructured.Unstructured, error) {
+	machineSetClient, err := msd.clientFor(machineSet)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create machinesetclient")
+	}
+
+	machineSetList, err := machineSetClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list machinesets")
+	}
+
+	var resultList []unstructured.Unstructured
+	machinesetItems := machineSetList.Items
+
+	for i := range machinesetItems {
+		machineName, _, _ := unstructured.NestedString(machinesetItems[i].Object, "metadata", "name")
+		if strings.Contains(machineName, name) {
+			resultList = append(resultList, machinesetItems[i])
+		}
+	}
+
+	return resultList, nil
 }

@@ -72,7 +72,7 @@ func (k *k8sIface) ListGatewayNodes() (*v1.NodeList, error) {
 }
 
 func (k *k8sIface) updateLabel(nodeName string, mutate func(existing *v1.Node)) error {
-	// nolint:wrapcheck // Let the caller wrap these errors.
+	//nolint:wrapcheck // Let the caller wrap these errors.
 	client := &resource.InterfaceFuncs{
 		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (runtime.Object, error) {
 			return k.clientSet.CoreV1().Nodes().Get(ctx, name, options)

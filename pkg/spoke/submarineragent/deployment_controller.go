@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/addon"
-	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/names"
 	"github.com/submariner-io/submariner/pkg/cni"
 	"k8s.io/apimachinery/pkg/api/errors"

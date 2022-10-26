@@ -12,14 +12,16 @@ import (
 	configclientset "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/stolostron/submariner-addon/pkg/hub"
 	"github.com/stolostron/submariner-addon/test/util"
-	submClientSet "github.com/submariner-io/submariner-operator/pkg/client/clientset/versioned"
+	suboperatorapi "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	addonclientset "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -46,13 +48,13 @@ var testEnv *envtest.Environment
 var cfg *rest.Config
 
 var (
-	kubeClient    kubernetes.Interface
-	clusterClient clusterclientset.Interface
-	submClient    submClientSet.Interface
-	workClient    workclientset.Interface
-	configClinet  configclientset.Interface
-	addOnClient   addonclientset.Interface
-	dynamicClient dynamic.Interface
+	kubeClient       kubernetes.Interface
+	clusterClient    clusterclientset.Interface
+	controllerClient client.Client
+	workClient       workclientset.Interface
+	configClinet     configclientset.Interface
+	addOnClient      addonclientset.Interface
+	dynamicClient    dynamic.Interface
 )
 
 var _ = BeforeSuite(func() {
@@ -83,6 +85,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
+	Expect(suboperatorapi.AddToScheme(scheme.Scheme)).To(Succeed())
+
 	// prepare clients
 	kubeClient, err = kubernetes.NewForConfig(cfg)
 	Expect(err).ToNot(HaveOccurred())
@@ -108,9 +112,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(dynamicClient).ToNot(BeNil())
 
-	submClient, err = submClientSet.NewForConfig(cfg)
+	controllerClient, err = client.New(cfg, client.Options{})
 	Expect(err).ToNot(HaveOccurred())
-	Expect(submClient).ToNot(BeNil())
+	Expect(controllerClient).ToNot(BeNil())
 
 	// prepare open-cluster-management namespaces
 	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace("open-cluster-management"),

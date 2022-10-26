@@ -268,23 +268,61 @@ func (d *ocpGatewayDeployer) Cleanup(status reporter.Interface) error {
 		return status.Error(err, "error creating the compute client for the region: %q", d.Region)
 	}
 
+	// creating a machineset with a dummy index for deleting dedicated nodes
+	machineSet, err := d.initMachineSet("0")
+	if err != nil {
+		return status.Error(err, "failed to create machineSet for cleanup")
+	}
+
+	groupName := d.InfraID + gwSecurityGroupSuffix
+	prefix := d.InfraID + "-submariner-gw-"
+
+	machineSetList, err := d.msDeployer.List(machineSet, prefix)
+	if err != nil {
+		return status.Error(err, "error listing the Submariner gateway nodes")
+	}
+
+	// cleaning up the dedicated g/w nodes
+	for i := range machineSetList {
+		status.Start("Removing the Submariner gateway security group rules from node %q",
+			machineSetList[i].GetName())
+
+		err = d.removeFirewallRulesFromGW(groupName, machineSetList[i].GetName(), computeClient)
+		if err != nil {
+			return status.Error(err, "error deleting the security group rules")
+		}
+
+		status.Success("Successfully removed security group rules from node %q",
+			machineSetList[i].GetName())
+
+		status.Start(fmt.Sprintf("Deleting the gateway instance %q", machineSetList[i].GetName()))
+
+		index := machineSetList[i].GetName()[(len(machineSetList[i].GetName()) - 1):]
+
+		err = d.deleteGateway(index)
+		if err != nil {
+			return status.Error(err, "error deleting the gateway instance from node: %q",
+				machineSetList[i].GetName())
+		}
+
+		status.Success("Successfully deleted the instance")
+	}
+
 	gwNodesList, err := d.K8sClient.ListGatewayNodes()
 	if err != nil {
 		return status.Error(err, "error listing the Submariner gateway nodes")
 	}
 
-	groupName := d.InfraID + gwSecurityGroupSuffix
 	gwNodes := gwNodesList.Items
 
 	for i := range gwNodes {
 		// Check if the instance belongs to the cluster (identified via infraID) we are operating on.
-		if !strings.HasPrefix(gwNodes[i].Name, d.InfraID) {
+		// If the instance name matches with d.InfraID + "-submariner-gw-", it implies that
+		// the gateway node was deployed using the OCPMachineSet which is already handled above and
+		// the node should be already be in deleting state.
+		if !strings.HasPrefix(gwNodes[i].Name, d.InfraID) || strings.HasPrefix(gwNodes[i].Name, prefix) {
 			continue
 		}
-
-		// If the instance name matches with d.InfraID + "-submariner-gw-", it implies that
-		// the gateway node was deployed using the OCPMachineSet API otherwise it's an existing worker node.
-		prefix := d.InfraID + "-submariner-gw-"
 
 		status.Start("Deleting the Submariner gateway security group rules from node %q", gwNodes[i].Name)
 
@@ -293,30 +331,20 @@ func (d *ocpGatewayDeployer) Cleanup(status reporter.Interface) error {
 			return status.Error(err, "error deleting the security group rules")
 		}
 
-		if strings.HasPrefix(gwNodes[i].Name, prefix) {
-			status.Start(fmt.Sprintf("Deleting the gateway instance %q", gwNodes[i].Name))
+		status.Success("Successfully removed security group rules from node %q",
+			gwNodes[i].Name)
 
-			err = d.deleteGateway(strconv.Itoa(i))
-			if err != nil {
-				return status.Error(err, "error deleting the gateway instance from node: %q",
-					gwNodes[i].Name)
-			}
+		status.Start(fmt.Sprintf("Removing Submariner gateway label from instance %q", gwNodes[i].Name))
 
-			status.Success("Successfully deleted the instance")
-		} else {
-			status.Start(fmt.Sprintf("Removing the gateway configuration from instance %q", gwNodes[i].Name))
-			err = d.K8sClient.RemoveGWLabelFromWorkerNode(&gwNodes[i])
-			if err != nil {
-				return status.Error(err, "failed to remove labels from worker node")
-			}
-
-			status.Success("Successfully reconfigured the instance")
+		err = d.K8sClient.RemoveGWLabelFromWorkerNode(&gwNodes[i])
+		if err != nil {
+			return status.Error(err, "failed to remove labels from worker node")
 		}
 
-		status.End()
+		status.Success(fmt.Sprintf("Successfully removed Submariner gateway label from instance %q", gwNodes[i].Name))
 	}
 
-	status.Success("Successfully removed the Submariner gateway configuration from the nodes")
+	status.Success("Successfully removed the Submariner gateway label from the nodes")
 
 	status.Start("Deleting the Submariner gateway security group")
 

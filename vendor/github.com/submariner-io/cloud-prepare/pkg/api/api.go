@@ -50,6 +50,9 @@ type GatewayDeployInput struct {
 	//
 	// 1-* = Deploy the amount of gateways requested (May fail if there aren't enough public subnets)
 	Gateways int
+
+	// Use service of type LoadBalancer to deploy Submariner
+	UseLoadBalancer bool
 }
 
 // GatewayDeployer will deploy and cleanup dedicated gateways according to the requested policy.

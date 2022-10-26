@@ -35,6 +35,8 @@ const (
 	AcceleratorNameM60           AcceleratorName = "m60"
 	AcceleratorNameRadeonProV520 AcceleratorName = "radeon-pro-v520"
 	AcceleratorNameVu9p          AcceleratorName = "vu9p"
+	AcceleratorNameInferentia    AcceleratorName = "inferentia"
+	AcceleratorNameK520          AcceleratorName = "k520"
 )
 
 // Values returns all known values for AcceleratorName. Note that this can be
@@ -49,6 +51,8 @@ func (AcceleratorName) Values() []AcceleratorName {
 		"m60",
 		"radeon-pro-v520",
 		"vu9p",
+		"inferentia",
+		"k520",
 	}
 }
 
@@ -209,6 +213,22 @@ func (AllocationStrategy) Values() []AllocationStrategy {
 		"diversified",
 		"capacityOptimized",
 		"capacityOptimizedPrioritized",
+	}
+}
+
+type AllocationType string
+
+// Enum values for AllocationType
+const (
+	AllocationTypeUsed AllocationType = "used"
+)
+
+// Values returns all known values for AllocationType. Note that this can be
+// expanded in the future, and so it is only as up to date as the client. The
+// ordering of this slice is not guaranteed to be stable across updates.
+func (AllocationType) Values() []AllocationType {
+	return []AllocationType{
+		"used",
 	}
 }
 
@@ -1423,6 +1443,24 @@ func (DomainType) Values() []DomainType {
 	}
 }
 
+type DynamicRoutingValue string
+
+// Enum values for DynamicRoutingValue
+const (
+	DynamicRoutingValueEnable  DynamicRoutingValue = "enable"
+	DynamicRoutingValueDisable DynamicRoutingValue = "disable"
+)
+
+// Values returns all known values for DynamicRoutingValue. Note that this can be
+// expanded in the future, and so it is only as up to date as the client. The
+// ordering of this slice is not guaranteed to be stable across updates.
+func (DynamicRoutingValue) Values() []DynamicRoutingValue {
+	return []DynamicRoutingValue{
+		"enable",
+		"disable",
+	}
+}
+
 type EbsEncryptionSupport string
 
 // Enum values for EbsEncryptionSupport
@@ -1966,9 +2004,11 @@ type FlowLogsResourceType string
 
 // Enum values for FlowLogsResourceType
 const (
-	FlowLogsResourceTypeVpc              FlowLogsResourceType = "VPC"
-	FlowLogsResourceTypeSubnet           FlowLogsResourceType = "Subnet"
-	FlowLogsResourceTypeNetworkInterface FlowLogsResourceType = "NetworkInterface"
+	FlowLogsResourceTypeVpc                      FlowLogsResourceType = "VPC"
+	FlowLogsResourceTypeSubnet                   FlowLogsResourceType = "Subnet"
+	FlowLogsResourceTypeNetworkInterface         FlowLogsResourceType = "NetworkInterface"
+	FlowLogsResourceTypeTransitGateway           FlowLogsResourceType = "TransitGateway"
+	FlowLogsResourceTypeTransitGatewayAttachment FlowLogsResourceType = "TransitGatewayAttachment"
 )
 
 // Values returns all known values for FlowLogsResourceType. Note that this can be
@@ -1979,6 +2019,8 @@ func (FlowLogsResourceType) Values() []FlowLogsResourceType {
 		"VPC",
 		"Subnet",
 		"NetworkInterface",
+		"TransitGateway",
+		"TransitGatewayAttachment",
 	}
 }
 
@@ -2210,6 +2252,7 @@ const (
 	ImageAttributeNameTpmSupport         ImageAttributeName = "tpmSupport"
 	ImageAttributeNameUefiData           ImageAttributeName = "uefiData"
 	ImageAttributeNameLastLaunchedTime   ImageAttributeName = "lastLaunchedTime"
+	ImageAttributeNameImdsSupport        ImageAttributeName = "imdsSupport"
 )
 
 // Values returns all known values for ImageAttributeName. Note that this can be
@@ -2228,6 +2271,7 @@ func (ImageAttributeName) Values() []ImageAttributeName {
 		"tpmSupport",
 		"uefiData",
 		"lastLaunchedTime",
+		"imdsSupport",
 	}
 }
 
@@ -2276,6 +2320,22 @@ func (ImageTypeValues) Values() []ImageTypeValues {
 		"machine",
 		"kernel",
 		"ramdisk",
+	}
+}
+
+type ImdsSupportValues string
+
+// Enum values for ImdsSupportValues
+const (
+	ImdsSupportValuesV20 ImdsSupportValues = "v2.0"
+)
+
+// Values returns all known values for ImdsSupportValues. Note that this can be
+// expanded in the future, and so it is only as up to date as the client. The
+// ordering of this slice is not guaranteed to be stable across updates.
+func (ImdsSupportValues) Values() []ImdsSupportValues {
+	return []ImdsSupportValues{
+		"v2.0",
 	}
 }
 
@@ -3123,6 +3183,50 @@ const (
 	InstanceTypeC7g8xlarge      InstanceType = "c7g.8xlarge"
 	InstanceTypeC7g12xlarge     InstanceType = "c7g.12xlarge"
 	InstanceTypeC7g16xlarge     InstanceType = "c7g.16xlarge"
+	InstanceTypeMac2Metal       InstanceType = "mac2.metal"
+	InstanceTypeC6idLarge       InstanceType = "c6id.large"
+	InstanceTypeC6idXlarge      InstanceType = "c6id.xlarge"
+	InstanceTypeC6id2xlarge     InstanceType = "c6id.2xlarge"
+	InstanceTypeC6id4xlarge     InstanceType = "c6id.4xlarge"
+	InstanceTypeC6id8xlarge     InstanceType = "c6id.8xlarge"
+	InstanceTypeC6id12xlarge    InstanceType = "c6id.12xlarge"
+	InstanceTypeC6id16xlarge    InstanceType = "c6id.16xlarge"
+	InstanceTypeC6id24xlarge    InstanceType = "c6id.24xlarge"
+	InstanceTypeC6id32xlarge    InstanceType = "c6id.32xlarge"
+	InstanceTypeC6idMetal       InstanceType = "c6id.metal"
+	InstanceTypeM6idLarge       InstanceType = "m6id.large"
+	InstanceTypeM6idXlarge      InstanceType = "m6id.xlarge"
+	InstanceTypeM6id2xlarge     InstanceType = "m6id.2xlarge"
+	InstanceTypeM6id4xlarge     InstanceType = "m6id.4xlarge"
+	InstanceTypeM6id8xlarge     InstanceType = "m6id.8xlarge"
+	InstanceTypeM6id12xlarge    InstanceType = "m6id.12xlarge"
+	InstanceTypeM6id16xlarge    InstanceType = "m6id.16xlarge"
+	InstanceTypeM6id24xlarge    InstanceType = "m6id.24xlarge"
+	InstanceTypeM6id32xlarge    InstanceType = "m6id.32xlarge"
+	InstanceTypeM6idMetal       InstanceType = "m6id.metal"
+	InstanceTypeR6idLarge       InstanceType = "r6id.large"
+	InstanceTypeR6idXlarge      InstanceType = "r6id.xlarge"
+	InstanceTypeR6id2xlarge     InstanceType = "r6id.2xlarge"
+	InstanceTypeR6id4xlarge     InstanceType = "r6id.4xlarge"
+	InstanceTypeR6id8xlarge     InstanceType = "r6id.8xlarge"
+	InstanceTypeR6id12xlarge    InstanceType = "r6id.12xlarge"
+	InstanceTypeR6id16xlarge    InstanceType = "r6id.16xlarge"
+	InstanceTypeR6id24xlarge    InstanceType = "r6id.24xlarge"
+	InstanceTypeR6id32xlarge    InstanceType = "r6id.32xlarge"
+	InstanceTypeR6idMetal       InstanceType = "r6id.metal"
+	InstanceTypeR6aLarge        InstanceType = "r6a.large"
+	InstanceTypeR6aXlarge       InstanceType = "r6a.xlarge"
+	InstanceTypeR6a2xlarge      InstanceType = "r6a.2xlarge"
+	InstanceTypeR6a4xlarge      InstanceType = "r6a.4xlarge"
+	InstanceTypeR6a8xlarge      InstanceType = "r6a.8xlarge"
+	InstanceTypeR6a12xlarge     InstanceType = "r6a.12xlarge"
+	InstanceTypeR6a16xlarge     InstanceType = "r6a.16xlarge"
+	InstanceTypeR6a24xlarge     InstanceType = "r6a.24xlarge"
+	InstanceTypeR6a32xlarge     InstanceType = "r6a.32xlarge"
+	InstanceTypeR6a48xlarge     InstanceType = "r6a.48xlarge"
+	InstanceTypeR6aMetal        InstanceType = "r6a.metal"
+	InstanceTypeP4de24xlarge    InstanceType = "p4de.24xlarge"
+	InstanceTypeU3tb156xlarge   InstanceType = "u-3tb1.56xlarge"
 )
 
 // Values returns all known values for InstanceType. Note that this can be expanded
@@ -3655,6 +3759,50 @@ func (InstanceType) Values() []InstanceType {
 		"c7g.8xlarge",
 		"c7g.12xlarge",
 		"c7g.16xlarge",
+		"mac2.metal",
+		"c6id.large",
+		"c6id.xlarge",
+		"c6id.2xlarge",
+		"c6id.4xlarge",
+		"c6id.8xlarge",
+		"c6id.12xlarge",
+		"c6id.16xlarge",
+		"c6id.24xlarge",
+		"c6id.32xlarge",
+		"c6id.metal",
+		"m6id.large",
+		"m6id.xlarge",
+		"m6id.2xlarge",
+		"m6id.4xlarge",
+		"m6id.8xlarge",
+		"m6id.12xlarge",
+		"m6id.16xlarge",
+		"m6id.24xlarge",
+		"m6id.32xlarge",
+		"m6id.metal",
+		"r6id.large",
+		"r6id.xlarge",
+		"r6id.2xlarge",
+		"r6id.4xlarge",
+		"r6id.8xlarge",
+		"r6id.12xlarge",
+		"r6id.16xlarge",
+		"r6id.24xlarge",
+		"r6id.32xlarge",
+		"r6id.metal",
+		"r6a.large",
+		"r6a.xlarge",
+		"r6a.2xlarge",
+		"r6a.4xlarge",
+		"r6a.8xlarge",
+		"r6a.12xlarge",
+		"r6a.16xlarge",
+		"r6a.24xlarge",
+		"r6a.32xlarge",
+		"r6a.48xlarge",
+		"r6a.metal",
+		"p4de.24xlarge",
+		"u-3tb1.56xlarge",
 	}
 }
 
@@ -4322,6 +4470,24 @@ func (LocalGatewayRouteState) Values() []LocalGatewayRouteState {
 	}
 }
 
+type LocalGatewayRouteTableMode string
+
+// Enum values for LocalGatewayRouteTableMode
+const (
+	LocalGatewayRouteTableModeDirectVpcRouting LocalGatewayRouteTableMode = "direct-vpc-routing"
+	LocalGatewayRouteTableModeCoip             LocalGatewayRouteTableMode = "coip"
+)
+
+// Values returns all known values for LocalGatewayRouteTableMode. Note that this
+// can be expanded in the future, and so it is only as up to date as the client.
+// The ordering of this slice is not guaranteed to be stable across updates.
+func (LocalGatewayRouteTableMode) Values() []LocalGatewayRouteTableMode {
+	return []LocalGatewayRouteTableMode{
+		"direct-vpc-routing",
+		"coip",
+	}
+}
+
 type LocalGatewayRouteType string
 
 // Enum values for LocalGatewayRouteType
@@ -4402,8 +4568,9 @@ type LogDestinationType string
 
 // Enum values for LogDestinationType
 const (
-	LogDestinationTypeCloudWatchLogs LogDestinationType = "cloud-watch-logs"
-	LogDestinationTypeS3             LogDestinationType = "s3"
+	LogDestinationTypeCloudWatchLogs      LogDestinationType = "cloud-watch-logs"
+	LogDestinationTypeS3                  LogDestinationType = "s3"
+	LogDestinationTypeKinesisDataFirehose LogDestinationType = "kinesis-data-firehose"
 )
 
 // Values returns all known values for LogDestinationType. Note that this can be
@@ -4413,6 +4580,7 @@ func (LogDestinationType) Values() []LogDestinationType {
 	return []LogDestinationType{
 		"cloud-watch-logs",
 		"s3",
+		"kinesis-data-firehose",
 	}
 }
 
@@ -5234,6 +5402,7 @@ const (
 	ResourceTypeClientVpnEndpoint                                      ResourceType = "client-vpn-endpoint"
 	ResourceTypeCustomerGateway                                        ResourceType = "customer-gateway"
 	ResourceTypeCarrierGateway                                         ResourceType = "carrier-gateway"
+	ResourceTypeCoipPool                                               ResourceType = "coip-pool"
 	ResourceTypeDedicatedHost                                          ResourceType = "dedicated-host"
 	ResourceTypeDhcpOptions                                            ResourceType = "dhcp-options"
 	ResourceTypeEgressOnlyInternetGateway                              ResourceType = "egress-only-internet-gateway"
@@ -5289,15 +5458,23 @@ const (
 	ResourceTypeTransitGatewayAttachment                               ResourceType = "transit-gateway-attachment"
 	ResourceTypeTransitGatewayConnectPeer                              ResourceType = "transit-gateway-connect-peer"
 	ResourceTypeTransitGatewayMulticastDomain                          ResourceType = "transit-gateway-multicast-domain"
+	ResourceTypeTransitGatewayPolicyTable                              ResourceType = "transit-gateway-policy-table"
 	ResourceTypeTransitGatewayRouteTable                               ResourceType = "transit-gateway-route-table"
+	ResourceTypeTransitGatewayRouteTableAnnouncement                   ResourceType = "transit-gateway-route-table-announcement"
 	ResourceTypeVolume                                                 ResourceType = "volume"
 	ResourceTypeVpc                                                    ResourceType = "vpc"
 	ResourceTypeVpcEndpoint                                            ResourceType = "vpc-endpoint"
+	ResourceTypeVpcEndpointConnection                                  ResourceType = "vpc-endpoint-connection"
 	ResourceTypeVpcEndpointService                                     ResourceType = "vpc-endpoint-service"
+	ResourceTypeVpcEndpointServicePermission                           ResourceType = "vpc-endpoint-service-permission"
 	ResourceTypeVpcPeeringConnection                                   ResourceType = "vpc-peering-connection"
 	ResourceTypeVpnConnection                                          ResourceType = "vpn-connection"
 	ResourceTypeVpnGateway                                             ResourceType = "vpn-gateway"
 	ResourceTypeVpcFlowLog                                             ResourceType = "vpc-flow-log"
+	ResourceTypeCapacityReservationFleet                               ResourceType = "capacity-reservation-fleet"
+	ResourceTypeTrafficMirrorFilterRule                                ResourceType = "traffic-mirror-filter-rule"
+	ResourceTypeVpcEndpointConnectionDeviceType                        ResourceType = "vpc-endpoint-connection-device-type"
+	ResourceTypeVpnConnectionDeviceType                                ResourceType = "vpn-connection-device-type"
 )
 
 // Values returns all known values for ResourceType. Note that this can be expanded
@@ -5309,6 +5486,7 @@ func (ResourceType) Values() []ResourceType {
 		"client-vpn-endpoint",
 		"customer-gateway",
 		"carrier-gateway",
+		"coip-pool",
 		"dedicated-host",
 		"dhcp-options",
 		"egress-only-internet-gateway",
@@ -5364,15 +5542,23 @@ func (ResourceType) Values() []ResourceType {
 		"transit-gateway-attachment",
 		"transit-gateway-connect-peer",
 		"transit-gateway-multicast-domain",
+		"transit-gateway-policy-table",
 		"transit-gateway-route-table",
+		"transit-gateway-route-table-announcement",
 		"volume",
 		"vpc",
 		"vpc-endpoint",
+		"vpc-endpoint-connection",
 		"vpc-endpoint-service",
+		"vpc-endpoint-service-permission",
 		"vpc-peering-connection",
 		"vpn-connection",
 		"vpn-gateway",
 		"vpc-flow-log",
+		"capacity-reservation-fleet",
+		"traffic-mirror-filter-rule",
+		"vpc-endpoint-connection-device-type",
+		"vpn-connection-device-type",
 	}
 }
 
@@ -5729,6 +5915,24 @@ func (SpotInstanceType) Values() []SpotInstanceType {
 	return []SpotInstanceType{
 		"one-time",
 		"persistent",
+	}
+}
+
+type SpreadLevel string
+
+// Enum values for SpreadLevel
+const (
+	SpreadLevelHost SpreadLevel = "host"
+	SpreadLevelRack SpreadLevel = "rack"
+)
+
+// Values returns all known values for SpreadLevel. Note that this can be expanded
+// in the future, and so it is only as up to date as the client. The ordering of
+// this slice is not guaranteed to be stable across updates.
+func (SpreadLevel) Values() []SpreadLevel {
+	return []SpreadLevel{
+		"host",
+		"rack",
 	}
 }
 
@@ -6364,6 +6568,29 @@ func (TransitGatewayMulticastDomainState) Values() []TransitGatewayMulticastDoma
 	}
 }
 
+type TransitGatewayPolicyTableState string
+
+// Enum values for TransitGatewayPolicyTableState
+const (
+	TransitGatewayPolicyTableStatePending   TransitGatewayPolicyTableState = "pending"
+	TransitGatewayPolicyTableStateAvailable TransitGatewayPolicyTableState = "available"
+	TransitGatewayPolicyTableStateDeleting  TransitGatewayPolicyTableState = "deleting"
+	TransitGatewayPolicyTableStateDeleted   TransitGatewayPolicyTableState = "deleted"
+)
+
+// Values returns all known values for TransitGatewayPolicyTableState. Note that
+// this can be expanded in the future, and so it is only as up to date as the
+// client. The ordering of this slice is not guaranteed to be stable across
+// updates.
+func (TransitGatewayPolicyTableState) Values() []TransitGatewayPolicyTableState {
+	return []TransitGatewayPolicyTableState{
+		"pending",
+		"available",
+		"deleting",
+		"deleted",
+	}
+}
+
 type TransitGatewayPrefixListReferenceState string
 
 // Enum values for TransitGatewayPrefixListReferenceState
@@ -6429,6 +6656,52 @@ func (TransitGatewayRouteState) Values() []TransitGatewayRouteState {
 		"pending",
 		"active",
 		"blackhole",
+		"deleting",
+		"deleted",
+	}
+}
+
+type TransitGatewayRouteTableAnnouncementDirection string
+
+// Enum values for TransitGatewayRouteTableAnnouncementDirection
+const (
+	TransitGatewayRouteTableAnnouncementDirectionOutgoing TransitGatewayRouteTableAnnouncementDirection = "outgoing"
+	TransitGatewayRouteTableAnnouncementDirectionIncoming TransitGatewayRouteTableAnnouncementDirection = "incoming"
+)
+
+// Values returns all known values for
+// TransitGatewayRouteTableAnnouncementDirection. Note that this can be expanded in
+// the future, and so it is only as up to date as the client. The ordering of this
+// slice is not guaranteed to be stable across updates.
+func (TransitGatewayRouteTableAnnouncementDirection) Values() []TransitGatewayRouteTableAnnouncementDirection {
+	return []TransitGatewayRouteTableAnnouncementDirection{
+		"outgoing",
+		"incoming",
+	}
+}
+
+type TransitGatewayRouteTableAnnouncementState string
+
+// Enum values for TransitGatewayRouteTableAnnouncementState
+const (
+	TransitGatewayRouteTableAnnouncementStateAvailable TransitGatewayRouteTableAnnouncementState = "available"
+	TransitGatewayRouteTableAnnouncementStatePending   TransitGatewayRouteTableAnnouncementState = "pending"
+	TransitGatewayRouteTableAnnouncementStateFailing   TransitGatewayRouteTableAnnouncementState = "failing"
+	TransitGatewayRouteTableAnnouncementStateFailed    TransitGatewayRouteTableAnnouncementState = "failed"
+	TransitGatewayRouteTableAnnouncementStateDeleting  TransitGatewayRouteTableAnnouncementState = "deleting"
+	TransitGatewayRouteTableAnnouncementStateDeleted   TransitGatewayRouteTableAnnouncementState = "deleted"
+)
+
+// Values returns all known values for TransitGatewayRouteTableAnnouncementState.
+// Note that this can be expanded in the future, and so it is only as up to date as
+// the client. The ordering of this slice is not guaranteed to be stable across
+// updates.
+func (TransitGatewayRouteTableAnnouncementState) Values() []TransitGatewayRouteTableAnnouncementState {
+	return []TransitGatewayRouteTableAnnouncementState{
+		"available",
+		"pending",
+		"failing",
+		"failed",
 		"deleting",
 		"deleted",
 	}
@@ -6777,8 +7050,9 @@ type VpcAttributeName string
 
 // Enum values for VpcAttributeName
 const (
-	VpcAttributeNameEnableDnsSupport   VpcAttributeName = "enableDnsSupport"
-	VpcAttributeNameEnableDnsHostnames VpcAttributeName = "enableDnsHostnames"
+	VpcAttributeNameEnableDnsSupport                 VpcAttributeName = "enableDnsSupport"
+	VpcAttributeNameEnableDnsHostnames               VpcAttributeName = "enableDnsHostnames"
+	VpcAttributeNameEnableNetworkAddressUsageMetrics VpcAttributeName = "enableNetworkAddressUsageMetrics"
 )
 
 // Values returns all known values for VpcAttributeName. Note that this can be
@@ -6788,6 +7062,7 @@ func (VpcAttributeName) Values() []VpcAttributeName {
 	return []VpcAttributeName{
 		"enableDnsSupport",
 		"enableDnsHostnames",
+		"enableNetworkAddressUsageMetrics",
 	}
 }
 

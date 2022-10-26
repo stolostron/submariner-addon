@@ -7,13 +7,12 @@ import (
 	"os"
 	"strconv"
 
-	submreporter "github.com/submariner-io/admiral/pkg/reporter"
-
-	"github.com/Azure/go-autorest/autorest/azure/auth"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 	"github.com/submariner-io/cloud-prepare/pkg/azure"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
@@ -76,10 +75,9 @@ func NewAzureProvider(
 		return nil, errors.Wrap(err, "unable to initialize from auth file")
 	}
 
-	authorizer, err := auth.NewAuthorizerFromEnvironment()
-
+	credentials, err := azidentity.NewEnvironmentCredential(nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create the Azure authorizer")
+		return nil, errors.Wrap(err, "unable to create the Azure credentials")
 	}
 
 	k8sClient := k8s.NewInterface(kubeClient)
@@ -87,12 +85,12 @@ func NewAzureProvider(
 	msDeployer := ocp.NewK8sMachinesetDeployer(restMapper, dynamicClient)
 
 	cloudInfo := azure.CloudInfo{
-		SubscriptionID: subscriptionID,
-		InfraID:        infraID,
-		Region:         region,
-		BaseGroupName:  infraID + "-rg",
-		Authorizer:     authorizer,
-		K8sClient:      k8sClient,
+		SubscriptionID:  subscriptionID,
+		InfraID:         infraID,
+		Region:          region,
+		BaseGroupName:   infraID + "-rg",
+		TokenCredential: credentials,
+		K8sClient:       k8sClient,
 	}
 
 	azureCloud := azure.NewCloud(&cloudInfo)
@@ -127,7 +125,7 @@ func NewAzureProvider(
 // 2. create the inbound and outbound firewall rules to open 8080/TCP, 8081/TCP port to export metrics service from the
 //    Submariner gateway
 func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
-	//TODO For ovn the port 4800 need not be opened.
+	// TODO For ovn the port 4800 need not be opened.
 	if err := r.gwDeployer.Deploy(api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
 			{Port: r.nattPort, Protocol: "udp"},

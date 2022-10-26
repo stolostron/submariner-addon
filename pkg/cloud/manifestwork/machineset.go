@@ -36,9 +36,14 @@ func NewMachineSetDeployer(client workclient.Interface, workName, clusterName st
 	}
 }
 
+func (msd *manifestWorkMachineSetDeployer) List(*unstructured.Unstructured, string) ([]unstructured.Unstructured, error) {
+	// This MachineSetDeployer implementation is (currently) only used for AWS and this method is only used for RHOS
+	// which uses a different implementation.
+	panic("Not implemented")
+}
+
 func (msd *manifestWorkMachineSetDeployer) Deploy(machineSet *unstructured.Unstructured) error {
 	existingManifestWork, err := msd.client.WorkV1().ManifestWorks(msd.clusterName).Get(context.TODO(), msd.workName, metav1.GetOptions{})
-
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err

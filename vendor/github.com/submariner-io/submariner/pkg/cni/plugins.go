@@ -21,9 +21,15 @@ package cni
 // Supported network plugins.
 const (
 	Generic       = "generic"
+	Calico        = "calico"
 	CanalFlannel  = "canal-flannel"
-	WeaveNet      = "weave-net"
+	Flannel       = "flannel"
+	KindNet       = "kindnet"
 	OpenShiftSDN  = "OpenShiftSDN"
 	OVNKubernetes = "OVNKubernetes"
-	Calico        = "calico"
+	WeaveNet      = "weave-net"
 )
+
+func GetNetworkPlugins() []string {
+	return []string{Generic, Calico, CanalFlannel, Flannel, KindNet, OpenShiftSDN, OVNKubernetes, WeaveNet}
+}

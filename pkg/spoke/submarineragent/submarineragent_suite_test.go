@@ -10,7 +10,7 @@ import (
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/submariner-io/admiral/pkg/test"
-	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/submariner/v1alpha1"
+	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
