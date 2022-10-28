@@ -148,3 +148,17 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 
 	return nil
 }
+
+func (a *awsProvider) CleanUpSubmarinerClusterEnv2() error {
+	if err := a.gatewayDeployer.Cleanup(a.reporter); err != nil {
+		return err
+	}
+
+	if err := a.cloudPrepare.CleanupAfterSubmariner(a.reporter); err != nil {
+		return err
+	}
+
+	a.reporter.Success("The Submariner cluster environment has been cleaned up on AWS")
+
+	return nil
+}

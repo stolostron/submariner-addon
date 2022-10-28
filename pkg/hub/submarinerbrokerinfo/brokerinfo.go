@@ -147,6 +147,12 @@ func applyGlobalnetConfig(controllerClient controllerclient.Client, brokerNamesp
 	brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig,
 ) error {
 	gnInfo, _, err := globalnet.GetGlobalNetworks(controllerClient, brokerNamespace)
+
+	klog.Warning("blah")
+	klog.Warning("blah")
+	klog.Warning("blah")
+	klog.Warning("blah")
+
 	if err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrapf(err, "error reading globalnet configmap from namespace %q", brokerNamespace)
 	}
