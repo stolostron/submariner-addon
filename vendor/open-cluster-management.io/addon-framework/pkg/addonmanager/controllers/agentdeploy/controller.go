@@ -3,16 +3,21 @@ package agentdeploy
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	errorsutil "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
+	"open-cluster-management.io/addon-framework/pkg/common/workapplier"
+	"open-cluster-management.io/addon-framework/pkg/common/workbuilder"
 	"open-cluster-management.io/addon-framework/pkg/utils"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
@@ -22,19 +27,19 @@ import (
 	clusterlister "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
 	workv1client "open-cluster-management.io/api/client/work/clientset/versioned"
 	workinformers "open-cluster-management.io/api/client/work/informers/externalversions/work/v1"
-	worklister "open-cluster-management.io/api/client/work/listers/work/v1"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	workapiv1 "open-cluster-management.io/api/work/v1"
 )
 
-// managedClusterController reconciles instances of ManagedCluster on the hub.
+// addonDeployController deploy addon agent resources on the managed cluster.
 type addonDeployController struct {
-	workClient                workv1client.Interface
+	workApplier               *workapplier.WorkApplier
+	workBuilder               *workbuilder.WorkBuilder
 	addonClient               addonv1alpha1client.Interface
 	managedClusterLister      clusterlister.ManagedClusterLister
 	managedClusterAddonLister addonlisterv1alpha1.ManagedClusterAddOnLister
-	workLister                worklister.ManifestWorkLister
+	workIndexer               cache.Indexer
 	agentAddons               map[string]agent.AgentAddon
-	cache                     *workCache
 }
 
 func NewAddonDeployController(
@@ -45,14 +50,26 @@ func NewAddonDeployController(
 	workInformers workinformers.ManifestWorkInformer,
 	agentAddons map[string]agent.AgentAddon,
 ) factory.Controller {
+	err := workInformers.Informer().AddIndexers(
+		cache.Indexers{
+			byAddon:           indexByAddon,
+			byHostedAddon:     indexByHostedAddon,
+			hookByHostedAddon: indexHookByHostedAddon,
+		},
+	)
+
+	if err != nil {
+		utilruntime.HandleError(err)
+	}
+
 	c := &addonDeployController{
-		workClient:                workClient,
+		workApplier:               workapplier.NewWorkApplierWithTypedClient(workClient, workInformers.Lister()),
+		workBuilder:               workbuilder.NewWorkBuilder(),
 		addonClient:               addonClient,
 		managedClusterLister:      clusterInformers.Lister(),
 		managedClusterAddonLister: addonInformers.Lister(),
-		workLister:                workInformers.Lister(),
+		workIndexer:               workInformers.Informer().GetIndexer(),
 		agentAddons:               agentAddons,
-		cache:                     newWorkCache(),
 	}
 
 	return factory.New().WithFilteredEventsInformersQueueKeysFunc(
@@ -72,6 +89,12 @@ func NewAddonDeployController(
 		WithFilteredEventsInformersQueueKeysFunc(
 			func(obj runtime.Object) []string {
 				accessor, _ := meta.Accessor(obj)
+				// in hosted mode, need get the addon namespace from the AddonNamespaceLabel, because
+				// the namespaces of manifestWork and addon may be different.
+				// in default mode, the addon and manifestWork are in the cluster namespace.
+				if addonNamespace, ok := accessor.GetLabels()[constants.AddonNamespaceLabel]; ok {
+					return []string{fmt.Sprintf("%s/%s", addonNamespace, accessor.GetLabels()[constants.AddonLabel])}
+				}
 				return []string{fmt.Sprintf("%s/%s", accessor.GetNamespace(), accessor.GetLabels()[constants.AddonLabel])}
 			},
 			func(obj interface{}) bool {
@@ -80,6 +103,7 @@ func NewAddonDeployController(
 					return false
 				}
 
+				// only watch the addon deploy/hook manifestWorks here.
 				addonName, ok := accessor.GetLabels()[constants.AddonLabel]
 				if !ok {
 					return false
@@ -88,19 +112,40 @@ func NewAddonDeployController(
 				if _, ok := c.agentAddons[addonName]; !ok {
 					return false
 				}
-				if accessor.GetName() != constants.DeployWorkName(addonName) {
-					return false
+
+				if strings.HasPrefix(accessor.GetName(), constants.DeployWorkNamePrefix(addonName)) ||
+					strings.HasPrefix(accessor.GetName(), constants.PreDeleteHookWorkName(addonName)) {
+					return true
 				}
-				return true
+				return false
 			},
 			workInformers.Informer(),
 		).
 		WithSync(c.sync).ToController("addon-deploy-controller")
 }
 
-func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncContext, key string) error {
-	klog.V(4).Infof("Reconciling addon deploy %q", key)
+type addonDeploySyncer interface {
+	sync(ctx context.Context, syncCtx factory.SyncContext,
+		cluster *clusterv1.ManagedCluster,
+		addon *addonapiv1alpha1.ManagedClusterAddOn) (*addonapiv1alpha1.ManagedClusterAddOn, error)
+}
 
+func (c *addonDeployController) getWorksByAddonFn(index string) func(addonName, addonNamespace string) ([]*workapiv1.ManifestWork, error) {
+	return func(addonName, addonNamespace string) ([]*workapiv1.ManifestWork, error) {
+		items, err := c.workIndexer.ByIndex(index, fmt.Sprintf("%s/%s", addonNamespace, addonName))
+		if err != nil {
+			return nil, err
+		}
+		ret := make([]*workapiv1.ManifestWork, 0, len(items))
+		for _, item := range items {
+			ret = append(ret, item.(*workapiv1.ManifestWork))
+		}
+
+		return ret, nil
+	}
+}
+
+func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncContext, key string) error {
 	clusterName, addonName, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		// ignore addon whose key is not in format: namespace/name
@@ -112,128 +157,211 @@ func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncCo
 		return nil
 	}
 
-	// Get ManagedCluster
-	managedCluster, err := c.managedClusterLister.Get(clusterName)
+	addon, err := c.managedClusterAddonLister.ManagedClusterAddOns(clusterName).Get(addonName)
 	if errors.IsNotFound(err) {
-		c.cache.removeCache(constants.DeployWorkName(addonName), clusterName)
+		// need to find a way to clean up cache by addon
 		return nil
 	}
 	if err != nil {
 		return err
 	}
 
-	if !managedCluster.DeletionTimestamp.IsZero() {
-		// managed cluster is deleting, do nothing
-		return nil
-	}
-
-	managedClusterAddon, err := c.managedClusterAddonLister.ManagedClusterAddOns(clusterName).Get(addonName)
+	cluster, err := c.managedClusterLister.Get(clusterName)
 	if errors.IsNotFound(err) {
-		c.cache.removeCache(constants.DeployWorkName(addonName), clusterName)
+		// the managedCluster is nil in this case,and sync cannot handle nil managedCluster.
+		// TODO: consider to force delete the addon and its deploy manifestWorks.
 		return nil
 	}
 	if err != nil {
 		return err
 	}
 
-	if !managedClusterAddon.DeletionTimestamp.IsZero() {
-		c.cache.removeCache(constants.DeployWorkName(addonName), clusterName)
-		return nil
+	syncers := []addonDeploySyncer{
+		&defaultSyncer{
+			buildWorks:     c.buildDeployManifestWorks,
+			applyWork:      c.applyWork,
+			getWorkByAddon: c.getWorksByAddonFn(byAddon),
+			deleteWork:     c.workApplier.Delete,
+			agentAddon:     agentAddon,
+		},
+		&hostedSyncer{
+			buildWorks:     c.buildDeployManifestWorks,
+			applyWork:      c.applyWork,
+			deleteWork:     c.workApplier.Delete,
+			getCluster:     c.managedClusterLister.Get,
+			getWorkByAddon: c.getWorksByAddonFn(byHostedAddon),
+			agentAddon:     agentAddon},
+		&defaultHookSyncer{
+			buildWorks: c.buildHookManifestWork,
+			applyWork:  c.applyWork,
+			agentAddon: agentAddon},
+		&hostedHookSyncer{
+			buildWorks:     c.buildHookManifestWork,
+			applyWork:      c.applyWork,
+			deleteWork:     c.workApplier.Delete,
+			getCluster:     c.managedClusterLister.Get,
+			getWorkByAddon: c.getWorksByAddonFn(hookByHostedAddon),
+			agentAddon:     agentAddon},
 	}
 
-	owner := metav1.NewControllerRef(managedClusterAddon, addonapiv1alpha1.GroupVersion.WithKind("ManagedClusterAddOn"))
-
-	managedClusterAddonCopy := managedClusterAddon.DeepCopy()
-	objects, err := agentAddon.Manifests(managedCluster, managedClusterAddon)
-	if err != nil {
-		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
-			Type:    constants.AddonManifestApplied,
-			Status:  metav1.ConditionFalse,
-			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
-			Message: fmt.Sprintf("failed to get manifest from agent interface: %v", err),
-		})
-		if updateErr := utils.PatchAddonCondition(ctx, c.addonClient, managedClusterAddonCopy, managedClusterAddon); updateErr != nil {
-			return fmt.Errorf("failed to update managedclusteraddon status: %v; the err should be %v", updateErr, err)
+	oldAddon := addon
+	addon = addon.DeepCopy()
+	var errs []error
+	for _, s := range syncers {
+		var err error
+		addon, err = s.sync(ctx, syncCtx, cluster, addon)
+		if err != nil {
+			errs = append(errs, err)
 		}
+	}
+
+	if err = c.updateAddon(ctx, addon, oldAddon); err != nil {
 		return err
 	}
-	if len(objects) == 0 {
-		return nil
-	}
+	return errorsutil.NewAggregate(errs)
+}
 
-	work, _, err := buildManifestWorkFromObject(clusterName, addonName, objects)
-	if err != nil {
-		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
-			Type:    constants.AddonManifestApplied,
-			Status:  metav1.ConditionFalse,
-			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
-			Message: fmt.Sprintf("failed to build manifestwork: %v", err),
-		})
-		if updateErr := utils.PatchAddonCondition(ctx, c.addonClient, managedClusterAddonCopy, managedClusterAddon); updateErr != nil {
-			return fmt.Errorf("failed to update managedclusteraddon status: %v; the err should be %v", updateErr, err)
-		}
+// updateAddon updates finalizers and conditions of addon.
+// to avoid conflict updateAddon updates finalizers firstly if finalizers has change.
+func (c *addonDeployController) updateAddon(ctx context.Context, new, old *addonapiv1alpha1.ManagedClusterAddOn) error {
+	if !equality.Semantic.DeepEqual(new.GetFinalizers(), old.GetFinalizers()) {
+		_, err := c.addonClient.AddonV1alpha1().ManagedClusterAddOns(new.Namespace).Update(ctx, new, metav1.UpdateOptions{})
 		return err
 	}
-	work.OwnerReferences = []metav1.OwnerReference{*owner}
 
-	c.setStatusFeedbackRule(work, agentAddon)
+	return utils.PatchAddonCondition(ctx, c.addonClient, new, old)
+}
 
-	// apply work
-	work, err = applyWork(ctx, c.workClient, c.workLister, c.cache, work)
+func (c *addonDeployController) applyWork(ctx context.Context, appliedType string,
+	work *workapiv1.ManifestWork, addon *addonapiv1alpha1.ManagedClusterAddOn) (*workapiv1.ManifestWork, error) {
+
+	work, err := c.workApplier.Apply(ctx, work)
 	if err != nil {
-		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
-			Type:    constants.AddonManifestApplied,
+		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
+			Type:    appliedType,
 			Status:  metav1.ConditionFalse,
 			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
-			Message: fmt.Sprintf("failed to apply manifestwork: %v", err),
+			Message: fmt.Sprintf("failed to apply manifestWork: %v", err),
 		})
-		if updateErr := utils.PatchAddonCondition(ctx, c.addonClient, managedClusterAddonCopy, managedClusterAddon); updateErr != nil {
-			return fmt.Errorf("failed to update managedclusteraddon status: %v; the err should be %v", updateErr, err)
-		}
-		return err
+		return work, err
 	}
 
 	// Update addon status based on work's status
 	if meta.IsStatusConditionTrue(work.Status.Conditions, workapiv1.WorkApplied) {
-		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
-			Type:    constants.AddonManifestApplied,
+		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
+			Type:    appliedType,
 			Status:  metav1.ConditionTrue,
-			Reason:  constants.AddonManifestApplied,
-			Message: "manifest of addon applied successfully",
+			Reason:  constants.AddonManifestAppliedReasonManifestsApplied,
+			Message: "manifests of addon are applied successfully",
 		})
 	} else {
-		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
-			Type:    constants.AddonManifestApplied,
+		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
+			Type:    appliedType,
 			Status:  metav1.ConditionFalse,
 			Reason:  constants.AddonManifestAppliedReasonManifestsApplyFailed,
-			Message: fmt.Sprintf("work %s apply failed", work.Name),
+			Message: "failed to apply the manifests of addon",
 		})
 	}
-
-	return utils.PatchAddonCondition(ctx, c.addonClient, managedClusterAddonCopy, managedClusterAddon)
+	return work, nil
 }
 
-func (c *addonDeployController) setStatusFeedbackRule(work *workapiv1.ManifestWork, agentAddon agent.AgentAddon) {
-	if agentAddon.GetAgentAddonOptions().HealthProber == nil {
-		return
+func (c *addonDeployController) buildDeployManifestWorks(installMode, workNamespace string,
+	cluster *clusterv1.ManagedCluster, existingWorks []*workapiv1.ManifestWork,
+	addon *addonapiv1alpha1.ManagedClusterAddOn) (appliedWorks, deleteWorks []*workapiv1.ManifestWork, err error) {
+	var appliedType string
+	var addonWorkBuilder *addonWorksBuilder
+
+	agentAddon := c.agentAddons[addon.Name]
+	if agentAddon == nil {
+		return nil, nil, fmt.Errorf("failed to get agentAddon")
 	}
 
-	if agentAddon.GetAgentAddonOptions().HealthProber.Type != agent.HealthProberTypeWork {
-		return
+	switch installMode {
+	case constants.InstallModeHosted:
+		appliedType = constants.AddonHostingManifestApplied
+		addonWorkBuilder = newHostingAddonWorksBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled, c.workBuilder)
+	case constants.InstallModeDefault:
+		appliedType = constants.AddonManifestApplied
+		addonWorkBuilder = newAddonWorksBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled, c.workBuilder)
+	default:
+		return nil, nil, fmt.Errorf("invalid install mode %v", installMode)
 	}
 
-	if agentAddon.GetAgentAddonOptions().HealthProber.WorkProber == nil {
-		return
-	}
-
-	probeRules := agentAddon.GetAgentAddonOptions().HealthProber.WorkProber.ProbeFields
-
-	work.Spec.ManifestConfigs = []workapiv1.ManifestConfigOption{}
-
-	for _, rule := range probeRules {
-		work.Spec.ManifestConfigs = append(work.Spec.ManifestConfigs, workapiv1.ManifestConfigOption{
-			ResourceIdentifier: rule.ResourceIdentifier,
-			FeedbackRules:      rule.ProbeRules,
+	objects, err := agentAddon.Manifests(cluster, addon)
+	if err != nil {
+		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
+			Type:    appliedType,
+			Status:  metav1.ConditionFalse,
+			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
+			Message: fmt.Sprintf("failed to get manifest from agent interface: %v", err),
 		})
+		return nil, nil, err
 	}
+	if len(objects) == 0 {
+		return nil, nil, nil
+	}
+
+	manifestOptions := getManifestConfigOption(agentAddon)
+	existingWorksCopy := []workapiv1.ManifestWork{}
+	for _, work := range existingWorks {
+		existingWorksCopy = append(existingWorksCopy, *work)
+	}
+	appliedWorks, deleteWorks, err = addonWorkBuilder.BuildDeployWorks(workNamespace, addon, existingWorksCopy, objects, manifestOptions)
+	if err != nil {
+		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
+			Type:    appliedType,
+			Status:  metav1.ConditionFalse,
+			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
+			Message: fmt.Sprintf("failed to build manifestwork: %v", err),
+		})
+		return nil, nil, err
+	}
+	return appliedWorks, deleteWorks, nil
+}
+func (c *addonDeployController) buildHookManifestWork(installMode, workNamespace string,
+	cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) (*workapiv1.ManifestWork, error) {
+	var appliedType string
+	var addonWorkBuilder *addonWorksBuilder
+
+	agentAddon := c.agentAddons[addon.Name]
+	if agentAddon == nil {
+		return nil, fmt.Errorf("failed to get agentAddon")
+	}
+
+	switch installMode {
+	case constants.InstallModeHosted:
+		appliedType = constants.AddonHostingManifestApplied
+		addonWorkBuilder = newHostingAddonWorksBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled, c.workBuilder)
+	case constants.InstallModeDefault:
+		appliedType = constants.AddonManifestApplied
+		addonWorkBuilder = newAddonWorksBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled, c.workBuilder)
+	default:
+		return nil, fmt.Errorf("invalid install mode %v", installMode)
+	}
+
+	objects, err := agentAddon.Manifests(cluster, addon)
+	if err != nil {
+		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
+			Type:    appliedType,
+			Status:  metav1.ConditionFalse,
+			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
+			Message: fmt.Sprintf("failed to get manifest from agent interface: %v", err),
+		})
+		return nil, err
+	}
+	if len(objects) == 0 {
+		return nil, nil
+	}
+
+	hookWork, err := addonWorkBuilder.BuildHookWork(workNamespace, addon, objects)
+	if err != nil {
+		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
+			Type:    appliedType,
+			Status:  metav1.ConditionFalse,
+			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
+			Message: fmt.Sprintf("failed to build manifestwork: %v", err),
+		})
+		return nil, err
+	}
+	return hookWork, nil
 }

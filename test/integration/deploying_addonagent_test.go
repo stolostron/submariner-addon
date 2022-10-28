@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	expectedAgentWork = "addon-submariner-deploy"
+	expectedAgentWork = "addon-submariner-deploy-0"
 	submarinerCRName  = "submariner"
 )
 
