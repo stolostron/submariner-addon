@@ -26,6 +26,9 @@ updates:
       - dependency-name: github.com/operator-framework/*
       - dependency-name: k8s.io/*
       - dependency-name: sigs.k8s.io/*
+      # Addon framework, this shouldn't be upgraded on release branches
+      - dependency-name: open-cluster-management.io/addon-framework
+      - dependency-name: open-cluster-management.io/api
       # 2.5 tracks Submariner 0.12
       - dependency-name: github.com/submariner-io/*
         versions: ">= 0.13.0"
@@ -40,6 +43,9 @@ updates:
       - dependency-name: github.com/operator-framework/*
       - dependency-name: k8s.io/*
       - dependency-name: sigs.k8s.io/*
+      # Addon framework, this shouldn't be upgraded on release branches
+      - dependency-name: open-cluster-management.io/addon-framework
+      - dependency-name: open-cluster-management.io/api
       # 2.6 tracks Submariner 0.13
       - dependency-name: github.com/submariner-io/*
         versions: ">= 0.14.0"
