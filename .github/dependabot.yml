@@ -10,11 +10,6 @@ updates:
     schedule:
       interval: daily
     open-pull-requests-limit: 5
-    ignore:
-      # K8s and operator SDK, we need to handle these manually
-      - dependency-name: github.com/operator-framework/*
-      - dependency-name: k8s.io/*
-      - dependency-name: sigs.k8s.io/*
   - package-ecosystem: gomod
     target-branch: "release-2.5"
     directory: "/"
