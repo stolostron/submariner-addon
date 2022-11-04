@@ -51,4 +51,4 @@ spec:
     {{- end}}
 {{- end}}
   repository: registry.redhat.io/rhacm2
-  version: v0.13.1
+  version: v0.14.0

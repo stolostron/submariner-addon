@@ -157,7 +157,6 @@ func (ac *awsCloud) createGatewaySG(vpcID string, ports []api.PortSpec) (string,
 					ResourceType: types.ResourceTypeSecurityGroup,
 					Tags: []types.Tag{
 						ec2Tag("Name", groupName),
-						ec2Tag(ac.withAWSInfo("kubernetes.io/cluster/{infraID}"), "owned"),
 					},
 				},
 			},
