@@ -1,5 +1,8 @@
-# cloud.google.com/go/compute v1.6.1
-## explicit; go 1.15
+# cloud.google.com/go/compute v1.12.1
+## explicit; go 1.19
+cloud.google.com/go/compute/internal
+# cloud.google.com/go/compute/metadata v0.2.1
+## explicit; go 1.19
 cloud.google.com/go/compute/metadata
 # github.com/NYTimes/gziphandler v1.1.1
 ## explicit; go 1.11
@@ -166,7 +169,7 @@ github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
-# github.com/google/go-cmp v0.5.8
+# github.com/google/go-cmp v0.5.9
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
@@ -177,14 +180,19 @@ github.com/google/go-cmp/cmp/internal/value
 ## explicit; go 1.12
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
-# github.com/google/uuid v1.2.0
+# github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
-# github.com/googleapis/gax-go/v2 v2.3.0
-## explicit; go 1.15
+# github.com/googleapis/enterprise-certificate-proxy v0.2.0
+## explicit; go 1.18
+github.com/googleapis/enterprise-certificate-proxy/client
+github.com/googleapis/enterprise-certificate-proxy/client/util
+# github.com/googleapis/gax-go/v2 v2.6.0
+## explicit; go 1.19
 github.com/googleapis/gax-go/v2
 github.com/googleapis/gax-go/v2/apierror
 github.com/googleapis/gax-go/v2/apierror/internal/proto
+github.com/googleapis/gax-go/v2/internal
 # github.com/googleapis/gnostic v0.5.5
 ## explicit; go 1.12
 github.com/googleapis/gnostic/compiler
@@ -609,12 +617,12 @@ golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/salsa20/salsa
-# golang.org/x/mod v0.5.1
+# golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
 ## explicit; go 1.17
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4
+# golang.org/x/net v0.0.0-20221014081412-f15817d10f9b
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -628,8 +636,8 @@ golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
 golang.org/x/net/websocket
-# golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
-## explicit; go 1.11
+# golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
+## explicit; go 1.17
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
 golang.org/x/oauth2/google
@@ -637,10 +645,10 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+# golang.org/x/sync v0.1.0
 ## explicit
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20220502124256-b6088ccd6cba
+# golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -651,7 +659,7 @@ golang.org/x/sys/windows
 # golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 ## explicit; go 1.17
 golang.org/x/term
-# golang.org/x/text v0.3.7
+# golang.org/x/text v0.4.0
 ## explicit; go 1.17
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -677,8 +685,8 @@ golang.org/x/text/width
 # golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.1.8
-## explicit; go 1.17
+# golang.org/x/tools v0.1.12
+## explicit; go 1.18
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/imports
 golang.org/x/tools/internal/event
@@ -690,12 +698,8 @@ golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/typeparams
-# golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f
-## explicit; go 1.11
-golang.org/x/xerrors
-golang.org/x/xerrors/internal
-# google.golang.org/api v0.75.0
-## explicit; go 1.15
+# google.golang.org/api v0.102.0
+## explicit; go 1.19
 google.golang.org/api/compute/v1
 google.golang.org/api/dns/v1
 google.golang.org/api/googleapi
@@ -722,16 +726,16 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20220429170224-98d788798c3e
-## explicit; go 1.15
+# google.golang.org/genproto v0.0.0-20221024183307-1bc688fe9f3e
+## explicit; go 1.19
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/grpc v1.46.0
-## explicit; go 1.14
+# google.golang.org/grpc v1.50.1
+## explicit; go 1.17
 google.golang.org/grpc
 google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff
@@ -782,7 +786,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.28.0
+# google.golang.org/protobuf v1.28.1
 ## explicit; go 1.11
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
