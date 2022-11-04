@@ -43,3 +43,17 @@ updates:
       # 2.6 tracks Submariner 0.13
       - dependency-name: github.com/submariner-io/*
         ignore: ">= 0.14.0"
+  - package-ecosystem: gomod
+    target-branch: "release-2.7"
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 5
+    ignore:
+      # K8s and operator SDK, we need to handle these manually
+      - dependency-name: github.com/operator-framework/*
+      - dependency-name: k8s.io/*
+      - dependency-name: sigs.k8s.io/*
+      # 2.7 tracks Submariner 0.14
+      - dependency-name: github.com/submariner-io/*
+        ignore: ">= 0.15.0"
