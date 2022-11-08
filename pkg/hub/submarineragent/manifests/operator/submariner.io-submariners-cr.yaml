@@ -15,6 +15,7 @@ spec:
   ceIPSecPSK: {{ .IPSecPSK }}
   clusterCIDR: ""
   globalCIDR: "{{ .GlobalCIDR }}"
+  airGappedDeployment: {{ .AirGappedDeployment }}
   loadBalancerEnabled: {{ .LoadBalancerEnabled }}
   clusterID: {{ .ClusterName }}
   colorCodes: blue
