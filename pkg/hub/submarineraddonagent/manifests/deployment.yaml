@@ -19,6 +19,9 @@ spec:
       containers:
       - name: submariner-addon
         image: {{ .Image }}
+        env:
+        - name: HUB_HOST
+          value: "{{ .HubHost }}"
         args:
           - "/submariner"
           - "agent"

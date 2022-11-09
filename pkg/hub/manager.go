@@ -186,7 +186,14 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
-	err = mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, controllerContext.EventRecorder, o.AgentImage))
+	localCluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), "local-cluster", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	host := localCluster.Spec.ManagedClusterClientConfigs[0].URL
+
+	err = mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, controllerContext.EventRecorder, o.AgentImage, host))
 	if err != nil {
 		return err
 	}

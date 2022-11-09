@@ -21,6 +21,7 @@ import (
 	addonclientset "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
+	clusterV1 "open-cluster-management.io/api/cluster/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -119,6 +120,16 @@ var _ = BeforeSuite(func() {
 	// prepare open-cluster-management namespaces
 	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace("open-cluster-management"),
 		metav1.CreateOptions{})
+	Expect(err).NotTo(HaveOccurred())
+
+	// create local cluster with URL in ClientConfig
+	localCluster := util.NewManagedCluster("local-cluster", map[string]string{})
+	localCluster.Spec.ManagedClusterClientConfigs = []clusterV1.ClientConfig{
+		{
+			URL: "https://dummy:443",
+		},
+	}
+	_, err = clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), localCluster, metav1.CreateOptions{})
 	Expect(err).NotTo(HaveOccurred())
 
 	// start submariner broker and agent controller
