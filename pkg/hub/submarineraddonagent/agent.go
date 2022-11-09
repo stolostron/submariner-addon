@@ -73,15 +73,17 @@ type addOnAgent struct {
 	kubeClient    kubernetes.Interface
 	recorder      events.Recorder
 	agentImage    string
+	hubHost       string
 	resourceCache resourceapply.ResourceCache
 }
 
 // NewAddOnAgent returns an instance of addOnAgent.
-func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, agentImage string) agent.AgentAddon {
+func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, agentImage, hubHost string) agent.AgentAddon {
 	return &addOnAgent{
 		kubeClient:    kubeClient,
 		recorder:      recorder,
 		agentImage:    agentImage,
+		hubHost:       hubHost,
 		resourceCache: resourceapply.NewResourceCache(),
 	}
 }
@@ -109,11 +111,13 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 		ClusterName           string
 		AddonInstallNamespace string
 		Image                 string
+		HubHost               string
 	}{
 		KubeConfigSecret:      fmt.Sprintf("%s-hub-kubeconfig", a.GetAgentAddonOptions().AddonName),
 		AddonInstallNamespace: installNamespace,
 		ClusterName:           cluster.Name,
 		Image:                 a.agentImage,
+		HubHost:               a.hubHost,
 	}
 
 	for _, file := range deploymentFiles {

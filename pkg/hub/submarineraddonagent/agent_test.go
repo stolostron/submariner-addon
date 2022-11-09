@@ -207,7 +207,7 @@ func newTestDriver() *testDriver {
 
 	BeforeEach(func() {
 		t.kubeClient = kubefake.NewSimpleClientset()
-		t.addOnAgent = submarineraddonagent.NewAddOnAgent(t.kubeClient, events.NewLoggingEventRecorder("test"), "test")
+		t.addOnAgent = submarineraddonagent.NewAddOnAgent(t.kubeClient, events.NewLoggingEventRecorder("test"), "test", "")
 	})
 
 	return t
