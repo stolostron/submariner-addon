@@ -28,9 +28,9 @@ require (
 	k8s.io/api v0.25.4
 	k8s.io/apiextensions-apiserver v0.25.3
 	k8s.io/apimachinery v0.25.4
-	k8s.io/client-go v0.25.3
+	k8s.io/client-go v0.25.4
 	k8s.io/code-generator v0.25.4
-	k8s.io/component-base v0.25.3
+	k8s.io/component-base v0.25.4
 	k8s.io/klog/v2 v2.80.1
 	open-cluster-management.io/addon-framework v0.5.0
 	open-cluster-management.io/api v0.9.0
