@@ -40,13 +40,29 @@ operatorsdk_gen_dir:=$(dir $(OPERATOR_SDK))
 # Add packages to do unit test
 GO_TEST_PACKAGES :=./pkg/...
 
-# This will call a macro called "build-image" which will generate image specific targets based on the parameters:
-# $0 - macro name
-# $1 - target suffix
-# $2 - Dockerfile path
-# $3 - context directory for image build
-# It will generate target "image-$(1)" for building the image and binding it as a prerequisite to target "images".
-$(call build-image,$(IMAGE),$(IMAGE_REGISTRY)/$(IMAGE),./Dockerfile,.)
+IMAGE_BUILD_DEFAULT_FLAGS ?=--allow-pull
+IMAGE_BUILD_EXTRA_FLAGS ?=
+
+IMAGEBUILDER_VERSION ?=1.2.3
+
+IMAGEBUILDER ?= $(shell which imagebuilder 2>/dev/null)
+ifneq "" "$(IMAGEBUILDER)"
+_imagebuilder_installed_version = $(shell $(IMAGEBUILDER) --version)
+endif
+
+images: ensure-imagebuilder
+	$(strip imagebuilder $(IMAGE_BUILD_DEFAULT_FLAGS) $(IMAGE_BUILD_EXTRA_FLAGS) \
+		-t $(IMAGE_REGISTRY)/$(IMAGE) -f ./Dockerfile . \
+	)
+
+ensure-imagebuilder:
+ifeq "" "$(IMAGEBUILDER)"
+	$(error imagebuilder not found! Get it with: `go get github.com/openshift/imagebuilder/cmd/imagebuilder@v$(IMAGEBUILDER_VERSION)`)
+else
+	$(info Using existing imagebuilder from $(IMAGEBUILDER))
+	@[[ "$(_imagebuilder_installed_version)" == $(IMAGEBUILDER_VERSION) ]] || \
+	echo "Warning: Installed imagebuilder version $(_imagebuilder_installed_version) does not match expected version $(IMAGEBUILDER_VERSION)."
+endif
 
 # $1 - target name
 # $2 - apis
