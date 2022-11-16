@@ -158,5 +158,6 @@ build:
 
 test:
 	$(GO) test -race ./pkg/...
+.PHONY: test
 
 test-integration: vendor
