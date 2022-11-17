@@ -587,7 +587,7 @@ func (c *submarinerConfigController) setNetworkTypeIfAbsent(ctx context.Context,
 		return nil
 	}
 
-	networks, err := c.dynamicClient.Resource(networksGVR).Get(context.TODO(), networksConfigName, metav1.GetOptions{})
+	networks, err := c.dynamicClient.Resource(networksGVR).Get(ctx, networksConfigName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

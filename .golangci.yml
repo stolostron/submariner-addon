@@ -24,6 +24,7 @@ linters:
   enable:
     - asciicheck
     - bodyclose
+    - contextcheck
     # - cyclop # This is equivalent to gocyclo
     - deadcode
     - depguard

@@ -79,5 +79,5 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 		ConfigCRDUID: configCRD.GetUID(),
 	}
 
-	return resource.ApplyCRDs(c.crdClient, syncCtx.Recorder(), resource.AssetFromFile(manifestFiles, crdsConfig), staticCRDFiles...)
+	return resource.ApplyCRDs(ctx, c.crdClient, syncCtx.Recorder(), resource.AssetFromFile(manifestFiles, crdsConfig), staticCRDFiles...)
 }

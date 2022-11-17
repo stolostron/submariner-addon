@@ -1,6 +1,7 @@
 package submarinerbrokerinfo_test
 
 import (
+	"context"
 	"encoding/base64"
 	"testing"
 
@@ -110,6 +111,7 @@ var _ = Describe("Function Get", func() {
 		}
 
 		brokerInfo, err = submarinerbrokerinfo.Get(
+			context.TODO(),
 			kubefake.NewSimpleClientset(kubeObjs...),
 			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), dynamicObjs...),
 			fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(brokerObjs...).Build(),
