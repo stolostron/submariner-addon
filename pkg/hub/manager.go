@@ -55,7 +55,7 @@ func (o *AddOnOptions) AddFlags(cmd *cobra.Command) {
 	flags.StringVar(&o.AgentImage, "agent-image", o.AgentImage, "The image of addon agent.")
 }
 
-func (o *AddOnOptions) Complete(kubeClient kubernetes.Interface) error {
+func (o *AddOnOptions) Complete(ctx context.Context, kubeClient kubernetes.Interface) error {
 	if o.AgentImage != "" {
 		return nil
 	}
@@ -66,7 +66,7 @@ func (o *AddOnOptions) Complete(kubeClient kubernetes.Interface) error {
 		return fmt.Errorf("the pod environment POD_NAME is required")
 	}
 
-	pod, err := kubeClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	pod, err := kubeClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
-	if err := o.Complete(kubeClient); err != nil {
+	if err := o.Complete(ctx, kubeClient); err != nil {
 		return err
 	}
 

@@ -476,7 +476,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		return err
 	}
 
-	err := c.createGNConfigMapIfNecessary(brokerNamespace)
+	err := c.createGNConfigMapIfNecessary(ctx, brokerNamespace)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
@@ -490,6 +490,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 
 	// create submariner broker info with submariner config
 	brokerInfo, err := brokerinfo.Get(
+		ctx,
 		c.kubeClient,
 		c.dynamicClient,
 		c.controllerClient,
@@ -763,7 +764,7 @@ func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 	return clusterInfo
 }
 
-func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace string) error {
+func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Context, brokerNamespace string) error {
 	_, gnCmErr := globalnet.GetConfigMap(c.controllerClient, brokerNamespace)
 	if gnCmErr != nil && !apierrors.IsNotFound(gnCmErr) {
 		return errors.Wrapf(gnCmErr, "error getting globalnet configmap from broker namespace %q", brokerNamespace)
@@ -780,7 +781,7 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(brokerNamespace
 		Resource: "brokers",
 	}
 
-	brokerCfg, brokerErr := c.dynamicClient.Resource(brokerGVR).Namespace(brokerNamespace).Get(context.TODO(),
+	brokerCfg, brokerErr := c.dynamicClient.Resource(brokerGVR).Namespace(brokerNamespace).Get(ctx,
 		brokerObjectName, metav1.GetOptions{})
 	if brokerErr != nil {
 		return errors.Wrapf(brokerErr, "error getting broker object from namespace %q", brokerNamespace)

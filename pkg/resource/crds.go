@@ -11,7 +11,9 @@ import (
 	apiextensionsClient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 )
 
-func ApplyCRDs(client apiextensionsClient.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc, files ...string) error {
+func ApplyCRDs(ctx context.Context, client apiextensionsClient.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc,
+	files ...string,
+) error {
 	errs := []error{}
 
 	for _, file := range files {
@@ -32,7 +34,7 @@ func ApplyCRDs(client apiextensionsClient.Interface, recorder events.Recorder, a
 		// NOTE: Do not add CR resources into this switch otherwise the protobuf client can cause problems.
 		switch t := object.(type) {
 		case *apiextensionsv1.CustomResourceDefinition:
-			_, _, err = resourceapply.ApplyCustomResourceDefinitionV1(context.TODO(), client.ApiextensionsV1(), recorder, t)
+			_, _, err = resourceapply.ApplyCustomResourceDefinitionV1(ctx, client.ApiextensionsV1(), recorder, t)
 		default:
 			err = fmt.Errorf("unhandled type %T", object)
 		}

@@ -124,17 +124,17 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if clusterSet.GetAnnotations()[submBrokerNamespace] != config.SubmarinerNamespace {
-		err = c.annotateClusterSetWithBrokerNamespace(config.SubmarinerNamespace, clusterSetName)
+		err = c.annotateClusterSetWithBrokerNamespace(ctx, config.SubmarinerNamespace, clusterSetName)
 		if err != nil {
 			return err
 		}
 	}
 
-	return c.createIPSecPSKSecret(config.SubmarinerNamespace)
+	return c.createIPSecPSKSecret(ctx, config.SubmarinerNamespace)
 }
 
-func (c *submarinerBrokerController) createIPSecPSKSecret(brokerNamespace string) error {
-	_, err := c.kubeClient.CoreV1().Secrets(brokerNamespace).Get(context.TODO(), constants.IPSecPSKSecretName, metav1.GetOptions{})
+func (c *submarinerBrokerController) createIPSecPSKSecret(ctx context.Context, brokerNamespace string) error {
+	_, err := c.kubeClient.CoreV1().Secrets(brokerNamespace).Get(ctx, constants.IPSecPSKSecretName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		psk := make([]byte, ipSecPSKSecretLength)
 		if _, err := rand.Read(psk); err != nil {
@@ -150,15 +150,16 @@ func (c *submarinerBrokerController) createIPSecPSKSecret(brokerNamespace string
 			},
 		}
 
-		_, err = c.kubeClient.CoreV1().Secrets(brokerNamespace).Create(context.TODO(), pskSecret, metav1.CreateOptions{})
+		_, err = c.kubeClient.CoreV1().Secrets(brokerNamespace).Create(ctx, pskSecret, metav1.CreateOptions{})
 	}
 
 	return err
 }
 
-func (c *submarinerBrokerController) annotateClusterSetWithBrokerNamespace(brokerNamespace, clusterSetName string) error {
+func (c *submarinerBrokerController) annotateClusterSetWithBrokerNamespace(ctx context.Context, brokerNamespace, clusterSetName string,
+) error {
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		clusterSet, err := c.clustersetClient.Get(context.TODO(), clusterSetName, metav1.GetOptions{})
+		clusterSet, err := c.clustersetClient.Get(ctx, clusterSetName, metav1.GetOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "unable to get clusterSet info for %q", clusterSetName)
 		}
@@ -170,7 +171,7 @@ func (c *submarinerBrokerController) annotateClusterSetWithBrokerNamespace(broke
 
 		annotations[submBrokerNamespace] = brokerNamespace
 		clusterSet.SetAnnotations(annotations)
-		_, updateErr := c.clustersetClient.Update(context.TODO(), clusterSet, metav1.UpdateOptions{})
+		_, updateErr := c.clustersetClient.Update(ctx, clusterSet, metav1.UpdateOptions{})
 
 		return updateErr
 	})
