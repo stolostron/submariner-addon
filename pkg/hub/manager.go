@@ -212,7 +212,11 @@ func getHubHost(client *clusterclient.Clientset) (string, error) {
 	var host string
 
 	localCluster, err := client.ClusterV1().ManagedClusters().Get(context.TODO(), "local-cluster", metav1.GetOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
+
 		return "", err
 	}
 
