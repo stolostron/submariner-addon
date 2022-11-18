@@ -186,12 +186,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
-	host, err := getHubHost(clusterClient)
-	if err != nil {
-		return err
-	}
-
-	err = mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, controllerContext.EventRecorder, o.AgentImage, host))
+	err = mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, clusterClient, controllerContext.EventRecorder, o.AgentImage))
 	if err != nil {
 		return err
 	}
@@ -206,25 +201,6 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	<-ctx.Done()
 
 	return nil
-}
-
-func getHubHost(client *clusterclient.Clientset) (string, error) {
-	var host string
-
-	localCluster, err := client.ClusterV1().ManagedClusters().Get(context.TODO(), "local-cluster", metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return "", nil
-		}
-
-		return "", err
-	}
-
-	if localCluster != nil {
-		host = localCluster.Spec.ManagedClusterClientConfigs[0].URL
-	}
-
-	return host, nil
 }
 
 func createClusterRoleToAllowBrokerCRD(ctx context.Context, kubeClient *kubernetes.Clientset) error {
