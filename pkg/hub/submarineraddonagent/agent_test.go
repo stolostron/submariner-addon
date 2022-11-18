@@ -27,6 +27,8 @@ import (
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	fakeclusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
@@ -198,8 +200,9 @@ var _ = Describe("GetAgentAddonOptions", func() {
 })
 
 type testDriver struct {
-	addOnAgent agent.AgentAddon
-	kubeClient kubernetes.Interface
+	addOnAgent    agent.AgentAddon
+	kubeClient    kubernetes.Interface
+	clusterClient clusterclient.Interface
 }
 
 func newTestDriver() *testDriver {
@@ -207,7 +210,8 @@ func newTestDriver() *testDriver {
 
 	BeforeEach(func() {
 		t.kubeClient = kubefake.NewSimpleClientset()
-		t.addOnAgent = submarineraddonagent.NewAddOnAgent(t.kubeClient, events.NewLoggingEventRecorder("test"), "test", "")
+		t.clusterClient = fakeclusterclient.NewSimpleClientset()
+		t.addOnAgent = submarineraddonagent.NewAddOnAgent(t.kubeClient, t.clusterClient, events.NewLoggingEventRecorder("test"), "test")
 	})
 
 	return t

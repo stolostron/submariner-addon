@@ -13,6 +13,8 @@ import (
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	certificatesv1 "k8s.io/api/certificates/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -21,6 +23,7 @@ import (
 	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
@@ -71,6 +74,7 @@ var manifestFiles embed.FS
 // addOnAgent monitors the Submariner agent status and configure Submariner cluster environment on the managed cluster.
 type addOnAgent struct {
 	kubeClient    kubernetes.Interface
+	clusterClient clusterclient.Interface
 	recorder      events.Recorder
 	agentImage    string
 	hubHost       string
@@ -78,12 +82,14 @@ type addOnAgent struct {
 }
 
 // NewAddOnAgent returns an instance of addOnAgent.
-func NewAddOnAgent(kubeClient kubernetes.Interface, recorder events.Recorder, agentImage, hubHost string) agent.AgentAddon {
+func NewAddOnAgent(kubeClient kubernetes.Interface, clusterClient clusterclient.Interface, recorder events.Recorder,
+	agentImage string,
+) agent.AgentAddon {
 	return &addOnAgent{
 		kubeClient:    kubeClient,
+		clusterClient: clusterClient,
 		recorder:      recorder,
 		agentImage:    agentImage,
-		hubHost:       hubHost,
 		resourceCache: resourceapply.NewResourceCache(),
 	}
 }
@@ -100,10 +106,15 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 	}
 
 	deploymentFiles := append([]string{}, agentDeploymentFiles...)
-	// if the installation namesapce is default namespace (open-cluster-management-agent-addon),
+	// if the installation namespace is default namespace (open-cluster-management-agent-addon),
 	// we will not maintain (create/delete) it, because other ACM addons will be installed this namespace.
 	if installNamespace != defaultInstallationNamespace {
 		deploymentFiles = append(deploymentFiles, agentInstallationNamespaceFile)
+	}
+
+	err := a.setHubHostIfEmpty()
+	if err != nil {
+		return nil, err
 	}
 
 	manifestConfig := struct {
@@ -230,4 +241,29 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, _ *addo
 	}
 
 	return operatorhelpers.NewMultiLineAggregate(errs)
+}
+
+// This will set a.hubHost, if empty, to Hub's API url by getting it form local-cluster
+// local-cluster will be missing in kind deployments. In ACM deployments there is a race
+// condition between local-cluster and submariner-addon pod creation. So we check for it right
+// before we use it for manifests. This code gets called repeatedly from syncer, so even if
+// local-cluster was missing at startup, by the time we hit this code it should be available.
+func (a *addOnAgent) setHubHostIfEmpty() error {
+	if a.hubHost == "" {
+		localCluster, err := a.clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), "local-cluster", metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				klog.Info("local cluster not found")
+				return nil
+			}
+
+			return err
+		}
+
+		if localCluster != nil {
+			a.hubHost = localCluster.Spec.ManagedClusterClientConfigs[0].URL
+		}
+	}
+
+	return nil
 }
