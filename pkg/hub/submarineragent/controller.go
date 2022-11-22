@@ -36,6 +36,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
@@ -65,7 +66,8 @@ const (
 	agentRBACFile                = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
 	submarinerCRFile             = "manifests/operator/submariner.io-submariners-cr.yaml"
 	BrokerCfgApplied             = "SubmarinerBrokerConfigApplied"
-	brokerObjectName             = "submariner-broker"
+	BrokerObjectName             = "submariner-broker"
+	BackupLabel                  = "cluster.open-cluster-management.io/backup"
 )
 
 var clusterRBACFiles = []string{
@@ -89,6 +91,12 @@ var operatorSkipFiles = []string{
 
 //go:embed manifests
 var manifestFiles embed.FS
+
+var BrokerGVR = schema.GroupVersionResource{
+	Group:    "submariner.io",
+	Version:  "v1alpha1",
+	Resource: "brokers",
+}
 
 type clusterRBACConfig struct {
 	ManagedClusterName        string
@@ -483,8 +491,11 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 
 	if apierrors.IsNotFound(err) {
 		_ = c.updateManagedClusterAddOnStatus(ctx, managedClusterAddOn, brokerNamespace, true)
-		return fmt.Errorf("brokers.submariner.io object named %q missing in namespace %q", brokerObjectName, brokerNamespace)
+		return fmt.Errorf("brokers.submariner.io object named %q missing in namespace %q", BrokerObjectName, brokerNamespace)
 	}
+
+	// broker object exists, add backup label if not already present
+	_ = c.updateBackupLabelOnBroker(ctx, brokerNamespace)
 
 	_ = c.updateManagedClusterAddOnStatus(ctx, managedClusterAddOn, brokerNamespace, false)
 
@@ -569,7 +580,7 @@ func (c *submarinerAgentController) updateManagedClusterAddOnStatus(ctx context.
 	var message, reason string
 	if missing {
 		message = fmt.Sprintf("Waiting for brokers.submariner.io object named %q to be created in %q namespace",
-			brokerObjectName, brokerNamespace)
+			BrokerObjectName, brokerNamespace)
 		condition.Status = metav1.ConditionFalse
 		reason = "BrokerConfigMissing"
 	} else {
@@ -775,23 +786,10 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 	}
 
 	// globalnetConfig is missing in the broker-namespace, try creating it from submariner-broker object.
-	brokerGVR := schema.GroupVersionResource{
-		Group:    "submariner.io",
-		Version:  "v1alpha1",
-		Resource: "brokers",
-	}
 
-	brokerCfg, brokerErr := c.dynamicClient.Resource(brokerGVR).Namespace(brokerNamespace).Get(ctx,
-		brokerObjectName, metav1.GetOptions{})
-	if brokerErr != nil {
-		return errors.Wrapf(brokerErr, "error getting broker object from namespace %q", brokerNamespace)
-	}
-
-	brokerObj := &submarinerv1a1.Broker{}
-
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(brokerCfg.Object, brokerObj)
+	brokerObj, err := c.getBrokerObject(ctx, brokerNamespace)
 	if err != nil {
-		return errors.Wrapf(err, "error converting broker object in namespace %q", brokerNamespace)
+		return err
 	}
 
 	if brokerObj.Spec.GlobalnetEnabled {
@@ -811,6 +809,59 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 	if err := globalnet.CreateConfigMap(c.controllerClient, brokerObj.Spec.GlobalnetEnabled,
 		brokerObj.Spec.GlobalnetCIDRRange, brokerObj.Spec.DefaultGlobalnetClusterSize, brokerNamespace); err != nil {
 		return errors.Wrapf(err, "error creating globalnet configmap on Broker")
+	}
+
+	return nil
+}
+
+func (c *submarinerAgentController) getBrokerObject(ctx context.Context, brokerNamespace string) (*submarinerv1a1.Broker, error) {
+	broker, brokerErr := c.dynamicClient.Resource(BrokerGVR).Namespace(brokerNamespace).Get(ctx,
+		BrokerObjectName, metav1.GetOptions{})
+	if brokerErr != nil {
+		return nil, errors.Wrapf(brokerErr, "error getting broker object from namespace %q", brokerNamespace)
+	}
+
+	brokerObj := &submarinerv1a1.Broker{}
+
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(broker.Object, brokerObj)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error converting broker object in namespace %q", brokerNamespace)
+	}
+
+	return brokerObj, nil
+}
+
+func (c *submarinerAgentController) updateBackupLabelOnBroker(ctx context.Context, brokerNamespace string) error {
+	brokerClient := c.dynamicClient.Resource(BrokerGVR).Namespace(brokerNamespace)
+	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		existing, err := brokerClient.Get(ctx, BrokerObjectName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
+			return errors.Wrapf(err, "error getting broker object in namespace%q", brokerNamespace)
+		}
+
+		existingLabels := existing.GetLabels()
+		if existingLabels == nil {
+			existingLabels = make(map[string]string)
+		}
+		if _, ok := existingLabels[BackupLabel]; !ok {
+			existingLabels[BackupLabel] = "submariner"
+			existing.SetLabels(existingLabels)
+			_, err = brokerClient.Update(ctx, existing, metav1.UpdateOptions{})
+			if err == nil {
+				klog.Infof("Successfully added backup label to submariner-broker in %q", brokerNamespace)
+			}
+
+			return err
+		}
+
+		return nil
+	})
+
+	if retryErr != nil {
+		return errors.Wrapf(retryErr, "error adding backup label to broker in %q", brokerNamespace)
 	}
 
 	return nil

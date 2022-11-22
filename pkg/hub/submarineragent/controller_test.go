@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
@@ -110,6 +110,17 @@ var _ = Describe("Controller", func() {
 
 						return config.Status.Conditions, nil
 					})
+				})
+			})
+
+			Context("and the SubmarinerConfig is present but backup label on broker is missing", func() {
+				BeforeEach(func() {
+					t.createSubmarinerConfig()
+					t.createSubmarinerBroker()
+				})
+
+				It("should add backup label to broker", func() {
+					t.awaitBackupLabelOnBroker()
 				})
 			})
 
@@ -257,8 +268,9 @@ type testDriver struct {
 	managedCluster     *clusterv1.ManagedCluster
 	addOn              *addonv1alpha1.ManagedClusterAddOn
 	submarinerConfig   *configv1alpha1.SubmarinerConfig
+	broker             *unstructured.Unstructured
 	kubeClient         kubernetes.Interface
-	dynamicClient      dynamic.Interface
+	dynamicClient      *dynamicfake.FakeDynamicClient
 	controllerClient   client.Client
 	clusterClient      clusterclient.Interface
 	manifestWorkClient *fakeworkclient.Clientset
@@ -291,6 +303,7 @@ func newTestDriver() *testDriver {
 		}
 
 		t.submarinerConfig = nil
+		t.broker = nil
 		t.mockCtrl = gomock.NewController(GinkgoT())
 		t.dynamicClient = dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
 		t.clusterClient = fakeclusterclient.NewSimpleClientset()
@@ -533,6 +546,24 @@ func (t *testDriver) assertSCCManifestObjs(objs []*unstructured.Unstructured) {
 	assertManifestObj(objs, "SecurityContextConstraints", "")
 }
 
+func (t *testDriver) awaitBackupLabelOnBroker() {
+	Eventually(func() bool {
+		broker, err := t.dynamicClient.Resource(submarineragent.BrokerGVR).Namespace(brokerNamespace).Get(context.TODO(),
+			submarineragent.BrokerObjectName, metav1.GetOptions{})
+		if err != nil {
+			return false
+		}
+
+		labels := broker.GetLabels()
+		if labels == nil {
+			return false
+		}
+		_, ok := labels[submarineragent.BackupLabel]
+
+		return ok
+	}).Should(BeTrue(), "Backup label missing on submariner-broker")
+}
+
 func (t *testDriver) createSubmarinerConfig() {
 	t.submarinerConfig = &configv1alpha1.SubmarinerConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -579,6 +610,23 @@ func (t *testDriver) createAddon() {
 
 func (t *testDriver) createGlobalnetConfigMap() {
 	err := globalnet.CreateConfigMap(t.controllerClient, false, "", 0, brokerNamespace)
+	Expect(err).To(Succeed())
+}
+
+func (t *testDriver) createSubmarinerBroker() {
+	t.broker = &unstructured.Unstructured{}
+	t.broker.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "submariner.io",
+		Version: "v1alpha1",
+		Kind:    "Broker",
+	})
+	t.broker.SetNamespace(brokerNamespace)
+	t.broker.SetName(submarineragent.BrokerObjectName)
+	err := unstructured.SetNestedField(t.broker.Object, "false", "spec", "globalnetEnabled")
+
+	Expect(err).To(Succeed())
+	_, err = t.dynamicClient.Resource(submarineragent.BrokerGVR).Namespace(brokerNamespace).Create(context.TODO(),
+		t.broker, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
