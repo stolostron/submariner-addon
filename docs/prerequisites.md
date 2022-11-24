@@ -7,7 +7,6 @@ Submariner with ACM has a few requirements to get started:
 3. ACM only supports non-overlapping Pod and Service CIDRs between managed clusters using Submariner to connect workloads across each other at the current stage.
 4. IP reachability between the gateway nodes. When connecting two clusters, at least one of the clusters should have a publicly routable IP address designated to the Gateway node.
 5. Ensure that firewall configuration allows 4800/UDP across all nodes in the managed cluster in both directions.
-6. Ensure that firewall configuration allows ingress 8080/TCP on the Gateway nodes so that other nodes in the cluster can access it.
 
 Refer to [Prerequisites of Submariner](https://submariner.io/getting-started/#prerequisites) for the detailed prerequisites.
 
@@ -51,29 +50,7 @@ Use `SubmarinerConfig` API to build the cluster environment. See [SubmarinerConf
    > Replace <frontend-ip-name> with your cluster frontend IP configuration name.  
    > Replace <nic-name> with your network interface (NIC).
 
-2. Create one load balancing inbound NAT rules to forward Submariner gateway metrics service request.
-
-    ```bash
-    # create inbound nat rule
-    $ az network lb inbound-nat-rule create --lb-name <lb-name> \
-    --resource-group <res-group> \
-    --name <name> \
-    --protocol Tcp --frontend-port 8080 --backend-port 8080 \
-    --frontend-ip-name <frontend-ip-name>
-
-    # add your vm network interface to the created inbound nat rule
-    $ az network nic ip-config inbound-nat-rule add \
-    --lb-name <lb-name> --resource-group <res-group> \
-    --inbound-nat-rule <name> \
-    --nic-name <nic-name> --ip-config-name pipConfig
-    ```
-   > Replace <lb-name> with your load balancer name.  
-   > Replace <res-group> with your resource group name.  
-   > Replace <name> with your load balancing inbound NAT rule name.  
-   > Replace <frontend-ip-name> with your cluster frontend IP configuration name.  
-   > Replace <nic-name> with your network interface (NIC).
-
-3. Create NSG (network security groups) security rules on your Azure to open IPsec IKE (by default 500/UDP) and NAT traversal ports (by default 4500/UDP) for Submariner.
+2. Create NSG (network security groups) security rules on your Azure to open IPsec IKE (by default 500/UDP) and NAT traversal ports (by default 4500/UDP) for Submariner.
 
     ```bash
     $ az network nsg rule create --resource-group <res-group> \
@@ -92,7 +69,7 @@ Use `SubmarinerConfig` API to build the cluster environment. See [SubmarinerConf
    > Replace <name> with your rule name.  
    > Replace <ipsec-port> with your IPsec port.
 
-4. Create the NSG rules to open 4800/UDP port to encapsulate Pod traffic from the worker and master nodes to the Submariner Gateway nodes.
+3. Create the NSG rules to open 4800/UDP port to encapsulate Pod traffic from the worker and master nodes to the Submariner Gateway nodes.
 
     ```bash
     $ az network nsg rule create --resource-group <res-group> \
@@ -110,25 +87,7 @@ Use `SubmarinerConfig` API to build the cluster environment. See [SubmarinerConf
    > Replace <priority> with your rule priority.  
    > Replace <name> with your rule name.
 
-5. Create the NSG rules to open 8080/TCP port to export metrics service from the Submariner gateway.
-
-    ```bash
-    $ az network nsg rule create --resource-group <res-group> \
-    --nsg-name <nsg-name> --priority <priority> \
-    --name <name> --direction Inbound --access Allow \
-    --protocol Tcp --destination-port-ranges 8080 \
-
-    $ az network nsg rule create --resource-group <res-group> \
-    --nsg-name <nsg-name> --priority <priority> \
-    --name <name> --direction Outbound --access Allow \
-    --protocol Udp --destination-port-ranges 8080
-    ```
-   > Replace <res-group> with your resource group name.  
-   > Replace <nsg-name> with your NSG name.  
-   > Replace <priority> with your rule priority.  
-   > Replace <name> with your rule name.
-
-6. Label your worker node with the `submariner.io/gateway=true` in your cluster 
+4. Label your worker node with the `submariner.io/gateway=true` in your cluster 
    ```
    kubectl label nodes <worker-node-name> "submariner.io/gateway=true" --overwrite
    ```

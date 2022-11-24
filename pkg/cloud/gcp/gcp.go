@@ -32,16 +32,14 @@ const (
 )
 
 type gcpProvider struct {
-	infraID              string
-	nattPort             uint16
-	routePort            string
-	gatewayMetricsPort   uint16
-	globalnetMetricsPort uint16
-	cloudPrepare         api.Cloud
-	reporter             submreporter.Interface
-	gwDeployer           api.GatewayDeployer
-	gateways             int
-	nattDiscoveryPort    int64
+	infraID           string
+	nattPort          uint16
+	routePort         string
+	cloudPrepare      api.Cloud
+	reporter          submreporter.Interface
+	gwDeployer        api.GatewayDeployer
+	gateways          int
+	nattDiscoveryPort int64
 }
 
 func NewGCPProvider(
@@ -96,16 +94,14 @@ func NewGCPProvider(
 		"", true, k8sClient)
 
 	return &gcpProvider{
-		infraID:              infraID,
-		nattPort:             uint16(nattPort),
-		routePort:            strconv.Itoa(constants.SubmarinerRoutePort),
-		gatewayMetricsPort:   constants.SubmarinerGatewayMetricsPort,
-		globalnetMetricsPort: constants.SubmarinerGlobalnetMetricsPort,
-		cloudPrepare:         cloudPrepare,
-		gwDeployer:           gwDeployer,
-		reporter:             reporter.NewEventRecorderWrapper("GCPCloudProvider", eventRecorder),
-		nattDiscoveryPort:    int64(nattDiscoveryPort),
-		gateways:             gateways,
+		infraID:           infraID,
+		nattPort:          uint16(nattPort),
+		routePort:         strconv.Itoa(constants.SubmarinerRoutePort),
+		cloudPrepare:      cloudPrepare,
+		gwDeployer:        gwDeployer,
+		reporter:          reporter.NewEventRecorderWrapper("GCPCloudProvider", eventRecorder),
+		nattDiscoveryPort: int64(nattDiscoveryPort),
+		gateways:          gateways,
 	}, nil
 }
 
@@ -115,7 +111,6 @@ func NewGCPProvider(
 //    - IPsec IKE port (by default 500/UDP)
 //    - NAT traversal port (by default 4500/UDP)
 //    - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
-// 2. create the inbound and outbound firewall rules to open 8080/TCP port to export metrics service from the Submariner gateway
 func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 	if err := g.gwDeployer.Deploy(api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
@@ -133,8 +128,6 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 	input := api.PrepareForSubmarinerInput{
 		InternalPorts: []api.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-			{Port: g.gatewayMetricsPort, Protocol: "tcp"},
-			{Port: g.globalnetMetricsPort, Protocol: "tcp"},
 		},
 	}
 	err := g.cloudPrepare.PrepareForSubmariner(input, g.reporter)
@@ -148,7 +141,6 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on GCP after the SubmarinerConfig was deleted
 // 1. delete the inbound and outbound firewall rules to close submariner ports
-// 2. delete the inbound and outbound firewall rules to close submariner metrics port
 func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
 	err := g.gwDeployer.Cleanup(g.reporter)
 	if err != nil {

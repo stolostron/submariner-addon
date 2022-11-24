@@ -36,16 +36,14 @@ const (
 )
 
 type rhosProvider struct {
-	infraID              string
-	nattPort             uint16
-	routePort            string
-	gatewayMetricsPort   uint16
-	globalnetMetricsPort uint16
-	cloudPrepare         api.Cloud
-	reporter             submreporter.Interface
-	gwDeployer           api.GatewayDeployer
-	gateways             int
-	nattDiscoveryPort    int64
+	infraID           string
+	nattPort          uint16
+	routePort         string
+	cloudPrepare      api.Cloud
+	reporter          submreporter.Interface
+	gwDeployer        api.GatewayDeployer
+	gateways          int
+	nattDiscoveryPort int64
 }
 
 func NewRHOSProvider(
@@ -98,16 +96,14 @@ func NewRHOSProvider(
 		"", cloudEntry, true)
 
 	return &rhosProvider{
-		infraID:              infraID,
-		nattPort:             uint16(nattPort),
-		routePort:            strconv.Itoa(constants.SubmarinerRoutePort),
-		gatewayMetricsPort:   constants.SubmarinerGatewayMetricsPort,
-		globalnetMetricsPort: constants.SubmarinerGlobalnetMetricsPort,
-		cloudPrepare:         cloudPrepare,
-		gwDeployer:           gwDeployer,
-		reporter:             reporter.NewEventRecorderWrapper("RHOSCloudProvider", eventRecorder),
-		nattDiscoveryPort:    int64(nattDiscoveryPort),
-		gateways:             gateways,
+		infraID:           infraID,
+		nattPort:          uint16(nattPort),
+		routePort:         strconv.Itoa(constants.SubmarinerRoutePort),
+		cloudPrepare:      cloudPrepare,
+		gwDeployer:        gwDeployer,
+		reporter:          reporter.NewEventRecorderWrapper("RHOSCloudProvider", eventRecorder),
+		nattDiscoveryPort: int64(nattDiscoveryPort),
+		gateways:          gateways,
 	}, nil
 }
 
@@ -117,8 +113,6 @@ func NewRHOSProvider(
 //    - NAT traversal port (by default 4500/UDP)
 //    - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
 //    - ESP & AH protocols for private-ip to private-ip gateway communications
-// 2. create the inbound and outbound firewall rules to open 8080/TCP, 8081/TCP port to export metrics service from the
-//    Submariner gateway
 func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 	if err := r.gwDeployer.Deploy(api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
@@ -135,8 +129,6 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 	input := api.PrepareForSubmarinerInput{
 		InternalPorts: []api.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-			{Port: r.gatewayMetricsPort, Protocol: "tcp"},
-			{Port: r.globalnetMetricsPort, Protocol: "tcp"},
 		},
 	}
 	err := r.cloudPrepare.PrepareForSubmariner(input, r.reporter)
@@ -151,7 +143,6 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on RHOS after the SubmarinerConfig was deleted
 // 1. delete any dedicated gateways that were previously deployed.
 // 2. delete the inbound and outbound firewall rules to close submariner ports
-// 3. delete the inbound and outbound firewall rules to close submariner metrics port
 func (r rhosProvider) CleanUpSubmarinerClusterEnv() error {
 	err := r.gwDeployer.Cleanup(r.reporter)
 	if err != nil {
