@@ -367,7 +367,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 	// config is deleting, we remove its related resources
 	if !config.DeletionTimestamp.IsZero() {
-		if !isSpokePrepared(config.Status.ManagedClusterInfo.Platform) {
+		if !isSpokePrepared(config.Status.ManagedClusterInfo.Platform, config.Status.ManagedClusterInfo.Vendor) {
 			if err := c.cleanUpSubmarinerClusterEnv(config); err != nil {
 				return err
 			}
@@ -391,7 +391,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	// prepare submariner cluster environment
 	errs := []error{}
 	var condition *metav1.Condition
-	if !isSpokePrepared(managedClusterInfo.Platform) {
+	if !isSpokePrepared(managedClusterInfo.Platform, managedClusterInfo.Vendor) {
 		cloudProvider, _, preparedErr := c.cloudProviderFactory.Get(&managedClusterInfo, config, c.eventRecorder)
 		if preparedErr == nil {
 			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
@@ -867,6 +867,6 @@ func (c *submarinerAgentController) updateBackupLabelOnBroker(ctx context.Contex
 	return nil
 }
 
-func isSpokePrepared(cloudName string) bool {
-	return cloudName != "AWS"
+func isSpokePrepared(cloudName, vendor string) bool {
+	return cloudName != "AWS" || vendor == constants.ProductROSA
 }
