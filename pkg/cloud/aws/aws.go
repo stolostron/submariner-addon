@@ -122,8 +122,6 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	if err := a.cloudPrepare.PrepareForSubmariner(cpapi.PrepareForSubmarinerInput{
 		InternalPorts: []cpapi.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-			{Port: constants.SubmarinerGatewayMetricsPort, Protocol: "tcp"},
-			{Port: constants.SubmarinerGlobalnetMetricsPort, Protocol: "tcp"},
 		},
 	}, a.reporter); err != nil {
 		return err
