@@ -164,6 +164,51 @@ var _ = Describe("Deployment Status Controller", func() {
 		})
 	})
 
+	When("the metrics proxy daemon set doesn't initially exist", func() {
+		BeforeEach(func() {
+			t.metricsProxyDaemonSet = nil
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "NoMetricsProxyDaemonSet")
+
+			t.metricsProxyDaemonSet = newMetricsProxyDaemonSet()
+			t.createDaemonSet(t.metricsProxyDaemonSet)
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("a metrics proxy daemon set pod isn't initially available", func() {
+		BeforeEach(func() {
+			t.metricsProxyDaemonSet.Status.NumberUnavailable = 1
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "MetricsProxyUnavailable")
+
+			t.metricsProxyDaemonSet.Status.NumberUnavailable = 0
+			t.updateDaemonSet(t.metricsProxyDaemonSet)
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
+	When("no metrics proxy daemon set pod is initially scheduled", func() {
+		BeforeEach(func() {
+			t.metricsProxyDaemonSet.Status.DesiredNumberScheduled = 0
+		})
+
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
+			t.awaitStatusCondition(metav1.ConditionTrue, "NoScheduledMetricsProxy")
+
+			t.metricsProxyDaemonSet.Status.DesiredNumberScheduled = 1
+			t.updateDaemonSet(t.metricsProxyDaemonSet)
+
+			t.awaitStatusConditionDeployed()
+		})
+	})
+
 	When("the lighthouse agent deployment doesn't initially exist", func() {
 		BeforeEach(func() {
 			t.lighthouseAgentDeployment = nil
@@ -338,6 +383,7 @@ type deploymentControllerTestDriver struct {
 	operatorDeployment            *appsv1.Deployment
 	gatewayDaemonSet              *appsv1.DaemonSet
 	routeAgentDaemonSet           *appsv1.DaemonSet
+	metricsProxyDaemonSet         *appsv1.DaemonSet
 	lighthouseAgentDeployment     *appsv1.Deployment
 	lighthouseCoreDNSDeployment   *appsv1.Deployment
 	globalnetDaemonSet            *appsv1.DaemonSet
@@ -357,6 +403,7 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 		t.operatorDeployment = newOperatorDeployment()
 		t.gatewayDaemonSet = newGatewayDaemonSet()
 		t.routeAgentDaemonSet = newRouteAgentDaemonSet()
+		t.metricsProxyDaemonSet = newMetricsProxyDaemonSet()
 		t.lighthouseAgentDeployment = newLighthouseAgentDeployment()
 		t.lighthouseCoreDNSDeployment = newLighthouseCoreDNSDeployment()
 		t.networkPluginSyncerDeployment = nil
@@ -388,6 +435,10 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 
 		if t.routeAgentDaemonSet != nil {
 			t.createDaemonSet(t.routeAgentDaemonSet)
+		}
+
+		if t.metricsProxyDaemonSet != nil {
+			t.createDaemonSet(t.metricsProxyDaemonSet)
 		}
 
 		if t.lighthouseAgentDeployment != nil {
@@ -554,6 +605,18 @@ func newRouteAgentDaemonSet() *appsv1.DaemonSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: submarinerNS,
 			Name:      names.RouteAgentComponent,
+		},
+	}
+}
+
+func newMetricsProxyDaemonSet() *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: submarinerNS,
+			Name:      names.MetricsProxyComponent,
+		},
+		Status: appsv1.DaemonSetStatus{
+			DesiredNumberScheduled: 1,
 		},
 	}
 }

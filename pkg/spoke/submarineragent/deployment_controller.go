@@ -264,6 +264,31 @@ func (c *deploymentStatusController) checkRouteAgentDaemonSet(degradedConditionR
 	return nil
 }
 
+func (c *deploymentStatusController) checkMetricsProxyDaemonSet(degradedConditionReasons, degradedConditionMessages *[]string) error {
+	metricProxy, err := c.daemonSetLister.DaemonSets(c.namespace).Get(names.MetricsProxyComponent)
+
+	switch {
+	case errors.IsNotFound(err):
+		*degradedConditionReasons = append(*degradedConditionReasons, "NoMetricsProxyDaemonSet")
+		*degradedConditionMessages = append(*degradedConditionMessages, "The metrics proxy daemon set does not exist")
+	case err == nil:
+		if metricProxy.Status.DesiredNumberScheduled == 0 {
+			*degradedConditionReasons = append(*degradedConditionReasons, "NoScheduledMetricsProxy")
+			*degradedConditionMessages = append(*degradedConditionMessages, "There are no nodes to run the metrics proxy")
+		}
+
+		if metricProxy.Status.NumberUnavailable != 0 {
+			*degradedConditionReasons = append(*degradedConditionReasons, "MetricsProxyUnavailable")
+			*degradedConditionMessages = append(*degradedConditionMessages,
+				fmt.Sprintf("There are %d unavailable metrics proxy pods", metricProxy.Status.NumberUnavailable))
+		}
+	case err != nil:
+		return err
+	}
+
+	return nil
+}
+
 func (c *deploymentStatusController) checkGlobalnetDaemonSet(degradedConditionReasons, degradedConditionMessages *[]string) error {
 	globalnet, err := c.daemonSetLister.DaemonSets(c.namespace).Get(names.GlobalnetComponent)
 
@@ -296,6 +321,11 @@ func (c *deploymentStatusController) checkDaemonSets(degradedConditionReasons, d
 	}
 
 	err = c.checkRouteAgentDaemonSet(degradedConditionReasons, degradedConditionMessages)
+	if err != nil {
+		return err
+	}
+
+	err = c.checkMetricsProxyDaemonSet(degradedConditionReasons, degradedConditionMessages)
 	if err != nil {
 		return err
 	}
