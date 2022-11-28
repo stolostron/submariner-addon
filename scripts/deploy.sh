@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source scripts/clusters.sh
-k8s_version="v1.23.4"
+source scripts/vars.sh
 
 if [ "$1"x = "cleanup"x ]; then
     for cluster in "${clusters[@]}"; do
@@ -205,8 +205,6 @@ spec:
     sourceNamespace: olm
 EOF
 
-    submrepo="quay.io/submariner"
-    submver=0.14.0-rc2
     kubectl patch submarinerconfigs submariner -n ${cluster} --type "json" -p '[
 {"op":"add","path":"/spec/imagePullSpecs/submarinerImagePullSpec","value":"'${submrepo}'/submariner-gateway:'${submver}'"},
 {"op":"add","path":"/spec/imagePullSpecs/submarinerRouteAgentImagePullSpec","value":"'${submrepo}'/submariner-route-agent:'${submver}'"},

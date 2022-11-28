@@ -30,7 +30,7 @@ spec:
     submariner-gateway: {{ .SubmarinerGatewayImage }}
     {{- end}}
     {{- if .SubmarinerRouteAgentImage }}
-    submariner-route-agent: {{ .SubmarinerRouteAgentImage }}
+    submariner-routeagent: {{ .SubmarinerRouteAgentImage }}
     {{- end}}
     {{- if .SubmarinerGlobalnetImage }}
     submariner-globalnet: {{ .SubmarinerGlobalnetImage }}
@@ -39,10 +39,10 @@ spec:
     submariner-networkplugin-syncer: {{ .SubmarinerNetworkPluginSyncerImage }}
     {{- end}}
     {{- if .LighthouseAgentImage }}
-    lighthouse-agent: {{ .LighthouseAgentImage }}
+    submariner-lighthouse-agent: {{ .LighthouseAgentImage }}
     {{- end}}
     {{- if .LighthouseCoreDNSImage }}
-    lighthouse-coredns: {{ .LighthouseCoreDNSImage }}
+    submariner-lighthouse-coredns: {{ .LighthouseCoreDNSImage }}
     {{- end}}
     {{- if .MetricsProxyImage }}
     submariner-metrics-proxy: {{ .MetricsProxyImage }}
