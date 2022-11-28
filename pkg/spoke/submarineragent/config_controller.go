@@ -3,6 +3,7 @@ package submarineragent
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,7 +21,6 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/klog/v2"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 )
@@ -59,6 +60,7 @@ type submarinerConfigController struct {
 	clusterName          string
 	cloudProviderFactory cloud.ProviderFactory
 	onSyncDefer          func()
+	knownConfigs         map[string]*configv1alpha1.SubmarinerConfig
 }
 
 type SubmarinerConfigControllerInput struct {
@@ -85,6 +87,7 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 		clusterName:          input.ClusterName,
 		cloudProviderFactory: input.CloudProviderFactory,
 		onSyncDefer:          input.OnSyncDefer,
+		knownConfigs:         make(map[string]*configv1alpha1.SubmarinerConfig),
 	}
 
 	return factory.New().
@@ -112,6 +115,8 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 }
 
 func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+	recorder := syncCtx.Recorder()
+
 	if c.onSyncDefer != nil {
 		defer c.onSyncDefer()
 	}
@@ -151,12 +156,12 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 			Message: "There are no nodes labeled as gateways",
 		}
 
-		err := c.cleanupClusterEnvironment(ctx, config, syncCtx.Recorder())
+		err := c.cleanupClusterEnvironment(ctx, config, recorder)
 		if err != nil {
 			condition = failedCondition(err.Error())
 		}
 
-		updateErr := c.updateSubmarinerConfigStatus(ctx, syncCtx.Recorder(), config, &condition)
+		updateErr := c.updateSubmarinerConfigStatus(ctx, recorder, config, &condition)
 
 		if err != nil {
 			return err
@@ -165,26 +170,42 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 		return updateErr
 	}
 
+	return c.syncConfig(ctx, recorder, config)
+}
+
+func (c *submarinerConfigController) syncConfig(ctx context.Context, recorder events.Recorder,
+	config *configv1alpha1.SubmarinerConfig,
+) error {
 	// config is deleting from hub, remove its related resources
 	// TODO: add finalizer in next release
 	if !config.DeletionTimestamp.IsZero() {
-		return c.cleanupClusterEnvironment(ctx, config, syncCtx.Recorder())
+		err := c.cleanupClusterEnvironment(ctx, config, recorder)
+		if err == nil {
+			delete(c.knownConfigs, config.Namespace)
+		}
+
+		return err
+	}
+
+	if c.skipSyncingUnchangedConfig(config) {
+		klog.V(4).Infof("Skip syncing submariner config %q as it didn't change", config.Namespace+"/"+config.Name)
+		return nil
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "AWS" {
 		// for AWS, the gateway configuration will be operated on the hub
 		// count the gateways status on the managed cluster and report it to the hub
-		return c.updateGatewayStatus(ctx, syncCtx.Recorder(), config)
+		return c.updateGatewayStatus(ctx, recorder, config)
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "GCP" || config.Status.ManagedClusterInfo.Platform == "OpenStack" {
-		return c.prepareForSubmariner(ctx, config, syncCtx)
+		return c.prepareForSubmariner(ctx, config, recorder)
 	}
 
 	// ensure the expected count of gateways
 	condition, err := c.ensureGateways(ctx, config)
 
-	updateErr := c.updateSubmarinerConfigStatus(ctx, syncCtx.Recorder(), config, &condition)
+	updateErr := c.updateSubmarinerConfigStatus(ctx, recorder, config, &condition)
 
 	if err != nil {
 		return err
@@ -193,50 +214,54 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	return updateErr
 }
 
+// skipSyncingUnchangedConfig if last submariner config is known and is equal to the given config.
+func (c *submarinerConfigController) skipSyncingUnchangedConfig(config *configv1alpha1.SubmarinerConfig) bool {
+	lastConfig, known := c.knownConfigs[config.Namespace]
+	return known && reflect.DeepEqual(lastConfig.Spec, config.Spec)
+}
+
 func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
-	syncCtx factory.SyncContext,
+	recorder events.Recorder,
 ) error {
-	if !meta.IsStatusConditionTrue(config.Status.Conditions, configv1alpha1.SubmarinerConfigConditionEnvPrepared) {
-		errs := []error{}
+	errs := []error{}
 
-		cloudProvider, preparedErr := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, syncCtx.Recorder())
-		if preparedErr == nil {
-			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
-		}
-
-		condition := metav1.Condition{
-			Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
-			Status:  metav1.ConditionTrue,
-			Reason:  "SubmarinerClusterEnvPrepared",
-			Message: "Submariner cluster environment was prepared",
-		}
-
-		if preparedErr != nil {
-			condition.Status = metav1.ConditionFalse
-			condition.Reason = "SubmarinerClusterEnvPreparationFailed"
-			condition.Message = fmt.Sprintf("Failed to prepare submariner cluster environment: %v", preparedErr)
-			errs = append(errs, preparedErr)
-		}
-
-		_, updated, updatedErr := submarinerconfig.UpdateStatus(ctx,
-			c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace), config.Name,
-			submarinerconfig.UpdateConditionFn(&condition))
-
-		if updatedErr != nil {
-			errs = append(errs, updatedErr)
-		}
-
-		if updated {
-			syncCtx.Recorder().Eventf("SubmarinerClusterEnvPrepared",
-				"submariner cluster environment was prepared for managed cluster %s", config.Namespace)
-		}
-
-		if len(errs) > 0 {
-			return operatorhelpers.NewMultiLineAggregate(errs)
-		}
+	cloudProvider, preparedErr := c.cloudProviderFactory.Get(config.Status.ManagedClusterInfo, config, recorder)
+	if preparedErr == nil {
+		preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
 	}
 
-	return c.updateGatewayStatus(ctx, syncCtx.Recorder(), config)
+	condition := metav1.Condition{
+		Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
+		Status:  metav1.ConditionTrue,
+		Reason:  "SubmarinerClusterEnvPrepared",
+		Message: "Submariner cluster environment was prepared",
+	}
+
+	if preparedErr != nil {
+		condition.Status = metav1.ConditionFalse
+		condition.Reason = "SubmarinerClusterEnvPreparationFailed"
+		condition.Message = fmt.Sprintf("Failed to prepare submariner cluster environment: %v", preparedErr)
+		errs = append(errs, preparedErr)
+	}
+
+	_, updated, updatedErr := submarinerconfig.UpdateStatus(ctx,
+		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace), config.Name,
+		submarinerconfig.UpdateConditionFn(&condition))
+
+	if updatedErr != nil {
+		errs = append(errs, updatedErr)
+	}
+
+	if updated {
+		recorder.Eventf("SubmarinerClusterEnvPrepared",
+			"submariner cluster environment was prepared for managed cluster %s", config.Namespace)
+	}
+
+	if len(errs) > 0 {
+		return operatorhelpers.NewMultiLineAggregate(errs)
+	}
+
+	return c.updateGatewayStatus(ctx, recorder, config)
 }
 
 func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
@@ -271,6 +296,11 @@ func (c *submarinerConfigController) updateSubmarinerConfigStatus(ctx context.Co
 
 	if updated {
 		recorder.Eventf("SubmarinerConfigStatusUpdated", "Updated status conditions:  %#v", updatedStatus.Conditions)
+
+		// When all is well, the status is eventually updated with a "true" condition, allowing us to cache latest good known config
+		if condition.Status == metav1.ConditionTrue {
+			c.knownConfigs[config.Namespace] = config
+		}
 	}
 
 	return err
