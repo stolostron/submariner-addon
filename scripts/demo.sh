@@ -3,6 +3,7 @@
 set -o nounset
 
 source scripts/clusters.sh
+source scripts/vars.sh
 
 hub="${clusters[0]}"
 managedcluster1="${clusters[0]}"
@@ -13,6 +14,32 @@ kubeconfigs_dir="${work_dir}/kubeconfigs"
 
 echo "Switch to hub cluster ${hub}"
 export KUBECONFIG="${kubeconfigs_dir}/kind-config-${hub}/kubeconfig"
+
+function patch_submariner_operator() {
+    local cluster=$1
+    echo "Waiting for submariner manifestworks to be ready for ${cluster}"
+    kubectl wait --for=condition=available manifestworks submariner-operator -n ${cluster} --timeout=60s
+    kubectl wait --for=condition=available manifestworks submariner-resource -n ${cluster} --timeout=60s
+
+    echo "Waiting to patch submariner-operator deployment on ${cluster}"
+    kubectl annotate submarinerconfig submariner -n ${cluster} skipOperatorGroup=""
+
+    clusterconfig="${kubeconfigs_dir}/kind-config-${cluster}/kubeconfig"
+
+    # wait for submariner operator to be ready
+    while :
+    do
+        created=$(kubectl get deployment submariner-operator -n submariner-operator --kubeconfig=${clusterconfig})
+        if [ -n "$created" ]; then
+            kubectl get deployment submariner-operator -n submariner-operator --kubeconfig=${clusterconfig}
+            kubectl wait --for=condition=available deployment submariner-operator -n submariner-operator --kubeconfig=${clusterconfig} >/dev/null 2>&1
+            break
+        fi
+    done
+    kubectl patch deployment submariner-operator -n submariner-operator --kubeconfig=${clusterconfig} --type "json" -p '[
+{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"'${submrepo}'/submariner-operator:'${submver}'"}]'
+    kubectl wait --for=condition=available deployment submariner-operator -n submariner-operator --kubeconfig=${clusterconfig}
+}
 
 echo "Label the managed clusters with cluster.open-cluster-management.io/clusterset"
 kubectl label managedclusters "${managedcluster1}" "cluster.open-cluster-management.io/clusterset=clusterset1" --overwrite
@@ -65,12 +92,19 @@ echo "Wait the submariner manifestworks to be created on hub ..."
 while :
 do
     mcounts=$(kubectl get manifestworks --all-namespaces | wc -l)
-    if [ ${mcounts} -ge 5 ]; then
+    if [ ${mcounts} -ge 7 ]; then
         kubectl get manifestworks --all-namespaces
         break
     fi
     sleep 2
 done
+
+# Patch submariner-operator version
+for ((i=0;i<${#clusters[*]};i++));
+do
+    (patch_submariner_operator ${clusters[$i]}) &
+done
+wait
 
 # check submariner-addon status
 for((i=1;i<=48;i++));
