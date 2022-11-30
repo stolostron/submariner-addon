@@ -20,10 +20,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
-	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta1"
-	clusterinformerv1beta1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta1"
-	clusterlisterv1beta1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta1"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta2"
+	clusterinformerv1beta2 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta2"
+	clusterlisterv1beta2 "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta2"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
 const (
@@ -43,7 +43,7 @@ var manifestFiles embed.FS
 type submarinerBrokerController struct {
 	kubeClient       kubernetes.Interface
 	clustersetClient clientset.ManagedClusterSetInterface
-	clusterSetLister clusterlisterv1beta1.ManagedClusterSetLister
+	clusterSetLister clusterlisterv1beta2.ManagedClusterSetLister
 	eventRecorder    events.Recorder
 }
 
@@ -54,7 +54,7 @@ type brokerConfig struct {
 func NewController(
 	clustersetClient clientset.ManagedClusterSetInterface,
 	kubeClient kubernetes.Interface,
-	clusterSetInformer clusterinformerv1beta1.ManagedClusterSetInformer,
+	clusterSetInformer clusterinformerv1beta2.ManagedClusterSetInformer,
 	recorder events.Recorder,
 ) factory.Controller {
 	c := &submarinerBrokerController{
@@ -92,7 +92,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 
 	// ignore the non-legacy clusterset
 	selectorType := clusterSet.Spec.ClusterSelector.SelectorType
-	if len(selectorType) > 0 && selectorType != clusterv1beta1.LegacyClusterSetLabel {
+	if len(selectorType) > 0 && selectorType != clusterv1beta2.ExclusiveClusterSetLabel {
 		return nil
 	}
 

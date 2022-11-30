@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/rand"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
 const (
@@ -36,7 +36,7 @@ var _ = Describe("Deploy a submariner-addon agent", func() {
 			By("Create a ManagedClusterSet")
 			managedClusterSet := util.NewManagedClusterSet(managedClusterSetName)
 
-			_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
+			_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
@@ -46,7 +46,7 @@ var _ = Describe("Deploy a submariner-addon agent", func() {
 
 			By("Create a ManagedCluster")
 			managedCluster := util.NewManagedCluster(managedClusterName, map[string]string{
-				clusterv1beta1.ClusterSetLabel: managedClusterSetName,
+				clusterv1beta2.ClusterSetLabel: managedClusterSetName,
 			})
 			_, err = clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), managedCluster, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
