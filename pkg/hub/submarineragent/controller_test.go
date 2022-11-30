@@ -45,7 +45,7 @@ import (
 	fakeworkclient "open-cluster-management.io/api/client/work/clientset/versioned/fake"
 	workinformers "open-cluster-management.io/api/client/work/informers/externalversions"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	workv1 "open-cluster-management.io/api/work/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -288,7 +288,7 @@ func newTestDriver() *testDriver {
 		t.managedCluster = &clusterv1.ManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   clusterName,
-				Labels: map[string]string{clusterv1beta1.ClusterSetLabel: clusterSetName},
+				Labels: map[string]string{clusterv1beta2.ClusterSetLabel: clusterSetName},
 			},
 		}
 
@@ -355,7 +355,7 @@ func newTestDriver() *testDriver {
 		controller := submarineragent.NewSubmarinerAgentController(t.kubeClient, t.dynamicClient, t.controllerClient, t.clusterClient,
 			t.manifestWorkClient, t.configClient, t.addOnClient,
 			clusterInformerFactory.Cluster().V1().ManagedClusters(),
-			clusterInformerFactory.Cluster().V1beta1().ManagedClusterSets(),
+			clusterInformerFactory.Cluster().V1beta2().ManagedClusterSets(),
 			workInformerFactory.Work().V1().ManifestWorks(),
 			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
@@ -593,13 +593,13 @@ func (t *testDriver) createManagedCluster() {
 }
 
 func (t *testDriver) createManagedClusterSet() {
-	mcs := &clusterv1beta1.ManagedClusterSet{
+	mcs := &clusterv1beta2.ManagedClusterSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterSetName,
 		},
 	}
 
-	_, err := t.clusterClient.ClusterV1beta1().ManagedClusterSets().Create(context.TODO(), mcs, metav1.CreateOptions{})
+	_, err := t.clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.TODO(), mcs, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 

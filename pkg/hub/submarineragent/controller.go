@@ -44,14 +44,14 @@ import (
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterinformerv1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1"
-	clusterinformerv1beta1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta1"
+	clusterinformerv1beta2 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta2"
 	clusterlisterv1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
-	clusterlisterv1beta1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta1"
+	clusterlisterv1beta2 "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta2"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 	workinformer "open-cluster-management.io/api/client/work/informers/externalversions/work/v1"
 	worklister "open-cluster-management.io/api/client/work/listers/work/v1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	workv1 "open-cluster-management.io/api/work/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -114,7 +114,7 @@ type submarinerAgentController struct {
 	configClient         configclient.Interface
 	addOnClient          addonclient.Interface
 	clusterLister        clusterlisterv1.ManagedClusterLister
-	clusterSetLister     clusterlisterv1beta1.ManagedClusterSetLister
+	clusterSetLister     clusterlisterv1beta2.ManagedClusterSetLister
 	manifestWorkLister   worklister.ManifestWorkLister
 	configLister         configlister.SubmarinerConfigLister
 	addOnLister          addonlisterv1alpha1.ManagedClusterAddOnLister
@@ -133,7 +133,7 @@ func NewSubmarinerAgentController(
 	configClient configclient.Interface,
 	addOnClient addonclient.Interface,
 	clusterInformer clusterinformerv1.ManagedClusterInformer,
-	clusterSetInformer clusterinformerv1beta1.ManagedClusterSetInformer,
+	clusterSetInformer clusterinformerv1beta2.ManagedClusterSetInformer,
 	manifestWorkInformer workinformer.ManifestWorkInformer,
 	configInformer configinformer.SubmarinerConfigInformer,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
@@ -309,7 +309,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	}
 
-	clusterSetName, existed := managedCluster.Labels[clusterv1beta1.ClusterSetLabel]
+	clusterSetName, existed := managedCluster.Labels[clusterv1beta2.ClusterSetLabel]
 	if !existed {
 		// the cluster does not have the clusterset label, try to clean up the submariner agent
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)

@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	clusterSetFake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterSetInformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
 const (
@@ -35,7 +35,7 @@ var _ = Describe("Controller", func() {
 
 	When("a ManagedClusterSet is created", func() {
 		It("should add the Finalizer", func() {
-			test.AwaitFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta1().ManagedClusterSets()),
+			test.AwaitFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
 				clusterSetName, finalizerName)
 		})
 
@@ -82,7 +82,7 @@ var _ = Describe("Controller", func() {
 
 	When("a ManagedClusterSet with SelectorType set to LabelSelector is created", func() {
 		BeforeEach(func() {
-			t.clusterSet.Spec.ClusterSelector.SelectorType = clusterv1beta1.LabelSelector
+			t.clusterSet.Spec.ClusterSelector.SelectorType = clusterv1beta2.LabelSelector
 		})
 
 		It("should not deploy the broker components", func() {
@@ -92,7 +92,7 @@ var _ = Describe("Controller", func() {
 
 	When("a ManagedClusterSet with SelectorType set to LegacyClusterSetLabel is created", func() {
 		BeforeEach(func() {
-			t.clusterSet.Spec.ClusterSelector.SelectorType = clusterv1beta1.LegacyClusterSetLabel
+			t.clusterSet.Spec.ClusterSelector.SelectorType = clusterv1beta2.ExclusiveClusterSetLabel
 		})
 
 		It("should deploy the broker components", func() {
@@ -124,12 +124,12 @@ var _ = Describe("Controller", func() {
 			now := metav1.Now()
 			t.clusterSet.DeletionTimestamp = &now
 
-			_, err := t.clusterSetClient.ClusterV1beta1().ManagedClusterSets().Update(context.TODO(), t.clusterSet, metav1.UpdateOptions{})
+			_, err := t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Update(context.TODO(), t.clusterSet, metav1.UpdateOptions{})
 			Expect(err).To(Succeed())
 		})
 
 		It("should remove the Finalizer", func() {
-			test.AwaitNoFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta1().ManagedClusterSets()),
+			test.AwaitNoFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
 				clusterSetName, finalizerName)
 		})
 
@@ -164,7 +164,7 @@ type brokerControllerTestDriver struct {
 	kubeObjs         []runtime.Object
 	justBeforeRun    func()
 	clusterSetClient *clusterSetFake.Clientset
-	clusterSet       *clusterv1beta1.ManagedClusterSet
+	clusterSet       *clusterv1beta2.ManagedClusterSet
 	stop             context.CancelFunc
 }
 
@@ -172,7 +172,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 	t := &brokerControllerTestDriver{}
 
 	BeforeEach(func() {
-		t.clusterSet = &clusterv1beta1.ManagedClusterSet{
+		t.clusterSet = &clusterv1beta2.ManagedClusterSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "east",
 			},
@@ -193,8 +193,8 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 			t.justBeforeRun()
 		}
 
-		controller := submarinerbroker.NewController(t.clusterSetClient.ClusterV1beta1().ManagedClusterSets(),
-			t.kubeClient, informerFactory.Cluster().V1beta1().ManagedClusterSets(),
+		controller := submarinerbroker.NewController(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets(),
+			t.kubeClient, informerFactory.Cluster().V1beta2().ManagedClusterSets(),
 			events.NewLoggingEventRecorder("test"))
 
 		var ctx context.Context
@@ -203,7 +203,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 
 		informerFactory.Start(ctx.Done())
 
-		cache.WaitForCacheSync(ctx.Done(), informerFactory.Cluster().V1beta1().ManagedClusterSets().Informer().HasSynced)
+		cache.WaitForCacheSync(ctx.Done(), informerFactory.Cluster().V1beta2().ManagedClusterSets().Informer().HasSynced)
 
 		go controller.Run(ctx, 1)
 	})

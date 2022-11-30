@@ -148,9 +148,9 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	}
 
 	submarinerBrokerController := submarinerbroker.NewController(
-		clusterClient.ClusterV1beta1().ManagedClusterSets(),
+		clusterClient.ClusterV1beta2().ManagedClusterSets(),
 		kubeClient,
-		clusterInformers.Cluster().V1beta1().ManagedClusterSets(),
+		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
 		controllerContext.EventRecorder,
 	)
 
@@ -163,7 +163,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		configClient,
 		addOnClient,
 		clusterInformers.Cluster().V1().ManagedClusters(),
-		clusterInformers.Cluster().V1beta1().ManagedClusterSets(),
+		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
 		workInformers.Work().V1().ManifestWorks(),
 		configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
