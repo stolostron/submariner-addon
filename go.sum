@@ -722,8 +722,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
-github.com/submariner-io/admiral v0.13.1 h1:s/BVreou45x4UNqEkr9rj/DdrYZ4I5GY2m3JQuVvWlo=
-github.com/submariner-io/admiral v0.13.1/go.mod h1:n6m50q38aDO6t07AGOAFjm1/+bf9+/+q9hDTj7ex5UE=
+github.com/submariner-io/admiral v0.13.2 h1:VCLU5gCM2v0f1sKejjU07YLGs9xp7B6pvoeEQAAF1bc=
+github.com/submariner-io/admiral v0.13.2/go.mod h1:VloB3EWfW2/sct3iXAzxIz3H+3lbW/stnbEMjo3YrXA=
 github.com/submariner-io/cloud-prepare v0.13.1 h1:kW6HvkN7x8g4ay/Ne/LmJLoiit3DJJyHCE+nQNwhcz4=
 github.com/submariner-io/cloud-prepare v0.13.1/go.mod h1:aB18vLmVDOzsY424cZ+5lEKJBn44B1QZjOyfLz7IuLw=
 github.com/submariner-io/submariner v0.13.1 h1:JxsD2ba+Pg9gjmtUAPN5FTTlr5MKWElrIAcDPTcfyw0=
@@ -1404,8 +1404,9 @@ k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab/go.mod h1:sZAwmy6armz5eXlNoLmJcl
 k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89/go.mod h1:sZAwmy6armz5eXlNoLmJcl4F1QuKu7sr+mFQ0byX7Ew=
 k8s.io/utils v0.0.0-20201110183641-67b214c5f920/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20210802155522-efc7438f0176/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
-k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 h1:HNSDgDCrr/6Ly3WEGKZftiE7IY19Vz2GdbOCyI4qqhc=
 k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
+k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed h1:jAne/RjBTyawwAy0utX5eqigAwz/lQhTmy+Hr/Cpue4=
+k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 modernc.org/cc v1.0.0/go.mod h1:1Sk4//wdnYJiUIxnW8ddKpaOJCF37yAdqYnkxUpaYxw=
 modernc.org/golex v1.0.0/go.mod h1:b/QX9oBD/LhixY6NDh+IdGv17hgB+51fET1i2kPSmvk=
 modernc.org/mathutil v1.0.0/go.mod h1:wU0vUrJsVWBZ4P6e7xtFJEhFSNsfRLJ8H458uRjg03k=
