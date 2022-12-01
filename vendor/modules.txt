@@ -510,7 +510,7 @@ github.com/submariner-io/cloud-prepare/pkg/gcp/client
 github.com/submariner-io/cloud-prepare/pkg/k8s
 github.com/submariner-io/cloud-prepare/pkg/ocp
 github.com/submariner-io/cloud-prepare/pkg/rhos
-# github.com/submariner-io/submariner v0.13.1
+# github.com/submariner-io/submariner v0.13.2
 ## explicit; go 1.17
 github.com/submariner-io/submariner/pkg/apis/submariner.io/v1
 github.com/submariner-io/submariner/pkg/cni
