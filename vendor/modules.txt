@@ -514,7 +514,7 @@ github.com/submariner-io/cloud-prepare/pkg/rhos
 ## explicit; go 1.17
 github.com/submariner-io/submariner/pkg/apis/submariner.io/v1
 github.com/submariner-io/submariner/pkg/cni
-# github.com/submariner-io/submariner-operator v0.13.1
+# github.com/submariner-io/submariner-operator v0.13.2
 ## explicit; go 1.17
 github.com/submariner-io/submariner-operator/api/submariner/v1alpha1
 github.com/submariner-io/submariner-operator/pkg/client/clientset/versioned
