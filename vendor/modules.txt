@@ -499,7 +499,7 @@ github.com/submariner-io/admiral/pkg/stringset
 github.com/submariner-io/admiral/pkg/syncer/test
 github.com/submariner-io/admiral/pkg/test
 github.com/submariner-io/admiral/pkg/util
-# github.com/submariner-io/cloud-prepare v0.13.1
+# github.com/submariner-io/cloud-prepare v0.13.2
 ## explicit; go 1.17
 github.com/submariner-io/cloud-prepare/pkg/api
 github.com/submariner-io/cloud-prepare/pkg/aws
