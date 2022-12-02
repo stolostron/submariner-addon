@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/pkg/errors"
+	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	submreporter "github.com/submariner-io/admiral/pkg/reporter"
@@ -17,9 +17,7 @@ import (
 	"github.com/submariner-io/cloud-prepare/pkg/azure"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -39,36 +37,21 @@ type azureProvider struct {
 	nattDiscoveryPort int64
 }
 
-func NewAzureProvider(
-	restMapper meta.RESTMapper,
-	kubeClient kubernetes.Interface,
-	dynamicClient dynamic.Interface,
-	hubKubeClient kubernetes.Interface,
-	eventRecorder events.Recorder,
-	region, infraID, clusterName, credentialsSecretName, instanceType string,
-	nattPort, nattDiscoveryPort, gateways int,
-) (*azureProvider, error) {
-	if infraID == "" {
+func NewProvider(info *provider.Info) (*azureProvider, error) {
+	if info.InfraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")
 	}
 
-	if nattPort == 0 {
-		nattPort = constants.SubmarinerNatTPort
-	}
-
+	instanceType := info.GatewayConfig.Azure.InstanceType
 	if instanceType == "" {
 		instanceType = gwInstanceType
 	}
 
-	if gateways < 1 {
+	if info.Gateways < 1 {
 		return nil, fmt.Errorf("the count of gateways is less than 1")
 	}
 
-	if nattDiscoveryPort == 0 {
-		nattDiscoveryPort = constants.SubmarinerNatTDiscoveryPort
-	}
-
-	subscriptionID, err := initializeFromAuthFile(hubKubeClient, clusterName, credentialsSecretName)
+	subscriptionID, err := initializeFromAuthFile(info.HubKubeClient, info.ClusterName, info.CredentialsSecret.Name)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to initialize from auth file")
 	}
@@ -78,15 +61,15 @@ func NewAzureProvider(
 		return nil, errors.Wrap(err, "unable to create the Azure credentials")
 	}
 
-	k8sClient := k8s.NewInterface(kubeClient)
+	k8sClient := k8s.NewInterface(info.KubeClient)
 
-	msDeployer := ocp.NewK8sMachinesetDeployer(restMapper, dynamicClient)
+	msDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
 
 	cloudInfo := azure.CloudInfo{
 		SubscriptionID:  subscriptionID,
-		InfraID:         infraID,
-		Region:          region,
-		BaseGroupName:   infraID + "-rg",
+		InfraID:         info.InfraID,
+		Region:          info.Region,
+		BaseGroupName:   info.InfraID + "-rg",
 		TokenCredential: credentials,
 		K8sClient:       k8sClient,
 	}
@@ -101,14 +84,14 @@ func NewAzureProvider(
 	cloudPrepare := azure.NewCloud(&cloudInfo)
 
 	return &azureProvider{
-		infraID:           infraID,
-		nattPort:          uint16(nattPort),
+		infraID:           info.InfraID,
+		nattPort:          uint16(info.IPSecNATTPort),
 		routePort:         strconv.Itoa(constants.SubmarinerRoutePort),
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
-		reporter:          reporter.NewEventRecorderWrapper("AzureCloudProvider", eventRecorder),
-		nattDiscoveryPort: int64(nattDiscoveryPort),
-		gateways:          gateways,
+		reporter:          reporter.NewEventRecorderWrapper("AzureCloudProvider", info.EventRecorder),
+		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
+		gateways:          info.Gateways,
 	}, nil
 }
 
