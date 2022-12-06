@@ -59,6 +59,7 @@ type SubmarinerBrokerInfo struct {
 	AirGappedDeployment                bool
 	NATEnabled                         bool
 	LoadBalancerEnabled                bool
+	InsecureBrokerConnection           bool
 	IPSecNATTPort                      int
 	InstallationNamespace              string
 	InstallPlanApproval                string
@@ -191,6 +192,7 @@ func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *c
 	brokerInfo.AirGappedDeployment = submarinerConfig.Spec.AirGappedDeployment
 	brokerInfo.NATEnabled = submarinerConfig.Spec.NATTEnable
 	brokerInfo.LoadBalancerEnabled = submarinerConfig.Spec.LoadBalancerEnable
+	brokerInfo.InsecureBrokerConnection = submarinerConfig.Spec.InsecureBrokerConnection
 
 	if submarinerConfig.Spec.CableDriver != "" {
 		brokerInfo.CableDriver = submarinerConfig.Spec.CableDriver

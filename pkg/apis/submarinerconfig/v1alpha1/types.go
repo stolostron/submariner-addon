@@ -67,6 +67,13 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=false
 	LoadBalancerEnable bool `json:"loadBalancerEnable"`
 
+	// InsecureBrokerConnection disables certificate validation when contacting the broker.
+	// This is useful for scenarios where the certificate chain isn't the same everywhere, e.g. with self-signed
+	// certificates with a different trust chain in each cluster.
+	// +optional
+	// +kubebuilder:default=false
+	InsecureBrokerConnection bool `json:"insecureBrokerConnection"`
+
 	// CredentialsSecret is a reference to the secret with a certain cloud platform
 	// credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD.
 	// The submariner-addon will use these credentials to prepare Submariner cluster

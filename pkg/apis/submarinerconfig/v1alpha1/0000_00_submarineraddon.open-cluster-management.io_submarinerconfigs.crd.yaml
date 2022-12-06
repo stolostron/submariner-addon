@@ -115,6 +115,12 @@ spec:
                   lighthouseCoreDNSImagePullSpec:
                     description: LighthouseCoreDNSImagePullSpec represents the desired image of lighthouse coredns.
                     type: string
+                  metricsProxyImagePullSpec:
+                    description: MetricsProxyImagePullSpec represents the desired image of the metrics proxy.
+                    type: string
+                  nettestImagePullSpec:
+                    description: NettestImagePullSpec represents the desired image of nettest.
+                    type: string
                   submarinerGlobalnetImagePullSpec:
                     description: SubmarinerGlobalnetImagePullSpec represents the desired image of the submariner globalnet.
                     type: string
@@ -127,13 +133,11 @@ spec:
                   submarinerRouteAgentImagePullSpec:
                     description: SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.
                     type: string
-                  metricsProxyImagePullSpec:
-                    description: MetricsProxyImagePullSpec represents the desired image of the metrics proxy.
-                    type: string
-                  nettestImagePullSpec:
-                    description: NettestImagePullSpec represents the desired image of nettest.
-                    type: string
                 type: object
+              insecureBrokerConnection:
+                default: false
+                description: InsecureBrokerConnection disables certificate validation when contacting the broker. This is useful for scenarios where the certificate chain isn't the same everywhere, e.g. with self-signed certificates with a different trust chain in each cluster.
+                type: boolean
               loadBalancerEnable:
                 default: false
                 description: LoadBalancerEnable enables or disables load balancer mode. When enabled, a LoadBalancer is created in the submariner-operator namespace (default false).
