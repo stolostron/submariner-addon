@@ -9,6 +9,7 @@ spec:
   brokerK8sApiServerToken: {{ .BrokerToken }}
   brokerK8sCA: {{ .BrokerCA }}
   brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
+  brokerK8sInsecure: {{ .InsecureBrokerConnection }}
   cableDriver: {{ .CableDriver }}
   ceIPSecDebug: false
   ceIPSecNATTPort: {{ .IPSecNATTPort }}

@@ -128,6 +128,10 @@ spec:
                     description: SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.
                     type: string
                 type: object
+              insecureBrokerConnection:
+                default: false
+                description: InsecureBrokerConnection disables certificate validation when contacting the broker. This is useful for scenarios where the certificate chain isn't the same everywhere, e.g. with self-signed certificates with a different trust chain in each cluster.
+                type: boolean
               loadBalancerEnable:
                 default: false
                 description: LoadBalancerEnable enables or disables load balancer mode. When enabled, a LoadBalancer is created in the submariner-operator namespace (default false).
