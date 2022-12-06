@@ -193,11 +193,12 @@ var _ = Describe("Function Get", func() {
 							SubmarinerRouteAgentImagePullSpec:          "quay.io/submariner/submariner-route-agent:10.0.1",
 							SubmarinerNetworkPluginSyncerImagePullSpec: "quay.io/submariner/submariner-networkplugin-syncer:10.0.1",
 						},
-						CableDriver:        "wireguard",
-						IPSecNATTPort:      5678,
-						NATTEnable:         true,
-						LoadBalancerEnable: true,
-						GlobalCIDR:         "242.1.0.0/16",
+						CableDriver:              "wireguard",
+						IPSecNATTPort:            5678,
+						NATTEnable:               true,
+						LoadBalancerEnable:       true,
+						InsecureBrokerConnection: true,
+						GlobalCIDR:               "242.1.0.0/16",
 					},
 				}
 			})
@@ -218,6 +219,7 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.SubmarinerRouteAgentImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec))
 				Expect(brokerInfo.SubmarinerNetworkPluginSyncerImage).To(Equal(
 					submarinerConfig.Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec))
+				Expect(brokerInfo.InsecureBrokerConnection).To(Equal(submarinerConfig.Spec.InsecureBrokerConnection))
 			})
 
 			It("should return an empty GlobalCIDR as globalnet is disabled", func() {
