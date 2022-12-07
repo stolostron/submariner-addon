@@ -180,6 +180,7 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.AirGappedDeployment).To(BeFalse())
 				Expect(brokerInfo.SubmarinerGatewayImage).To(BeEmpty())
 				Expect(brokerInfo.SubmarinerRouteAgentImage).To(BeEmpty())
+				Expect(brokerInfo.InsecureBrokerConnection).To(BeFalse())
 			})
 		})
 

@@ -247,7 +247,8 @@ func applySubmarinerImageConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConf
 	}
 
 	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec != "" {
-		brokerInfo.SubmarinerNetworkPluginSyncerImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec
+		brokerInfo.SubmarinerNetworkPluginSyncerImage = submarinerConfig.
+			Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec
 	}
 
 	if submarinerConfig.Spec.ImagePullSpecs.MetricsProxyImagePullSpec != "" {
@@ -262,14 +263,16 @@ func applySubmarinerImageConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConf
 func getIPSecPSK(ctx context.Context, client kubernetes.Interface, brokerNamespace string) (string, error) {
 	secret, err := client.CoreV1().Secrets(brokerNamespace).Get(ctx, constants.IPSecPSKSecretName, metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get broker IPSEC PSK secret %v/%v: %w", brokerNamespace, constants.IPSecPSKSecretName, err)
+		return "", fmt.Errorf("failed to get broker IPSEC PSK secret %v/%v: %w",
+			brokerNamespace, constants.IPSecPSKSecretName, err)
 	}
 
 	return base64.StdEncoding.EncodeToString(secret.Data["psk"]), nil
 }
 
 func getBrokerAPIServer(ctx context.Context, dynamicClient dynamic.Interface) (string, error) {
-	infrastructureConfig, err := dynamicClient.Resource(infrastructureGVR).Get(ctx, ocpInfrastructureName, metav1.GetOptions{})
+	infrastructureConfig, err := dynamicClient.Resource(infrastructureGVR).
+		Get(ctx, ocpInfrastructureName, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			apiServer := os.Getenv(brokerAPIServer)
@@ -295,7 +298,8 @@ func getBrokerAPIServer(ctx context.Context, dynamicClient dynamic.Interface) (s
 	return strings.Trim(apiServer, "/:hpst"), nil
 }
 
-func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
+func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient kubernetes.Interface,
+	dynamicClient dynamic.Interface,
 ) ([]byte, error) {
 	kubeAPIServerURL, err := url.Parse(fmt.Sprintf("https://%s", kubeAPIServer))
 	if err != nil {
@@ -312,7 +316,8 @@ func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient ku
 	}
 
 	apiServer := &apiconfigv1.APIServer{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredAPIServer.UnstructuredContent(), &apiServer); err != nil {
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
+		unstructuredAPIServer.UnstructuredContent(), &apiServer); err != nil {
 		return nil, err
 	}
 
@@ -344,8 +349,8 @@ func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient ku
 	return nil, nil
 }
 
-func getBrokerTokenAndCA(ctx context.Context, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, brokerNS, clusterName,
-	kubeAPIServer string,
+func getBrokerTokenAndCA(ctx context.Context, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
+	brokerNS, clusterName, kubeAPIServer string,
 ) (token, ca string, err error) {
 	sa, err := kubeClient.CoreV1().ServiceAccounts(brokerNS).Get(ctx, clusterName, metav1.GetOptions{})
 	if err != nil {
@@ -362,7 +367,8 @@ func getBrokerTokenAndCA(ctx context.Context, kubeClient kubernetes.Interface, d
 		if strings.HasPrefix(secret.Name, brokerTokenPrefix) {
 			tokenSecret, err := kubeClient.CoreV1().Secrets(brokerNS).Get(ctx, secret.Name, metav1.GetOptions{})
 			if err != nil {
-				return "", "", fmt.Errorf("failed to get secret %v of agent ServiceAccount %v/%v: %w", secret.Name, brokerNS, clusterName, err)
+				return "", "", fmt.Errorf("failed to get secret %v of agent ServiceAccount %v/%v: %w",
+					secret.Name, brokerNS, clusterName, err)
 			}
 
 			if tokenSecret.Type == corev1.SecretTypeServiceAccountToken {
@@ -380,7 +386,8 @@ func getBrokerTokenAndCA(ctx context.Context, kubeClient kubernetes.Interface, d
 	return getTokenAndCAFromSecret(ctx, tokenSecret, kubeAPIServer, kubeClient, dynamicClient)
 }
 
-func getTokenSecretForSA(ctx context.Context, client kubernetes.Interface, sa *corev1.ServiceAccount) (*corev1.Secret, error) {
+func getTokenSecretForSA(ctx context.Context, client kubernetes.Interface, sa *corev1.ServiceAccount,
+) (*corev1.Secret, error) {
 	saSecrets, err := client.CoreV1().Secrets(sa.Namespace).List(ctx, metav1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector("type", string(corev1.SecretTypeServiceAccountToken)).String(),
 	})
@@ -400,8 +407,8 @@ func getTokenSecretForSA(ctx context.Context, client kubernetes.Interface, sa *c
 	}, sa.Name)
 }
 
-func getTokenAndCAFromSecret(ctx context.Context, tokenSecret *corev1.Secret, kubeAPIServer string, kubeClient kubernetes.Interface,
-	dynamicClient dynamic.Interface,
+func getTokenAndCAFromSecret(ctx context.Context, tokenSecret *corev1.Secret, kubeAPIServer string,
+	kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
 ) (token, ca string, err error) {
 	// try to get ca from apiserver secret firstly, if the ca cannot be found, get it from sa
 	kubeAPIServerCA, err := getKubeAPIServerCA(ctx, kubeAPIServer, kubeClient, dynamicClient)
