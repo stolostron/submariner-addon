@@ -475,9 +475,16 @@ func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Con
 		Message: "SubmarinerConfig was applied",
 	}
 
+	managedClusterInfo := getManagedClusterInfo(managedCluster)
+
+	// NetworkType is set by spoke cluster, make sure we don't reset it
+	if submarinerConfig.Status.ManagedClusterInfo.NetworkType != "" {
+		managedClusterInfo.NetworkType = submarinerConfig.Status.ManagedClusterInfo.NetworkType
+	}
+
 	_, updated, err := submarinerconfig.UpdateStatus(ctx,
 		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(submarinerConfig.Namespace), submarinerConfig.Name,
-		submarinerconfig.UpdateStatusFn(condition, getManagedClusterInfo(managedCluster)))
+		submarinerconfig.UpdateStatusFn(condition, managedClusterInfo))
 
 	if updated {
 		c.eventRecorder.Eventf("SubmarinerConfigApplied", "SubmarinerConfig %q was applied for managed cluster %q",

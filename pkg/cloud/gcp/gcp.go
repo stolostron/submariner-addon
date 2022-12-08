@@ -3,7 +3,7 @@ package gcp
 import (
 	"context"
 	"fmt"
-	"strconv"
+	"strings"
 
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
@@ -14,6 +14,7 @@ import (
 	gcpclient "github.com/submariner-io/cloud-prepare/pkg/gcp/client"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
+	"github.com/submariner-io/submariner/pkg/cni"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/option"
@@ -29,7 +30,7 @@ const (
 type gcpProvider struct {
 	infraID           string
 	nattPort          uint16
-	routePort         string
+	cniType           string
 	cloudPrepare      api.Cloud
 	reporter          submreporter.Interface
 	gwDeployer        api.GatewayDeployer
@@ -76,7 +77,7 @@ func NewProvider(info *provider.Info) (*gcpProvider, error) {
 	return &gcpProvider{
 		infraID:           info.InfraID,
 		nattPort:          uint16(info.IPSecNATTPort),
-		routePort:         strconv.Itoa(constants.SubmarinerRoutePort),
+		cniType:           info.NetworkType,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
 		reporter:          reporter.NewEventRecorderWrapper("GCPCloudProvider", info.EventRecorder),
@@ -105,11 +106,12 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	err := g.cloudPrepare.OpenPorts([]api.PortSpec{
-		{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-	}, g.reporter)
-	if err != nil {
-		return err
+	if !strings.EqualFold(g.cniType, cni.OVNKubernetes) {
+		if err := g.cloudPrepare.OpenPorts([]api.PortSpec{
+			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
+		}, g.reporter); err != nil {
+			return err
+		}
 	}
 
 	g.reporter.Success("The Submariner cluster environment has been set up on GCP")

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/pkg/errors"
@@ -16,6 +16,7 @@ import (
 	"github.com/submariner-io/cloud-prepare/pkg/azure"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
+	"github.com/submariner-io/submariner/pkg/cni"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -27,7 +28,7 @@ const (
 type azureProvider struct {
 	infraID           string
 	nattPort          uint16
-	routePort         string
+	cniType           string
 	cloudPrepare      api.Cloud
 	reporter          submreporter.Interface
 	gwDeployer        api.GatewayDeployer
@@ -85,7 +86,7 @@ func NewProvider(info *provider.Info) (*azureProvider, error) {
 	return &azureProvider{
 		infraID:           info.InfraID,
 		nattPort:          uint16(info.IPSecNATTPort),
-		routePort:         strconv.Itoa(constants.SubmarinerRoutePort),
+		cniType:           info.NetworkType,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
 		reporter:          reporter.NewEventRecorderWrapper("AzureCloudProvider", info.EventRecorder),
@@ -116,11 +117,12 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	err := r.cloudPrepare.OpenPorts([]api.PortSpec{
-		{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-	}, r.reporter)
-	if err != nil {
-		return err
+	if !strings.EqualFold(r.cniType, cni.OVNKubernetes) {
+		if err := r.cloudPrepare.OpenPorts([]api.PortSpec{
+			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
+		}, r.reporter); err != nil {
+			return err
+		}
 	}
 
 	r.reporter.Success("The Submariner cluster environment has been set up on Azure")

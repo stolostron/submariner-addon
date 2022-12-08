@@ -3,7 +3,7 @@ package rhos
 import (
 	"errors"
 	"fmt"
-	"strconv"
+	"strings"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -16,6 +16,7 @@ import (
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 	cloudpreparerhos "github.com/submariner-io/cloud-prepare/pkg/rhos"
+	"github.com/submariner-io/submariner/pkg/cni"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -30,7 +31,7 @@ const (
 type rhosProvider struct {
 	infraID           string
 	nattPort          uint16
-	routePort         string
+	cniType           string
 	cloudPrepare      api.Cloud
 	reporter          submreporter.Interface
 	gwDeployer        api.GatewayDeployer
@@ -75,7 +76,7 @@ func NewProvider(info *provider.Info) (*rhosProvider, error) {
 	return &rhosProvider{
 		infraID:           info.InfraID,
 		nattPort:          uint16(info.IPSecNATTPort),
-		routePort:         strconv.Itoa(constants.SubmarinerRoutePort),
+		cniType:           info.NetworkType,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
 		reporter:          reporter.NewEventRecorderWrapper("RHOSCloudProvider", info.EventRecorder),
@@ -103,11 +104,12 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	err := r.cloudPrepare.OpenPorts([]api.PortSpec{
-		{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-	}, r.reporter)
-	if err != nil {
-		return err
+	if !strings.EqualFold(r.cniType, cni.OVNKubernetes) {
+		if err := r.cloudPrepare.OpenPorts([]api.PortSpec{
+			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
+		}, r.reporter); err != nil {
+			return err
+		}
 	}
 
 	r.reporter.Success("The Submariner cluster environment has been set up on RHOS")

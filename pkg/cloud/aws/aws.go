@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
@@ -11,6 +12,7 @@ import (
 	cpaws "github.com/submariner-io/cloud-prepare/pkg/aws"
 	cpclient "github.com/submariner-io/cloud-prepare/pkg/aws/client"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
+	"github.com/submariner-io/submariner/pkg/cni"
 )
 
 const (
@@ -26,6 +28,7 @@ type awsProvider struct {
 	nattPort          int64
 	nattDiscoveryPort int64
 	instanceType      string
+	cniType           string
 	gateways          int
 	cloudPrepare      cpapi.Cloud
 	gatewayDeployer   cpapi.GatewayDeployer
@@ -78,6 +81,7 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 		reporter:          reporter.NewEventRecorderWrapper("AWSCloudProvider", info.EventRecorder),
 		nattPort:          int64(info.IPSecNATTPort),
 		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
+		cniType:           info.NetworkType,
 		instanceType:      instanceType,
 		gateways:          info.Gateways,
 		cloudPrepare:      cloudPrepare,
@@ -101,10 +105,13 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	}, a.reporter); err != nil {
 		return err
 	}
-	if err := a.cloudPrepare.OpenPorts([]cpapi.PortSpec{
-		{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-	}, a.reporter); err != nil {
-		return err
+
+	if !strings.EqualFold(a.cniType, cni.OVNKubernetes) {
+		if err := a.cloudPrepare.OpenPorts([]cpapi.PortSpec{
+			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
+		}, a.reporter); err != nil {
+			return err
+		}
 	}
 
 	a.reporter.Success("The Submariner cluster environment has been set up on AWS")
