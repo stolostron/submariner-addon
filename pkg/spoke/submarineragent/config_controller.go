@@ -635,6 +635,7 @@ func (c *submarinerConfigController) setNetworkTypeIfAbsent(ctx context.Context,
 	}
 
 	config.Status.ManagedClusterInfo.NetworkType = networkType
+
 	_, updated, updatedErr := submarinerconfig.UpdateStatus(ctx, c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace),
 		config.Name, submarinerconfig.UpdateStatusFn(nil, &config.Status.ManagedClusterInfo))
 
@@ -655,15 +656,6 @@ func (c *submarinerConfigController) validateOCPVersion(ctx context.Context, con
 		return true, nil
 	}
 
-	ocpVersion := config.Status.ManagedClusterInfo.VendorVersion
-	vOCP411 := semver.New(constants.OCPVersionForOVNK)
-	vOCPVersion := semver.New(ocpVersion)
-
-	// We need OCP 4.11+ if using OVNK
-	if !vOCPVersion.LessThan(*vOCP411) {
-		return true, nil
-	}
-
 	err := c.setNetworkTypeIfAbsent(ctx, config, recorder)
 	if apiErrors.IsNotFound(err) {
 		c.logger.Infof("Unable to set the network type: %v", err)
@@ -674,6 +666,15 @@ func (c *submarinerConfigController) validateOCPVersion(ctx context.Context, con
 
 	if err != nil {
 		return false, err
+	}
+
+	ocpVersion := config.Status.ManagedClusterInfo.VendorVersion
+	vOCP411 := semver.New(constants.OCPVersionForOVNK)
+	vOCPVersion := semver.New(ocpVersion)
+
+	// We need OCP 4.11+ if using OVNK
+	if !vOCPVersion.LessThan(*vOCP411) {
+		return true, nil
 	}
 
 	networkType := config.Status.ManagedClusterInfo.NetworkType
