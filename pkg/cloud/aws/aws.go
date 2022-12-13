@@ -5,16 +5,17 @@ import (
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/stolostron/submariner-addon/pkg/cloud/manifestwork"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	cpapi "github.com/submariner-io/cloud-prepare/pkg/api"
 	cpaws "github.com/submariner-io/cloud-prepare/pkg/aws"
 	cpclient "github.com/submariner-io/cloud-prepare/pkg/aws/client"
+	"github.com/submariner-io/cloud-prepare/pkg/ocp"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 )
 
 const (
@@ -36,7 +37,9 @@ type awsProvider struct {
 }
 
 func NewAWSProvider(
-	kubeClient kubernetes.Interface, workClient workclient.Interface,
+	kubeClient kubernetes.Interface,
+	dynamicClient dynamic.Interface,
+	restMapper meta.RESTMapper,
 	eventRecorder events.Recorder,
 	region, infraID, clusterName, credentialsSecretName string,
 	instanceType string,
@@ -86,7 +89,8 @@ func NewAWSProvider(
 	}
 
 	cloudPrepare := cpaws.NewCloud(awsClient, infraID, region)
-	machineSetDeployer := manifestwork.NewMachineSetDeployer(workClient, workName, clusterName, eventRecorder)
+
+	machineSetDeployer := ocp.NewK8sMachinesetDeployer(restMapper, dynamicClient)
 	gwDeployer, err := cpaws.NewOcpGatewayDeployer(cloudPrepare, machineSetDeployer, instanceType)
 	if err != nil {
 		return nil, err
