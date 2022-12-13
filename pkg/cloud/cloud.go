@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
-	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 )
 
 //go:generate mockgen -source=./cloud.go -destination=./fake/cloud.go -package=fake
@@ -35,18 +34,15 @@ type ProviderFactory interface {
 type providerFactory struct {
 	restMapper    meta.RESTMapper
 	kubeClient    kubernetes.Interface
-	workClient    workclient.Interface
 	dynamicClient dynamic.Interface
 	hubKubeClient kubernetes.Interface
 }
 
-func NewProviderFactory(restMapper meta.RESTMapper, kubeClient kubernetes.Interface, workClient workclient.Interface,
-	dynamicClient dynamic.Interface, hubKubeClient kubernetes.Interface,
-) ProviderFactory {
+func NewProviderFactory(restMapper meta.RESTMapper, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
+	hubKubeClient kubernetes.Interface) ProviderFactory {
 	return &providerFactory{
 		restMapper:    restMapper,
 		kubeClient:    kubeClient,
-		workClient:    workClient,
 		dynamicClient: dynamicClient,
 		hubKubeClient: hubKubeClient,
 	}
