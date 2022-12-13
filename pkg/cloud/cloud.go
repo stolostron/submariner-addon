@@ -84,8 +84,8 @@ func (f *providerFactory) Get(managedClusterInfo *configv1alpha1.ManagedClusterI
 
 	switch platform {
 	case "AWS":
-		provider, err = aws.NewAWSProvider(f.kubeClient, f.workClient, eventsRecorder, region, infraID, clusterName,
-			credentialsSecret.Name, config.Spec.GatewayConfig.AWS.InstanceType,
+		provider, err = aws.NewAWSProvider(f.hubKubeClient, f.dynamicClient, f.restMapper, eventsRecorder, region, infraID,
+			clusterName, credentialsSecret.Name, config.Spec.GatewayConfig.AWS.InstanceType,
 			config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
 	case "GCP":
 		provider, err = gcp.NewGCPProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
