@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
-	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/addon"
 	"github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig"
@@ -19,7 +18,6 @@ import (
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformer "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/submarinerconfig/v1alpha1"
 	configlister "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
-	"github.com/stolostron/submariner-addon/pkg/cloud"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	brokerinfo "github.com/stolostron/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	"github.com/stolostron/submariner-addon/pkg/manifestwork"
@@ -105,21 +103,20 @@ type clusterRBACConfig struct {
 // submarinerAgentController reconciles instances of ManagedCluster on the hub to deploy/remove
 // corresponding submariner agent manifestworks.
 type submarinerAgentController struct {
-	kubeClient           kubernetes.Interface
-	dynamicClient        dynamic.Interface
-	controllerClient     client.Client
-	clusterClient        clusterclient.Interface
-	manifestWorkClient   workclient.Interface
-	configClient         configclient.Interface
-	addOnClient          addonclient.Interface
-	clusterLister        clusterlisterv1.ManagedClusterLister
-	clusterSetLister     clusterlisterv1beta2.ManagedClusterSetLister
-	manifestWorkLister   worklister.ManifestWorkLister
-	configLister         configlister.SubmarinerConfigLister
-	addOnLister          addonlisterv1alpha1.ManagedClusterAddOnLister
-	cloudProviderFactory cloud.ProviderFactory
-	eventRecorder        events.Recorder
-	knownConfigs         map[string]*configv1alpha1.SubmarinerConfig
+	kubeClient         kubernetes.Interface
+	dynamicClient      dynamic.Interface
+	controllerClient   client.Client
+	clusterClient      clusterclient.Interface
+	manifestWorkClient workclient.Interface
+	configClient       configclient.Interface
+	addOnClient        addonclient.Interface
+	clusterLister      clusterlisterv1.ManagedClusterLister
+	clusterSetLister   clusterlisterv1beta2.ManagedClusterSetLister
+	manifestWorkLister worklister.ManifestWorkLister
+	configLister       configlister.SubmarinerConfigLister
+	addOnLister        addonlisterv1alpha1.ManagedClusterAddOnLister
+	eventRecorder      events.Recorder
+	knownConfigs       map[string]*configv1alpha1.SubmarinerConfig
 }
 
 // NewSubmarinerAgentController returns a submarinerAgentController instance.
@@ -136,25 +133,23 @@ func NewSubmarinerAgentController(
 	manifestWorkInformer workinformer.ManifestWorkInformer,
 	configInformer configinformer.SubmarinerConfigInformer,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
-	cloudProviderFactory cloud.ProviderFactory,
 	recorder events.Recorder,
 ) factory.Controller {
 	c := &submarinerAgentController{
-		kubeClient:           kubeClient,
-		dynamicClient:        dynamicClient,
-		controllerClient:     controllerClient,
-		clusterClient:        clusterClient,
-		manifestWorkClient:   manifestWorkClient,
-		configClient:         configClient,
-		addOnClient:          addOnClient,
-		clusterLister:        clusterInformer.Lister(),
-		clusterSetLister:     clusterSetInformer.Lister(),
-		manifestWorkLister:   manifestWorkInformer.Lister(),
-		configLister:         configInformer.Lister(),
-		addOnLister:          addOnInformer.Lister(),
-		cloudProviderFactory: cloudProviderFactory,
-		eventRecorder:        recorder.WithComponentSuffix("submariner-agent-controller"),
-		knownConfigs:         make(map[string]*configv1alpha1.SubmarinerConfig),
+		kubeClient:         kubeClient,
+		dynamicClient:      dynamicClient,
+		controllerClient:   controllerClient,
+		clusterClient:      clusterClient,
+		manifestWorkClient: manifestWorkClient,
+		configClient:       configClient,
+		addOnClient:        addOnClient,
+		clusterLister:      clusterInformer.Lister(),
+		clusterSetLister:   clusterSetInformer.Lister(),
+		manifestWorkLister: manifestWorkInformer.Lister(),
+		configLister:       configInformer.Lister(),
+		addOnLister:        addOnInformer.Lister(),
+		eventRecorder:      recorder.WithComponentSuffix("submariner-agent-controller"),
+		knownConfigs:       make(map[string]*configv1alpha1.SubmarinerConfig),
 	}
 
 	return factory.New().
@@ -366,12 +361,6 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 	// config is deleting, we remove its related resources
 	if !config.DeletionTimestamp.IsZero() {
-		if !isSpokePrepared(config.Status.ManagedClusterInfo.Platform, config.Status.ManagedClusterInfo.Vendor) {
-			if err := c.cleanUpSubmarinerClusterEnv(config); err != nil {
-				return err
-			}
-		}
-
 		err = finalizer.Remove(ctx, resource.ForSubmarinerConfig(
 			c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace)), config, submarinerConfigFinalizer)
 		if err == nil {
@@ -387,47 +376,19 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 
 	managedClusterInfo := getManagedClusterInfo(managedCluster)
 
-	// prepare submariner cluster environment
-	errs := []error{}
-	var condition *metav1.Condition
-	if !isSpokePrepared(managedClusterInfo.Platform, managedClusterInfo.Vendor) {
-		cloudProvider, _, preparedErr := c.cloudProviderFactory.Get(&managedClusterInfo, config, c.eventRecorder)
-		if preparedErr == nil {
-			preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
-		}
-
-		condition = &metav1.Condition{
-			Type:    configv1alpha1.SubmarinerConfigConditionEnvPrepared,
-			Status:  metav1.ConditionTrue,
-			Reason:  "SubmarinerClusterEnvPrepared",
-			Message: "Submariner cluster environment was prepared",
-		}
-
-		if preparedErr != nil {
-			condition.Status = metav1.ConditionFalse
-			condition.Reason = "SubmarinerClusterEnvPreparationFailed"
-			condition.Message = fmt.Sprintf("Failed to prepare submariner cluster environment: %v", preparedErr)
-			errs = append(errs, preparedErr)
-		}
-	}
-
-	_, updated, updatedErr := submarinerconfig.UpdateStatus(ctx, c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace),
-		config.Name, submarinerconfig.UpdateStatusFn(condition, &managedClusterInfo))
-
-	if updatedErr != nil {
-		errs = append(errs, updatedErr)
-	}
+	_, updated, err := submarinerconfig.UpdateStatus(ctx, c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace),
+		config.Name, submarinerconfig.UpdateStatusFn(nil, &managedClusterInfo))
 
 	if updated {
 		c.eventRecorder.Eventf("SubmarinerClusterEnvPrepared",
 			"submariner cluster environment was prepared for managed cluster %s", config.Namespace)
 	}
 
-	if len(errs) == 0 {
+	if err == nil {
 		c.knownConfigs[config.Namespace] = config
 	}
 
-	return operatorhelpers.NewMultiLineAggregate(errs)
+	return err
 }
 
 // skipSyncingUnchangedConfig if last submariner config is known and is equal to the given config.
@@ -655,28 +616,6 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 		clusterRBACFiles...)
 }
 
-func (c *submarinerAgentController) cleanUpSubmarinerClusterEnv(config *configv1alpha1.SubmarinerConfig) error {
-	cloudProvider, _, err := c.cloudProviderFactory.Get(&config.Status.ManagedClusterInfo, config, c.eventRecorder)
-	if err != nil {
-		// TODO handle the error gracefully in the future
-		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to get cloud provider: %v", err)
-
-		return nil
-	}
-
-	if err := cloudProvider.CleanUpSubmarinerClusterEnv(); err != nil {
-		// TODO handle the error gracefully in the future
-		c.eventRecorder.Warningf("CleanUpSubmarinerClusterEnvFailed", "failed to clean up cloud environment: %v", err)
-
-		return nil
-	}
-
-	c.eventRecorder.Eventf("SubmarinerClusterEnvDeleted", "the managed cluster %s submariner cluster environment is deleted",
-		config.Status.ManagedClusterInfo.ClusterName)
-
-	return nil
-}
-
 func newSubmarinerManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
 	return newManifestWork(SubmarinerCRManifestWorkName, managedCluster.Name, config, submarinerCRFile)
 }
@@ -864,8 +803,4 @@ func (c *submarinerAgentController) updateBackupLabelOnBroker(ctx context.Contex
 	}
 
 	return nil
-}
-
-func isSpokePrepared(cloudName, vendor string) bool {
-	return cloudName != "AWS" || vendor == constants.ProductROSA
 }
