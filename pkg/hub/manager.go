@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
-	"github.com/stolostron/submariner-addon/pkg/cloud"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarineraddonagent"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarineragent"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbroker"
@@ -167,7 +166,6 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		workInformers.Work().V1().ManifestWorks(),
 		configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
-		cloud.NewProviderFactory(nil, kubeClient, workClient, dynamicClient, nil),
 		controllerContext.EventRecorder,
 	)
 

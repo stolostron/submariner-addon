@@ -219,12 +219,6 @@ func (c *submarinerConfigController) syncConfig(ctx context.Context, recorder ev
 		return err
 	}
 
-	if config.Status.ManagedClusterInfo.Platform == "AWS" {
-		// for AWS, the gateway configuration will be operated on the hub
-		// count the gateways status on the managed cluster and report it to the hub
-		return c.updateGatewayStatus(ctx, recorder, config)
-	}
-
 	if err := c.prepareForSubmariner(ctx, config, recorder); err != nil {
 		return err
 	}
@@ -298,11 +292,6 @@ func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, c
 func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
 	recorder events.Recorder,
 ) error {
-	if config.Status.ManagedClusterInfo.Platform == "AWS" {
-		// Cloud-prepare for AWS done from hub, Nothing to do on spoke
-		return nil
-	}
-
 	cloudProvider, found, err := c.cloudProviderFactory.Get(&config.Status.ManagedClusterInfo, config, recorder)
 	if !found {
 		return errors.WithMessagef(c.removeAllGateways(ctx), "failed to unlabel the gateway nodes")

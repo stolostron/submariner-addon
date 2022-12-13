@@ -265,26 +265,11 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 	When("the SubmarinerConfig's Platform field is set to AWS", func() {
 		BeforeEach(func() {
 			t.config.Status.ManagedClusterInfo.Platform = aws
+			t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(nil).MinTimes(1)
 		})
 
-		Context("and the number of labeled worker nodes matches the desired number", func() {
-			BeforeEach(func() {
-				labelGateway(t.nodes[0], true)
-			})
-
-			It("should update the SubmarinerConfig status with a success condition", func() {
-				t.awaitGatewaysLabeledSuccessCondition()
-			})
-		})
-
-		Context("and the number of labeled worker nodes does not match the desired number", func() {
-			It("should update the SubmarinerConfig status appropriately", func() {
-				t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
-					Type:   gatewayConditionType,
-					Status: metav1.ConditionFalse,
-					Reason: "InsufficientNodes",
-				})
-			})
+		It("should invoke the cloud provider and update the SubmarinerConfig status condition", func() {
+			t.awaitClusterEnvPreparedSuccessCondition()
 		})
 	})
 
@@ -384,8 +369,20 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 		})
 
 		Context("the SubmarinerConfig's Platform field is set to AWS", func() {
+			var invoked chan bool
+
 			BeforeEach(func() {
 				t.config.Status.ManagedClusterInfo.Platform = aws
+				invoked = make(chan bool)
+				t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().DoAndReturn(func() error {
+					invoked <- true
+
+					return nil
+				}).Times(1)
+			})
+
+			It("should invoke the cloud provider to clean up", func() {
+				Eventually(invoked).Should(Receive())
 			})
 
 			It("should not unlabel the gateway nodes", func() {
@@ -502,10 +499,10 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 		Context("the SubmarinerConfig's Platform field is set to AWS", func() {
 			BeforeEach(func() {
 				t.config.Status.ManagedClusterInfo.Platform = aws
+				t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(nil).MinTimes(1)
 			})
 
-			It("should not unlabel the gateway nodes", func() {
-				t.ensureLabeledNodes()
+			It("should invoke the cloud provider to clean up", func() {
 				t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
 					Type:   gatewayConditionType,
 					Status: metav1.ConditionFalse,
