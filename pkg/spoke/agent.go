@@ -27,7 +27,6 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/lease"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
-	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 )
 
 const defaultInstallationNamespace = "submariner-operator"
@@ -119,11 +118,6 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		return err
 	}
 
-	workClient, err := workclient.NewForConfig(controllerContext.KubeConfig)
-	if err != nil {
-		return err
-	}
-
 	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnHubKubeClient, 10*time.Minute,
 		addoninformers.WithNamespace(o.ClusterName))
 	configInformers := configinformers.NewSharedInformerFactoryWithOptions(configHubKubeClient, 10*time.Minute,
@@ -144,7 +138,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		NodeInformer:         spokeKubeInformers.Core().V1().Nodes(),
 		AddOnInformer:        addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 		ConfigInformer:       configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
-		CloudProviderFactory: cloud.NewProviderFactory(restMapper, spokeKubeClient, workClient, spokeDynamicClient, hubClient),
+		CloudProviderFactory: cloud.NewProviderFactory(restMapper, spokeKubeClient, spokeDynamicClient, hubClient),
 		Recorder:             controllerContext.EventRecorder,
 	})
 

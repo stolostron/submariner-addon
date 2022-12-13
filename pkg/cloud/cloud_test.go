@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
-	workfake "open-cluster-management.io/api/client/work/clientset/versioned/fake"
 )
 
 var _ = Describe("ProviderFactory Get", func() {
@@ -20,7 +19,7 @@ var _ = Describe("ProviderFactory Get", func() {
 	)
 
 	BeforeEach(func() {
-		providerFactory = cloud.NewProviderFactory(nil, kubeFake.NewSimpleClientset(), workfake.NewSimpleClientset(),
+		providerFactory = cloud.NewProviderFactory(nil, kubeFake.NewSimpleClientset(),
 			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()), kubeFake.NewSimpleClientset())
 
 		managedClusterInfo = &configv1alpha1.ManagedClusterInfo{
