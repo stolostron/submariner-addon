@@ -437,7 +437,7 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/submariner-io/admiral v0.12.2
+# github.com/submariner-io/admiral v0.12.3
 ## explicit; go 1.13
 github.com/submariner-io/admiral/pkg/fake
 github.com/submariner-io/admiral/pkg/federate
@@ -448,7 +448,7 @@ github.com/submariner-io/admiral/pkg/stringset
 github.com/submariner-io/admiral/pkg/syncer/test
 github.com/submariner-io/admiral/pkg/test
 github.com/submariner-io/admiral/pkg/util
-# github.com/submariner-io/cloud-prepare v0.12.2
+# github.com/submariner-io/cloud-prepare v0.12.3
 ## explicit; go 1.13
 github.com/submariner-io/cloud-prepare/pkg/api
 github.com/submariner-io/cloud-prepare/pkg/aws
@@ -458,13 +458,13 @@ github.com/submariner-io/cloud-prepare/pkg/gcp/client
 github.com/submariner-io/cloud-prepare/pkg/k8s
 github.com/submariner-io/cloud-prepare/pkg/ocp
 github.com/submariner-io/cloud-prepare/pkg/rhos
-# github.com/submariner-io/submariner v0.12.2
+# github.com/submariner-io/submariner v0.12.3
 ## explicit; go 1.13
 github.com/submariner-io/submariner/pkg/apis/submariner.io/v1
 github.com/submariner-io/submariner/pkg/client/clientset/versioned
 github.com/submariner-io/submariner/pkg/client/clientset/versioned/scheme
 github.com/submariner-io/submariner/pkg/client/clientset/versioned/typed/submariner.io/v1
-# github.com/submariner-io/submariner-operator v0.12.2
+# github.com/submariner-io/submariner-operator v0.12.3
 ## explicit; go 1.16
 github.com/submariner-io/submariner-operator/api/submariner/v1alpha1
 github.com/submariner-io/submariner-operator/internal/component
