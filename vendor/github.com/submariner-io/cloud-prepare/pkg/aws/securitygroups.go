@@ -48,7 +48,6 @@ func (ac *awsCloud) getSecurityGroup(vpcID, name string) (types.SecurityGroup, e
 	filters := []types.Filter{
 		ec2Filter("vpc-id", vpcID),
 		ac.filterByName(name),
-		ac.filterByCurrentCluster(),
 	}
 
 	result, err := ac.client.DescribeSecurityGroups(context.TODO(), &ec2.DescribeSecurityGroupsInput{
@@ -157,7 +156,6 @@ func (ac *awsCloud) createGatewaySG(vpcID string, ports []api.PortSpec) (string,
 					ResourceType: types.ResourceTypeSecurityGroup,
 					Tags: []types.Tag{
 						ec2Tag("Name", groupName),
-						ec2Tag(ac.withAWSInfo("kubernetes.io/cluster/{infraID}"), "owned"),
 					},
 				},
 			},

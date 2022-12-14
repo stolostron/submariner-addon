@@ -16,8 +16,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.12.2
-	github.com/submariner-io/cloud-prepare v0.12.2
+	github.com/submariner-io/admiral v0.12.3
+	github.com/submariner-io/cloud-prepare v0.12.3
 	github.com/submariner-io/submariner v0.12.2
 	github.com/submariner-io/submariner-operator v0.12.2
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
