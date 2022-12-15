@@ -1,7 +1,6 @@
 package azure
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -17,8 +16,7 @@ import (
 	"github.com/submariner-io/cloud-prepare/pkg/azure"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -51,7 +49,7 @@ func NewProvider(info *provider.Info) (*azureProvider, error) {
 		return nil, fmt.Errorf("the count of gateways is less than 1")
 	}
 
-	subscriptionID, err := initializeFromAuthFile(info.HubKubeClient, info.ClusterName, info.CredentialsSecret.Name)
+	subscriptionID, err := initializeFromAuthFile(info.CredentialsSecret)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to initialize from auth file")
 	}
@@ -144,12 +142,7 @@ func (r azureProvider) CleanUpSubmarinerClusterEnv() error {
 	return nil
 }
 
-func initializeFromAuthFile(kubeClient kubernetes.Interface, secretNamespace, secretName string) (string, error) {
-	credentialsSecret, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
+func initializeFromAuthFile(credentialsSecret *corev1.Secret) (string, error) {
 	servicePrincipalJSON, ok := credentialsSecret.Data[servicePrincipalJSON]
 	var authInfo struct {
 		ClientId       string
@@ -162,7 +155,7 @@ func initializeFromAuthFile(kubeClient kubernetes.Interface, secretNamespace, se
 		return "", errors.New("servicePrincipalJSON is not found in the credentials")
 	}
 
-	err = json.Unmarshal(servicePrincipalJSON, &authInfo)
+	err := json.Unmarshal(servicePrincipalJSON, &authInfo)
 	if err != nil {
 		return "", errors.Wrap(err, "error unmarshalling servicePrincipalJSON")
 	}

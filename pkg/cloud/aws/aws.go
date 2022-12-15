@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
@@ -12,7 +11,6 @@ import (
 	cpaws "github.com/submariner-io/cloud-prepare/pkg/aws"
 	cpclient "github.com/submariner-io/cloud-prepare/pkg/aws/client"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -51,19 +49,13 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 		instanceType = defaultInstanceType
 	}
 
-	credentialsSecret, err := info.HubKubeClient.CoreV1().Secrets(info.ClusterName).Get(context.TODO(), info.CredentialsSecret.Name,
-		metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	accessKeyID, ok := credentialsSecret.Data[accessKeyIDSecretKey]
+	accessKeyID, ok := info.CredentialsSecret.Data[accessKeyIDSecretKey]
 	if !ok {
 		return nil, fmt.Errorf("the aws credentials key %s is not in secret %s/%s", accessKeyIDSecretKey, info.ClusterName,
 			info.CredentialsSecret.Name)
 	}
 
-	secretAccessKey, ok := credentialsSecret.Data[accessKeySecretKey]
+	secretAccessKey, ok := info.CredentialsSecret.Data[accessKeySecretKey]
 	if !ok {
 		return nil, fmt.Errorf("the aws credentials key %s is not in secret %s/%s", accessKeySecretKey, info.ClusterName,
 			info.CredentialsSecret.Name)

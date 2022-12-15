@@ -1,7 +1,6 @@
 package rhos
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -18,8 +17,7 @@ import (
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 	cloudpreparerhos "github.com/submariner-io/cloud-prepare/pkg/rhos"
 	"gopkg.in/yaml.v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -54,7 +52,7 @@ func NewProvider(info *provider.Info) (*rhosProvider, error) {
 		return nil, fmt.Errorf("the count of gateways is less than 1")
 	}
 
-	projectID, cloudEntry, providerClient, err := newClient(info.HubKubeClient, info.ClusterName, info.CredentialsSecret.Name)
+	projectID, cloudEntry, providerClient, err := newClient(info.CredentialsSecret)
 	if err != nil {
 		klog.Errorf("Unable to retrieve the rhosclient :%v", err)
 		return nil, err
@@ -134,12 +132,7 @@ func (r *rhosProvider) CleanUpSubmarinerClusterEnv() error {
 	return nil
 }
 
-func newClient(kubeClient kubernetes.Interface, secretNamespace, secretName string) (string, string, *gophercloud.ProviderClient, error) {
-	credentialsSecret, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
-	if err != nil {
-		return "", "", nil, err
-	}
-
+func newClient(credentialsSecret *corev1.Secret) (string, string, *gophercloud.ProviderClient, error) {
 	cloudsYAML, ok := credentialsSecret.Data[cloudsYAMLName]
 	if !ok {
 		return "", "", nil, errors.New("cloud yaml is not found in the credentials")

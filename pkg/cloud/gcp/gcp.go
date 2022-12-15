@@ -17,8 +17,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/option"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -52,7 +51,7 @@ func NewProvider(info *provider.Info) (*gcpProvider, error) {
 		return nil, fmt.Errorf("the count of gateways is less than 1")
 	}
 
-	projectId, gcpClient, err := newClient(info.HubKubeClient, info.ClusterName, info.CredentialsSecret.Name)
+	projectId, gcpClient, err := newClient(info.CredentialsSecret)
 	if err != nil {
 		klog.Errorf("Unable to retrieve the gcpclient :%v", err)
 		return nil, err
@@ -134,15 +133,11 @@ func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
 	return nil
 }
 
-func newClient(kubeClient kubernetes.Interface, secretNamespace, secretName string) (string, gcpclient.Interface, error) {
-	credentialsSecret, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
-	if err != nil {
-		return "", nil, err
-	}
-
+func newClient(credentialsSecret *corev1.Secret) (string, gcpclient.Interface, error) {
 	authJSON, ok := credentialsSecret.Data[gcpCredentialsName]
 	if !ok {
-		return "", nil, fmt.Errorf("the gcp credentials %s is not in secret %s/%s", gcpCredentialsName, secretNamespace, secretName)
+		return "", nil, fmt.Errorf("the gcp credentials %s is not in secret %s/%s", gcpCredentialsName,
+			credentialsSecret.Namespace, credentialsSecret.Name)
 	}
 
 	ctx := context.TODO()
