@@ -8,7 +8,7 @@ require (
 	github.com/gophercloud/gophercloud v1.1.1
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.18.1
+	github.com/onsi/gomega v1.24.2
 	github.com/openshift/api v0.0.0-20210915110300-3cd8091317c4
 	github.com/openshift/build-machinery-go v0.0.0-20211213093930-7e33a7eb4ce3
 	github.com/openshift/library-go v0.0.0-20210916194400-ae21aab32431
@@ -64,7 +64,7 @@ require (
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/go-logr/logr v0.4.0 // indirect
+	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/zapr v0.4.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
@@ -119,10 +119,10 @@ require (
 	go.uber.org/zap v1.19.0 // indirect
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b // indirect
+	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
+	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/term v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	golang.org/x/tools v0.1.12 // indirect
