@@ -1,6 +1,8 @@
 package cloud_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -9,33 +11,44 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/cloud/fake"
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/kubernetes"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
 )
 
 var _ = Describe("ProviderFactory Get", func() {
+	clusterName := "east"
+
 	var (
 		providerFactory    cloud.ProviderFactory
 		managedClusterInfo *configv1alpha1.ManagedClusterInfo
+		submarinerConfig   *configv1alpha1.SubmarinerConfig
+		hubKubeClient      kubernetes.Interface
 	)
 
 	BeforeEach(func() {
+		hubKubeClient = kubeFake.NewSimpleClientset()
+
 		providerFactory = cloud.NewProviderFactory(nil, kubeFake.NewSimpleClientset(),
-			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()), kubeFake.NewSimpleClientset())
+			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()), hubKubeClient)
 
 		managedClusterInfo = &configv1alpha1.ManagedClusterInfo{
-			ClusterName: "east",
+			ClusterName: clusterName,
 			Vendor:      constants.ProductOCP,
 			Platform:    "no-provider-available",
 			Region:      "test-region",
 			InfraID:     "test-infraID",
 		}
+
+		submarinerConfig = &configv1alpha1.SubmarinerConfig{}
 	})
 
 	When("the ManagedClusterInfo Platform has no provider implementation", func() {
 		It("should return false", func() {
-			provider, found, err := providerFactory.Get(managedClusterInfo, &configv1alpha1.SubmarinerConfig{},
+			provider, found, err := providerFactory.Get(managedClusterInfo, submarinerConfig,
 				events.NewLoggingEventRecorder("test"))
 			Expect(err).To(Succeed())
 			Expect(found).To(BeFalse())
@@ -49,7 +62,7 @@ var _ = Describe("ProviderFactory Get", func() {
 		})
 
 		It("should return an error", func() {
-			_, _, err := providerFactory.Get(managedClusterInfo, &configv1alpha1.SubmarinerConfig{},
+			_, _, err := providerFactory.Get(managedClusterInfo, submarinerConfig,
 				events.NewLoggingEventRecorder("test"))
 			Expect(err).To(HaveOccurred())
 		})
@@ -61,7 +74,7 @@ var _ = Describe("ProviderFactory Get", func() {
 		})
 
 		It("should return false", func() {
-			provider, found, err := providerFactory.Get(managedClusterInfo, &configv1alpha1.SubmarinerConfig{},
+			provider, found, err := providerFactory.Get(managedClusterInfo, submarinerConfig,
 				events.NewLoggingEventRecorder("test"))
 			Expect(err).To(Succeed())
 			Expect(found).To(BeFalse())
@@ -71,24 +84,59 @@ var _ = Describe("ProviderFactory Get", func() {
 
 	When("a provider implementation is registered", func() {
 		mockProvider := &fake.MockProvider{}
+		credentialsSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-secret",
+				Namespace: clusterName,
+			},
+		}
 
 		BeforeEach(func() {
 			managedClusterInfo.Platform = "FOO"
 			cloud.RegisterProvider(managedClusterInfo.Platform, func(info *provider.Info) (cloud.Provider, error) {
 				Expect(info.IPSecNATTPort).To(Equal(constants.SubmarinerNatTPort))
 				Expect(info.NATTDiscoveryPort).To(Equal(constants.SubmarinerNatTDiscoveryPort))
+				Expect(info.CredentialsSecret).To(Equal(credentialsSecret))
 
 				return mockProvider, nil
 			})
 		})
 
-		It("should return an instance", func() {
-			provider, found, err := providerFactory.Get(managedClusterInfo, &configv1alpha1.SubmarinerConfig{},
-				events.NewLoggingEventRecorder("test"))
+		Context("and the credentials Secret exists", func() {
+			BeforeEach(func() {
+				submarinerConfig.Spec.CredentialsSecret = &corev1.LocalObjectReference{Name: credentialsSecret.Name}
 
-			Expect(err).To(Succeed())
-			Expect(found).To(BeTrue())
-			Expect(provider).To(Equal(mockProvider))
+				_, err := hubKubeClient.CoreV1().Secrets(managedClusterInfo.ClusterName).Create(context.TODO(), credentialsSecret,
+					metav1.CreateOptions{})
+				Expect(err).To(Succeed())
+			})
+
+			It("should return an instance", func() {
+				provider, found, err := providerFactory.Get(managedClusterInfo, submarinerConfig,
+					events.NewLoggingEventRecorder("test"))
+
+				Expect(err).To(Succeed())
+				Expect(found).To(BeTrue())
+				Expect(provider).To(Equal(mockProvider))
+			})
+		})
+
+		Context("and the credentials Secret reference isn't provided", func() {
+			It("should return an error", func() {
+				_, _, err := providerFactory.Get(managedClusterInfo, submarinerConfig, events.NewLoggingEventRecorder("test"))
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("and the credentials Secret doesn't exist", func() {
+			BeforeEach(func() {
+				submarinerConfig.Spec.CredentialsSecret = &corev1.LocalObjectReference{Name: "test-secret"}
+			})
+
+			It("should return an error", func() {
+				_, _, err := providerFactory.Get(managedClusterInfo, submarinerConfig, events.NewLoggingEventRecorder("test"))
+				Expect(err).To(HaveOccurred())
+			})
 		})
 	})
 })

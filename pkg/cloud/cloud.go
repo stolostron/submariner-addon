@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -11,8 +12,8 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/rhos"
 	"github.com/stolostron/submariner-addon/pkg/constants"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
@@ -84,7 +85,6 @@ func (f *providerFactory) Get(managedClusterInfo *configv1alpha1.ManagedClusterI
 		RestMapper:           f.restMapper,
 		KubeClient:           f.kubeClient,
 		DynamicClient:        f.dynamicClient,
-		HubKubeClient:        f.hubKubeClient,
 		EventRecorder:        eventsRecorder,
 		SubmarinerConfigSpec: config.Spec,
 		ManagedClusterInfo:   *managedClusterInfo,
@@ -96,10 +96,6 @@ func (f *providerFactory) Get(managedClusterInfo *configv1alpha1.ManagedClusterI
 
 	if info.SubmarinerConfigSpec.NATTDiscoveryPort == 0 {
 		info.SubmarinerConfigSpec.NATTDiscoveryPort = constants.SubmarinerNatTDiscoveryPort
-	}
-
-	if info.CredentialsSecret == nil {
-		info.CredentialsSecret = &corev1.LocalObjectReference{}
 	}
 
 	vendor := managedClusterInfo.Vendor
@@ -114,6 +110,18 @@ func (f *providerFactory) Get(managedClusterInfo *configv1alpha1.ManagedClusterI
 	providerFn, found := providers[managedClusterInfo.Platform]
 	if !found {
 		return nil, false, nil
+	}
+
+	if info.SubmarinerConfigSpec.CredentialsSecret == nil {
+		return nil, true, fmt.Errorf("no CredentialsSecret reference provided")
+	}
+
+	var err error
+
+	info.CredentialsSecret, err = f.hubKubeClient.CoreV1().Secrets(info.ClusterName).Get(context.TODO(),
+		info.SubmarinerConfigSpec.CredentialsSecret.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, true, err
 	}
 
 	instance, err := providerFn(info)
