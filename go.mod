@@ -3,7 +3,7 @@ module github.com/stolostron/submariner-addon
 go 1.18
 
 require (
-	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
+	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
 	github.com/coreos/go-semver v0.3.0
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/golang/mock v1.6.0
