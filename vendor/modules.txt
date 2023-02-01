@@ -744,7 +744,7 @@ golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/packagesinternal
 golang.org/x/tools/internal/typeparams
 golang.org/x/tools/internal/typesinternal
-# google.golang.org/api v0.108.0
+# google.golang.org/api v0.109.0
 ## explicit; go 1.19
 google.golang.org/api/compute/v1
 google.golang.org/api/dns/v1
