@@ -125,12 +125,9 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	input := api.PrepareForSubmarinerInput{
-		InternalPorts: []api.PortSpec{
-			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-		},
-	}
-	err := g.cloudPrepare.PrepareForSubmariner(input, g.reporter)
+	err := g.cloudPrepare.OpenPorts([]api.PortSpec{
+		{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
+	}, g.reporter)
 	if err != nil {
 		return err
 	}
@@ -147,7 +144,7 @@ func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
 		return err
 	}
 
-	err = g.cloudPrepare.CleanupAfterSubmariner(g.reporter)
+	err = g.cloudPrepare.ClosePorts(g.reporter)
 	if err != nil {
 		return err
 	}

@@ -119,10 +119,8 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	}, a.reporter); err != nil {
 		return err
 	}
-	if err := a.cloudPrepare.PrepareForSubmariner(cpapi.PrepareForSubmarinerInput{
-		InternalPorts: []cpapi.PortSpec{
-			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-		},
+	if err := a.cloudPrepare.OpenPorts([]cpapi.PortSpec{
+		{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
 	}, a.reporter); err != nil {
 		return err
 	}
@@ -138,7 +136,7 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 		return err
 	}
 
-	if err := a.cloudPrepare.CleanupAfterSubmariner(a.reporter); err != nil {
+	if err := a.cloudPrepare.ClosePorts(a.reporter); err != nil {
 		return err
 	}
 

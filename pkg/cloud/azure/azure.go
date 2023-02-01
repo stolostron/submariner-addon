@@ -132,12 +132,9 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	input := api.PrepareForSubmarinerInput{
-		InternalPorts: []api.PortSpec{
-			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-		},
-	}
-	err := r.cloudPrepare.PrepareForSubmariner(input, r.reporter)
+	err := r.cloudPrepare.OpenPorts([]api.PortSpec{
+		{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
+	}, r.reporter)
 	if err != nil {
 		return err
 	}
@@ -155,7 +152,7 @@ func (r azureProvider) CleanUpSubmarinerClusterEnv() error {
 		return err
 	}
 
-	err = r.cloudPrepare.CleanupAfterSubmariner(r.reporter)
+	err = r.cloudPrepare.ClosePorts(r.reporter)
 	if err != nil {
 		return err
 	}
