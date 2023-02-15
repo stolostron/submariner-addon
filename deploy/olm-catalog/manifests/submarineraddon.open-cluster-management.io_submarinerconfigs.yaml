@@ -76,8 +76,8 @@ spec:
                     description: Azure represents the configuration for Azure Cloud Platform. If the platform of managed cluster is not Azure Cloud Platform, this field will be ignored.
                     properties:
                       instanceType:
-                        default: Standard_D4s_v3
-                        description: InstanceType represents the Azure Cloud Platform instance type of the gateway node that will be created on the managed cluster. The default value is `Standard_D4s_v3`.
+                        default: Standard_F4s_v2
+                        description: InstanceType represents the Azure Cloud Platform instance type of the gateway node that will be created on the managed cluster. The default value is `Standard_F4s_v2`.
                         type: string
                     type: object
                   gateways:
