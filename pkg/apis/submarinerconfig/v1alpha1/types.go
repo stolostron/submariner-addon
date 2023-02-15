@@ -203,9 +203,9 @@ type GCP struct {
 type RHOS struct {
 	// InstanceType represents the Redhat Openstack instance type of the gateway node that will be
 	// created on the managed cluster.
-	// The default value is `PnTAE.CPU_16_Memory_32768_Disk_80`.
+	// The default value is `PnTAE.CPU_4_Memory_8192_Disk_50`.
 	// +optional
-	// +kubebuilder:default=PnTAE.CPU_16_Memory_32768_Disk_80
+	// +kubebuilder:default=PnTAE.CPU_4_Memory_8192_Disk_50
 	InstanceType string `json:"instanceType,omitempty"`
 }
 
