@@ -62,7 +62,7 @@ func (ManagedClusterInfo) SwaggerDoc() map[string]string {
 }
 
 var map_RHOS = map[string]string{
-	"instanceType": "InstanceType represents the Redhat Openstack instance type of the gateway node that will be created on the managed cluster. The default value is `PnTAE.CPU_16_Memory_32768_Disk_80`.",
+	"instanceType": "InstanceType represents the Redhat Openstack instance type of the gateway node that will be created on the managed cluster. The default value is `PnTAE.CPU_4_Memory_8192_Disk_50`.",
 }
 
 func (RHOS) SwaggerDoc() map[string]string {
