@@ -20,7 +20,7 @@ func (AWS) SwaggerDoc() map[string]string {
 }
 
 var map_Azure = map[string]string{
-	"instanceType": "InstanceType represents the Azure Cloud Platform instance type of the gateway node that will be created on the managed cluster. The default value is `Standard_D4s_v3`.",
+	"instanceType": "InstanceType represents the Azure Cloud Platform instance type of the gateway node that will be created on the managed cluster. The default value is `Standard_F4s_v2`.",
 }
 
 func (Azure) SwaggerDoc() map[string]string {
