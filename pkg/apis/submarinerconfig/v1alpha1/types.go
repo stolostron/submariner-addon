@@ -217,9 +217,9 @@ type RHOS struct {
 type Azure struct {
 	// InstanceType represents the Azure Cloud Platform instance type of the gateway node that will be
 	// created on the managed cluster.
-	// The default value is `Standard_D4s_v3`.
+	// The default value is `Standard_F4s_v2`.
 	// +optional
-	// +kubebuilder:default=Standard_D4s_v3
+	// +kubebuilder:default=Standard_F4s_v2
 	InstanceType string `json:"instanceType,omitempty"`
 }
 
