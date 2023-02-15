@@ -96,8 +96,8 @@ spec:
                     description: RHOS represents the configuration for Redhat Openstack Platform. If the platform of managed cluster is not Redhat Openstack Platform, this field will be ignored.
                     properties:
                       instanceType:
-                        default: PnTAE.CPU_16_Memory_32768_Disk_80
-                        description: InstanceType represents the Redhat Openstack instance type of the gateway node that will be created on the managed cluster. The default value is `PnTAE.CPU_16_Memory_32768_Disk_80`.
+                        default: PnTAE.CPU_4_Memory_8192_Disk_50
+                        description: InstanceType represents the Redhat Openstack instance type of the gateway node that will be created on the managed cluster. The default value is `PnTAE.CPU_4_Memory_8192_Disk_50`.
                         type: string
                     type: object
                 type: object
