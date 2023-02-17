@@ -4,11 +4,11 @@ updates:
   - package-ecosystem: github-actions
     directory: '/'
     schedule:
-      interval: daily
+      interval: monthly
   - package-ecosystem: gomod
     directory: "/"
     schedule:
-      interval: daily
+      interval: weekly
     open-pull-requests-limit: 5
     ignore:
       # Kept in sync k8s.io/apiextensions-apiserver
@@ -21,7 +21,7 @@ updates:
     target-branch: "release-2.5"
     directory: "/"
     schedule:
-      interval: daily
+      interval: weekly
     open-pull-requests-limit: 5
     ignore:
       # K8s and operator SDK, we need to handle these manually
@@ -38,7 +38,7 @@ updates:
     target-branch: "release-2.6"
     directory: "/"
     schedule:
-      interval: daily
+      interval: weekly
     open-pull-requests-limit: 5
     ignore:
       # K8s and operator SDK, we need to handle these manually
@@ -55,7 +55,7 @@ updates:
     target-branch: "release-2.7"
     directory: "/"
     schedule:
-      interval: daily
+      interval: weekly
     open-pull-requests-limit: 5
     ignore:
       # K8s and operator SDK, we need to handle these manually
