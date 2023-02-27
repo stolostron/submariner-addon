@@ -36,6 +36,12 @@ func NewMachineSetDeployer(client workclient.Interface, workName, clusterName st
 	}
 }
 
+func (msd *manifestWorkMachineSetDeployer) List() ([]unstructured.Unstructured, error) {
+	// This MachineSetDeployer implementation is (currently) only used for AWS and this method is only used for RHOS
+	// which uses a different implementation.
+	panic("Not implemented")
+}
+
 func (msd *manifestWorkMachineSetDeployer) Deploy(machineSet *unstructured.Unstructured) error {
 	existingManifestWork, err := msd.client.WorkV1().ManifestWorks(msd.clusterName).Get(context.TODO(), msd.workName, metav1.GetOptions{})
 
@@ -133,6 +139,14 @@ func (msd *manifestWorkMachineSetDeployer) GetWorkerNodeImage(workerNodeList []s
 
 func (msd *manifestWorkMachineSetDeployer) Delete(machineSet *unstructured.Unstructured) error {
 	err := msd.client.WorkV1().ManifestWorks(msd.clusterName).Delete(context.TODO(), msd.workName, metav1.DeleteOptions{})
+	if errors.IsNotFound(err) {
+		return nil
+	}
+	return err
+}
+
+func (msd *manifestWorkMachineSetDeployer) DeleteByName(name, namespace string) error {
+	err := msd.client.WorkV1().ManifestWorks(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if errors.IsNotFound(err) {
 		return nil
 	}
