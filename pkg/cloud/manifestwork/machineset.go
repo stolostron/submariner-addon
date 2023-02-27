@@ -36,7 +36,7 @@ func NewMachineSetDeployer(client workclient.Interface, workName, clusterName st
 	}
 }
 
-func (msd *manifestWorkMachineSetDeployer) List(*unstructured.Unstructured, string) ([]unstructured.Unstructured, error) {
+func (msd *manifestWorkMachineSetDeployer) List() ([]unstructured.Unstructured, error) {
 	// This MachineSetDeployer implementation is (currently) only used for AWS and this method is only used for RHOS
 	// which uses a different implementation.
 	panic("Not implemented")
@@ -144,6 +144,13 @@ func (msd *manifestWorkMachineSetDeployer) Delete(machineSet *unstructured.Unstr
 	return err
 }
 
+func (msd *manifestWorkMachineSetDeployer) DeleteByName(name, namespace string) error {
+	err := msd.client.WorkV1().ManifestWorks(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if errors.IsNotFound(err) {
+		return nil
+	}
+	return err
+}
 func toJSON(obj runtime.Object) ([]byte, error) {
 	jsonSerializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, nil, nil, json.SerializerOptions{})
 
