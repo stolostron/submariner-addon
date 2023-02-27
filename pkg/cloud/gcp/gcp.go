@@ -3,8 +3,9 @@ package gcp
 import (
 	"context"
 	"fmt"
-	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"strconv"
+
+	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	gcpclient "github.com/submariner-io/cloud-prepare/pkg/gcp/client"
@@ -108,9 +109,9 @@ func NewGCPProvider(
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on GCP
 // The below tasks will be executed
 // 1. create the inbound and outbound firewall rules for submariner, below ports will be opened
-//    - IPsec IKE port (by default 500/UDP)
-//    - NAT traversal port (by default 4500/UDP)
-//    - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
+//   - IPsec IKE port (by default 500/UDP)
+//   - NAT traversal port (by default 4500/UDP)
+//   - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
 func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 	if err := g.gwDeployer.Deploy(api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
@@ -125,12 +126,9 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	input := api.PrepareForSubmarinerInput{
-		InternalPorts: []api.PortSpec{
-			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-		},
-	}
-	err := g.cloudPrepare.PrepareForSubmariner(input, g.reporter)
+	err := g.cloudPrepare.OpenPorts([]api.PortSpec{
+		{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
+	}, g.reporter)
 	if err != nil {
 		return err
 	}
@@ -147,7 +145,7 @@ func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
 		return err
 	}
 
-	err = g.cloudPrepare.CleanupAfterSubmariner(g.reporter)
+	err = g.cloudPrepare.ClosePorts(g.reporter)
 	if err != nil {
 		return err
 	}
