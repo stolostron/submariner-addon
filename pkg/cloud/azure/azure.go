@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"os"
 	"strconv"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 	"github.com/submariner-io/cloud-prepare/pkg/azure"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
@@ -117,11 +117,11 @@ func NewAzureProvider(
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on Azure
 // The below tasks will be executed
 // 1. create the inbound and outbound firewall rules for submariner, below ports will be opened
-//    - NAT traversal port (by default 4500/UDP)
-//    - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
-//    - ESP & AH protocols for private-ip to private-ip gateway communications
-// 2. create the inbound and outbound firewall rules to open 8080/TCP, 8081/TCP port to export metrics service from the
-//    Submariner gateway
+//   - NAT traversal port (by default 4500/UDP)
+//   - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
+//   - ESP & AH protocols for private-ip to private-ip gateway communications
+//     2. create the inbound and outbound firewall rules to open 8080/TCP, 8081/TCP port to export metrics service from the
+//     Submariner gateway
 func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 	//TODO For ovn the port 4800 need not be opened.
 	if err := r.gwDeployer.Deploy(api.GatewayDeployInput{
