@@ -18,10 +18,10 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.14.1
-	github.com/submariner-io/cloud-prepare v0.14.1
-	github.com/submariner-io/submariner v0.14.1
-	github.com/submariner-io/submariner-operator v0.14.1
+	github.com/submariner-io/admiral v0.14.2
+	github.com/submariner-io/cloud-prepare v0.14.2
+	github.com/submariner-io/submariner v0.14.2
+	github.com/submariner-io/submariner-operator v0.14.2
 	golang.org/x/oauth2 v0.5.0
 	google.golang.org/api v0.110.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -44,8 +44,6 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork v1.1.0 // indirect
-	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.8.1 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.17.0 // indirect
@@ -130,7 +128,7 @@ require (
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/net v0.6.0 // indirect
+	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/term v0.5.0 // indirect
