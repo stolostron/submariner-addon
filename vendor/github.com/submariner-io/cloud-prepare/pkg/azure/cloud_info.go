@@ -26,10 +26,10 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2021-03-01/network"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/pkg/errors"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
+	"k8s.io/utils/pointer"
 )
 
 const (
@@ -132,16 +132,16 @@ func (c *CloudInfo) createSecurityRule(securityRulePrfix, protocol string, port 
 	ruleDirection network.SecurityRuleDirection,
 ) network.SecurityRule {
 	return network.SecurityRule{
-		Name: to.StringPtr(securityRulePrfix + protocol + "-" + strconv.Itoa(int(port)) + "-" + string(ruleDirection)),
+		Name: pointer.String(securityRulePrfix + protocol + "-" + strconv.Itoa(int(port)) + "-" + string(ruleDirection)),
 		SecurityRulePropertiesFormat: &network.SecurityRulePropertiesFormat{
 			Protocol:                 network.SecurityRuleProtocol(protocol),
-			DestinationPortRange:     to.StringPtr(strconv.Itoa(int(port)) + "-" + strconv.Itoa(int(port))),
-			SourceAddressPrefix:      to.StringPtr(allNetworkCIDR),
-			DestinationAddressPrefix: to.StringPtr(allNetworkCIDR),
-			SourcePortRange:          to.StringPtr("*"),
+			DestinationPortRange:     pointer.String(strconv.Itoa(int(port)) + "-" + strconv.Itoa(int(port))),
+			SourceAddressPrefix:      pointer.String(allNetworkCIDR),
+			DestinationAddressPrefix: pointer.String(allNetworkCIDR),
+			SourcePortRange:          pointer.String("*"),
 			Access:                   network.SecurityRuleAccessAllow,
 			Direction:                ruleDirection,
-			Priority:                 to.Int32Ptr(priority),
+			Priority:                 pointer.Int32(priority),
 		},
 	}
 }
@@ -165,7 +165,7 @@ func (c *CloudInfo) createGWSecurityGroup(groupName string, ports []api.PortSpec
 
 	nwSecurityGroup := network.SecurityGroup{
 		Name:     &groupName,
-		Location: to.StringPtr(c.Region),
+		Location: pointer.String(c.Region),
 		SecurityGroupPropertiesFormat: &network.SecurityGroupPropertiesFormat{
 			SecurityRules: &securityRules,
 		},
@@ -342,7 +342,7 @@ func (c *CloudInfo) CreatePublicIP(ctx context.Context, ipName string, ipClient 
 		c.BaseGroupName,
 		ipName,
 		network.PublicIPAddress{
-			Name: to.StringPtr(ipName),
+			Name: pointer.String(ipName),
 			PublicIPAddressPropertiesFormat: &network.PublicIPAddressPropertiesFormat{
 				PublicIPAddressVersion:   network.IPVersionIPv4,
 				PublicIPAllocationMethod: network.IPAllocationMethodStatic,
