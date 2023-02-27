@@ -3,7 +3,7 @@ module github.com/stolostron/submariner-addon
 go 1.18
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.0
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.1
 	github.com/coreos/go-semver v0.3.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/golang/mock v1.6.0
@@ -46,7 +46,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork v1.1.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
-	github.com/AzureAD/microsoft-authentication-library-for-go v0.7.0 // indirect
+	github.com/AzureAD/microsoft-authentication-library-for-go v0.8.1 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.17.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.17.9 // indirect
