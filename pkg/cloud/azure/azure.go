@@ -115,9 +115,9 @@ func NewAzureProvider(
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on Azure
 // The below tasks will be executed
 // 1. create the inbound and outbound firewall rules for submariner, below ports will be opened
-//    - NAT traversal port (by default 4500/UDP)
-//    - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
-//    - ESP & AH protocols for private-ip to private-ip gateway communications
+//   - NAT traversal port (by default 4500/UDP)
+//   - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
+//   - ESP & AH protocols for private-ip to private-ip gateway communications
 func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 	// TODO For ovn the port 4800 need not be opened.
 	if err := r.gwDeployer.Deploy(api.GatewayDeployInput{
@@ -132,12 +132,9 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	input := api.PrepareForSubmarinerInput{
-		InternalPorts: []api.PortSpec{
-			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-		},
-	}
-	err := r.cloudPrepare.PrepareForSubmariner(input, r.reporter)
+	err := r.cloudPrepare.OpenPorts([]api.PortSpec{
+		{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
+	}, r.reporter)
 	if err != nil {
 		return err
 	}
@@ -155,7 +152,7 @@ func (r azureProvider) CleanUpSubmarinerClusterEnv() error {
 		return err
 	}
 
-	err = r.cloudPrepare.CleanupAfterSubmariner(r.reporter)
+	err = r.cloudPrepare.ClosePorts(r.reporter)
 	if err != nil {
 		return err
 	}

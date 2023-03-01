@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"strconv"
+
+	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 
 	"github.com/gophercloud/gophercloud/openstack"
 
@@ -110,9 +111,9 @@ func NewRHOSProvider(
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on RHOS
 // The below tasks will be executed
 // 1. create the inbound and outbound firewall rules for submariner, below ports will be opened
-//    - NAT traversal port (by default 4500/UDP)
-//    - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
-//    - ESP & AH protocols for private-ip to private-ip gateway communications
+//   - NAT traversal port (by default 4500/UDP)
+//   - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
+//   - ESP & AH protocols for private-ip to private-ip gateway communications
 func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 	if err := r.gwDeployer.Deploy(api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
@@ -126,12 +127,9 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 		return err
 	}
 
-	input := api.PrepareForSubmarinerInput{
-		InternalPorts: []api.PortSpec{
-			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
-		},
-	}
-	err := r.cloudPrepare.PrepareForSubmariner(input, r.reporter)
+	err := r.cloudPrepare.OpenPorts([]api.PortSpec{
+		{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
+	}, r.reporter)
 	if err != nil {
 		return err
 	}
@@ -149,7 +147,7 @@ func (r rhosProvider) CleanUpSubmarinerClusterEnv() error {
 		return err
 	}
 
-	err = r.cloudPrepare.CleanupAfterSubmariner(r.reporter)
+	err = r.cloudPrepare.ClosePorts(r.reporter)
 	if err != nil {
 		return err
 	}

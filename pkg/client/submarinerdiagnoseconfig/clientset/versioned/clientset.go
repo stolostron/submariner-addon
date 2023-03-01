@@ -17,8 +17,7 @@ type Interface interface {
 	SubmarineraddonV1alpha1() submarineraddonv1alpha1.SubmarineraddonV1alpha1Interface
 }
 
-// Clientset contains the clients for groups. Each group has exactly one
-// version included in a Clientset.
+// Clientset contains the clients for groups.
 type Clientset struct {
 	*discovery.DiscoveryClient
 	submarineraddonV1alpha1 *submarineraddonv1alpha1.SubmarineraddonV1alpha1Client

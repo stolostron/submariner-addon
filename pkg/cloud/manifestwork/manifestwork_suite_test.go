@@ -1,4 +1,4 @@
-package cloud_test
+package manifestwork_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestCloud(t *testing.T) {
+func TestManifestWork(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Cloud Suite")
+	RunSpecs(t, "ManifestWork Suite")
 }

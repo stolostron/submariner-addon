@@ -776,7 +776,7 @@ func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 }
 
 func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Context, brokerNamespace string) error {
-	_, gnCmErr := globalnet.GetConfigMap(c.controllerClient, brokerNamespace)
+	_, gnCmErr := globalnet.GetConfigMap(ctx, c.controllerClient, brokerNamespace)
 	if gnCmErr != nil && !apierrors.IsNotFound(gnCmErr) {
 		return errors.Wrapf(gnCmErr, "error getting globalnet configmap from broker namespace %q", brokerNamespace)
 	}
@@ -806,7 +806,7 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 		klog.Infof("Globalnet is disabled in the managedClusterSet namespace %q", brokerNamespace)
 	}
 
-	if err := globalnet.CreateConfigMap(c.controllerClient, brokerObj.Spec.GlobalnetEnabled,
+	if err := globalnet.CreateConfigMap(ctx, c.controllerClient, brokerObj.Spec.GlobalnetEnabled,
 		brokerObj.Spec.GlobalnetCIDRRange, brokerObj.Spec.DefaultGlobalnetClusterSize, brokerNamespace); err != nil {
 		return errors.Wrapf(err, "error creating globalnet configmap on Broker")
 	}

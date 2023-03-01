@@ -115,7 +115,7 @@ func Get(
 		brokerInfo.InstallationNamespace = installationNamespace
 	}
 
-	err := applyGlobalnetConfig(controllerClient, brokerNamespace, clusterName, brokerInfo, submarinerConfig)
+	err := applyGlobalnetConfig(ctx, controllerClient, brokerNamespace, clusterName, brokerInfo, submarinerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -147,10 +147,10 @@ func Get(
 	return brokerInfo, nil
 }
 
-func applyGlobalnetConfig(controllerClient controllerclient.Client, brokerNamespace, clusterName string,
-	brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig,
+func applyGlobalnetConfig(ctx context.Context, controllerClient controllerclient.Client, brokerNamespace,
+	clusterName string, brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig,
 ) error {
-	gnInfo, _, err := globalnet.GetGlobalNetworks(controllerClient, brokerNamespace)
+	gnInfo, _, err := globalnet.GetGlobalNetworks(ctx, controllerClient, brokerNamespace)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrapf(err, "error reading globalnet configmap from namespace %q", brokerNamespace)
 	}
@@ -171,7 +171,7 @@ func applyGlobalnetConfig(controllerClient controllerclient.Client, brokerNamesp
 		}
 
 		status := reporter.Klog()
-		err = globalnet.AllocateAndUpdateGlobalCIDRConfigMap(controllerClient, brokerNamespace, &netconfig, status)
+		err = globalnet.AllocateAndUpdateGlobalCIDRConfigMap(ctx, controllerClient, brokerNamespace, &netconfig, status)
 		if err != nil {
 			klog.Errorf("Unable to allocate globalCIDR to cluster %q: %v", clusterName, err)
 			return err
