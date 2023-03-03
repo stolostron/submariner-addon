@@ -110,9 +110,9 @@ func NewRHOSProvider(
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on RHOS
 // The below tasks will be executed
 // 1. create the inbound and outbound firewall rules for submariner, below ports will be opened
-//    - NAT traversal port (by default 4500/UDP)
-//    - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
-//    - ESP & AH protocols for private-ip to private-ip gateway communications
+//   - NAT traversal port (by default 4500/UDP)
+//   - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
+//   - ESP & AH protocols for private-ip to private-ip gateway communications
 func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 	if err := r.gwDeployer.Deploy(api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{

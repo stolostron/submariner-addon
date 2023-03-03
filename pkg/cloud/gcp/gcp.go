@@ -108,9 +108,9 @@ func NewGCPProvider(
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on GCP
 // The below tasks will be executed
 // 1. create the inbound and outbound firewall rules for submariner, below ports will be opened
-//    - IPsec IKE port (by default 500/UDP)
-//    - NAT traversal port (by default 4500/UDP)
-//    - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
+//   - IPsec IKE port (by default 500/UDP)
+//   - NAT traversal port (by default 4500/UDP)
+//   - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
 func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 	if err := g.gwDeployer.Deploy(api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
