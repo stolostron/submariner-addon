@@ -9,8 +9,8 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/gophercloud/gophercloud v1.2.0
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
-	github.com/onsi/ginkgo/v2 v2.8.3
-	github.com/onsi/gomega v1.27.1
+	github.com/onsi/ginkgo/v2 v2.9.0
+	github.com/onsi/gomega v1.27.3
 	github.com/openshift/api v0.0.0-20230120195050-6ba31fa438f2
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
 	github.com/openshift/library-go v0.0.0-20230222090221-582055a1d5c4
@@ -83,7 +83,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/cel-go v0.12.6 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
