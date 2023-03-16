@@ -13,7 +13,7 @@ for project in admiral cloud-prepare submariner submariner-operator; do
     go get github.com/submariner-io/${project}@$1
 done
 
-sed -i "s/submver=.*$/submver=${1#v}/" scripts/deploy.sh
+sed -i "s/submver=.*$/submver=${1#v}/" scripts/vars.sh
 
 # Downstream builds track the main version without - suffixes
 sed -i "s/version: .*$/version: ${1%%-*}/" pkg/hub/submarineragent/manifests/operator/submariner.io-submariners-cr.yaml
