@@ -31,6 +31,7 @@ const (
 	catalogName                   = "submariner"
 	defaultCatalogSource          = "redhat-operators"
 	defaultCatalogSourceNamespace = "openshift-marketplace"
+	defaultCatalogChannel         = "stable-0.15"
 	defaultCableDriver            = "libreswan"
 	defaultInstallationNamespace  = "open-cluster-management-agent-addon"
 	brokerAPIServer               = "BROKER_API_SERVER"
@@ -107,6 +108,7 @@ func Get(
 		CatalogName:            catalogName,
 		CatalogSource:          defaultCatalogSource,
 		CatalogSourceNamespace: defaultCatalogSourceNamespace,
+		CatalogChannel:         defaultCatalogChannel,
 		InstallationNamespace:  defaultInstallationNamespace,
 		InstallPlanApproval:    "Automatic",
 	}
