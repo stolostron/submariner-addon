@@ -1,3 +1,3 @@
 k8s_version="v1.23.4"
 submrepo="quay.io/submariner"
-submver=0.14.2
+submver=0.14.3
