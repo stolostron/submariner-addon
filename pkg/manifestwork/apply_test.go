@@ -36,7 +36,7 @@ var _ = Describe("Apply", func() {
 					Manifests: []workv1.Manifest{
 						{
 							RawExtension: runtime.RawExtension{
-								Raw: []byte("test-data"),
+								Raw: []byte("{\"foo\": \"bar\"}"),
 							},
 						},
 					},
@@ -83,7 +83,7 @@ var _ = Describe("Apply", func() {
 
 		Context("and the workload manifest has changed", func() {
 			BeforeEach(func() {
-				work.Spec.Workload.Manifests[0].RawExtension.Raw = []byte("test-data-updated")
+				work.Spec.Workload.Manifests[0].RawExtension.Raw = []byte("{\"foo\": \"updated\"}")
 			})
 
 			It("should update it", func() {
@@ -117,7 +117,7 @@ var _ = Describe("Apply", func() {
 			BeforeEach(func() {
 				work.Spec.Workload.Manifests = append(work.Spec.Workload.Manifests, workv1.Manifest{
 					RawExtension: runtime.RawExtension{
-						Raw: []byte("test-data2"),
+						Raw: []byte("{\"foo\": \"bar2\"}"),
 					},
 				})
 			})

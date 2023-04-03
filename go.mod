@@ -14,14 +14,14 @@ require (
 	github.com/openshift/api v0.0.0-20230120195050-6ba31fa438f2
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
 	github.com/openshift/library-go v0.0.0-20230222090221-582055a1d5c4
-	github.com/operator-framework/api v0.17.4-0.20221221181915-f1b729684854
+	github.com/operator-framework/api v0.17.4-0.20230223191600-0131a6301e42
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.15.0-m4
-	github.com/submariner-io/cloud-prepare v0.15.0-m4
-	github.com/submariner-io/submariner v0.15.0-m4
-	github.com/submariner-io/submariner-operator v0.15.0-m4
+	github.com/submariner-io/admiral v0.15.0-rc0.0.20230403144840-073674c35fbd
+	github.com/submariner-io/cloud-prepare v0.15.0-rc0
+	github.com/submariner-io/submariner v0.15.0-rc0
+	github.com/submariner-io/submariner-operator v0.15.0-rc0
 	golang.org/x/oauth2 v0.6.0
 	google.golang.org/api v0.114.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -160,7 +160,7 @@ require (
 	k8s.io/kms v0.26.3 // indirect
 	k8s.io/kube-aggregator v0.26.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230202010329-39b3636cbaa3 // indirect
-	k8s.io/utils v0.0.0-20230202215443-34013725500c // indirect
+	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.36 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
