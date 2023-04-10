@@ -15,7 +15,7 @@ require (
 	github.com/openshift/library-go v0.0.0-20230222090221-582055a1d5c4
 	github.com/operator-framework/api v0.17.4-0.20230223191600-0131a6301e42
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.6.1
+	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/submariner-io/admiral v0.15.0-rc0.0.20230403144840-073674c35fbd
 	github.com/submariner-io/cloud-prepare v0.15.0-rc0
@@ -95,7 +95,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
