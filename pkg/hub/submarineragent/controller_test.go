@@ -542,8 +542,6 @@ func (t *testDriver) assertSCCManifestObjs(objs []*unstructured.Unstructured) {
 	Expect(clusterRole.Rules).To(HaveLen(1))
 	Expect(clusterRole.Rules[0].APIGroups).To(ContainElement("security.openshift.io"))
 	Expect(clusterRole.Rules[0].Resources).To(ContainElement("securitycontextconstraints"))
-
-	assertManifestObj(objs, "SecurityContextConstraints", "")
 }
 
 func (t *testDriver) awaitBackupLabelOnBroker() {

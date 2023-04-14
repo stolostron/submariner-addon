@@ -77,7 +77,6 @@ var clusterRBACFiles = []string{
 
 var sccFiles = []string{
 	"manifests/rbac/scc-aggregate-clusterrole.yaml",
-	"manifests/rbac/submariner-agent-scc.yaml",
 }
 
 var operatorAllFiles = []string{
