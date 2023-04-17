@@ -90,6 +90,8 @@ type SubmarinerBrokerInfo struct {
 	LighthouseCoreDNSImage             string
 	MetricsProxyImage                  string
 	NettestImage                       string
+	NodeSelector                       map[string]string
+	Tolerations                        []corev1.Toleration
 }
 
 // Get retrieves submariner broker information consolidated with hub information.
@@ -114,6 +116,8 @@ func Get(
 		CatalogChannel:         defaultCatalogChannel,
 		InstallationNamespace:  defaultInstallationNamespace,
 		InstallPlanApproval:    "Automatic",
+		NodeSelector:           make(map[string]string),
+		Tolerations:            make([]corev1.Toleration, 0),
 	}
 
 	if installationNamespace != "" {

@@ -68,6 +68,8 @@ var _ = Describe("Controller", func() {
 		Context("after the ManagedCluster and ManagedClusterSet", func() {
 			JustBeforeEach(func() {
 				t.createManagedClusterSet()
+				t.createAddonDeploymentConfig(t.defaultADConfig)
+				t.createClusterManagementAddon()
 				t.ensureNoManifestWorks()
 
 				t.createManagedCluster()
@@ -207,6 +209,31 @@ var _ = Describe("Controller", func() {
 				t.ensureNoManifestWorks()
 
 				t.createManagedClusterSet()
+				t.createAddonDeploymentConfig(t.defaultADConfig)
+				t.createClusterManagementAddon()
+				t.createGlobalnetConfigMap()
+			})
+
+			It("should deploy the ManifestWorks", func() {
+				t.awaitManifestWorks()
+			})
+
+			t.testFinalizers()
+		})
+
+		Context("with cluster specific AddonDeploymentConfig", func() {
+			JustBeforeEach(func() {
+				t.createAddonDeploymentConfigForCluster(t.managedCluster.Name)
+				t.setClusterADConfig()
+				t.createAddon()
+				t.ensureNoManifestWorks()
+
+				t.createManagedCluster()
+				t.ensureNoManifestWorks()
+
+				t.createManagedClusterSet()
+				t.createAddonDeploymentConfig(t.defaultADConfig)
+				t.createClusterManagementAddon()
 				t.createGlobalnetConfigMap()
 			})
 
@@ -266,6 +293,9 @@ var _ = Describe("Controller", func() {
 type testDriver struct {
 	managedCluster     *clusterv1.ManagedCluster
 	addOn              *addonv1alpha1.ManagedClusterAddOn
+	clusterMgmtAddon   *addonv1alpha1.ClusterManagementAddOn
+	defaultADConfig    *addonv1alpha1.AddOnDeploymentConfig
+	clusterADConfig    *addonv1alpha1.AddOnDeploymentConfig
 	submarinerConfig   *configv1alpha1.SubmarinerConfig
 	broker             *unstructured.Unstructured
 	kubeClient         kubernetes.Interface
@@ -301,8 +331,51 @@ func newTestDriver() *testDriver {
 			},
 		}
 
+		t.defaultADConfig = &addonv1alpha1.AddOnDeploymentConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "submariner-default",
+				Namespace: "foobar",
+			},
+			Spec: addonv1alpha1.AddOnDeploymentConfigSpec{
+				NodePlacement: &addonv1alpha1.NodePlacement{
+					NodeSelector: map[string]string{"foo": "bar"},
+					Tolerations: []corev1.Toleration{
+						{
+							Key:   "default-key",
+							Value: "default-value",
+						},
+					},
+				},
+			},
+		}
+
+		t.clusterMgmtAddon = &addonv1alpha1.ClusterManagementAddOn{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: constants.SubmarinerAddOnName,
+			},
+			Spec: addonv1alpha1.ClusterManagementAddOnSpec{
+				AddOnMeta: addonv1alpha1.AddOnMeta{
+					DisplayName: "Submariner Addon",
+					Description: "Submariner Addon for MultiCluster connectivity",
+				},
+				SupportedConfigs: []addonv1alpha1.ConfigMeta{
+					{
+						ConfigGroupResource: addonv1alpha1.ConfigGroupResource{
+							Group:    "addon.open-cluster-management.io",
+							Resource: "addondeploymentconfigs",
+						},
+						DefaultConfig: &addonv1alpha1.ConfigReferent{
+							Name:      t.defaultADConfig.Name,
+							Namespace: t.defaultADConfig.Namespace,
+						},
+					},
+				},
+			},
+		}
+
 		t.submarinerConfig = nil
 		t.broker = nil
+		t.clusterADConfig = nil
 		t.mockCtrl = gomock.NewController(GinkgoT())
 		t.dynamicClient = dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
 		t.clusterClient = fakeclusterclient.NewSimpleClientset()
@@ -354,7 +427,9 @@ func newTestDriver() *testDriver {
 			clusterInformerFactory.Cluster().V1beta2().ManagedClusterSets(),
 			workInformerFactory.Work().V1().ManifestWorks(),
 			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
+			addOnInformerFactory.Addon().V1alpha1().ClusterManagementAddOns(),
 			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
+			addOnInformerFactory.Addon().V1alpha1().AddOnDeploymentConfigs(),
 			events.NewLoggingEventRecorder("test"))
 
 		var ctx context.Context
@@ -384,6 +459,8 @@ func newTestDriver() *testDriver {
 
 func (t *testDriver) initManifestWorks() {
 	t.createManagedClusterSet()
+	t.createAddonDeploymentConfig(t.defaultADConfig)
+	t.createClusterManagementAddon()
 	t.createManagedCluster()
 	t.createAddon()
 	t.createGlobalnetConfigMap()
@@ -475,6 +552,15 @@ func (t *testDriver) assertSubmarinerManifestWork(work *workv1.ManifestWork) {
 	Expect(submariner.Spec.CeIPSecPSK).To(Equal(base64.StdEncoding.EncodeToString([]byte(ipsecPSK))))
 	Expect(submariner.Spec.ClusterID).To(Equal(clusterName))
 	Expect(submariner.Spec.Namespace).To(Equal(installNamespace))
+
+	adConfig := t.clusterADConfig
+
+	if adConfig == nil {
+		adConfig = t.defaultADConfig
+	}
+
+	Expect(submariner.Spec.NodeSelector).To(Equal(adConfig.Spec.NodePlacement.NodeSelector))
+	Expect(submariner.Spec.Tolerations).To(Equal(adConfig.Spec.NodePlacement.Tolerations))
 
 	if t.submarinerConfig != nil {
 		Expect(submariner.Spec.CableDriver).To(Equal(t.submarinerConfig.Spec.CableDriver))
@@ -586,6 +672,38 @@ func (t *testDriver) createManagedCluster() {
 	Expect(err).To(Succeed())
 }
 
+func (t *testDriver) createAddonDeploymentConfig(config *addonv1alpha1.AddOnDeploymentConfig) {
+	_, err := t.addOnClient.AddonV1alpha1().AddOnDeploymentConfigs(config.Namespace).Create(context.TODO(), config, metav1.CreateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func (t *testDriver) createAddonDeploymentConfigForCluster(cluster string) {
+	t.clusterADConfig = &addonv1alpha1.AddOnDeploymentConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "submariner-adconfig",
+			Namespace: cluster,
+		},
+		Spec: addonv1alpha1.AddOnDeploymentConfigSpec{
+			NodePlacement: &addonv1alpha1.NodePlacement{
+				NodeSelector: map[string]string{"foo": cluster},
+				Tolerations: []corev1.Toleration{
+					{
+						Key:   "cluster-key",
+						Value: "cluster-value",
+					},
+				},
+			},
+		},
+	}
+
+	t.createAddonDeploymentConfig(t.clusterADConfig)
+}
+
+func (t *testDriver) createClusterManagementAddon() {
+	_, err := t.addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(context.TODO(), t.clusterMgmtAddon, metav1.CreateOptions{})
+	Expect(err).To(Succeed())
+}
+
 func (t *testDriver) createManagedClusterSet() {
 	mcs := &clusterv1beta2.ManagedClusterSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -627,6 +745,21 @@ func (t *testDriver) createSubmarinerBroker() {
 func (t *testDriver) deleteGlobalnetConfigMap() {
 	err := globalnet.DeleteConfigMap(context.TODO(), t.controllerClient, brokerNamespace)
 	Expect(err).To(Succeed())
+}
+
+func (t *testDriver) setClusterADConfig() {
+	t.addOn.Spec.Configs = []addonv1alpha1.AddOnConfig{
+		{
+			ConfigGroupResource: addonv1alpha1.ConfigGroupResource{
+				Group:    "addon.open-cluster-management.io",
+				Resource: "addondeploymentconfigs",
+			},
+			ConfigReferent: addonv1alpha1.ConfigReferent{
+				Name:      t.clusterADConfig.Name,
+				Namespace: t.clusterADConfig.Namespace,
+			},
+		},
+	}
 }
 
 func unmarshallManifestObjs(work *workv1.ManifestWork) []*unstructured.Unstructured {
