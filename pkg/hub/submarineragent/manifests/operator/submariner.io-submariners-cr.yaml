@@ -53,3 +53,31 @@ spec:
     {{- end}}
 {{- end}}
   repository: registry.redhat.io/rhacm2
+  {{- if .NodeSelector }}
+  nodeSelector:
+  {{- range $key, $value := .NodeSelector }}
+    "{{ $key }}": "{{ $value }}"
+  {{- end }}
+  {{- end }}
+  {{- if .Tolerations }}
+  tolerations:
+  {{- range $toleration := .Tolerations }}
+  {{- if $toleration.Key }}
+  - key: "{{ $toleration.Key }}"
+  {{- if $toleration.Operator }}
+    operator: "{{ $toleration.Operator }}"
+  {{- end }}
+  {{- else }}
+  - operator: "{{ $toleration.Operator }}"
+  {{- end }}
+  {{- if $toleration.Value }}
+    value: "{{ $toleration.Value }}"
+  {{- end }}
+  {{- if $toleration.Effect }}
+    effect: "{{ $toleration.Effect }}"
+  {{- end }}
+  {{- if $toleration.TolerationSeconds }}
+    tolerationSeconds: {{ $toleration.TolerationSeconds }}
+  {{- end }}
+  {{- end }}
+  {{- end }}

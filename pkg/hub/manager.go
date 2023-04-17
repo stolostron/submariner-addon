@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
+	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarineraddonagent"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarineragent"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbroker"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
@@ -146,6 +148,12 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
+	err = createClusterManagementAddon(ctx, addOnClient)
+
+	if err != nil {
+		return err
+	}
+
 	submarinerBrokerController := submarinerbroker.NewController(
 		clusterClient.ClusterV1beta2().ManagedClusterSets(),
 		kubeClient,
@@ -165,7 +173,9 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
 		workInformers.Work().V1().ManifestWorks(),
 		configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
+		addOnInformers.Addon().V1alpha1().ClusterManagementAddOns(),
 		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		addOnInformers.Addon().V1alpha1().AddOnDeploymentConfigs(),
 		controllerContext.EventRecorder,
 	)
 
@@ -184,7 +194,8 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
-	err = mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, clusterClient, controllerContext.EventRecorder, o.AgentImage))
+	err = mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, clusterClient, addOnClient,
+		controllerContext.EventRecorder, o.AgentImage))
 	if err != nil {
 		return err
 	}
@@ -197,6 +208,35 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	}()
 
 	<-ctx.Done()
+
+	return nil
+}
+
+func createClusterManagementAddon(ctx context.Context, client *addonclient.Clientset) error {
+	submarineerClusterMgmtAddon := &addonv1alpha1.ClusterManagementAddOn{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.SubmarinerAddOnName,
+		},
+		Spec: addonv1alpha1.ClusterManagementAddOnSpec{
+			AddOnMeta: addonv1alpha1.AddOnMeta{
+				DisplayName: "Submariner Addon",
+				Description: "Submariner Addon for MultiCluster connectivity",
+			},
+			SupportedConfigs: []addonv1alpha1.ConfigMeta{
+				{
+					ConfigGroupResource: addonv1alpha1.ConfigGroupResource{
+						Group:    "addon.open-cluster-management.io",
+						Resource: "addondeploymentconfigs",
+					},
+				},
+			},
+		},
+	}
+	_, err := client.AddonV1alpha1().ClusterManagementAddOns().Create(
+		ctx, submarineerClusterMgmtAddon, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
 
 	return nil
 }

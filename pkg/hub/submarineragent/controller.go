@@ -54,16 +54,18 @@ import (
 )
 
 const (
-	serviceAccountLabel          = "cluster.open-cluster-management.io/submariner-cluster-sa"
-	OperatorManifestWorkName     = "submariner-operator"
-	SubmarinerCRManifestWorkName = "submariner-resource"
-	AgentFinalizer               = "cluster.open-cluster-management.io/submariner-agent-cleanup"
-	AddOnFinalizer               = "submarineraddon.open-cluster-management.io/submariner-addon-cleanup"
-	agentRBACFile                = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
-	submarinerCRFile             = "manifests/operator/submariner.io-submariners-cr.yaml"
-	BrokerCfgApplied             = "SubmarinerBrokerConfigApplied"
-	BrokerObjectName             = "submariner-broker"
-	BackupLabel                  = "cluster.open-cluster-management.io/backup"
+	serviceAccountLabel           = "cluster.open-cluster-management.io/submariner-cluster-sa"
+	OperatorManifestWorkName      = "submariner-operator"
+	SubmarinerCRManifestWorkName  = "submariner-resource"
+	AgentFinalizer                = "cluster.open-cluster-management.io/submariner-agent-cleanup"
+	AddOnFinalizer                = "submarineraddon.open-cluster-management.io/submariner-addon-cleanup"
+	agentRBACFile                 = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
+	submarinerCRFile              = "manifests/operator/submariner.io-submariners-cr.yaml"
+	BrokerCfgApplied              = "SubmarinerBrokerConfigApplied"
+	BrokerObjectName              = "submariner-broker"
+	BackupLabel                   = "cluster.open-cluster-management.io/backup"
+	addonDeploymentConfigResource = "addondeploymentconfigs"
+	addonDeploymentConfigGroup    = "addon.open-cluster-management.io"
 )
 
 var clusterRBACFiles = []string{
@@ -103,19 +105,21 @@ type clusterRBACConfig struct {
 // submarinerAgentController reconciles instances of ManagedCluster on the hub to deploy/remove
 // corresponding submariner agent manifestworks.
 type submarinerAgentController struct {
-	kubeClient         kubernetes.Interface
-	dynamicClient      dynamic.Interface
-	controllerClient   client.Client
-	clusterClient      clusterclient.Interface
-	manifestWorkClient workclient.Interface
-	configClient       configclient.Interface
-	addOnClient        addonclient.Interface
-	clusterLister      clusterlisterv1.ManagedClusterLister
-	clusterSetLister   clusterlisterv1beta2.ManagedClusterSetLister
-	manifestWorkLister worklister.ManifestWorkLister
-	configLister       configlister.SubmarinerConfigLister
-	addOnLister        addonlisterv1alpha1.ManagedClusterAddOnLister
-	eventRecorder      events.Recorder
+	kubeClient             kubernetes.Interface
+	dynamicClient          dynamic.Interface
+	controllerClient       client.Client
+	clusterClient          clusterclient.Interface
+	manifestWorkClient     workclient.Interface
+	configClient           configclient.Interface
+	addOnClient            addonclient.Interface
+	clusterLister          clusterlisterv1.ManagedClusterLister
+	clusterSetLister       clusterlisterv1beta2.ManagedClusterSetLister
+	manifestWorkLister     worklister.ManifestWorkLister
+	configLister           configlister.SubmarinerConfigLister
+	clusterAddOnLister     addonlisterv1alpha1.ClusterManagementAddOnLister
+	addOnLister            addonlisterv1alpha1.ManagedClusterAddOnLister
+	deploymentConfigLister addonlisterv1alpha1.AddOnDeploymentConfigLister
+	eventRecorder          events.Recorder
 }
 
 // NewSubmarinerAgentController returns a submarinerAgentController instance.
@@ -131,23 +135,27 @@ func NewSubmarinerAgentController(
 	clusterSetInformer clusterinformerv1beta2.ManagedClusterSetInformer,
 	manifestWorkInformer workinformer.ManifestWorkInformer,
 	configInformer configinformer.SubmarinerConfigInformer,
+	clusterAddOnInformer addoninformerv1alpha1.ClusterManagementAddOnInformer,
 	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
+	deploymentConfigInformer addoninformerv1alpha1.AddOnDeploymentConfigInformer,
 	recorder events.Recorder,
 ) factory.Controller {
 	c := &submarinerAgentController{
-		kubeClient:         kubeClient,
-		dynamicClient:      dynamicClient,
-		controllerClient:   controllerClient,
-		clusterClient:      clusterClient,
-		manifestWorkClient: manifestWorkClient,
-		configClient:       configClient,
-		addOnClient:        addOnClient,
-		clusterLister:      clusterInformer.Lister(),
-		clusterSetLister:   clusterSetInformer.Lister(),
-		manifestWorkLister: manifestWorkInformer.Lister(),
-		configLister:       configInformer.Lister(),
-		addOnLister:        addOnInformer.Lister(),
-		eventRecorder:      recorder.WithComponentSuffix("submariner-agent-controller"),
+		kubeClient:             kubeClient,
+		dynamicClient:          dynamicClient,
+		controllerClient:       controllerClient,
+		clusterClient:          clusterClient,
+		manifestWorkClient:     manifestWorkClient,
+		configClient:           configClient,
+		addOnClient:            addOnClient,
+		clusterLister:          clusterInformer.Lister(),
+		clusterSetLister:       clusterSetInformer.Lister(),
+		manifestWorkLister:     manifestWorkInformer.Lister(),
+		configLister:           configInformer.Lister(),
+		clusterAddOnLister:     clusterAddOnInformer.Lister(),
+		addOnLister:            addOnInformer.Lister(),
+		deploymentConfigLister: deploymentConfigInformer.Lister(),
+		eventRecorder:          recorder.WithComponentSuffix("submariner-agent-controller"),
 	}
 
 	return factory.New().
@@ -191,6 +199,16 @@ func NewSubmarinerAgentController(
 
 			return accessor.GetNamespace()
 		}, addOnInformer.Informer()).
+		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			accessor, _ := meta.Accessor(obj)
+			if accessor.GetName() != constants.SubmarinerAddOnName {
+				return ""
+			}
+
+			logger.V(log.DEBUG).Infof("Queuing ClusterManagementAddon %q", accessor.GetName())
+
+			return factory.DefaultQueueKey
+		}, clusterAddOnInformer.Informer()).
 		WithInformers(clusterSetInformer.Informer()).
 		WithSync(c.sync).
 		ToController("SubmarinerAgentController", recorder)
@@ -199,7 +217,7 @@ func NewSubmarinerAgentController(
 func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	key := syncCtx.QueueKey()
 
-	// if the sync is triggered by change of ManagedClusterSet, reconcile all managed clusters
+	// if the sync is triggered by change of ManagedClusterSet or ClusterManagementAddon, reconcile all managed clusters
 	if key == factory.DefaultQueueKey {
 		return c.onManagedClusterSetChange(syncCtx)
 	}
@@ -394,6 +412,18 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create submariner brokerInfo of cluster %v : %w", managedCluster.Name, err)
+	}
+
+	nodePlacements, err := c.getAddonDeploymentConfigs(managedClusterAddOn)
+	if err != nil {
+		return err
+	}
+	for _, nodePlacement := range nodePlacements {
+		for k, v := range nodePlacement.NodeSelector {
+			brokerInfo.NodeSelector[k] = v
+		}
+
+		brokerInfo.Tolerations = append(brokerInfo.Tolerations, nodePlacement.Tolerations...)
 	}
 
 	skipOperatorGroup := false
@@ -722,4 +752,57 @@ func (c *submarinerAgentController) updateBackupLabelOnBroker(ctx context.Contex
 	}
 
 	return nil
+}
+
+func (c *submarinerAgentController) getAddonDeploymentConfigs(managedClusterAddon *addonv1alpha1.ManagedClusterAddOn) (
+	[]*addonv1alpha1.NodePlacement, error,
+) {
+	var nodePlacements []*addonv1alpha1.NodePlacement
+
+	for _, config := range managedClusterAddon.Spec.Configs {
+		if config.Resource == addonDeploymentConfigResource && config.Group == addonDeploymentConfigGroup {
+			deploymentConfig, err := c.deploymentConfigLister.AddOnDeploymentConfigs(config.Namespace).Get(config.Name)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error getting AddonDeploymentConfig \"%s/%s\"", config.Namespace, config.Name)
+			}
+
+			nodePlacements = append(nodePlacements, deploymentConfig.Spec.NodePlacement)
+		}
+	}
+
+	if len(nodePlacements) > 0 {
+		return nodePlacements, nil
+	}
+
+	/* No deployment config on managedclusteraddon, check default
+	   Ideally, we should get this from managedclusteraddon.status.configreferences but we don't for 2 reasons:
+	     1. There can be race condition between MCH controller adding addondeploymentconfig to managedclusteraddon.status
+	        vs when we read it, unless we watch for managedclusteraddon.status updates.
+	     2. We update managedclusteraddon.status. Not a good pattern to watch for updates on something we're
+	        updating as it will trigger extra cycles of update.
+	   Revisit this after some more testing.
+	*/
+
+	clusterAddOn, err := c.clusterAddOnLister.Get(constants.SubmarinerAddOnName)
+
+	if apierrors.IsNotFound(err) {
+		return nodePlacements, nil
+	} else if err != nil {
+		return nil, errors.Wrapf(err, "error getting ClusterManagementAddon %q", constants.SubmarinerAddOnName)
+	}
+
+	for _, config := range clusterAddOn.Spec.SupportedConfigs {
+		if config.Resource == addonDeploymentConfigResource && config.Group == addonDeploymentConfigGroup &&
+			config.DefaultConfig != nil {
+			name, namespace := config.DefaultConfig.Name, config.DefaultConfig.Namespace
+			deploymentConfig, err := c.deploymentConfigLister.AddOnDeploymentConfigs(namespace).Get(name)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error getting AddonDeploymentConfig %q:%q", namespace, name)
+			}
+
+			nodePlacements = append(nodePlacements, deploymentConfig.Spec.NodePlacement)
+		}
+	}
+
+	return nodePlacements, nil
 }

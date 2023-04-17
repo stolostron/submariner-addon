@@ -11,11 +11,14 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	certificatesv1 "k8s.io/api/certificates/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
@@ -23,6 +26,7 @@ import (
 	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
@@ -41,8 +45,10 @@ func init() {
 }
 
 const (
-	agentName                    = "submariner-addon-agent"
-	defaultInstallationNamespace = "open-cluster-management-agent-addon"
+	agentName                     = "submariner-addon-agent"
+	defaultInstallationNamespace  = "open-cluster-management-agent-addon"
+	addonDeploymentConfigResource = "addondeploymentconfigs"
+	addonDeploymentConfigGroup    = "addon.open-cluster-management.io"
 )
 
 const (
@@ -75,6 +81,7 @@ var manifestFiles embed.FS
 type addOnAgent struct {
 	kubeClient    kubernetes.Interface
 	clusterClient clusterclient.Interface
+	addOnClient   addonclient.Interface
 	recorder      events.Recorder
 	agentImage    string
 	hubHost       string
@@ -82,12 +89,13 @@ type addOnAgent struct {
 }
 
 // NewAddOnAgent returns an instance of addOnAgent.
-func NewAddOnAgent(kubeClient kubernetes.Interface, clusterClient clusterclient.Interface, recorder events.Recorder,
-	agentImage string,
+func NewAddOnAgent(kubeClient kubernetes.Interface, clusterClient clusterclient.Interface,
+	addOnclient addonclient.Interface, recorder events.Recorder, agentImage string,
 ) agent.AgentAddon {
 	return &addOnAgent{
 		kubeClient:    kubeClient,
 		clusterClient: clusterClient,
+		addOnClient:   addOnclient,
 		recorder:      recorder,
 		agentImage:    agentImage,
 		resourceCache: resourceapply.NewResourceCache(),
@@ -123,12 +131,29 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 		AddonInstallNamespace string
 		Image                 string
 		HubHost               string
+		NodeSelector          map[string]string
+		Tolerations           []corev1.Toleration
 	}{
 		KubeConfigSecret:      fmt.Sprintf("%s-hub-kubeconfig", a.GetAgentAddonOptions().AddonName),
 		AddonInstallNamespace: installNamespace,
 		ClusterName:           cluster.Name,
 		Image:                 a.agentImage,
 		HubHost:               a.hubHost,
+		NodeSelector:          make(map[string]string),
+		Tolerations:           make([]corev1.Toleration, 0),
+	}
+
+	nodePlacements, err := a.getNodePlacements(addon)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, nodePlacement := range nodePlacements {
+		for k, v := range nodePlacement.NodeSelector {
+			manifestConfig.NodeSelector[k] = v
+		}
+
+		manifestConfig.Tolerations = append(manifestConfig.Tolerations, nodePlacement.Tolerations...)
 	}
 
 	for _, file := range deploymentFiles {
@@ -157,6 +182,13 @@ func (a *addOnAgent) GetAgentAddonOptions() agent.AgentAddonOptions {
 			CSRConfigurations: agent.KubeClientSignerConfigurations(constants.SubmarinerAddOnName, agentName),
 			CSRApproveCheck:   a.csrApproveCheck,
 			PermissionConfig:  a.permissionConfig,
+		},
+		SupportedConfigGVRs: []schema.GroupVersionResource{
+			{
+				Group:    "addon.open-cluster-management.io",
+				Version:  "v1alpha1",
+				Resource: "addondeploymentconfigs",
+			},
 		},
 	}
 }
@@ -266,4 +298,41 @@ func (a *addOnAgent) setHubHostIfEmpty() error {
 	}
 
 	return nil
+}
+
+func (a *addOnAgent) getNodePlacements(addon *addonapiv1alpha1.ManagedClusterAddOn) ([]*addonapiv1alpha1.NodePlacement, error) {
+	var nodePlacements []*addonapiv1alpha1.NodePlacement
+
+	for _, config := range addon.Spec.Configs {
+		if config.Resource == addonDeploymentConfigResource && config.Group == addonDeploymentConfigGroup {
+			deploymentConfig, err := a.addOnClient.AddonV1alpha1().AddOnDeploymentConfigs(config.Namespace).Get(
+				context.TODO(), config.Name, metav1.GetOptions{})
+			if err != nil {
+				return nil, errors.Wrapf(err, "error getting AddonDeploymentConfig %q:%q for cluster %q",
+					config.Namespace, config.Name, addon.Namespace)
+			}
+
+			nodePlacements = append(nodePlacements, deploymentConfig.Spec.NodePlacement)
+		}
+	}
+
+	if len(nodePlacements) > 0 {
+		return nodePlacements, nil
+	}
+
+	// Check if default deployment config available in status
+	for _, config := range addon.Status.ConfigReferences {
+		if config.Resource == addonDeploymentConfigResource && config.Group == addonDeploymentConfigGroup {
+			deploymentConfig, err := a.addOnClient.AddonV1alpha1().AddOnDeploymentConfigs(config.Namespace).Get(
+				context.TODO(), config.Name, metav1.GetOptions{})
+			if err != nil {
+				return nil, errors.Wrapf(err, "error getting AddonDeploymentConfig %q:%q for cluster %q",
+					config.Namespace, config.Name, addon.Namespace)
+			}
+
+			nodePlacements = append(nodePlacements, deploymentConfig.Spec.NodePlacement)
+		}
+	}
+
+	return nodePlacements, nil
 }

@@ -23,10 +23,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	fakeclusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -37,6 +40,8 @@ func TestSubmarinerAddOnAgent(t *testing.T) {
 	RunSpecs(t, "Submariner AddOn Agent Suite")
 }
 
+const defaultNamespace = "open-cluster-management-agent-addon"
+
 var _ = Describe("Manifests", func() {
 	t := newTestDriver()
 
@@ -45,7 +50,7 @@ var _ = Describe("Manifests", func() {
 			objs, err := t.addOnAgent.Manifests(&clusterv1.ManagedCluster{}, &addonapiv1alpha1.ManagedClusterAddOn{})
 			Expect(err).To(Succeed())
 
-			verifyManifestObjs(objs, defaultManifestObjStrings("open-cluster-management-agent-addon"))
+			verifyManifestObjs(objs, defaultManifestObjStrings(defaultNamespace))
 		})
 	})
 
@@ -63,6 +68,24 @@ var _ = Describe("Manifests", func() {
 				toManifestObjString(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
 					Name: ns,
 				}})))
+		})
+	})
+
+	Context("using only a default addonDeploymentConfig", func() {
+		It("should succeed", func() {
+			objs, err := t.addOnAgent.Manifests(&clusterv1.ManagedCluster{}, t.newManagedClusterAddOnWithADConfig(true))
+			Expect(err).To(Succeed())
+
+			verifyManifestObjs(objs, defaultManifestObjStrings(defaultNamespace))
+		})
+	})
+
+	Context("using both default and cluster specific addonDeploymentConfig", func() {
+		It("should succeed", func() {
+			objs, err := t.addOnAgent.Manifests(&clusterv1.ManagedCluster{}, t.newManagedClusterAddOnWithADConfig(false))
+			Expect(err).To(Succeed())
+
+			verifyManifestObjs(objs, defaultManifestObjStrings(defaultNamespace))
 		})
 	})
 })
@@ -197,12 +220,25 @@ var _ = Describe("GetAgentAddonOptions", func() {
 			})
 		})
 	})
+
+	Context("SupportedConfigGVRs", func() {
+		It("should register addondeploymentconfig GVR", func() {
+			Expect(options.SupportedConfigGVRs).To(Equal(
+				[]schema.GroupVersionResource{
+					{
+						Group:   "addon.open-cluster-management.io",
+						Version: "v1alpha1", Resource: "addondeploymentconfigs",
+					},
+				}))
+		})
+	})
 })
 
 type testDriver struct {
 	addOnAgent    agent.AgentAddon
 	kubeClient    kubernetes.Interface
 	clusterClient clusterclient.Interface
+	addOnClient   addonclient.Interface
 }
 
 func newTestDriver() *testDriver {
@@ -211,7 +247,9 @@ func newTestDriver() *testDriver {
 	BeforeEach(func() {
 		t.kubeClient = kubefake.NewSimpleClientset()
 		t.clusterClient = fakeclusterclient.NewSimpleClientset()
-		t.addOnAgent = submarineraddonagent.NewAddOnAgent(t.kubeClient, t.clusterClient, events.NewLoggingEventRecorder("test"), "test")
+		t.addOnClient = addonfake.NewSimpleClientset()
+		t.addOnAgent = submarineraddonagent.NewAddOnAgent(t.kubeClient, t.clusterClient, t.addOnClient,
+			events.NewLoggingEventRecorder("test"), "test")
 	})
 
 	return t
@@ -303,4 +341,70 @@ func newCSR(holder csrHolder) *certificatesv1.CertificateSigningRequest {
 			Request:    pem.EncodeToMemory(&pem.Block{Type: holder.ReqBlockType, Bytes: csrb}),
 		},
 	}
+}
+
+func (t *testDriver) createAddonDeploymentConfig(config *addonapiv1alpha1.AddOnDeploymentConfig) {
+	_, err := t.addOnClient.AddonV1alpha1().AddOnDeploymentConfigs(config.Namespace).Create(context.TODO(), config,
+		metav1.CreateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func (t *testDriver) newManagedClusterAddOnWithADConfig(defaultOnly bool) *addonapiv1alpha1.ManagedClusterAddOn {
+	clusterADConfig := &addonapiv1alpha1.AddOnDeploymentConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "submariner-adconfig",
+			Namespace: "foo",
+		},
+		Spec: addonapiv1alpha1.AddOnDeploymentConfigSpec{
+			NodePlacement: &addonapiv1alpha1.NodePlacement{
+				NodeSelector: map[string]string{"foo": "bar"},
+				Tolerations: []corev1.Toleration{
+					{
+						Key:   "cluster-key",
+						Value: "cluster-value",
+					},
+				},
+			},
+		},
+	}
+
+	t.createAddonDeploymentConfig(clusterADConfig)
+
+	addon := &addonapiv1alpha1.ManagedClusterAddOn{
+		Spec: addonapiv1alpha1.ManagedClusterAddOnSpec{},
+		Status: addonapiv1alpha1.ManagedClusterAddOnStatus{
+			ConfigReferences: []addonapiv1alpha1.ConfigReference{
+				{
+					ConfigGroupResource: addonapiv1alpha1.ConfigGroupResource{
+						Group:    "addon.open-cluster-management.io",
+						Resource: "addondeploymentconfigs",
+					},
+					ConfigReferent: addonapiv1alpha1.ConfigReferent{
+						Name:      clusterADConfig.Name,
+						Namespace: clusterADConfig.Namespace,
+					},
+				},
+			},
+		},
+	}
+
+	if !defaultOnly {
+		clusterADConfig.Namespace = "cluster"
+		addon.Spec.Configs = []addonapiv1alpha1.AddOnConfig{
+			{
+				ConfigGroupResource: addonapiv1alpha1.ConfigGroupResource{
+					Group:    "addon.open-cluster-management.io",
+					Resource: "addondeploymentconfigs",
+				},
+				ConfigReferent: addonapiv1alpha1.ConfigReferent{
+					Name:      clusterADConfig.Name,
+					Namespace: clusterADConfig.Namespace,
+				},
+			},
+		}
+
+		t.createAddonDeploymentConfig(clusterADConfig)
+	}
+
+	return addon
 }
