@@ -8,9 +8,10 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/cloud/aws"
 	"github.com/stolostron/submariner-addon/pkg/cloud/azure"
 	"github.com/stolostron/submariner-addon/pkg/cloud/gcp"
+	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/rhos"
 	"github.com/stolostron/submariner-addon/pkg/constants"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -38,6 +39,32 @@ type providerFactory struct {
 	hubKubeClient kubernetes.Interface
 }
 
+type ProviderFn func(*provider.Info) (Provider, error)
+
+var providers = map[string]ProviderFn{}
+
+func init() {
+	RegisterProvider("AWS", func(info *provider.Info) (Provider, error) {
+		return aws.NewProvider(info)
+	})
+
+	RegisterProvider("GCP", func(info *provider.Info) (Provider, error) {
+		return gcp.NewProvider(info)
+	})
+
+	RegisterProvider("OpenStack", func(info *provider.Info) (Provider, error) {
+		return rhos.NewProvider(info)
+	})
+
+	RegisterProvider("Azure", func(info *provider.Info) (Provider, error) {
+		return azure.NewProvider(info)
+	})
+}
+
+func RegisterProvider(platform string, f ProviderFn) {
+	providers[platform] = f
+}
+
 func NewProviderFactory(restMapper meta.RESTMapper, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
 	hubKubeClient kubernetes.Interface) ProviderFactory {
 	return &providerFactory{
@@ -51,53 +78,45 @@ func NewProviderFactory(restMapper meta.RESTMapper, kubeClient kubernetes.Interf
 func (f *providerFactory) Get(managedClusterInfo *configv1alpha1.ManagedClusterInfo, config *configv1alpha1.SubmarinerConfig,
 	eventsRecorder events.Recorder,
 ) (Provider, bool, error) {
-	platform := managedClusterInfo.Platform
-	region := managedClusterInfo.Region
-	infraID := managedClusterInfo.InfraID
-	clusterName := managedClusterInfo.ClusterName
-	vendor := managedClusterInfo.Vendor
+	klog.V(4).Infof("Get cloud provider: ManagedClusterInfo: %#v", managedClusterInfo)
 
-	credentialsSecret := config.Spec.CredentialsSecret
-	if credentialsSecret == nil {
-		credentialsSecret = &v1.LocalObjectReference{}
+	info := &provider.Info{
+		RestMapper:           f.restMapper,
+		KubeClient:           f.kubeClient,
+		DynamicClient:        f.dynamicClient,
+		HubKubeClient:        f.hubKubeClient,
+		EventRecorder:        eventsRecorder,
+		SubmarinerConfigSpec: config.Spec,
+		ManagedClusterInfo:   *managedClusterInfo,
 	}
 
+	if info.SubmarinerConfigSpec.IPSecNATTPort == 0 {
+		info.SubmarinerConfigSpec.IPSecNATTPort = constants.SubmarinerNatTPort
+	}
+
+	if info.SubmarinerConfigSpec.NATTDiscoveryPort == 0 {
+		info.SubmarinerConfigSpec.NATTDiscoveryPort = constants.SubmarinerNatTDiscoveryPort
+	}
+
+	if info.CredentialsSecret == nil {
+		info.CredentialsSecret = &corev1.LocalObjectReference{}
+	}
+
+	vendor := managedClusterInfo.Vendor
 	if vendor == constants.ProductROSA || vendor == constants.ProductARO {
 		return nil, false, nil
 	}
 
 	if vendor != constants.ProductOCP {
-		return nil, false, fmt.Errorf("unsupported vendor %q of cluster %q", vendor, clusterName)
+		return nil, false, fmt.Errorf("unsupported vendor %q for cluster %q", vendor, managedClusterInfo.ClusterName)
 	}
 
-	klog.V(4).Infof("get cloud provider: platform=%s,region=%s,infraID=%s,clusterName=%s,config=%s", platform,
-		region, infraID, clusterName, config.Name)
-
-	var provider Provider
-	var err error
-
-	found := true
-
-	switch platform {
-	case "AWS":
-		provider, err = aws.NewAWSProvider(f.hubKubeClient, f.dynamicClient, f.restMapper, eventsRecorder, region, infraID,
-			clusterName, credentialsSecret.Name, config.Spec.GatewayConfig.AWS.InstanceType,
-			config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
-	case "GCP":
-		provider, err = gcp.NewGCPProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
-			region, infraID, clusterName, credentialsSecret.Name,
-			config.Spec.GatewayConfig.GCP.InstanceType, config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
-	case "OpenStack":
-		provider, err = rhos.NewRHOSProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
-			region, infraID, clusterName, credentialsSecret.Name,
-			config.Spec.GatewayConfig.RHOS.InstanceType, config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
-	case "Azure":
-		provider, err = azure.NewAzureProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
-			region, infraID, clusterName, credentialsSecret.Name,
-			config.Spec.GatewayConfig.Azure.InstanceType, config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
-	default:
-		found = false
+	providerFn, found := providers[managedClusterInfo.Platform]
+	if !found {
+		return nil, false, nil
 	}
 
-	return provider, found, err
+	instance, err := providerFn(info)
+
+	return instance, true, err
 }

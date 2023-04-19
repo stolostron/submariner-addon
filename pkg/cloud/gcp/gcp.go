@@ -5,26 +5,21 @@ import (
 	"fmt"
 	"strconv"
 
-	submreporter "github.com/submariner-io/admiral/pkg/reporter"
-
+	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
+	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	submreporter "github.com/submariner-io/admiral/pkg/reporter"
+	"github.com/submariner-io/cloud-prepare/pkg/api"
+	cloudpreparegcp "github.com/submariner-io/cloud-prepare/pkg/gcp"
 	gcpclient "github.com/submariner-io/cloud-prepare/pkg/gcp/client"
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/option"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/klog/v2"
-
-	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
-
-	"github.com/submariner-io/cloud-prepare/pkg/api"
-	cloudpreparegcp "github.com/submariner-io/cloud-prepare/pkg/gcp"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -43,66 +38,51 @@ type gcpProvider struct {
 	nattDiscoveryPort int64
 }
 
-func NewGCPProvider(
-	restMapper meta.RESTMapper,
-	kubeClient kubernetes.Interface,
-	dynamicClient dynamic.Interface,
-	hubKubeClient kubernetes.Interface,
-	eventRecorder events.Recorder,
-	region, infraID, clusterName, credentialsSecretName, instanceType string,
-	nattPort, nattDiscoveryPort, gateways int,
-) (*gcpProvider, error) {
-	if infraID == "" {
+func NewProvider(info *provider.Info) (*gcpProvider, error) {
+	if info.InfraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")
 	}
 
-	if nattPort == 0 {
-		nattPort = constants.SubmarinerNatTPort
-	}
-
+	instanceType := info.GatewayConfig.GCP.InstanceType
 	if instanceType != "" {
 		instanceType = gwInstanceType
 	}
 
-	if gateways < 1 {
+	if info.Gateways < 1 {
 		return nil, fmt.Errorf("the count of gateways is less than 1")
 	}
 
-	if nattDiscoveryPort == 0 {
-		nattDiscoveryPort = constants.SubmarinerNatTDiscoveryPort
-	}
-
-	projectId, gcpClient, err := newClient(hubKubeClient, clusterName, credentialsSecretName)
+	projectId, gcpClient, err := newClient(info.HubKubeClient, info.ClusterName, info.CredentialsSecret.Name)
 	if err != nil {
 		klog.Errorf("Unable to retrieve the gcpclient :%v", err)
 		return nil, err
 	}
 
 	cloudInfo := cloudpreparegcp.CloudInfo{
-		InfraID:   infraID,
-		Region:    region,
+		InfraID:   info.InfraID,
+		Region:    info.Region,
 		ProjectID: projectId,
 		Client:    gcpClient,
 	}
 
 	cloudPrepare := cloudpreparegcp.NewCloud(cloudInfo)
 
-	msDeployer := ocp.NewK8sMachinesetDeployer(restMapper, dynamicClient)
+	msDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
 
-	k8sClient := k8s.NewInterface(kubeClient)
+	k8sClient := k8s.NewInterface(info.KubeClient)
 
 	gwDeployer := cloudpreparegcp.NewOcpGatewayDeployer(cloudInfo, msDeployer, instanceType,
 		"", true, k8sClient)
 
 	return &gcpProvider{
-		infraID:           infraID,
-		nattPort:          uint16(nattPort),
+		infraID:           info.InfraID,
+		nattPort:          uint16(info.IPSecNATTPort),
 		routePort:         strconv.Itoa(constants.SubmarinerRoutePort),
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
-		reporter:          reporter.NewEventRecorderWrapper("GCPCloudProvider", eventRecorder),
-		nattDiscoveryPort: int64(nattDiscoveryPort),
-		gateways:          gateways,
+		reporter:          reporter.NewEventRecorderWrapper("GCPCloudProvider", info.EventRecorder),
+		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
+		gateways:          info.Gateways,
 	}, nil
 }
 

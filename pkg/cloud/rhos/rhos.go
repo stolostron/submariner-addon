@@ -6,28 +6,21 @@ import (
 	"fmt"
 	"strconv"
 
-	submreporter "github.com/submariner-io/admiral/pkg/reporter"
-
-	"github.com/gophercloud/gophercloud/openstack"
-
 	"github.com/gophercloud/gophercloud"
-	"github.com/submariner-io/cloud-prepare/pkg/ocp"
-	"gopkg.in/yaml.v2"
-
+	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/utils/openstack/clientconfig"
-	"github.com/stolostron/submariner-addon/pkg/constants"
-	"github.com/submariner-io/cloud-prepare/pkg/k8s"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/klog/v2"
-
-	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
-
+	"github.com/stolostron/submariner-addon/pkg/constants"
+	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
+	"github.com/submariner-io/cloud-prepare/pkg/k8s"
+	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 	cloudpreparerhos "github.com/submariner-io/cloud-prepare/pkg/rhos"
+	"gopkg.in/yaml.v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -47,64 +40,49 @@ type rhosProvider struct {
 	nattDiscoveryPort int64
 }
 
-func NewRHOSProvider(
-	restMapper meta.RESTMapper,
-	kubeClient kubernetes.Interface,
-	dynamicClient dynamic.Interface,
-	hubKubeClient kubernetes.Interface,
-	eventRecorder events.Recorder,
-	region, infraID, clusterName, credentialsSecretName, instanceType string,
-	nattPort, nattDiscoveryPort, gateways int,
-) (*rhosProvider, error) {
-	if infraID == "" {
+func NewProvider(info *provider.Info) (*rhosProvider, error) {
+	if info.InfraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")
 	}
 
-	if nattPort == 0 {
-		nattPort = constants.SubmarinerNatTPort
-	}
-
+	instanceType := info.GatewayConfig.RHOS.InstanceType
 	if instanceType == "" {
 		instanceType = gwInstanceType
 	}
 
-	if gateways < 1 {
+	if info.Gateways < 1 {
 		return nil, fmt.Errorf("the count of gateways is less than 1")
 	}
 
-	if nattDiscoveryPort == 0 {
-		nattDiscoveryPort = constants.SubmarinerNatTDiscoveryPort
-	}
-
-	projectID, cloudEntry, providerClient, err := newClient(hubKubeClient, clusterName, credentialsSecretName)
+	projectID, cloudEntry, providerClient, err := newClient(info.HubKubeClient, info.ClusterName, info.CredentialsSecret.Name)
 	if err != nil {
 		klog.Errorf("Unable to retrieve the rhosclient :%v", err)
 		return nil, err
 	}
-	k8sClient := k8s.NewInterface(kubeClient)
+	k8sClient := k8s.NewInterface(info.KubeClient)
 
 	cloudInfo := cloudpreparerhos.CloudInfo{
-		InfraID:   infraID,
-		Region:    region,
+		InfraID:   info.InfraID,
+		Region:    info.Region,
 		K8sClient: k8sClient,
 		Client:    providerClient,
 	}
 
 	cloudPrepare := cloudpreparerhos.NewCloud(cloudInfo)
-	msDeployer := ocp.NewK8sMachinesetDeployer(restMapper, dynamicClient)
+	msDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
 
 	gwDeployer := cloudpreparerhos.NewOcpGatewayDeployer(cloudInfo, msDeployer, projectID, instanceType,
 		"", cloudEntry, true)
 
 	return &rhosProvider{
-		infraID:           infraID,
-		nattPort:          uint16(nattPort),
+		infraID:           info.InfraID,
+		nattPort:          uint16(info.IPSecNATTPort),
 		routePort:         strconv.Itoa(constants.SubmarinerRoutePort),
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
-		reporter:          reporter.NewEventRecorderWrapper("RHOSCloudProvider", eventRecorder),
-		nattDiscoveryPort: int64(nattDiscoveryPort),
-		gateways:          gateways,
+		reporter:          reporter.NewEventRecorderWrapper("RHOSCloudProvider", info.EventRecorder),
+		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
+		gateways:          info.Gateways,
 	}, nil
 }
 
@@ -141,7 +119,7 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on RHOS after the SubmarinerConfig was deleted
 // 1. delete any dedicated gateways that were previously deployed.
 // 2. delete the inbound and outbound firewall rules to close submariner ports
-func (r rhosProvider) CleanUpSubmarinerClusterEnv() error {
+func (r *rhosProvider) CleanUpSubmarinerClusterEnv() error {
 	err := r.gwDeployer.Cleanup(r.reporter)
 	if err != nil {
 		return err

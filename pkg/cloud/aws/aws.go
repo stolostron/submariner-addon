@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	submreporter "github.com/submariner-io/admiral/pkg/reporter"
@@ -12,10 +12,7 @@ import (
 	cpaws "github.com/submariner-io/cloud-prepare/pkg/aws"
 	cpclient "github.com/submariner-io/cloud-prepare/pkg/aws/client"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -36,72 +33,61 @@ type awsProvider struct {
 	gatewayDeployer   cpapi.GatewayDeployer
 }
 
-func NewAWSProvider(
-	kubeClient kubernetes.Interface,
-	dynamicClient dynamic.Interface,
-	restMapper meta.RESTMapper,
-	eventRecorder events.Recorder,
-	region, infraID, clusterName, credentialsSecretName string,
-	instanceType string,
-	nattPort, nattDiscoveryPort int,
-	gateways int,
-) (*awsProvider, error) {
-	if region == "" {
+func NewProvider(info *provider.Info) (*awsProvider, error) {
+	if info.Region == "" {
 		return nil, fmt.Errorf("cluster region is empty")
 	}
 
-	if infraID == "" {
+	if info.InfraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")
 	}
 
-	if gateways < 1 {
+	if info.Gateways < 1 {
 		return nil, fmt.Errorf("the count of gateways is less than 1")
 	}
 
-	if nattPort == 0 {
-		nattPort = constants.SubmarinerNatTPort
-	}
-
-	if nattDiscoveryPort == 0 {
-		nattDiscoveryPort = constants.SubmarinerNatTDiscoveryPort
-	}
-
+	instanceType := info.GatewayConfig.AWS.InstanceType
 	if instanceType == "" {
 		instanceType = defaultInstanceType
 	}
 
-	credentialsSecret, err := kubeClient.CoreV1().Secrets(clusterName).Get(context.TODO(), credentialsSecretName, metav1.GetOptions{})
+	credentialsSecret, err := info.HubKubeClient.CoreV1().Secrets(info.ClusterName).Get(context.TODO(), info.CredentialsSecret.Name,
+		metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
+
 	accessKeyID, ok := credentialsSecret.Data[accessKeyIDSecretKey]
 	if !ok {
-		return nil, fmt.Errorf("the aws credentials key %s is not in secret %s/%s", accessKeyIDSecretKey, clusterName, credentialsSecretName)
-	}
-	secretAccessKey, ok := credentialsSecret.Data[accessKeySecretKey]
-	if !ok {
-		return nil, fmt.Errorf("the aws credentials key %s is not in secret %s/%s", accessKeySecretKey, clusterName, credentialsSecretName)
+		return nil, fmt.Errorf("the aws credentials key %s is not in secret %s/%s", accessKeyIDSecretKey, info.ClusterName,
+			info.CredentialsSecret.Name)
 	}
 
-	awsClient, err := cpclient.New(string(accessKeyID), string(secretAccessKey), region)
+	secretAccessKey, ok := credentialsSecret.Data[accessKeySecretKey]
+	if !ok {
+		return nil, fmt.Errorf("the aws credentials key %s is not in secret %s/%s", accessKeySecretKey, info.ClusterName,
+			info.CredentialsSecret.Name)
+	}
+
+	awsClient, err := cpclient.New(string(accessKeyID), string(secretAccessKey), info.Region)
 	if err != nil {
 		return nil, err
 	}
 
-	cloudPrepare := cpaws.NewCloud(awsClient, infraID, region)
+	cloudPrepare := cpaws.NewCloud(awsClient, info.InfraID, info.Region)
 
-	machineSetDeployer := ocp.NewK8sMachinesetDeployer(restMapper, dynamicClient)
+	machineSetDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
 	gwDeployer, err := cpaws.NewOcpGatewayDeployer(cloudPrepare, machineSetDeployer, instanceType)
 	if err != nil {
 		return nil, err
 	}
 
 	return &awsProvider{
-		reporter:          reporter.NewEventRecorderWrapper("AWSCloudProvider", eventRecorder),
-		nattPort:          int64(nattPort),
-		nattDiscoveryPort: int64(nattDiscoveryPort),
+		reporter:          reporter.NewEventRecorderWrapper("AWSCloudProvider", info.EventRecorder),
+		nattPort:          int64(info.IPSecNATTPort),
+		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
 		instanceType:      instanceType,
-		gateways:          gateways,
+		gateways:          info.Gateways,
 		cloudPrepare:      cloudPrepare,
 		gatewayDeployer:   gwDeployer,
 	}, nil
