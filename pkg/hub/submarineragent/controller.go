@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
@@ -172,9 +171,7 @@ func NewSubmarinerAgentController(
 				return ""
 			}
 
-			key, _ := cache.MetaNamespaceKeyFunc(obj)
-
-			return key
+			return accessor.GetNamespace()
 		}, configInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
@@ -197,48 +194,13 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		return c.onManagedClusterSetChange(syncCtx)
 	}
 
-	klog.V(4).Infof("Submariner agent controller is reconciling, queue key: %s", key)
+	clusterName := key
 
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		// bad format key - shouldn't happen
-		panic(err)
-	}
+	klog.V(4).Infof("Submariner agent controller is reconciling for cluster %q", clusterName)
 
-	// if the sync is triggered by change of ManagedCluster, ManifestWork or ManagedClusterAddOn, reconcile the managed cluster
-	if namespace == "" {
-		managedCluster, err := c.clusterLister.Get(name)
-		if apierrors.IsNotFound(err) {
-			// managed cluster not found, could have been deleted, do nothing.
-			return nil
-		}
-
-		if err != nil {
-			return err
-		}
-
-		config, err := c.configLister.SubmarinerConfigs(name).Get(constants.SubmarinerConfigName)
-		if apierrors.IsNotFound(err) {
-			// only sync the managed cluster
-			return c.syncManagedCluster(ctx, managedCluster.DeepCopy(), nil)
-		}
-
-		if err != nil {
-			return err
-		}
-
-		if err := c.syncManagedCluster(ctx, managedCluster.DeepCopy(), config.DeepCopy()); err != nil {
-			return err
-		}
-
-		// handle creating submariner config before creating managed cluster
-		return c.syncSubmarinerConfig(ctx, managedCluster.DeepCopy(), config.DeepCopy())
-	}
-
-	// if the sync is triggered by change of SubmarinerConfig, reconcile the submariner config
-	config, err := c.configLister.SubmarinerConfigs(namespace).Get(name)
+	managedCluster, err := c.clusterLister.Get(clusterName)
 	if apierrors.IsNotFound(err) {
-		// config is not found, could have been deleted, do nothing.
+		// managed cluster not found, could have been deleted, do nothing.
 		return nil
 	}
 
@@ -246,22 +208,16 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		return err
 	}
 
-	managedCluster, err := c.clusterLister.Get(namespace)
-	if apierrors.IsNotFound(err) {
-		// handle deleting submariner config after managed cluster was deleted.
-		return c.syncSubmarinerConfig(ctx, nil, config.DeepCopy())
-	}
-
-	if err != nil {
+	config, err := c.configLister.SubmarinerConfigs(clusterName).Get(constants.SubmarinerConfigName)
+	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 
-	// the submariner agent config maybe need to update.
-	if err := c.syncManagedCluster(ctx, managedCluster.DeepCopy(), config.DeepCopy()); err != nil {
+	if err := c.syncManagedCluster(ctx, managedCluster, config); err != nil {
 		return err
 	}
 
-	return c.syncSubmarinerConfig(ctx, managedCluster.DeepCopy(), config.DeepCopy())
+	return c.syncSubmarinerConfig(ctx, managedCluster, config)
 }
 
 func (c *submarinerAgentController) onManagedClusterSetChange(syncCtx factory.SyncContext) error {
@@ -343,7 +299,7 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	managedCluster *clusterv1.ManagedCluster,
 	config *configv1alpha1.SubmarinerConfig,
 ) error {
-	if managedCluster == nil {
+	if config == nil {
 		return nil
 	}
 
