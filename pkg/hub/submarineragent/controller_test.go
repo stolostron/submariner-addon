@@ -90,6 +90,25 @@ var _ = Describe("Controller", func() {
 			Context("and the SubmarinerConfig is present", func() {
 				BeforeEach(func() {
 					t.createSubmarinerConfig()
+
+					t.managedCluster.Status.ClusterClaims = []clusterv1.ManagedClusterClaim{
+						{
+							Name:  "product.open-cluster-management.io",
+							Value: constants.ProductOCP,
+						},
+						{
+							Name:  "platform.open-cluster-management.io",
+							Value: "AWS",
+						},
+						{
+							Name:  "region.open-cluster-management.io",
+							Value: "east",
+						},
+						{
+							Name:  "version.openshift.io",
+							Value: "1.0",
+						},
+					}
 				})
 
 				It("should deploy the ManifestWorks with the SubmarinerConfig overrides", func() {
@@ -110,6 +129,17 @@ var _ = Describe("Controller", func() {
 
 						return config.Status.Conditions, nil
 					})
+
+					config, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(clusterName).Get(context.TODO(),
+						constants.SubmarinerConfigName, metav1.GetOptions{})
+					Expect(err).To(Succeed())
+					Expect(config.Status.ManagedClusterInfo).To(Equal(configv1alpha1.ManagedClusterInfo{
+						ClusterName:   t.managedCluster.Name,
+						Vendor:        constants.ProductOCP,
+						Platform:      "AWS",
+						Region:        "east",
+						VendorVersion: "1.0",
+					}))
 				})
 			})
 

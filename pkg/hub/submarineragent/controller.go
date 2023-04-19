@@ -213,11 +213,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		return err
 	}
 
-	if err := c.syncManagedCluster(ctx, managedCluster, config); err != nil {
-		return err
-	}
-
-	return c.syncSubmarinerConfig(ctx, managedCluster, config)
+	return c.syncManagedCluster(ctx, managedCluster, config)
 }
 
 func (c *submarinerAgentController) onManagedClusterSetChange(syncCtx factory.SyncContext) error {
@@ -292,28 +288,6 @@ func (c *submarinerAgentController) syncManagedCluster(
 	}
 
 	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster, addOn, config)
-}
-
-// syncSubmarinerConfig syncs submariner configuration.
-func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
-	managedCluster *clusterv1.ManagedCluster,
-	config *configv1alpha1.SubmarinerConfig,
-) error {
-	if config == nil {
-		return nil
-	}
-
-	managedClusterInfo := getManagedClusterInfo(managedCluster)
-
-	_, updated, err := submarinerconfig.UpdateStatus(ctx, c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace),
-		config.Name, submarinerconfig.UpdateStatusFn(nil, &managedClusterInfo))
-
-	if updated {
-		c.eventRecorder.Eventf("SubmarinerClusterEnvPrepared",
-			"submariner cluster environment was prepared for managed cluster %s", config.Namespace)
-	}
-
-	return err
 }
 
 // clean up the submariner agent from this managedCluster.
@@ -395,7 +369,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	skipOperatorGroup := false
 
 	if submarinerConfig != nil {
-		err := c.updateSubmarinerConfigStatus(ctx, submarinerConfig, managedCluster.Name)
+		err := c.updateSubmarinerConfigStatus(ctx, submarinerConfig, managedCluster)
 		if err != nil {
 			return err
 		}
@@ -427,7 +401,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 }
 
 func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Context, submarinerConfig *configv1alpha1.SubmarinerConfig,
-	clusterName string,
+	managedCluster *clusterv1.ManagedCluster,
 ) error {
 	condition := &metav1.Condition{
 		Type:    configv1alpha1.SubmarinerConfigConditionApplied,
@@ -438,11 +412,11 @@ func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Con
 
 	_, updated, err := submarinerconfig.UpdateStatus(ctx,
 		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(submarinerConfig.Namespace), submarinerConfig.Name,
-		submarinerconfig.UpdateConditionFn(condition))
+		submarinerconfig.UpdateStatusFn(condition, getManagedClusterInfo(managedCluster)))
 
 	if updated {
 		c.eventRecorder.Eventf("SubmarinerConfigApplied", "SubmarinerConfig %q was applied for managed cluster %q",
-			submarinerConfig.Name, clusterName)
+			submarinerConfig.Name, managedCluster.Name)
 	}
 
 	return err
@@ -598,8 +572,8 @@ func getClusterProduct(managedCluster *clusterv1.ManagedCluster) string {
 	return ""
 }
 
-func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alpha1.ManagedClusterInfo {
-	clusterInfo := configv1alpha1.ManagedClusterInfo{
+func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) *configv1alpha1.ManagedClusterInfo {
+	clusterInfo := &configv1alpha1.ManagedClusterInfo{
 		ClusterName: managedCluster.Name,
 	}
 
