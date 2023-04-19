@@ -59,7 +59,6 @@ const (
 	SubmarinerCRManifestWorkName = "submariner-resource"
 	AgentFinalizer               = "cluster.open-cluster-management.io/submariner-agent-cleanup"
 	AddOnFinalizer               = "submarineraddon.open-cluster-management.io/submariner-addon-cleanup"
-	submarinerConfigFinalizer    = "submarineraddon.open-cluster-management.io/config-cleanup"
 	agentRBACFile                = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
 	submarinerCRFile             = "manifests/operator/submariner.io-submariners-cr.yaml"
 	BrokerCfgApplied             = "SubmarinerBrokerConfigApplied"
@@ -344,19 +343,6 @@ func (c *submarinerAgentController) syncSubmarinerConfig(ctx context.Context,
 	managedCluster *clusterv1.ManagedCluster,
 	config *configv1alpha1.SubmarinerConfig,
 ) error {
-	// add a finalizer to the submarinerconfigfinalizer.Remove(ctx, resource.ForSubmarinerConfig(
-	added, err := finalizer.Add(ctx, resource.ForSubmarinerConfig(
-		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace)), config, submarinerConfigFinalizer)
-	if added || err != nil {
-		return err
-	}
-
-	// config is deleting, we remove its related resources
-	if !config.DeletionTimestamp.IsZero() {
-		return finalizer.Remove(ctx, resource.ForSubmarinerConfig(
-			c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace)), config, submarinerConfigFinalizer)
-	}
-
 	if managedCluster == nil {
 		return nil
 	}
