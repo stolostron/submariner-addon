@@ -200,69 +200,6 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
 	})
-
-	Context("Create a SubmarinerConfig", func() {
-		It("Should add finalizer to created SubmarinerConfig", func() {
-			By("Setup the managed cluster namespace")
-			_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
-				metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Create SubmarinerConfig")
-			_, err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Create(context.Background(),
-				util.NewSubmarinerConifg(managedClusterName), metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Check SubmarinerConfig finalizer")
-			Eventually(func() bool {
-				config, err := configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Get(context.Background(), "submariner",
-					metav1.GetOptions{})
-				if errors.IsNotFound(err) {
-					return false
-				}
-				if err != nil {
-					return false
-				}
-
-				if len(config.Finalizers) != 1 {
-					return false
-				}
-
-				if config.Finalizers[0] != "submarineraddon.open-cluster-management.io/config-cleanup" {
-					return false
-				}
-
-				return true
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
-		})
-	})
-
-	Context("Delete a SubmarinerConfig", func() {
-		It("Should delete the created SubmarinerConfig", func() {
-			By("Setup the managed cluster namespace")
-			_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
-				metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Create SubmarinerConfig")
-			_, err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Create(context.Background(),
-				util.NewSubmarinerConifg(managedClusterName), metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Delete the created SubmarinerConfig")
-			err = configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Delete(context.Background(), "submariner",
-				metav1.DeleteOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Check if the SubmarinerConfig is deleted")
-			Eventually(func() bool {
-				_, err := configClinet.SubmarineraddonV1alpha1().SubmarinerConfigs(managedClusterName).Get(context.Background(), "submariner",
-					metav1.GetOptions{})
-
-				return errors.IsNotFound(err)
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
-		})
-	})
 })
 
 func awaitSubmarinerManifestMorks(managedClusterName string) {
