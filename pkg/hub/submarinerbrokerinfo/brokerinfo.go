@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	corev1 "k8s.io/api/core/v1"
@@ -23,8 +24,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 	controllerclient "sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -41,6 +42,8 @@ const (
 	brokerSuffix                  = "broker"
 	namespaceMaxLength            = 63
 )
+
+var logger = log.Logger{Logger: logf.Log.WithName("BrokerInfo")}
 
 var (
 	infrastructureGVR = schema.GroupVersionResource{
@@ -158,7 +161,7 @@ func applyGlobalnetConfig(ctx context.Context, controllerClient controllerclient
 	}
 
 	if apierrors.IsNotFound(err) {
-		klog.Warningf("globalnetConfigMap is missing in the broker namespace %q", brokerNamespace)
+		logger.Warningf("globalnetConfigMap is missing in the broker namespace %q", brokerNamespace)
 		return err
 	}
 
@@ -175,11 +178,11 @@ func applyGlobalnetConfig(ctx context.Context, controllerClient controllerclient
 		status := reporter.Klog()
 		err = globalnet.AllocateAndUpdateGlobalCIDRConfigMap(ctx, controllerClient, brokerNamespace, &netconfig, status)
 		if err != nil {
-			klog.Errorf("Unable to allocate globalCIDR to cluster %q: %v", clusterName, err)
+			logger.Errorf(err, "Unable to allocate globalCIDR to cluster %q", clusterName)
 			return err
 		}
 
-		klog.Infof("Allocated globalCIDR %q for Cluster %q", netconfig.GlobalCIDR, clusterName)
+		logger.Infof("Allocated globalCIDR %q for Cluster %q", netconfig.GlobalCIDR, clusterName)
 		brokerInfo.GlobalCIDR = netconfig.GlobalCIDR
 	}
 

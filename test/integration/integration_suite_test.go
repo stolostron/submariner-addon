@@ -12,6 +12,7 @@ import (
 	configclientset "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/stolostron/submariner-addon/pkg/hub"
 	"github.com/stolostron/submariner-addon/test/util"
+	"github.com/submariner-io/admiral/pkg/log/kzerolog"
 	suboperatorapi "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
@@ -24,8 +25,6 @@ import (
 	clusterV1 "open-cluster-management.io/api/cluster/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestIntegration(t *testing.T) {
@@ -59,7 +58,7 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	kzerolog.InitK8sLogging()
 
 	By("bootstrapping test environment")
 
