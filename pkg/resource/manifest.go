@@ -10,6 +10,8 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+	"github.com/submariner-io/admiral/pkg/log"
+	"github.com/submariner-io/admiral/pkg/resource"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -20,7 +22,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var logger = log.Logger{Logger: logf.Log.WithName("Resource")}
 
 var (
 	genericScheme = runtime.NewScheme()
@@ -46,6 +51,9 @@ func ApplyManifests(ctx context.Context, kubeClient kubernetes.Interface, record
 	for _, result := range applyResults {
 		if result.Error != nil {
 			errs = append(errs, fmt.Errorf("error applying %q (%T): %w", result.File, result.Type, result.Error))
+		} else if result.Changed {
+			m := resource.MustToMeta(result.Result)
+			logger.Infof("%s \"%s/%s\" created/updated", result.Type, m.GetNamespace(), m.GetName())
 		}
 	}
 
@@ -98,6 +106,7 @@ func DeleteFromManifests(ctx context.Context, kubeClient kubernetes.Interface, r
 		gvk := resourcehelper.GuessObjectGroupVersionKind(object)
 		recorder.Eventf(fmt.Sprintf("Submariner%sDeleted", gvk.Kind), "Deleted %s",
 			resourcehelper.FormatResourceForCLIWithNamespace(object))
+		logger.Infof("Deleted %s %q", gvk.Kind, resource.MustToMeta(object).GetName())
 	}
 
 	return operatorhelpers.NewMultiLineAggregate(errs)

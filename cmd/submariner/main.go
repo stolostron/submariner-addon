@@ -12,6 +12,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/cmd/hub"
 	"github.com/stolostron/submariner-addon/pkg/cmd/spoke"
 	"github.com/stolostron/submariner-addon/pkg/version"
+	"github.com/submariner-io/admiral/pkg/log/kzerolog"
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 )
@@ -19,6 +20,8 @@ import (
 // The submariner binary is used to integrate between ACM and Submariner.
 
 func main() {
+	kzerolog.InitK8sLogging()
+
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
@@ -28,6 +31,7 @@ func main() {
 
 	exitCode := 0
 	command := newSubmarinerControllerCommand()
+
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 

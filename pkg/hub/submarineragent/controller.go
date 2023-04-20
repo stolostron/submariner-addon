@@ -22,6 +22,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/manifestwork"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/finalizer"
+	"github.com/submariner-io/admiral/pkg/log"
 	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,7 +34,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog/v2"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
@@ -50,6 +50,7 @@ import (
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	workv1 "open-cluster-management.io/api/work/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -91,6 +92,8 @@ var BrokerGVR = schema.GroupVersionResource{
 	Version:  "v1alpha1",
 	Resource: "brokers",
 }
+
+var logger = log.Logger{Logger: logf.Log.WithName("SubmarinerAgentController")}
 
 type clusterRBACConfig struct {
 	ManagedClusterName        string
@@ -150,6 +153,7 @@ func NewSubmarinerAgentController(
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
+			logger.Infof("Queuing ManagedCluster %q", accessor.GetName())
 
 			return accessor.GetName()
 		}, clusterInformer.Informer()).
@@ -161,6 +165,8 @@ func NewSubmarinerAgentController(
 				return ""
 			}
 
+			logger.Infof("Queuing ManifestWork \"%s/%s\"", accessor.GetNamespace(), accessor.GetName())
+
 			return accessor.GetNamespace()
 		}, manifestWorkInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
@@ -171,6 +177,8 @@ func NewSubmarinerAgentController(
 				return ""
 			}
 
+			logger.Infof("Queuing SubmarinerConfig for managed cluster %q", accessor.GetNamespace())
+
 			return accessor.GetNamespace()
 		}, configInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
@@ -178,6 +186,8 @@ func NewSubmarinerAgentController(
 			if accessor.GetName() != constants.SubmarinerAddOnName {
 				return ""
 			}
+
+			logger.Infof("Queuing ManagedClusterAddOn %q for cluster %q", accessor.GetName(), accessor.GetNamespace())
 
 			return accessor.GetNamespace()
 		}, addOnInformer.Informer()).
@@ -196,11 +206,13 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 
 	clusterName := key
 
-	klog.V(4).Infof("Submariner agent controller is reconciling for cluster %q", clusterName)
+	logger.Infof("Reconciling cluster %q", clusterName)
 
 	managedCluster, err := c.clusterLister.Get(clusterName)
 	if apierrors.IsNotFound(err) {
 		// managed cluster not found, could have been deleted, do nothing.
+		logger.Infof("ManagedCluster not found")
+
 		return nil
 	}
 
@@ -241,6 +253,8 @@ func (c *submarinerAgentController) syncManagedCluster(
 	switch {
 	case apierrors.IsNotFound(err):
 		// submariner-addon is not found, could have been deleted, do nothing.
+		logger.Infof("ManagedClusterAddOn %q not found", constants.SubmarinerAddOnName)
+
 		return nil
 	case err != nil:
 		return err
@@ -248,12 +262,16 @@ func (c *submarinerAgentController) syncManagedCluster(
 
 	// managed cluster is deleting, we remove its related resources
 	if !managedCluster.DeletionTimestamp.IsZero() {
+		logger.Infof("ManagedCluster %q is deleting", managedCluster.Name)
+
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	}
 
 	clusterSetName, existed := managedCluster.Labels[clusterv1beta2.ClusterSetLabel]
 	if !existed {
 		// the cluster does not have the clusterset label, try to clean up the submariner agent
+		logger.Infof("ManagedCluster %q is missing the cluster set label", managedCluster.Name)
+
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	}
 
@@ -264,6 +282,8 @@ func (c *submarinerAgentController) syncManagedCluster(
 	case apierrors.IsNotFound(err):
 		// if one cluster has clusterset label, but the clusterset is not found, it could have been deleted
 		// try to clean up the submariner agent
+		logger.Infof("ManagedClusterSet %q not found", clusterSetName)
+
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	case err != nil:
 		return err
@@ -271,12 +291,18 @@ func (c *submarinerAgentController) syncManagedCluster(
 
 	// submariner-addon is deleting, we remove its related resources
 	if !addOn.DeletionTimestamp.IsZero() {
+		logger.Infof("ManagedClusterAddOn %q is deleting", addOn.Name)
+
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	}
 
 	// add a submariner agent finalizer to a managed cluster
 	added, err := finalizer.Add(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster, AgentFinalizer)
 	if added || err != nil {
+		if added {
+			logger.Infof("Added finalizer to ManagedCluster %q", managedCluster.Name)
+		}
+
 		return err
 	}
 
@@ -284,6 +310,10 @@ func (c *submarinerAgentController) syncManagedCluster(
 	added, err = finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
 		addOn, AddOnFinalizer)
 	if added || err != nil {
+		if added {
+			logger.Infof("Added finalizer to ManagedClusterAddOn %q", addOn.Name)
+		}
+
 		return err
 	}
 
@@ -393,11 +423,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		return err
 	}
 
-	if err := manifestwork.Apply(ctx, c.manifestWorkClient, submarinerManifestWork, c.eventRecorder); err != nil {
-		return err
-	}
-
-	return nil
+	return manifestwork.Apply(ctx, c.manifestWorkClient, submarinerManifestWork, c.eventRecorder)
 }
 
 func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Context, submarinerConfig *configv1alpha1.SubmarinerConfig,
@@ -464,6 +490,7 @@ func (c *submarinerAgentController) deleteManifestWork(ctx context.Context, name
 	case apierrors.IsNotFound(err):
 		// there is no manifestwork, do nothing
 	case err == nil:
+		logger.Infof("Deleted manifestwork \"%s/%s\"", clusterName, name)
 		c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q",
 			fmt.Sprintf("%s/%s", clusterName, name))
 	case err != nil:
@@ -623,7 +650,7 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 	}
 
 	if brokerObj.Spec.GlobalnetEnabled {
-		klog.Infof("Globalnet is enabled in the managedClusterSet namespace %q", brokerNamespace)
+		logger.Infof("Globalnet is enabled in the managedClusterSet namespace %q", brokerNamespace)
 
 		if brokerObj.Spec.DefaultGlobalnetClusterSize == 0 {
 			brokerObj.Spec.DefaultGlobalnetClusterSize = globalnet.DefaultGlobalnetClusterSize
@@ -633,7 +660,7 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 			brokerObj.Spec.GlobalnetCIDRRange = globalnet.DefaultGlobalnetCIDR
 		}
 	} else {
-		klog.Infof("Globalnet is disabled in the managedClusterSet namespace %q", brokerNamespace)
+		logger.Infof("Globalnet is disabled in the managedClusterSet namespace %q", brokerNamespace)
 	}
 
 	if err := globalnet.CreateConfigMap(ctx, c.controllerClient, brokerObj.Spec.GlobalnetEnabled,
@@ -681,7 +708,7 @@ func (c *submarinerAgentController) updateBackupLabelOnBroker(ctx context.Contex
 			existing.SetLabels(existingLabels)
 			_, err = brokerClient.Update(ctx, existing, metav1.UpdateOptions{})
 			if err == nil {
-				klog.Infof("Successfully added backup label to submariner-broker in %q", brokerNamespace)
+				logger.Infof("Successfully added backup label to submariner-broker in %q", brokerNamespace)
 			}
 
 			return err
