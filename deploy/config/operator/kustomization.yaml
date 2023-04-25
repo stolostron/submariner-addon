@@ -1,4 +1,5 @@
 resources:
   - namespace.yaml
+  - clustermanagementaddon.yaml
   - service_account.yaml
   - operator.yaml
