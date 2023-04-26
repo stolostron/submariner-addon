@@ -153,7 +153,7 @@ func NewSubmarinerAgentController(
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
-			logger.Infof("Queuing ManagedCluster %q", accessor.GetName())
+			logger.V(log.DEBUG).Infof("Queuing ManagedCluster %q", accessor.GetName())
 
 			return accessor.GetName()
 		}, clusterInformer.Informer()).
@@ -165,7 +165,7 @@ func NewSubmarinerAgentController(
 				return ""
 			}
 
-			logger.Infof("Queuing ManifestWork \"%s/%s\"", accessor.GetNamespace(), accessor.GetName())
+			logger.V(log.DEBUG).Infof("Queuing ManifestWork \"%s/%s\"", accessor.GetNamespace(), accessor.GetName())
 
 			return accessor.GetNamespace()
 		}, manifestWorkInformer.Informer()).
@@ -177,7 +177,7 @@ func NewSubmarinerAgentController(
 				return ""
 			}
 
-			logger.Infof("Queuing SubmarinerConfig for managed cluster %q", accessor.GetNamespace())
+			logger.V(log.DEBUG).Infof("Queuing SubmarinerConfig for managed cluster %q", accessor.GetNamespace())
 
 			return accessor.GetNamespace()
 		}, configInformer.Informer()).
@@ -187,7 +187,7 @@ func NewSubmarinerAgentController(
 				return ""
 			}
 
-			logger.Infof("Queuing ManagedClusterAddOn %q for cluster %q", accessor.GetName(), accessor.GetNamespace())
+			logger.V(log.DEBUG).Infof("Queuing ManagedClusterAddOn %q for cluster %q", accessor.GetName(), accessor.GetNamespace())
 
 			return accessor.GetNamespace()
 		}, addOnInformer.Informer()).
@@ -206,13 +206,9 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 
 	clusterName := key
 
-	logger.Infof("Reconciling cluster %q", clusterName)
-
 	managedCluster, err := c.clusterLister.Get(clusterName)
 	if apierrors.IsNotFound(err) {
 		// managed cluster not found, could have been deleted, do nothing.
-		logger.Infof("ManagedCluster not found")
-
 		return nil
 	}
 
@@ -253,8 +249,6 @@ func (c *submarinerAgentController) syncManagedCluster(
 	switch {
 	case apierrors.IsNotFound(err):
 		// submariner-addon is not found, could have been deleted, do nothing.
-		logger.Infof("ManagedClusterAddOn %q not found", constants.SubmarinerAddOnName)
-
 		return nil
 	case err != nil:
 		return err
@@ -291,7 +285,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 
 	// submariner-addon is deleting, we remove its related resources
 	if !addOn.DeletionTimestamp.IsZero() {
-		logger.Infof("ManagedClusterAddOn %q is deleting", addOn.Name)
+		logger.Infof("ManagedClusterAddOn %q in cluster %q is deleting", addOn.Name, addOn.Namespace)
 
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
 	}
@@ -311,7 +305,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		addOn, AddOnFinalizer)
 	if added || err != nil {
 		if added {
-			logger.Infof("Added finalizer to ManagedClusterAddOn %q", addOn.Name)
+			logger.Infof("Added finalizer to ManagedClusterAddOn %q in cluster %q", addOn.Name, addOn.Namespace)
 		}
 
 		return err
