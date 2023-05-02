@@ -52,8 +52,7 @@ func ApplyManifests(ctx context.Context, kubeClient kubernetes.Interface, record
 		if result.Error != nil {
 			errs = append(errs, fmt.Errorf("error applying %q (%T): %w", result.File, result.Type, result.Error))
 		} else if result.Changed {
-			m := resource.MustToMeta(result.Result)
-			logger.Infof("%s \"%s/%s\" created/updated", result.Type, m.GetNamespace(), m.GetName())
+			logger.Infof("%s from file %q created/updated: %s", result.Type, result.File, resource.ToJSON(result.Result))
 		}
 	}
 
