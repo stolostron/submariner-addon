@@ -623,8 +623,8 @@ github.com/submariner-io/admiral v0.15.0 h1:74OqO37YB6VmLfZNwZg1+c26+2X+s3ygHRNq
 github.com/submariner-io/admiral v0.15.0/go.mod h1:LXoLiD88KM5+0eF50TsvNQaZax3Gd1IzRiHkA31in/Y=
 github.com/submariner-io/cloud-prepare v0.15.0 h1:H0EsrVL+K8ITIbwGy88p5ai1zt5/Onv1huuDeIM1NVs=
 github.com/submariner-io/cloud-prepare v0.15.0/go.mod h1:HaO2mr7U/mXNpHoSTHDLyRYHO/i8+tem9/EUOentG0I=
-github.com/submariner-io/submariner v0.15.0-rc0 h1:xOBtESqfnmCfD21nxF5ukxaunyo857vFtLad3Eqb8ZQ=
-github.com/submariner-io/submariner v0.15.0-rc0/go.mod h1:LLkxjYLwKKaOHzNm4xZqlPP7RgvAfwpjwF8kGK1gufU=
+github.com/submariner-io/submariner v0.15.0 h1:rzITvy6PJGBAGueStEcUh7NWwxpvvaSdU9Kgp5EfO5o=
+github.com/submariner-io/submariner v0.15.0/go.mod h1:qnaBCdFQAReJAwPCMaPAR8RxaNojcLXd9jmpSFD9zEY=
 github.com/submariner-io/submariner-operator v0.15.0-rc0 h1:T4Gt6wYpcZ50s3qO/+V86ggFIk7J6AIVbTWpdJxaYgA=
 github.com/submariner-io/submariner-operator v0.15.0-rc0/go.mod h1:zdfFdABctbr1LH2Uld7TbFaiHXfzWTLq+tPnraeku9A=
 github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
