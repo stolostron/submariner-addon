@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	"github.com/submariner-io/admiral/pkg/log/kzerolog"
 	"github.com/submariner-io/admiral/pkg/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -30,6 +31,8 @@ const (
 )
 
 var _ = BeforeSuite(func() {
+	kzerolog.InitK8sLogging()
+
 	Expect(submarinerv1alpha1.AddToScheme(k8sScheme.Scheme)).To(Succeed())
 	Expect(operatorsv1alpha1.AddToScheme(k8sScheme.Scheme)).To(Succeed())
 })
