@@ -9,11 +9,14 @@ import (
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/stolostron/submariner-addon/pkg/addon"
+	"github.com/submariner-io/admiral/pkg/log"
+	"github.com/submariner-io/admiral/pkg/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -27,6 +30,7 @@ type gatewaysStatusController struct {
 	addOnClient addonclient.Interface
 	nodeLister  corev1lister.NodeLister
 	clusterName string
+	logger      log.Logger
 }
 
 // NewGatewaysStatusController returns an instance of gatewaysStatusController.
@@ -36,10 +40,12 @@ func NewGatewaysStatusController(
 	nodeInformer corev1informers.NodeInformer,
 	recorder events.Recorder,
 ) factory.Controller {
+	name := "GatewaysStatusController"
 	c := &gatewaysStatusController{
 		addOnClient: addOnClient,
 		nodeLister:  nodeInformer.Lister(),
 		clusterName: clusterName,
+		logger:      log.Logger{Logger: logf.Log.WithName(name)},
 	}
 
 	return factory.New().
@@ -53,7 +59,7 @@ func NewGatewaysStatusController(
 			return false
 		}, nodeInformer.Informer()).
 		WithSync(c.sync).
-		ToController("SubmarinerAgentStatusController", recorder)
+		ToController(name, recorder)
 }
 
 func (c *gatewaysStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
@@ -90,6 +96,8 @@ func (c *gatewaysStatusController) sync(ctx context.Context, syncCtx factory.Syn
 	}
 
 	if updated {
+		c.logger.Infof("Updated submariner ManagedClusterAddOn status condition: %s", resource.ToJSON(gatewayNodeCondtion))
+
 		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "Updated status conditions:  %#v",
 			updatedStatus.Conditions)
 	}
