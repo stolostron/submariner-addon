@@ -21,6 +21,8 @@ import (
 	configlister "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/cloud"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	"github.com/submariner-io/admiral/pkg/log"
+	"github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/submariner/pkg/cni"
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,10 +37,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog/v2"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
@@ -78,6 +80,7 @@ type submarinerConfigController struct {
 	cloudProviderFactory cloud.ProviderFactory
 	onSyncDefer          func()
 	knownConfigs         map[string]*configv1alpha1.SubmarinerConfig
+	logger               log.Logger
 }
 
 type SubmarinerConfigControllerInput struct {
@@ -97,6 +100,7 @@ type SubmarinerConfigControllerInput struct {
 
 // NewSubmarinerConfigController returns an instance of submarinerAgentConfigController.
 func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) factory.Controller {
+	name := "SubmarinerConfigController"
 	c := &submarinerConfigController{
 		kubeClient:           input.KubeClient,
 		configClient:         input.ConfigClient,
@@ -109,6 +113,7 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 		cloudProviderFactory: input.CloudProviderFactory,
 		onSyncDefer:          input.OnSyncDefer,
 		knownConfigs:         make(map[string]*configv1alpha1.SubmarinerConfig),
+		logger:               log.Logger{Logger: logf.Log.WithName(name)},
 	}
 
 	return factory.New().
@@ -132,7 +137,7 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 			return false
 		}, input.NodeInformer.Informer()).
 		WithSync(c.sync).
-		ToController("SubmarinerAgentConfigController", input.Recorder)
+		ToController(name, input.Recorder)
 }
 
 func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
@@ -169,6 +174,8 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	// addon is deleting from the hub, remove its related resources on the managed cluster
 	// TODO: add finalizer in next release
 	if !addOn.DeletionTimestamp.IsZero() {
+		c.logger.Infof("ManagedClusterAddOn %q in cluster %q is deleting", addOn.Name, addOn.Namespace)
+
 		// if the addon is deleted before config, clean up the submariner cluster environment.
 		condition := metav1.Condition{
 			Type:    submarinerGatewayCondition,
@@ -200,6 +207,8 @@ func (c *submarinerConfigController) syncConfig(ctx context.Context, recorder ev
 	// config is deleting from hub, remove its related resources
 	// TODO: add finalizer in next release
 	if !config.DeletionTimestamp.IsZero() {
+		c.logger.Infof("SubmarinerConfig in cluster %q is deleting", config.Namespace)
+
 		err := c.cleanupClusterEnvironment(ctx, config, recorder)
 		if err == nil {
 			delete(c.knownConfigs, config.Namespace)
@@ -209,7 +218,7 @@ func (c *submarinerConfigController) syncConfig(ctx context.Context, recorder ev
 	}
 
 	if c.skipSyncingUnchangedConfig(config) {
-		klog.V(4).Infof("Skip syncing submariner config %q as it didn't change", config.Namespace+"/"+config.Name)
+		c.logger.V(log.DEBUG).Infof("Skip syncing submariner config %q as it didn't change", config.Namespace+"/"+config.Name)
 		return nil
 	}
 
@@ -274,6 +283,10 @@ func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, c
 	}
 
 	if providerFound {
+		if updated {
+			c.logger.Infof("Submariner environment was prepared for cluster %q: %#v", config.Namespace, config.Status.ManagedClusterInfo)
+		}
+
 		return c.updateGatewayStatus(ctx, recorder, config)
 	}
 
@@ -298,6 +311,8 @@ func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Conte
 	}
 
 	if err == nil {
+		c.logger.Infof("Cleaning up the submariner cluster environment")
+
 		err = cloudProvider.CleanUpSubmarinerClusterEnv()
 	}
 
@@ -312,6 +327,8 @@ func (c *submarinerConfigController) updateSubmarinerConfigStatus(ctx context.Co
 		submarinerconfig.UpdateConditionFn(condition))
 
 	if updated {
+		c.logger.Infof("Updated SubmarinerConfig status condition: %s", resource.ToJSON(condition))
+
 		recorder.Eventf("SubmarinerConfigStatusUpdated", "Updated status conditions:  %#v", updatedStatus.Conditions)
 
 		// When all is well, the status is eventually updated with a "true" condition, allowing us to cache latest good known config
@@ -457,6 +474,8 @@ func (c *submarinerConfigController) unlabelNode(ctx context.Context, node *core
 		// the node dose not have gateway and port labels, do nothing
 		return nil
 	}
+
+	c.logger.Infof("Unlabeling gateway node %q", node.Name)
 
 	return c.updateNode(ctx, node, func(node *corev1.Node) {
 		delete(node.Labels, submarinerGatewayLabel)
@@ -624,8 +643,9 @@ func (c *submarinerConfigController) setNetworkTypeIfAbsent(ctx context.Context,
 		config.Name, submarinerconfig.UpdateStatusFn(nil, &config.Status.ManagedClusterInfo))
 
 	if updated {
-		recorder.Eventf("SubmarinerConfigNetworkTypeSet",
-			"submarinerconfig network type was set to %s for managed cluster %s", networkType, config.Namespace)
+		msg := fmt.Sprintf("SubmarinerConfig network type was set to %q for managed cluster %q", networkType, config.Namespace)
+		c.logger.Infof(msg)
+		recorder.Eventf("SubmarinerConfigNetworkTypeSet", msg)
 	}
 
 	return updatedErr
@@ -650,6 +670,8 @@ func (c *submarinerConfigController) validateOCPVersion(ctx context.Context, con
 
 	err := c.setNetworkTypeIfAbsent(ctx, config, recorder)
 	if apiErrors.IsNotFound(err) {
+		c.logger.Infof("Unable to set the network type: %v", err)
+
 		// networks not found, deletion in progress, ignore
 		return false, nil
 	}
