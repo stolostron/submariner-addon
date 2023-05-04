@@ -9,6 +9,8 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/addon"
+	"github.com/submariner-io/admiral/pkg/log"
+	"github.com/submariner-io/admiral/pkg/resource"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/names"
 	"github.com/submariner-io/submariner/pkg/cni"
@@ -21,6 +23,7 @@ import (
 	appsv1lister "k8s.io/client-go/listers/apps/v1"
 	"k8s.io/client-go/tools/cache"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -39,6 +42,7 @@ type deploymentStatusController struct {
 	submarinerLister   cache.GenericLister
 	clusterName        string
 	namespace          string
+	logger             log.Logger
 }
 
 // NewDeploymentStatusController returns an instance of deploymentStatusController.
@@ -46,6 +50,7 @@ func NewDeploymentStatusController(clusterName string, installationNamespace str
 	daemonsetInformer appsv1informers.DaemonSetInformer, deploymentInformer appsv1informers.DeploymentInformer,
 	subscriptionInformer informers.GenericInformer, submarinerInformer informers.GenericInformer, recorder events.Recorder,
 ) factory.Controller {
+	name := "DeploymentStatusController"
 	c := &deploymentStatusController{
 		addOnClient:        addOnClient,
 		daemonSetLister:    daemonsetInformer.Lister(),
@@ -54,6 +59,7 @@ func NewDeploymentStatusController(clusterName string, installationNamespace str
 		submarinerLister:   submarinerInformer.Lister(),
 		clusterName:        clusterName,
 		namespace:          installationNamespace,
+		logger:             log.Logger{Logger: logf.Log.WithName(name)},
 	}
 
 	return factory.New().
@@ -64,7 +70,7 @@ func NewDeploymentStatusController(clusterName string, installationNamespace str
 			return key
 		}, submarinerInformer.Informer()).
 		WithSync(c.sync).
-		ToController("SubmarinerAgentStatusController", recorder)
+		ToController(name, recorder)
 }
 
 func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
@@ -123,7 +129,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	submarinerAgentCondtion := metav1.Condition{
+	submarinerAgentCondition := metav1.Condition{
 		Type:    submarinerAgentDegraded,
 		Status:  metav1.ConditionFalse,
 		Reason:  "SubmarinerAgentDeployed",
@@ -131,18 +137,20 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if len(degradedConditionReasons) != 0 {
-		submarinerAgentCondtion.Status = metav1.ConditionTrue
-		submarinerAgentCondtion.Reason = strings.Join(degradedConditionReasons, ",")
-		submarinerAgentCondtion.Message = strings.Join(degradedConditionMessages, "\n")
+		submarinerAgentCondition.Status = metav1.ConditionTrue
+		submarinerAgentCondition.Reason = strings.Join(degradedConditionReasons, ",")
+		submarinerAgentCondition.Message = strings.Join(degradedConditionMessages, "\n")
 	}
 
 	// check submariner agent status and update submariner-addon status on the hub cluster
-	updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(&submarinerAgentCondtion))
+	updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(&submarinerAgentCondition))
 	if err != nil {
 		return err
 	}
 
 	if updated {
+		c.logger.Infof("Updated submariner ManagedClusterAddOn status condition: %s", resource.ToJSON(submarinerAgentCondition))
+
 		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "Updated status conditions:  %#v",
 			updatedStatus.Conditions)
 	}
