@@ -8,6 +8,8 @@ import (
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/stolostron/submariner-addon/pkg/addon"
+	"github.com/submariner-io/admiral/pkg/log"
+	"github.com/submariner-io/admiral/pkg/resource"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -16,6 +18,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -28,16 +31,19 @@ type connectionsStatusController struct {
 	addOnClient      addonclient.Interface
 	submarinerLister cache.GenericLister
 	clusterName      string
+	logger           log.Logger
 }
 
 // NewConnectionsStatusController returns an instance of submarinerAgentStatusController.
 func NewConnectionsStatusController(clusterName string, addOnClient addonclient.Interface, submarinerInformer informers.GenericInformer,
 	recorder events.Recorder,
 ) factory.Controller {
+	name := "ConnectionsStatusController"
 	c := &connectionsStatusController{
 		addOnClient:      addOnClient,
 		submarinerLister: submarinerInformer.Lister(),
 		clusterName:      clusterName,
+		logger:           log.Logger{Logger: logf.Log.WithName(name)},
 	}
 
 	return factory.New().
@@ -47,7 +53,7 @@ func NewConnectionsStatusController(clusterName string, addOnClient addonclient.
 			return key
 		}, submarinerInformer.Informer()).
 		WithSync(c.sync).
-		ToController("SubmarinerConnectionsStatusController", recorder)
+		ToController(name, recorder)
 }
 
 func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
@@ -73,13 +79,16 @@ func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.
 	}
 
 	// check submariner agent status and update submariner-addon status on the hub cluster
-	updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName,
-		addon.UpdateConditionFn(c.checkSubmarinerConnections(submariner)))
+	condition := c.checkSubmarinerConnections(submariner)
+
+	updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(condition))
 	if err != nil {
 		return err
 	}
 
 	if updated {
+		c.logger.Infof("Updated submariner ManagedClusterAddOn status condition: %s", resource.ToJSON(condition))
+
 		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "Updated status conditions:  %#v",
 			updatedStatus.Conditions)
 	}
