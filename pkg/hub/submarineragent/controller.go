@@ -294,6 +294,29 @@ func (c *submarinerAgentController) syncManagedCluster(
 	managedCluster *clusterv1.ManagedCluster,
 	config *configv1alpha1.SubmarinerConfig,
 ) error {
+	// managed cluster is deleting, we remove its related resources
+	if !managedCluster.DeletionTimestamp.IsZero() {
+		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
+	}
+
+	clusterSetName, existed := managedCluster.Labels[clusterv1beta2.ClusterSetLabel]
+	if !existed {
+		// the cluster does not have the clusterset label, try to clean up the submariner agent
+		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
+	}
+
+	// find the clustersets that contains this managed cluster
+	_, err := c.clusterSetLister.Get(clusterSetName)
+
+	switch {
+	case apierrors.IsNotFound(err):
+		// if one cluster has clusterset label, but the clusterset is not found, it could have been deleted
+		// try to clean up the submariner agent
+		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
+	case err != nil:
+		return err
+	}
+
 	// find the submariner-addon on the managed cluster namespace
 	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(constants.SubmarinerAddOnName)
 
@@ -305,32 +328,9 @@ func (c *submarinerAgentController) syncManagedCluster(
 		return err
 	}
 
-	// managed cluster is deleting, we remove its related resources
-	if !managedCluster.DeletionTimestamp.IsZero() {
-		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
-	}
-
-	clusterSetName, existed := managedCluster.Labels[clusterv1beta2.ClusterSetLabel]
-	if !existed {
-		// the cluster does not have the clusterset label, try to clean up the submariner agent
-		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
-	}
-
-	// find the clustersets that contains this managed cluster
-	_, err = c.clusterSetLister.Get(clusterSetName)
-
-	switch {
-	case apierrors.IsNotFound(err):
-		// if one cluster has clusterset label, but the clusterset is not found, it could have been deleted
-		// try to clean up the submariner agent
-		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
-	case err != nil:
-		return err
-	}
-
 	// submariner-addon is deleting, we remove its related resources
 	if !addOn.DeletionTimestamp.IsZero() {
-		return c.cleanUpSubmarinerAgent(ctx, managedCluster, addOn)
+		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
 	}
 
 	// add a submariner agent finalizer to a managed cluster
@@ -440,9 +440,7 @@ func (c *submarinerAgentController) skipSyncingUnchangedConfig(config *configv1a
 }
 
 // clean up the submariner agent from this managedCluster.
-func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedCluster *clusterv1.ManagedCluster,
-	addOn *addonv1alpha1.ManagedClusterAddOn,
-) error {
+func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
 	submarinerManifestWork, err := c.manifestWorkLister.ManifestWorks(managedCluster.Name).Get(SubmarinerCRManifestWorkName)
 
 	switch {
@@ -468,8 +466,13 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 		return err
 	}
 
-	return finalizer.Remove(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
-		addOn, AddOnFinalizer)
+	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(constants.SubmarinerAddOnName)
+	if err == nil {
+		return finalizer.Remove(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
+			addOn, AddOnFinalizer)
+	}
+
+	return nil
 }
 
 func (c *submarinerAgentController) deploySubmarinerAgent(
