@@ -67,7 +67,8 @@ const (
 	submarinerCRFile             = "manifests/operator/submariner.io-submariners-cr.yaml"
 	BrokerCfgApplied             = "SubmarinerBrokerConfigApplied"
 	BrokerObjectName             = "submariner-broker"
-	BackupLabel                  = "cluster.open-cluster-management.io/backup"
+	BackupLabelKey               = "cluster.open-cluster-management.io/backup"
+	BackupLabelValue             = "submariner"
 )
 
 var clusterRBACFiles = []string{
@@ -782,7 +783,8 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 	}
 
 	if gnCmErr == nil {
-		return nil
+		// This should handle upgrade from a version that didn't add the label
+		return c.updateBackupLabelOnGnConfigMap(ctx, brokerNamespace)
 	}
 
 	// globalnetConfig is missing in the broker-namespace, try creating it from submariner-broker object.
@@ -806,12 +808,43 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 		klog.Infof("Globalnet is disabled in the managedClusterSet namespace %q", brokerNamespace)
 	}
 
-	if err := globalnet.CreateConfigMap(c.controllerClient, brokerObj.Spec.GlobalnetEnabled,
-		brokerObj.Spec.GlobalnetCIDRRange, brokerObj.Spec.DefaultGlobalnetClusterSize, brokerNamespace); err != nil {
-		return errors.Wrapf(err, "error creating globalnet configmap on Broker")
+	configMap, err := globalnet.NewGlobalnetConfigMap(brokerObj.Spec.GlobalnetEnabled,
+		brokerObj.Spec.GlobalnetCIDRRange, brokerObj.Spec.DefaultGlobalnetClusterSize, brokerNamespace)
+	if err == nil {
+		configMap.Labels[BackupLabelKey] = BackupLabelValue
+		err = c.controllerClient.Create(ctx, configMap)
 	}
 
-	return nil
+	return errors.Wrapf(err, "error creating globalnet configmap on Broker")
+}
+
+func (c *submarinerAgentController) updateBackupLabelOnGnConfigMap(ctx context.Context, namespace string) error {
+	return errors.Wrapf(retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		gnConfigMap, err := globalnet.GetConfigMap(c.controllerClient, namespace)
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
+
+		oldLabels := gnConfigMap.GetLabels()
+		if oldLabels == nil {
+			oldLabels = make(map[string]string)
+		}
+
+		if _, ok := oldLabels[BackupLabelKey]; !ok {
+			oldLabels[BackupLabelKey] = BackupLabelValue
+			gnConfigMap.SetLabels(oldLabels)
+			err = c.controllerClient.Update(ctx, gnConfigMap)
+			if err == nil {
+				klog.Infof("Successfully added backup label to globalnet configmap in %q", namespace)
+			}
+		}
+
+		return err
+	}), "error adding backup label to globalnet configmap in %q", namespace)
 }
 
 func (c *submarinerAgentController) getBrokerObject(ctx context.Context, brokerNamespace string) (*submarinerv1a1.Broker, error) {
@@ -846,8 +879,8 @@ func (c *submarinerAgentController) updateBackupLabelOnBroker(ctx context.Contex
 		if existingLabels == nil {
 			existingLabels = make(map[string]string)
 		}
-		if _, ok := existingLabels[BackupLabel]; !ok {
-			existingLabels[BackupLabel] = "submariner"
+		if _, ok := existingLabels[BackupLabelKey]; !ok {
+			existingLabels[BackupLabelKey] = BackupLabelValue
 			existing.SetLabels(existingLabels)
 			_, err = brokerClient.Update(ctx, existing, metav1.UpdateOptions{})
 			if err == nil {
