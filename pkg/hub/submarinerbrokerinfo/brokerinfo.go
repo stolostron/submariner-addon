@@ -179,14 +179,14 @@ func applyGlobalnetConfig(ctx context.Context, controllerClient controllerclient
 			netconfig.GlobalCIDR = submarinerConfig.Spec.GlobalCIDR
 		}
 
-		status := reporter.Klog()
+		status := reporter.Silent()
 		err = globalnet.AllocateAndUpdateGlobalCIDRConfigMap(ctx, controllerClient, brokerNamespace, &netconfig, status)
 		if err != nil {
 			logger.Errorf(err, "Unable to allocate globalCIDR to cluster %q", clusterName)
 			return err
 		}
 
-		logger.Infof("Allocated globalCIDR %q for Cluster %q", netconfig.GlobalCIDR, clusterName)
+		logger.V(log.DEBUG).Infof("Allocated globalCIDR %q for Cluster %q", netconfig.GlobalCIDR, clusterName)
 		brokerInfo.GlobalCIDR = netconfig.GlobalCIDR
 	}
 
