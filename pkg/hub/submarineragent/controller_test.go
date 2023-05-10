@@ -699,11 +699,7 @@ func (t *testDriver) awaitBackupLabelOnBroker() {
 			return false
 		}
 
-		labels := broker.GetLabels()
-		if labels == nil {
-			return false
-		}
-		_, ok := labels[submarineragent.BackupLabelKey]
+		_, ok := broker.Labels[submarineragent.BackupLabelKey]
 
 		return ok
 	}).Should(BeTrue(), "Backup label missing on submariner-broker")
