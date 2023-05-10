@@ -23,6 +23,8 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/finalizer"
 	"github.com/submariner-io/admiral/pkg/log"
+	coreresource "github.com/submariner-io/admiral/pkg/resource"
+	"github.com/submariner-io/admiral/pkg/util"
 	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/util/retry"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
@@ -395,7 +396,15 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	}
 
 	// broker object exists, add backup label if not already present
-	_ = c.updateBackupLabelOnBroker(ctx, brokerNamespace)
+	err = c.addBackupLabel(ctx, &submarinerv1a1.Broker{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      BrokerObjectName,
+			Namespace: brokerNamespace,
+		},
+	})
+	if err != nil {
+		return err
+	}
 
 	_ = c.updateManagedClusterAddOnStatus(ctx, managedClusterAddOn, brokerNamespace, false)
 
@@ -663,14 +672,14 @@ func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) *configv1al
 }
 
 func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Context, brokerNamespace string) error {
-	_, gnCmErr := globalnet.GetConfigMap(ctx, c.controllerClient, brokerNamespace)
+	gmConfigMap, gnCmErr := globalnet.GetConfigMap(ctx, c.controllerClient, brokerNamespace)
 	if gnCmErr != nil && !apierrors.IsNotFound(gnCmErr) {
 		return errors.Wrapf(gnCmErr, "error getting globalnet configmap from broker namespace %q", brokerNamespace)
 	}
 
 	if gnCmErr == nil {
 		// This should handle upgrade from a version that didn't add the label
-		return c.updateBackupLabelOnGnConfigMap(ctx, brokerNamespace)
+		return c.addBackupLabel(ctx, gmConfigMap)
 	}
 
 	// globalnetConfig is missing in the broker-namespace, try creating it from submariner-broker object.
@@ -704,35 +713,6 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 	return errors.Wrapf(err, "error creating globalnet configmap on Broker")
 }
 
-func (c *submarinerAgentController) updateBackupLabelOnGnConfigMap(ctx context.Context, namespace string) error {
-	return errors.Wrapf(retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		gnConfigMap, err := globalnet.GetConfigMap(ctx, c.controllerClient, namespace)
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-
-		if err != nil {
-			return err
-		}
-
-		oldLabels := gnConfigMap.GetLabels()
-		if oldLabels == nil {
-			oldLabels = make(map[string]string)
-		}
-
-		if _, ok := oldLabels[BackupLabelKey]; !ok {
-			oldLabels[BackupLabelKey] = BackupLabelValue
-			gnConfigMap.SetLabels(oldLabels)
-			err = c.controllerClient.Update(ctx, gnConfigMap)
-			if err == nil {
-				logger.Infof("Successfully added backup label to globalnet configmap in %q", namespace)
-			}
-		}
-
-		return err
-	}), "error adding backup label to globalnet configmap in %q", namespace)
-}
-
 func (c *submarinerAgentController) getBrokerObject(ctx context.Context, brokerNamespace string) (*submarinerv1a1.Broker, error) {
 	broker := &submarinerv1a1.Broker{}
 
@@ -744,41 +724,31 @@ func (c *submarinerAgentController) getBrokerObject(ctx context.Context, brokerN
 	return broker, nil
 }
 
-func (c *submarinerAgentController) updateBackupLabelOnBroker(ctx context.Context, brokerNamespace string) error {
-	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		existing := &submarinerv1a1.Broker{}
-		err := c.controllerClient.Get(ctx, types.NamespacedName{Namespace: brokerNamespace, Name: BrokerObjectName}, existing)
-		if apierrors.IsNotFound(err) {
+func (c *submarinerAgentController) addBackupLabel(ctx context.Context, to client.Object) error {
+	if to.GetLabels() != nil {
+		if _, ok := to.GetLabels()[BackupLabelKey]; ok {
 			return nil
 		}
-
-		if err != nil {
-			return errors.Wrapf(err, "error getting broker object in namespace%q", brokerNamespace)
-		}
-
-		existingLabels := existing.GetLabels()
-		if existingLabels == nil {
-			existingLabels = make(map[string]string)
-		}
-		if _, ok := existingLabels[BackupLabelKey]; !ok {
-			existingLabels[BackupLabelKey] = BackupLabelValue
-			existing.SetLabels(existingLabels)
-			err = c.controllerClient.Update(ctx, existing)
-			if err == nil {
-				logger.Infof("Successfully added backup label to submariner-broker in %q", brokerNamespace)
-			}
-
-			return err
-		}
-
-		return nil
-	})
-
-	if retryErr != nil {
-		return errors.Wrapf(retryErr, "error adding backup label to broker in %q", brokerNamespace)
 	}
 
-	return nil
+	return errors.Wrapf(util.Update(ctx, coreresource.ForControllerClient(c.controllerClient, to.GetNamespace(), to), to,
+		func(obj runtime.Object) (runtime.Object, error) {
+			existing := coreresource.MustToMeta(obj)
+
+			existingLabels := existing.GetLabels()
+			if existingLabels == nil {
+				existingLabels = make(map[string]string)
+			}
+
+			if _, ok := existingLabels[BackupLabelKey]; !ok {
+				existingLabels[BackupLabelKey] = BackupLabelValue
+				existing.SetLabels(existingLabels)
+
+				logger.Infof("Added backup label to %T \"%s/%s\"", to, to.GetNamespace(), to.GetName())
+			}
+
+			return obj, nil
+		}), "error adding backup label to %T \"%s/%s\"", to, to.GetNamespace(), to.GetName())
 }
 
 func (c *submarinerAgentController) getAddonDeploymentConfigs(managedClusterAddon *addonv1alpha1.ManagedClusterAddOn) (
