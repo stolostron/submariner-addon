@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
@@ -690,8 +690,11 @@ func (t *testDriver) assertSCCManifestObjs(objs []*unstructured.Unstructured) {
 
 func (t *testDriver) awaitBackupLabelOnBroker() {
 	Eventually(func() bool {
-		broker, err := t.dynamicClient.Resource(submarineragent.BrokerGVR).Namespace(brokerNamespace).Get(context.TODO(),
-			submarineragent.BrokerObjectName, metav1.GetOptions{})
+		broker := &submarinerv1alpha1.Broker{}
+		err := t.controllerClient.Get(context.Background(), types.NamespacedName{
+			Namespace: brokerNamespace,
+			Name:      submarineragent.BrokerObjectName,
+		}, broker)
 		if err != nil {
 			return false
 		}
@@ -816,14 +819,7 @@ func (t *testDriver) createSubmarinerBroker(globalnetEnabled bool) {
 		},
 	}
 
-	t.broker.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   submarineragent.BrokerGVR.Group,
-		Version: submarineragent.BrokerGVR.Version,
-		Kind:    "Broker",
-	})
-
-	_, err := t.dynamicClient.Resource(submarineragent.BrokerGVR).Namespace(brokerNamespace).Create(context.TODO(),
-		coreresource.MustToUnstructured(t.broker), metav1.CreateOptions{})
+	err := t.controllerClient.Create(context.Background(), t.broker)
 	Expect(err).To(Succeed())
 }
 

@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
@@ -733,29 +734,24 @@ func (c *submarinerAgentController) updateBackupLabelOnGnConfigMap(ctx context.C
 }
 
 func (c *submarinerAgentController) getBrokerObject(ctx context.Context, brokerNamespace string) (*submarinerv1a1.Broker, error) {
-	broker, brokerErr := c.dynamicClient.Resource(BrokerGVR).Namespace(brokerNamespace).Get(ctx,
-		BrokerObjectName, metav1.GetOptions{})
-	if brokerErr != nil {
-		return nil, errors.Wrapf(brokerErr, "error getting broker object from namespace %q", brokerNamespace)
-	}
+	broker := &submarinerv1a1.Broker{}
 
-	brokerObj := &submarinerv1a1.Broker{}
-
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(broker.Object, brokerObj)
+	err := c.controllerClient.Get(ctx, types.NamespacedName{Namespace: brokerNamespace, Name: BrokerObjectName}, broker)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error converting broker object in namespace %q", brokerNamespace)
+		return nil, errors.Wrapf(err, "error getting broker object from namespace %q", brokerNamespace)
 	}
 
-	return brokerObj, nil
+	return broker, nil
 }
 
 func (c *submarinerAgentController) updateBackupLabelOnBroker(ctx context.Context, brokerNamespace string) error {
-	brokerClient := c.dynamicClient.Resource(BrokerGVR).Namespace(brokerNamespace)
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		existing, err := brokerClient.Get(ctx, BrokerObjectName, metav1.GetOptions{})
+		existing := &submarinerv1a1.Broker{}
+		err := c.controllerClient.Get(ctx, types.NamespacedName{Namespace: brokerNamespace, Name: BrokerObjectName}, existing)
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
+
 		if err != nil {
 			return errors.Wrapf(err, "error getting broker object in namespace%q", brokerNamespace)
 		}
@@ -767,7 +763,7 @@ func (c *submarinerAgentController) updateBackupLabelOnBroker(ctx context.Contex
 		if _, ok := existingLabels[BackupLabelKey]; !ok {
 			existingLabels[BackupLabelKey] = BackupLabelValue
 			existing.SetLabels(existingLabels)
-			_, err = brokerClient.Update(ctx, existing, metav1.UpdateOptions{})
+			err = c.controllerClient.Update(ctx, existing)
 			if err == nil {
 				logger.Infof("Successfully added backup label to submariner-broker in %q", brokerNamespace)
 			}
