@@ -87,11 +87,15 @@ var _ = Describe("Controller", func() {
 				t.awaitClusterRBACResources()
 			})
 
+			It("should add the backup label to the globalnet ConfigMap", func() {
+				t.awaitBackupLabelOnConfigMap()
+			})
+
 			t.testFinalizers()
 
 			Context("and the SubmarinerConfig is present", func() {
 				BeforeEach(func() {
-					t.createSubmarinerConfig()
+					t.createSubmarinerConfig(newSubmarinerConfig())
 
 					t.managedCluster.Status.ClusterClaims = []clusterv1.ManagedClusterClaim{
 						{
@@ -145,10 +149,10 @@ var _ = Describe("Controller", func() {
 				})
 			})
 
-			Context("and the SubmarinerConfig is present but backup label on broker is missing", func() {
+			Context("and the SubmarinerConfig is present but the backup label on the broker config is missing", func() {
 				BeforeEach(func() {
-					t.createSubmarinerConfig()
-					t.createSubmarinerBroker()
+					t.createSubmarinerConfig(newSubmarinerConfig())
+					t.createSubmarinerBroker(false)
 				})
 
 				It("should add backup label to broker", func() {
@@ -156,9 +160,9 @@ var _ = Describe("Controller", func() {
 				})
 			})
 
-			Context("and the SubmarinerConfig is present but globalnet config missing", func() {
+			Context("and the SubmarinerConfig is present but the broker config missing", func() {
 				BeforeEach(func() {
-					t.createSubmarinerConfig()
+					t.createSubmarinerConfig(newSubmarinerConfig())
 				})
 
 				JustBeforeEach(func() {
@@ -245,10 +249,39 @@ var _ = Describe("Controller", func() {
 		})
 	})
 
+	When("globalnet is enabled", func() {
+		var submarinerConfig *configv1alpha1.SubmarinerConfig
+
+		BeforeEach(func() {
+			submarinerConfig = newSubmarinerConfig()
+			t.globalnetConfigMap = nil
+			t.createSubmarinerBroker(true)
+		})
+
+		JustBeforeEach(func() {
+			t.createSubmarinerConfig(submarinerConfig)
+		})
+
+		It("should allocate a global CIDR in the Submariner resource", func() {
+			t.initManifestWorks()
+			t.awaitBackupLabelOnConfigMap()
+		})
+
+		Context("and a custom global CIDR is configured", func() {
+			BeforeEach(func() {
+				submarinerConfig.Spec.GlobalCIDR = "199.0.0.0/16"
+			})
+
+			It("should set the global CIDR in the Submariner resource", func() {
+				t.initManifestWorks()
+			})
+		})
+	})
+
 	When("the SubmarinerConfig is created after the submariner ManifestWork is deployed", func() {
 		JustBeforeEach(func() {
 			t.initManifestWorks()
-			t.createSubmarinerConfig()
+			t.createSubmarinerConfig(newSubmarinerConfig())
 		})
 
 		It("should update the ManifestWorks", func() {
@@ -308,7 +341,8 @@ type testDriver struct {
 	defaultADConfig    *addonv1alpha1.AddOnDeploymentConfig
 	clusterADConfig    *addonv1alpha1.AddOnDeploymentConfig
 	submarinerConfig   *configv1alpha1.SubmarinerConfig
-	broker             *unstructured.Unstructured
+	globalnetConfigMap *corev1.ConfigMap
+	broker             *submarinerv1alpha1.Broker
 	kubeClient         kubernetes.Interface
 	dynamicClient      *dynamicfake.FakeDynamicClient
 	controllerClient   client.Client
@@ -383,6 +417,11 @@ func newTestDriver() *testDriver {
 				},
 			},
 		}
+
+		var err error
+
+		t.globalnetConfigMap, err = globalnet.NewGlobalnetConfigMap(false, "", 0, brokerNamespace)
+		Expect(err).To(Succeed())
 
 		t.submarinerConfig = nil
 		t.broker = nil
@@ -568,6 +607,14 @@ func (t *testDriver) assertSubmarinerManifestWork(work *workv1.ManifestWork) {
 	Expect(submariner.Spec.ClusterID).To(Equal(clusterName))
 	Expect(submariner.Spec.Namespace).To(Equal(installNamespace))
 
+	if t.broker != nil && t.broker.Spec.GlobalnetEnabled {
+		if t.submarinerConfig.Spec.GlobalCIDR == "" {
+			Expect(submariner.Spec.GlobalCIDR).ToNot(BeEmpty())
+		} else {
+			Expect(submariner.Spec.GlobalCIDR).To(Equal(t.submarinerConfig.Spec.GlobalCIDR))
+		}
+	}
+
 	adConfig := t.clusterADConfig
 
 	if adConfig == nil {
@@ -659,8 +706,29 @@ func (t *testDriver) awaitBackupLabelOnBroker() {
 	}).Should(BeTrue(), "Backup label missing on submariner-broker")
 }
 
-func (t *testDriver) createSubmarinerConfig() {
-	t.submarinerConfig = &configv1alpha1.SubmarinerConfig{
+func (t *testDriver) awaitBackupLabelOnConfigMap() {
+	Eventually(func() bool {
+		cm, err := globalnet.GetConfigMap(context.Background(), t.controllerClient, brokerNamespace)
+		if err != nil {
+			return false
+		}
+
+		_, ok := cm.Labels[submarineragent.BackupLabelKey]
+
+		return ok
+	}).Should(BeTrue(), "Backup label missing on the globalnet ConfigMap")
+}
+
+func (t *testDriver) createSubmarinerConfig(sc *configv1alpha1.SubmarinerConfig) {
+	t.submarinerConfig = sc
+
+	_, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(clusterName).Create(context.TODO(),
+		t.submarinerConfig, metav1.CreateOptions{})
+	Expect(err).To(Succeed())
+}
+
+func newSubmarinerConfig() *configv1alpha1.SubmarinerConfig {
+	return &configv1alpha1.SubmarinerConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.SubmarinerConfigName,
 		},
@@ -676,10 +744,6 @@ func (t *testDriver) createSubmarinerConfig() {
 			},
 		},
 	}
-
-	_, err := t.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(clusterName).Create(context.TODO(),
-		t.submarinerConfig, metav1.CreateOptions{})
-	Expect(err).To(Succeed())
 }
 
 func (t *testDriver) createManagedCluster() {
@@ -736,24 +800,30 @@ func (t *testDriver) createAddon() {
 }
 
 func (t *testDriver) createGlobalnetConfigMap() {
-	err := globalnet.CreateConfigMap(context.TODO(), t.controllerClient, false, "", 0, brokerNamespace)
-	Expect(err).To(Succeed())
+	if t.globalnetConfigMap != nil {
+		Expect(t.controllerClient.Create(context.TODO(), t.globalnetConfigMap)).To(Succeed())
+	}
 }
 
-func (t *testDriver) createSubmarinerBroker() {
-	t.broker = &unstructured.Unstructured{}
+func (t *testDriver) createSubmarinerBroker(globalnetEnabled bool) {
+	t.broker = &submarinerv1alpha1.Broker{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      submarineragent.BrokerObjectName,
+			Namespace: brokerNamespace,
+		},
+		Spec: submarinerv1alpha1.BrokerSpec{
+			GlobalnetEnabled: globalnetEnabled,
+		},
+	}
+
 	t.broker.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "submariner.io",
-		Version: "v1alpha1",
+		Group:   submarineragent.BrokerGVR.Group,
+		Version: submarineragent.BrokerGVR.Version,
 		Kind:    "Broker",
 	})
-	t.broker.SetNamespace(brokerNamespace)
-	t.broker.SetName(submarineragent.BrokerObjectName)
-	err := unstructured.SetNestedField(t.broker.Object, "false", "spec", "globalnetEnabled")
 
-	Expect(err).To(Succeed())
-	_, err = t.dynamicClient.Resource(submarineragent.BrokerGVR).Namespace(brokerNamespace).Create(context.TODO(),
-		t.broker, metav1.CreateOptions{})
+	_, err := t.dynamicClient.Resource(submarineragent.BrokerGVR).Namespace(brokerNamespace).Create(context.TODO(),
+		coreresource.MustToUnstructured(t.broker), metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
