@@ -33,6 +33,7 @@ import (
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
 type ocpGatewayDeployer struct {
@@ -61,17 +62,18 @@ func NewOcpGatewayDeployer(info CloudInfo, msDeployer ocp.MachineSetDeployer, pr
 }
 
 type machineSetConfig struct {
-	Index               string
-	InfraID             string
-	ProjectID           string
-	InstanceType        string
-	Region              string
-	Image               string
-	SubmarinerGWNodeTag string
-	CloudName           string
+	UUID                    string
+	InfraID                 string
+	ProjectID               string
+	InstanceType            string
+	Region                  string
+	Image                   string
+	SubmarinerGWNodeTag     string
+	CloudName               string
+	UseSubmarinerInternalSG bool
 }
 
-func (d *ocpGatewayDeployer) loadGatewayYAML(index, image string) ([]byte, error) {
+func (d *ocpGatewayDeployer) loadGatewayYAML(uuidGW, image string, useInternalSG bool) ([]byte, error) {
 	var buf bytes.Buffer
 
 	// TODO: Not working properly, but we should revisit this as it makes more sense
@@ -82,14 +84,15 @@ func (d *ocpGatewayDeployer) loadGatewayYAML(index, image string) ([]byte, error
 	}
 
 	tplVars := machineSetConfig{
-		Index:               index,
-		InfraID:             d.InfraID,
-		ProjectID:           d.projectID,
-		InstanceType:        d.instanceType,
-		Region:              d.Region,
-		CloudName:           d.cloudName,
-		Image:               image,
-		SubmarinerGWNodeTag: submarinerGatewayNodeTag,
+		UUID:                    uuidGW,
+		InfraID:                 d.InfraID,
+		ProjectID:               d.projectID,
+		InstanceType:            d.instanceType,
+		Region:                  d.Region,
+		CloudName:               d.cloudName,
+		Image:                   image,
+		SubmarinerGWNodeTag:     submarinerGatewayNodeTag,
+		UseSubmarinerInternalSG: useInternalSG,
 	}
 
 	err = tpl.Execute(&buf, tplVars)
@@ -100,8 +103,8 @@ func (d *ocpGatewayDeployer) loadGatewayYAML(index, image string) ([]byte, error
 	return buf.Bytes(), nil
 }
 
-func (d *ocpGatewayDeployer) initMachineSet(index string) (*unstructured.Unstructured, error) {
-	gatewayYAML, err := d.loadGatewayYAML(index, d.image)
+func (d *ocpGatewayDeployer) initMachineSet(useInternalSG bool) (*unstructured.Unstructured, error) {
+	gatewayYAML, err := d.loadGatewayYAML(string(uuid.NewUUID())[0:6], d.image, useInternalSG)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +116,8 @@ func (d *ocpGatewayDeployer) initMachineSet(index string) (*unstructured.Unstruc
 	return machineSet, errors.Wrap(err, "error decoding message gateway yaml")
 }
 
-func (d *ocpGatewayDeployer) deployGateway(index string) error {
-	machineSet, err := d.initMachineSet(index)
+func (d *ocpGatewayDeployer) deployGateway(useInternalSG bool) error {
+	machineSet, err := d.initMachineSet(useInternalSG)
 	if err != nil {
 		return err
 	}
@@ -127,7 +130,7 @@ func (d *ocpGatewayDeployer) deployGateway(index string) error {
 			return errors.Wrap(err, "error getting the worker image")
 		}
 
-		machineSet, err = d.initMachineSet(index)
+		machineSet, err = d.initMachineSet(useInternalSG)
 		if err != nil {
 			return err
 		}
@@ -202,7 +205,15 @@ func (d *ocpGatewayDeployer) deployGWNode(gatewayCount int, groupName string,
 		gatewayNodesToDeploy := gatewayCount - numGatewayNodes
 
 		if d.dedicatedGWNode {
-			err = d.deployDedicatedGWNode(gatewayNodesToDeploy, status)
+			groupName := d.InfraID + internalSecurityGroupSuffix
+
+			isFound, errSG := checkIfSecurityGroupPresent(groupName, computeClient)
+
+			if errSG != nil {
+				return errSG
+			}
+
+			err = d.deployDedicatedGWNode(gatewayNodesToDeploy, isFound, status)
 		} else {
 			err = d.tagExistingNode(groupName, computeClient, gatewayNodesToDeploy, status)
 		}
@@ -211,12 +222,14 @@ func (d *ocpGatewayDeployer) deployGWNode(gatewayCount int, groupName string,
 	return err
 }
 
-func (d *ocpGatewayDeployer) deployDedicatedGWNode(gatewayNodesToDeploy int, status reporter.Interface) error {
+func (d *ocpGatewayDeployer) deployDedicatedGWNode(gatewayNodesToDeploy int, useInternalSG bool,
+	status reporter.Interface,
+) error {
 	for i := 0; i < gatewayNodesToDeploy; i++ {
 		gwNodeName := d.InfraID + "-submariner-gw" + strconv.Itoa(i)
 		status.Start("Deploying dedicated Submariner gateway node %s", gwNodeName)
 
-		err := d.deployGateway(strconv.Itoa(i))
+		err := d.deployGateway(useInternalSG)
 		if err != nil {
 			return status.Error(err, "unable to deploy gateway")
 		}

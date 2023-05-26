@@ -25,21 +25,21 @@ metadata:
     machine.openshift.io/cluster-api-cluster: {{.InfraID}}
     machine.openshift.io/cluster-api-machine-role: worker
     machine.openshift.io/cluster-api-machine-type: worker
-  name: {{.InfraID}}-submariner-gw-{{.Index}}
+  name: {{.InfraID}}-submariner-gw-{{.UUID}}
   namespace: openshift-machine-api
 spec:
   replicas: 1
   selector:
     matchLabels:
       machine.openshift.io/cluster-api-cluster: {{.InfraID}}
-      machine.openshift.io/cluster-api-machineset: {{.InfraID}}-submariner-gw-{{.Index}}
+      machine.openshift.io/cluster-api-machineset: {{.InfraID}}-submariner-gw-{{.UUID}}
   template:
     metadata:
       labels:
         machine.openshift.io/cluster-api-cluster: {{.InfraID}}
         machine.openshift.io/cluster-api-machine-role: worker
         machine.openshift.io/cluster-api-machine-type: worker
-        machine.openshift.io/cluster-api-machineset: {{.InfraID}}-submariner-gw-{{.Index}}
+        machine.openshift.io/cluster-api-machineset: {{.InfraID}}-submariner-gw-{{.UUID}}
     spec:
       metadata:
         labels:
@@ -65,12 +65,11 @@ spec:
                 name: {{.InfraID}}-nodes
                 tags: openshiftClusterID={{.InfraID}}
           securityGroups:
-          - filter: {}
-            name: {{.InfraID}}-worker
-          - filter: {}
-            name: {{.InfraID}}-submariner-gw-sg
-          - filter: {}
-            name: {{.InfraID}}-submariner-internal-sg
+          - name: {{.InfraID}}-worker
+          {{- if .UseSubmarinerInternalSG }}
+          - name: {{.InfraID}}-submariner-internal-sg
+          {{- end }}
+          - name: {{.InfraID}}-submariner-gw-sg
           serverMetadata:
             Name: {{.InfraID}}-worker
             openshiftClusterID: {{.InfraID}}
