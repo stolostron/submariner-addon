@@ -14,6 +14,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/reporter"
+	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -92,6 +93,7 @@ type SubmarinerBrokerInfo struct {
 	NettestImage                       string
 	NodeSelector                       map[string]string
 	Tolerations                        []corev1.Toleration
+	Version                            string
 }
 
 // Get retrieves submariner broker information consolidated with hub information.
@@ -118,6 +120,7 @@ func Get(
 		InstallPlanApproval:    "Automatic",
 		NodeSelector:           make(map[string]string),
 		Tolerations:            make([]corev1.Toleration, 0),
+		Version:                submarinerv1a1.DefaultSubmarinerVersion,
 	}
 
 	if installationNamespace != "" {

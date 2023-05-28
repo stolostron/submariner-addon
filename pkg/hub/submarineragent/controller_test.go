@@ -594,10 +594,14 @@ func (t *testDriver) awaitSubmarinerManifestWork() {
 
 func (t *testDriver) assertSubmarinerManifestWork(work *workv1.ManifestWork) {
 	manifestObjs := unmarshallManifestObjs(work)
+	submarinerObj := assertManifestObj(manifestObjs, "Submariner", "")
+
+	version, found, _ := unstructured.NestedString(submarinerObj.Object, "spec", "version")
+	Expect(found).To(BeTrue())
+	Expect(version).To(Equal(submarinerv1alpha1.DefaultSubmarinerVersion))
 
 	submariner := &submarinerv1alpha1.Submariner{}
-	Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
-		assertManifestObj(manifestObjs, "Submariner", "").Object, submariner)).To(Succeed())
+	Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(submarinerObj.Object, submariner)).To(Succeed())
 	Expect(submariner.Namespace).To(Equal(installNamespace))
 	Expect(submariner.Spec.BrokerK8sApiServer).To(Equal("127.0.0.1"))
 	Expect(submariner.Spec.BrokerK8sApiServerToken).To(Equal(brokerToken))

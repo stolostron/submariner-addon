@@ -25,6 +25,7 @@ spec:
   natEnabled: {{ .NATEnabled }}
   serviceCIDR: ""
   serviceDiscoveryEnabled: true
+  version: {{ .Version }}
 {{- if or .SubmarinerGatewayImage .SubmarinerRouteAgentImage .SubmarinerGlobalnetImage .LighthouseAgentImage .LighthouseCoreDNSImage }}
   imageOverrides:
     {{- if .SubmarinerGatewayImage }}
