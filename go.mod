@@ -31,8 +31,8 @@ require (
 	k8s.io/code-generator v0.26.3
 	k8s.io/component-base v0.26.3
 	k8s.io/klog/v2 v2.100.1
-	open-cluster-management.io/addon-framework v0.6.1
-	open-cluster-management.io/api v0.10.1-0.20230216050312-b716d4a5c514
+	open-cluster-management.io/addon-framework v0.7.0
+	open-cluster-management.io/api v0.11.0
 	sigs.k8s.io/controller-runtime v0.14.6
 )
 
