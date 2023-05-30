@@ -21,7 +21,7 @@ require (
 	github.com/submariner-io/admiral v0.13.5
 	github.com/submariner-io/cloud-prepare v0.13.5
 	github.com/submariner-io/submariner v0.13.5
-	github.com/submariner-io/submariner-operator v0.13.4
+	github.com/submariner-io/submariner-operator v0.13.5
 	golang.org/x/oauth2 v0.8.0
 	google.golang.org/api v0.124.0
 	gopkg.in/yaml.v2 v2.4.0
