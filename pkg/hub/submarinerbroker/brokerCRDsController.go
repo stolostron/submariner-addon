@@ -3,34 +3,31 @@ package submarinerbroker
 import (
 	"context"
 
+	"github.com/aws/smithy-go/ptr"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/stolostron/submariner-addon/pkg/resource"
+	"github.com/submariner-io/submariner-operator/pkg/embeddedyamls"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 )
 
 const (
-	configCRDName = "submarinerconfigs.submarineraddon.open-cluster-management.io"
+	ConfigCRDName = "submarinerconfigs.submarineraddon.open-cluster-management.io"
 )
 
 var staticCRDFiles = []string{
-	"manifests/submariner.io_clusters_crd.yaml",
-	"manifests/submariner.io_brokers_crd.yaml",
-	"manifests/submariner.io_endpoints_crd.yaml",
-	"manifests/submariner.io_gateways_crd.yaml",
-	"manifests/submariner.io_lighthouse.serviceimports_crd.yaml",
-	"manifests/x-k8s.io_multicluster.serviceimports_crd.yaml",
-}
-
-type brokerCRDsConfig struct {
-	ConfigCRDUID types.UID
+	embeddedyamls.Deploy_submariner_crds_submariner_io_clusters_yaml,
+	embeddedyamls.Deploy_crds_submariner_io_brokers_yaml,
+	embeddedyamls.Deploy_submariner_crds_submariner_io_endpoints_yaml,
+	embeddedyamls.Deploy_submariner_crds_submariner_io_gateways_yaml,
+	embeddedyamls.Deploy_mcsapi_crds_multicluster_x_k8s_io_serviceimports_yaml,
 }
 
 type submarinerBrokerCRDsController struct {
@@ -62,7 +59,7 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 	crdName := syncCtx.QueueKey()
 	klog.V(4).Infof("Reconciling ConfigCRD %q", crdName)
 
-	if crdName != configCRDName {
+	if crdName != ConfigCRDName {
 		return nil
 	}
 
@@ -75,9 +72,16 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 		return err
 	}
 
-	crdsConfig := brokerCRDsConfig{
-		ConfigCRDUID: configCRD.GetUID(),
+	ownerRef := &v1.OwnerReference{
+		APIVersion:         apiextensionsv1.SchemeGroupVersion.String(),
+		Kind:               "CustomResourceDefinition",
+		Name:               configCRD.GetName(),
+		UID:                configCRD.GetUID(),
+		Controller:         ptr.Bool(true),
+		BlockOwnerDeletion: ptr.Bool(true),
 	}
 
-	return resource.ApplyCRDs(ctx, c.crdClient, syncCtx.Recorder(), resource.AssetFromFile(manifestFiles, crdsConfig), staticCRDFiles...)
+	return resource.ApplyCRDs(ctx, c.crdClient, syncCtx.Recorder(), ownerRef, func(yaml string) ([]byte, error) {
+		return []byte(yaml), nil
+	}, staticCRDFiles...)
 }
