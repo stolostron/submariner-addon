@@ -129,43 +129,44 @@ func FindManifestWorks(workClient workclientset.Interface, managedClusterName st
 }
 
 func SetupServiceAccount(kubeClient kubernetes.Interface, namespace, name string) error {
-	return wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
-		// add a token secret to serviceaccount
-		sa, err := kubeClient.CoreV1().ServiceAccounts(namespace).Get(context.Background(), name, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			return false, nil
-		}
-		if err != nil {
-			return false, err
-		}
+	return wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 30*time.Second, false,
+		func(ctx context.Context) (bool, error) {
+			// add a token secret to serviceaccount
+			sa, err := kubeClient.CoreV1().ServiceAccounts(namespace).Get(ctx, name, metav1.GetOptions{})
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			if err != nil {
+				return false, err
+			}
 
-		secretName := fmt.Sprintf("%s-token-%s", name, rand.String(5))
-		sa.Secrets = []corev1.ObjectReference{{Name: secretName}}
-		if _, err := kubeClient.CoreV1().ServiceAccounts(namespace).Update(context.Background(), sa, metav1.UpdateOptions{}); err != nil {
-			return false, err
-		}
+			secretName := fmt.Sprintf("%s-token-%s", name, rand.String(5))
+			sa.Secrets = []corev1.ObjectReference{{Name: secretName}}
+			if _, err := kubeClient.CoreV1().ServiceAccounts(namespace).Update(ctx, sa, metav1.UpdateOptions{}); err != nil {
+				return false, err
+			}
 
-		// create a serviceaccount token secret
-		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      secretName,
-				Annotations: map[string]string{
-					"kubernetes.io/service-account.name": sa.Name,
+			// create a serviceaccount token secret
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      secretName,
+					Annotations: map[string]string{
+						"kubernetes.io/service-account.name": sa.Name,
+					},
 				},
-			},
-			Data: map[string][]byte{
-				"ca.crt": []byte("test-ca"),
-				"token":  []byte("test-token"),
-			},
-			Type: corev1.SecretTypeServiceAccountToken,
-		}
-		if _, err := kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{}); err != nil {
-			return false, err
-		}
+				Data: map[string][]byte{
+					"ca.crt": []byte("test-ca"),
+					"token":  []byte("test-token"),
+				},
+				Type: corev1.SecretTypeServiceAccountToken,
+			}
+			if _, err := kubeClient.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{}); err != nil {
+				return false, err
+			}
 
-		return true, nil
-	})
+			return true, nil
+		})
 }
 
 func NewManagedClusterNamespace(namespace string) *corev1.Namespace {
