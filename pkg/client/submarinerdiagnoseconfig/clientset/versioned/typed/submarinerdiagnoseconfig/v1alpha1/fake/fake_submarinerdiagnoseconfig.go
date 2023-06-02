@@ -8,7 +8,6 @@ import (
 	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -20,9 +19,9 @@ type FakeSubmarinerDiagnoseConfigs struct {
 	ns   string
 }
 
-var submarinerdiagnoseconfigsResource = schema.GroupVersionResource{Group: "submarineraddon.open-cluster-management.io", Version: "v1alpha1", Resource: "submarinerdiagnoseconfigs"}
+var submarinerdiagnoseconfigsResource = v1alpha1.SchemeGroupVersion.WithResource("submarinerdiagnoseconfigs")
 
-var submarinerdiagnoseconfigsKind = schema.GroupVersionKind{Group: "submarineraddon.open-cluster-management.io", Version: "v1alpha1", Kind: "SubmarinerDiagnoseConfig"}
+var submarinerdiagnoseconfigsKind = v1alpha1.SchemeGroupVersion.WithKind("SubmarinerDiagnoseConfig")
 
 // Get takes name of the submarinerDiagnoseConfig, and returns the corresponding submarinerDiagnoseConfig object, and an error if there is any.
 func (c *FakeSubmarinerDiagnoseConfigs) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.SubmarinerDiagnoseConfig, err error) {
