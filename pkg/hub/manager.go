@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
@@ -235,12 +236,15 @@ func createClusterManagementAddon(ctx context.Context, client *addonclient.Clien
 					},
 				},
 			},
+			InstallStrategy: addonv1alpha1.InstallStrategy{
+				Type: addonv1alpha1.AddonInstallStrategyManual,
+			},
 		},
 	}
 	_, err := client.AddonV1alpha1().ClusterManagementAddOns().Create(
 		ctx, submarineerClusterMgmtAddon, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
+		return errors.Wrap(err, "error creating ClusterManagementAddOn")
 	}
 
 	return nil
