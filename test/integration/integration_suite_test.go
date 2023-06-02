@@ -129,6 +129,8 @@ var _ = BeforeSuite(func() {
 
 	// start submariner broker and agent controller
 	go func() {
+		defer GinkgoRecover()
+
 		addOnOptions := hub.AddOnOptions{AgentImage: "test"}
 		err := addOnOptions.RunControllerManager(context.Background(), &controllercmd.ControllerContext{
 			KubeConfig:    cfg,
