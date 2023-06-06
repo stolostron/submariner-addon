@@ -348,7 +348,7 @@ func (c *deploymentStatusController) getSubmariner() (*submarinerv1alpha1.Submar
 	}
 
 	if len(list) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // No Submariner is not an error
 	}
 
 	unstructuredSubmariner, err := runtime.DefaultUnstructuredConverter.ToUnstructured(list[0])

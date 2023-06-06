@@ -284,7 +284,7 @@ func (r *IntegrationTestEventRecorder) ForComponent(c string) events.Recorder {
 	return &IntegrationTestEventRecorder{component: c}
 }
 
-func (r *IntegrationTestEventRecorder) WithContext(ctx context.Context) events.Recorder {
+func (r *IntegrationTestEventRecorder) WithContext(_ context.Context) events.Recorder {
 	return r
 }
 

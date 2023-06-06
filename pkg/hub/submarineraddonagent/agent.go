@@ -197,7 +197,7 @@ func (a *addOnAgent) GetAgentAddonOptions() agent.AgentAddonOptions {
 // 1. if the signer name in csr request is valid.
 // 2. if organization field and commonName field in csr request is valid.
 // 3. if user name in csr is the same as commonName field in csr request.
-func (a *addOnAgent) csrApproveCheck(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn,
+func (a *addOnAgent) csrApproveCheck(cluster *clusterv1.ManagedCluster, _ *addonapiv1alpha1.ManagedClusterAddOn,
 	csr *certificatesv1.CertificateSigningRequest,
 ) bool {
 	if csr.Spec.SignerName != certificatesv1.KubeAPIServerClientSignerName {
@@ -275,7 +275,7 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, _ *addo
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-// This will set a.hubHost, if empty, to Hub's API url by getting it form local-cluster
+// This will set a.hubHost, if empty, to Hub's API url by getting it form local-cluster.
 // local-cluster will be missing in kind deployments. In ACM deployments there is a race
 // condition between local-cluster and submariner-addon pod creation. So we check for it right
 // before we use it for manifests. This code gets called repeatedly from syncer, so even if

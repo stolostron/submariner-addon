@@ -139,12 +139,18 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
+GOLANGCI_LINT_VERSION=v1.52.2
+GOLANGCI_LINT?=$(PERMANENT_TMP_GOPATH)/bin/golangci-lint
+
+$(GOLANGCI_LINT):
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PERMANENT_TMP_GOPATH)/bin $(GOLANGCI_LINT_VERSION)
+
 # [golangci-lint] validates Go code in the project
-golangci-lint: vendor
-	golangci-lint version
-	golangci-lint linters
-	golangci-lint cache clean
-	golangci-lint run --timeout 10m
+golangci-lint: vendor | $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) version
+	$(GOLANGCI_LINT) linters
+	$(GOLANGCI_LINT) cache clean
+	$(GOLANGCI_LINT) run --timeout 10m
 
 vendor: go.mod
 	$(GO) mod download
