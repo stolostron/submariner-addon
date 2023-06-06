@@ -228,11 +228,7 @@ func (c *submarinerConfigController) syncConfig(ctx context.Context, recorder ev
 		return err
 	}
 
-	if err := c.prepareForSubmariner(ctx, config, recorder); err != nil {
-		return err
-	}
-
-	return nil
+	return c.prepareForSubmariner(ctx, config, recorder)
 }
 
 // skipSyncingUnchangedConfig if last submariner config is known and is equal to the given config.
