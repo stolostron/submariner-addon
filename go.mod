@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0
+	github.com/aws/smithy-go v1.13.5
 	github.com/coreos/go-semver v0.3.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/golang/mock v1.6.0
@@ -17,10 +18,10 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.15.0
-	github.com/submariner-io/cloud-prepare v0.15.0
-	github.com/submariner-io/submariner v0.15.0
-	github.com/submariner-io/submariner-operator v0.15.0
+	github.com/submariner-io/admiral v0.15.1
+	github.com/submariner-io/cloud-prepare v0.15.1
+	github.com/submariner-io/submariner v0.15.1
+	github.com/submariner-io/submariner-operator v0.15.1
 	golang.org/x/oauth2 v0.8.0
 	google.golang.org/api v0.123.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -58,7 +59,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.12.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.5 // indirect
-	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
