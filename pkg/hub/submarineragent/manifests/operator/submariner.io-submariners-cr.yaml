@@ -11,7 +11,7 @@ spec:
   brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
   brokerK8sInsecure: {{ .InsecureBrokerConnection }}
   cableDriver: {{ .CableDriver }}
-  ceIPSecDebug: false
+  ceIPSecDebug: {{ .IPSecDebug }}
   ceIPSecNATTPort: {{ .IPSecNATTPort }}
   ceIPSecPSK: {{ .IPSecPSK }}
   clusterCIDR: ""
@@ -20,7 +20,7 @@ spec:
   loadBalancerEnabled: {{ .LoadBalancerEnabled }}
   clusterID: {{ .ClusterName }}
   colorCodes: blue
-  debug: false
+  debug: {{ .Debug }}
   namespace: {{ .InstallationNamespace }}
   natEnabled: {{ .NATEnabled }}
   serviceCIDR: ""
