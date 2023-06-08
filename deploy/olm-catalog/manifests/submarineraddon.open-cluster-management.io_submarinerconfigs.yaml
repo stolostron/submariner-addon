@@ -30,6 +30,14 @@ spec:
           spec:
             description: Spec defines the configuration of the Submariner
             properties:
+              Debug:
+                default: false
+                description: Debug enables Submariner debugging (in the logs).
+                type: boolean
+              IPSecDebug:
+                default: false
+                description: IPSecDebug enables IPSec debugging.
+                type: boolean
               IPSecIKEPort:
                 default: 500
                 description: IPSecIKEPort represents IPsec IKE port (default 500).
