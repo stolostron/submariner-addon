@@ -11,14 +11,14 @@ spec:
   brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
   brokerK8sInsecure: {{ .InsecureBrokerConnection }}
   cableDriver: {{ .CableDriver }}
-  ceIPSecDebug: false
+  ceIPSecDebug: {{ .IPSecDebug }}
   ceIPSecNATTPort: {{ .IPSecNATTPort }}
   ceIPSecPSK: {{ .IPSecPSK }}
   clusterCIDR: ""
   globalCIDR: "{{ .GlobalCIDR }}"
   clusterID: {{ .ClusterName }}
   colorCodes: blue
-  debug: false
+  debug: {{ .Debug }}
   namespace: {{ .InstallationNamespace }}
   natEnabled: {{ .NATEnabled }}
   serviceCIDR: ""

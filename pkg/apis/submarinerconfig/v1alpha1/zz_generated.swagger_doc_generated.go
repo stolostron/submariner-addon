@@ -99,6 +99,8 @@ var map_SubmarinerConfigSpec = map[string]string{
 	"NATTEnable":               "NATTEnable represents IPsec NAT-T enabled (default true).",
 	"loadBalancerEnable":       "LoadBalancerEnable enables or disables load balancer mode. When enabled, a LoadBalancer is created in the submariner-operator namespace (default false).",
 	"insecureBrokerConnection": "InsecureBrokerConnection disables certificate validation when contacting the broker. This is useful for scenarios where the certificate chain isn't the same everywhere, e.g. with self-signed certificates with a different trust chain in each cluster.",
+	"IPSecDebug":               "IPSecDebug enables IPSec debugging.",
+	"Debug":                    "Debug enables Submariner debugging (in the logs).",
 	"credentialsSecret":        "CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.",
 	"subscriptionConfig":       "SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.",
 	"imagePullSpecs":           "ImagePullSpecs represents the desired images of submariner components installed on the managed cluster. If not specified, the default submariner images that was defined by submariner operator will be used.",
