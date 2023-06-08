@@ -74,6 +74,16 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=false
 	InsecureBrokerConnection bool `json:"insecureBrokerConnection"`
 
+	// IPSecDebug enables IPSec debugging.
+	// +optional
+	// +kubebuilder:default=false
+	IPSecDebug bool `json:"IPSecDebug,omitempty"`
+
+	// Debug enables Submariner debugging (in the logs).
+	// +optional
+	// +kubebuilder:default=false
+	Debug bool `json:"Debug,omitempty"`
+
 	// CredentialsSecret is a reference to the secret with a certain cloud platform
 	// credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD.
 	// The submariner-addon will use these credentials to prepare Submariner cluster
