@@ -212,7 +212,7 @@ func createClusterRoleToAllowBrokerCRD(ctx context.Context, kubeClient *kubernet
 	}
 
 	if apierrors.IsNotFound(err) {
-		klog.Info("%q not found, creating it", accessToBrokerCRDClusterRole)
+		klog.Infof("%q not found, creating it", accessToBrokerCRDClusterRole)
 		// Create the ClusterRole
 		brokerClusterRole := &rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{
