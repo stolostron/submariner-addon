@@ -10,6 +10,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/pkg/errors"
+	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	submreporter "github.com/submariner-io/admiral/pkg/reporter"
@@ -37,6 +38,7 @@ type azureProvider struct {
 	gwDeployer        api.GatewayDeployer
 	gateways          int
 	nattDiscoveryPort int64
+	airGapped         bool
 }
 
 func NewAzureProvider(
@@ -46,7 +48,7 @@ func NewAzureProvider(
 	hubKubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 	region, infraID, clusterName, credentialsSecretName, instanceType string,
-	nattPort, nattDiscoveryPort, gateways int,
+	nattPort, nattDiscoveryPort int, configSpec *configv1alpha1.SubmarinerConfigSpec,
 ) (*azureProvider, error) {
 	if infraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")
@@ -60,7 +62,7 @@ func NewAzureProvider(
 		instanceType = gwInstanceType
 	}
 
-	if gateways < 1 {
+	if configSpec.Gateways < 1 {
 		return nil, fmt.Errorf("the count of gateways is less than 1")
 	}
 
@@ -108,7 +110,8 @@ func NewAzureProvider(
 		gwDeployer:        gwDeployer,
 		reporter:          reporter.NewEventRecorderWrapper("AzureCloudProvider", eventRecorder),
 		nattDiscoveryPort: int64(nattDiscoveryPort),
-		gateways:          gateways,
+		gateways:          configSpec.Gateways,
+		airGapped:         configSpec.AirGappedDeployment,
 	}, nil
 }
 
@@ -127,7 +130,8 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 			{Port: 0, Protocol: "esp"},
 			{Port: 0, Protocol: "ah"},
 		},
-		Gateways: r.gateways,
+		Gateways:  r.gateways,
+		AirGapped: r.airGapped,
 	}, r.reporter); err != nil {
 		return err
 	}
