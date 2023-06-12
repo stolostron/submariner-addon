@@ -33,6 +33,7 @@ type azureProvider struct {
 	gwDeployer        api.GatewayDeployer
 	gateways          int
 	nattDiscoveryPort int64
+	airGapped         bool
 }
 
 func NewProvider(info *provider.Info) (*azureProvider, error) {
@@ -90,6 +91,7 @@ func NewProvider(info *provider.Info) (*azureProvider, error) {
 		reporter:          reporter.NewEventRecorderWrapper("AzureCloudProvider", info.EventRecorder),
 		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
 		gateways:          info.Gateways,
+		airGapped:         info.SubmarinerConfigSpec.AirGappedDeployment,
 	}, nil
 }
 
@@ -108,7 +110,8 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 			{Port: 0, Protocol: "esp"},
 			{Port: 0, Protocol: "ah"},
 		},
-		Gateways: r.gateways,
+		Gateways:  r.gateways,
+		AirGapped: r.airGapped,
 	}, r.reporter); err != nil {
 		return err
 	}
