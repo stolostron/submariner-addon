@@ -19,7 +19,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/submariner-io/admiral v0.14.5
-	github.com/submariner-io/cloud-prepare v0.14.5
+	github.com/submariner-io/cloud-prepare v0.14.6-0.20230614155757-52a039ba62e6
 	github.com/submariner-io/submariner v0.14.5
 	github.com/submariner-io/submariner-operator v0.14.5
 	golang.org/x/oauth2 v0.9.0

@@ -98,7 +98,7 @@ func (f *providerFactory) Get(managedClusterInfo *configv1alpha1.ManagedClusterI
 	case "Azure":
 		provider, err = azure.NewAzureProvider(f.restMapper, f.kubeClient, f.dynamicClient, f.hubKubeClient, eventsRecorder,
 			region, infraID, clusterName, credentialsSecret.Name,
-			config.Spec.GatewayConfig.Azure.InstanceType, config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, config.Spec.Gateways)
+			config.Spec.GatewayConfig.Azure.InstanceType, config.Spec.IPSecNATTPort, config.Spec.NATTDiscoveryPort, &config.Spec)
 	default:
 		found = false
 	}
