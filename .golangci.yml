@@ -1,7 +1,5 @@
 ---
 run:
-  skip-dirs:
-    - pkg/cloud
 linters-settings:
   gocritic:
     enabled-tags:
@@ -163,7 +161,7 @@ issues:
         - lll
         - stylecheck
         - godot
-        - revive  
+        - revive
 
     # Full text of the error is "do not define dynamic errors, use wrapped static errors instead". See
     # https://github.com/Djarvur/go-err113/issues/10 for an interesting discussion of this error. While there are cases

@@ -39,6 +39,7 @@ type rhosProvider struct {
 	nattDiscoveryPort int64
 }
 
+//nolint:revive // Ignore unexported-return - we can't reference the Provider interface here.
 func NewProvider(info *provider.Info) (*rhosProvider, error) {
 	if info.InfraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")
@@ -58,6 +59,7 @@ func NewProvider(info *provider.Info) (*rhosProvider, error) {
 		klog.Errorf("Unable to retrieve the rhosclient :%v", err)
 		return nil, err
 	}
+
 	k8sClient := k8s.NewInterface(info.KubeClient)
 
 	cloudInfo := cloudpreparerhos.CloudInfo{
@@ -113,12 +115,13 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 	}
 
 	r.reporter.Success("The Submariner cluster environment has been set up on RHOS")
+
 	return nil
 }
 
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on RHOS after the SubmarinerConfig was deleted
 // 1. delete any dedicated gateways that were previously deployed.
-// 2. delete the inbound and outbound firewall rules to close submariner ports
+// 2. delete the inbound and outbound firewall rules to close submariner ports.
 func (r *rhosProvider) CleanUpSubmarinerClusterEnv() error {
 	err := r.gwDeployer.Cleanup(r.reporter)
 	if err != nil {
@@ -131,6 +134,7 @@ func (r *rhosProvider) CleanUpSubmarinerClusterEnv() error {
 	}
 
 	r.reporter.Success("The Submariner cluster environment has been cleaned up on RHOS")
+
 	return nil
 }
 
@@ -149,6 +153,7 @@ func newClient(credentialsSecret *corev1.Secret) (string, string, *gophercloud.P
 	if err := yaml.Unmarshal(cloudsYAML, &cloudsAll); err != nil {
 		return "", "", nil, err
 	}
+
 	cloudNameStr := string(cloudName)
 	cloud := cloudsAll.Clouds[cloudNameStr]
 
