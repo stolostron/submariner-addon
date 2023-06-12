@@ -23,7 +23,7 @@ require (
 	github.com/submariner-io/submariner v0.16.0-m0
 	github.com/submariner-io/submariner-operator v0.16.0-m0
 	golang.org/x/oauth2 v0.8.0
-	google.golang.org/api v0.125.0
+	google.golang.org/api v0.126.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.27.2
 	k8s.io/apiextensions-apiserver v0.27.2
