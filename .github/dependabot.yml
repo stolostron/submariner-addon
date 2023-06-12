@@ -68,3 +68,20 @@ updates:
       # 2.7 tracks Submariner 0.14
       - dependency-name: github.com/submariner-io/*
         versions: ">= 0.15.0"
+  - package-ecosystem: gomod
+    target-branch: "release-2.8"
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # K8s and operator SDK, we need to handle these manually
+      - dependency-name: github.com/operator-framework/*
+      - dependency-name: k8s.io/*
+      - dependency-name: sigs.k8s.io/*
+      # Addon framework, this shouldn't be upgraded on release branches
+      - dependency-name: open-cluster-management.io/addon-framework
+      - dependency-name: open-cluster-management.io/api
+      # 2.8 tracks Submariner 0.15
+      - dependency-name: github.com/submariner-io/*
+        versions: ">= 0.16.0"
