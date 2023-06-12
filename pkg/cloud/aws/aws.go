@@ -34,6 +34,7 @@ type awsProvider struct {
 	gatewayDeployer   cpapi.GatewayDeployer
 }
 
+//nolint:revive // Ignore unexported-return - we can't reference the Provider interface here.
 func NewProvider(info *provider.Info) (*awsProvider, error) {
 	if info.Region == "" {
 		return nil, fmt.Errorf("cluster region is empty")
@@ -89,7 +90,7 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 	}, nil
 }
 
-// PrepareSubmarinerClusterEnv prepares submariner cluster environment on AWS
+// PrepareSubmarinerClusterEnv prepares submariner cluster environment on AWS.
 func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	// See AWS() in https://github.com/submariner-io/subctl/blob/devel/pkg/cloud/prepare/aws.go
 	// For now we only support at least one gateway (no load-balancer)
@@ -119,7 +120,7 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	return nil
 }
 
-// CleanUpSubmarinerClusterEnv clean up submariner cluster environment on AWS after the SubmarinerConfig was deleted
+// CleanUpSubmarinerClusterEnv clean up submariner cluster environment on AWS after the SubmarinerConfig was deleted.
 func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 	if err := a.gatewayDeployer.Cleanup(a.reporter); err != nil {
 		return err

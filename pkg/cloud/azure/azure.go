@@ -27,16 +27,17 @@ const (
 
 type azureProvider struct {
 	infraID           string
-	nattPort          uint16
 	cniType           string
 	cloudPrepare      api.Cloud
 	reporter          submreporter.Interface
 	gwDeployer        api.GatewayDeployer
-	gateways          int
 	nattDiscoveryPort int64
+	gateways          int
+	nattPort          uint16
 	airGapped         bool
 }
 
+//nolint:revive // Ignore unexported-return - we can't reference the Provider interface here.
 func NewProvider(info *provider.Info) (*azureProvider, error) {
 	if info.InfraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")
@@ -126,13 +127,14 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 	}
 
 	r.reporter.Success("The Submariner cluster environment has been set up on Azure")
+
 	return nil
 }
 
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on Azure after the SubmarinerConfig was deleted
 // 1. delete any dedicated gateways that were previously deployed.
-// 2. delete the inbound and outbound firewall rules to close submariner ports
-func (r azureProvider) CleanUpSubmarinerClusterEnv() error {
+// 2. delete the inbound and outbound firewall rules to close submariner ports.
+func (r *azureProvider) CleanUpSubmarinerClusterEnv() error {
 	err := r.gwDeployer.Cleanup(r.reporter)
 	if err != nil {
 		return err
@@ -144,11 +146,14 @@ func (r azureProvider) CleanUpSubmarinerClusterEnv() error {
 	}
 
 	r.reporter.Success("The Submariner cluster environment has been cleaned up on Azure")
+
 	return nil
 }
 
 func initializeFromAuthFile(credentialsSecret *corev1.Secret) (string, error) {
 	servicePrincipalJSON, ok := credentialsSecret.Data[servicePrincipalJSON]
+
+	//nolint:revive,stylecheck // Ignore var-naming: struct field ClientId should be ClientID et al.
 	var authInfo struct {
 		ClientId       string
 		ClientSecret   string
@@ -165,15 +170,15 @@ func initializeFromAuthFile(credentialsSecret *corev1.Secret) (string, error) {
 		return "", errors.Wrap(err, "error unmarshalling servicePrincipalJSON")
 	}
 
-	if err = os.Setenv("AZURE_CLIENT_ID", authInfo.ClientId); err != nil {
+	if err := os.Setenv("AZURE_CLIENT_ID", authInfo.ClientId); err != nil {
 		return "", err
 	}
 
-	if err = os.Setenv("AZURE_CLIENT_SECRET", authInfo.ClientSecret); err != nil {
+	if err := os.Setenv("AZURE_CLIENT_SECRET", authInfo.ClientSecret); err != nil {
 		return "", err
 	}
 
-	if err = os.Setenv("AZURE_TENANT_ID", authInfo.TenantId); err != nil {
+	if err := os.Setenv("AZURE_TENANT_ID", authInfo.TenantId); err != nil {
 		return "", err
 	}
 

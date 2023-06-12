@@ -38,6 +38,7 @@ type gcpProvider struct {
 	nattDiscoveryPort int64
 }
 
+//nolint:revive // Ignore unexported-return - we can't reference the Provider interface here.
 func NewProvider(info *provider.Info) (*gcpProvider, error) {
 	if info.InfraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")
@@ -52,7 +53,7 @@ func NewProvider(info *provider.Info) (*gcpProvider, error) {
 		return nil, fmt.Errorf("the count of gateways is less than 1")
 	}
 
-	projectId, gcpClient, err := newClient(info.CredentialsSecret)
+	projectID, gcpClient, err := newClient(info.CredentialsSecret)
 	if err != nil {
 		klog.Errorf("Unable to retrieve the gcpclient :%v", err)
 		return nil, err
@@ -61,7 +62,7 @@ func NewProvider(info *provider.Info) (*gcpProvider, error) {
 	cloudInfo := cloudpreparegcp.CloudInfo{
 		InfraID:   info.InfraID,
 		Region:    info.Region,
-		ProjectID: projectId,
+		ProjectID: projectID,
 		Client:    gcpClient,
 	}
 
@@ -115,11 +116,12 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 	}
 
 	g.reporter.Success("The Submariner cluster environment has been set up on GCP")
+
 	return nil
 }
 
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on GCP after the SubmarinerConfig was deleted
-// 1. delete the inbound and outbound firewall rules to close submariner ports
+// 1. delete the inbound and outbound firewall rules to close submariner ports.
 func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
 	err := g.gwDeployer.Cleanup(g.reporter)
 	if err != nil {
@@ -132,6 +134,7 @@ func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
 	}
 
 	g.reporter.Success("The Submariner cluster environment has been cleaned up on GCP")
+
 	return nil
 }
 

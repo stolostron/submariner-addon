@@ -67,7 +67,8 @@ func RegisterProvider(platform string, f ProviderFn) {
 }
 
 func NewProviderFactory(restMapper meta.RESTMapper, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
-	hubKubeClient kubernetes.Interface) ProviderFactory {
+	hubKubeClient kubernetes.Interface,
+) ProviderFactory {
 	return &providerFactory{
 		restMapper:    restMapper,
 		kubeClient:    kubeClient,
