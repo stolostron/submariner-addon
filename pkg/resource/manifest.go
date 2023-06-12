@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+	"github.com/stolostron/submariner-addon/pkg/redact"
 	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/resource"
 	appsv1 "k8s.io/api/apps/v1"
@@ -52,7 +53,7 @@ func ApplyManifests(ctx context.Context, kubeClient kubernetes.Interface, record
 		if result.Error != nil {
 			errs = append(errs, fmt.Errorf("error applying %q (%T): %w", result.File, result.Type, result.Error))
 		} else if result.Changed {
-			logger.Infof("%s from file %q created/updated: %s", result.Type, result.File, resource.ToJSON(result.Result))
+			logger.Infof("%s from file %q created/updated: %s", result.Type, result.File, redact.JSON(resource.ToJSON(result.Result)))
 		}
 	}
 

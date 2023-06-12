@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/stolostron/submariner-addon/pkg/redact"
 	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/util"
@@ -57,5 +58,5 @@ func manifestsToString(manifests []workv1.Manifest) string {
 		_ = json.Indent(&out, manifests[i].Raw, "", "  ")
 	}
 
-	return out.String()
+	return redact.JSON(out.String())
 }
