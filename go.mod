@@ -20,7 +20,7 @@ require (
 	github.com/submariner-io/cloud-prepare v0.12.4
 	github.com/submariner-io/submariner v0.12.4
 	github.com/submariner-io/submariner-operator v0.12.4
-	golang.org/x/oauth2 v0.8.0
+	golang.org/x/oauth2 v0.9.0
 	google.golang.org/api v0.127.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.22.1
@@ -118,13 +118,13 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.0 // indirect
-	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/crypto v0.10.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/sys v0.9.0 // indirect
+	golang.org/x/term v0.9.0 // indirect
+	golang.org/x/text v0.10.0 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	golang.org/x/tools v0.6.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
