@@ -18,6 +18,7 @@ import (
 
 const (
 	submarinerGatewayLabel        = "submariner.io/gateway"
+	gatewayLabeledBySubmariner    = "submariner.io/random-gateway-node"
 	submarinerGatewayNodesLabeled = "SubmarinerGatewayNodesLabeled"
 )
 
