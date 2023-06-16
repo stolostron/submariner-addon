@@ -435,7 +435,10 @@ func (c *submarinerConfigController) labelNode(ctx context.Context, config *conf
 	}
 
 	return c.updateNode(ctx, node, func(node *corev1.Node) {
-		node.Labels[submarinerGatewayLabel] = "true"
+		if !hasGatewayLabel {
+			node.Annotations[gatewayLabeledBySubmariner] = "true"
+			node.Labels[submarinerGatewayLabel] = "true"
+		}
 		node.Labels[submarinerUDPPortLabel] = nattPort
 	})
 }
@@ -474,7 +477,14 @@ func (c *submarinerConfigController) unlabelNode(ctx context.Context, node *core
 	c.logger.Infof("Unlabeling gateway node %q", node.Name)
 
 	return c.updateNode(ctx, node, func(node *corev1.Node) {
-		delete(node.Labels, submarinerGatewayLabel)
+		_, hasGatewayLabelFromSubmariner := node.Annotations[gatewayLabeledBySubmariner]
+		if hasGatewayLabelFromSubmariner {
+			delete(node.Labels, submarinerGatewayLabel)
+			delete(node.Annotations, gatewayLabeledBySubmariner)
+		} else {
+			c.logger.Infof("Gateway node %q seems to be labelled by the user, skip removing the label", node.Name)
+		}
+
 		delete(node.Labels, submarinerUDPPortLabel)
 	})
 }

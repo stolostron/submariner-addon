@@ -56,6 +56,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 		It("should label the desired number of gateway nodes", func() {
 			t.awaitLabeledNodes()
 			t.awaitGatewaysLabeledSuccessCondition()
+			t.awaitGatewayAnnotationOnNodes(t.config.Spec.Gateways)
 		})
 
 		It("should update the SubmarinerConfig cluster environment prepared condition", func() {
@@ -72,6 +73,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 			It("should fully label them", func() {
 				t.awaitLabeledNodes()
 				t.awaitGatewaysLabeledSuccessCondition()
+				t.awaitGatewayAnnotationOnNodes(0)
 			})
 		})
 
@@ -82,6 +84,10 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 
 			It("should not try to update them", func() {
 				test.EnsureNoActionsForResource(&t.kubeClient.Fake, "nodes", "update")
+			})
+
+			It("should not add the annotation on the nodes", func() {
+				t.awaitGatewayAnnotationOnNodes(0)
 			})
 		})
 	})
@@ -130,6 +136,8 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 			Expect(err).To(Succeed())
 
 			t.awaitLabeledNodes()
+			// The submariner.io/random-gateway-node annotation should be added only for new worker nodes
+			t.awaitGatewayAnnotationOnNodes(1)
 		})
 	})
 
@@ -745,10 +753,35 @@ func (t *configControllerTestDriver) getLabeledWorkerNodes() []*corev1.Node {
 	return foundNodes
 }
 
+func (t *configControllerTestDriver) getAnnotatedGatewayNodes() []*corev1.Node {
+	foundNodes := []*corev1.Node{}
+
+	for _, expected := range t.nodes {
+		actual, err := t.kubeClient.CoreV1().Nodes().Get(context.TODO(), expected.Name, metav1.GetOptions{})
+		Expect(err).To(Succeed())
+
+		if _, ok := actual.Labels["node-role.kubernetes.io/worker"]; !ok {
+			continue
+		}
+
+		if actual.Annotations["submariner.io/random-gateway-node"] == "true" {
+			foundNodes = append(foundNodes, actual)
+		}
+	}
+
+	return foundNodes
+}
+
 func (t *configControllerTestDriver) awaitLabeledNodes() {
 	Eventually(func() int {
 		return len(t.getLabeledWorkerNodes())
 	}, 2).Should(Equal(t.config.Spec.Gateways), "The expected number of worker nodes weren't labeled")
+}
+
+func (t *configControllerTestDriver) awaitGatewayAnnotationOnNodes(num int) {
+	Eventually(func() int {
+		return len(t.getAnnotatedGatewayNodes())
+	}, 2).Should(Equal(num), "The expected number of worker nodes weren't labeled")
 }
 
 func (t *configControllerTestDriver) awaitNoLabeledNodes() {
@@ -776,6 +809,7 @@ func newWorkerNode(name string) *corev1.Node {
 			Labels: map[string]string{
 				"node-role.kubernetes.io/worker": "",
 			},
+			Annotations: map[string]string{},
 		},
 	}
 }
