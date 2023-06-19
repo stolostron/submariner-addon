@@ -33,7 +33,7 @@ updates:
       - dependency-name: open-cluster-management.io/api
       # 2.5 tracks Submariner 0.12
       - dependency-name: github.com/submariner-io/*
-        versions: ">= 0.13.0"
+        versions: ">= 0.13.0-m0"
   - package-ecosystem: gomod
     target-branch: "release-2.6"
     directory: "/"
@@ -50,7 +50,7 @@ updates:
       - dependency-name: open-cluster-management.io/api
       # 2.6 tracks Submariner 0.13
       - dependency-name: github.com/submariner-io/*
-        versions: ">= 0.14.0"
+        versions: ">= 0.14.0-m0"
   - package-ecosystem: gomod
     target-branch: "release-2.7"
     directory: "/"
@@ -67,7 +67,7 @@ updates:
       - dependency-name: open-cluster-management.io/api
       # 2.7 tracks Submariner 0.14
       - dependency-name: github.com/submariner-io/*
-        versions: ">= 0.15.0"
+        versions: ">= 0.15.0-m0"
   - package-ecosystem: gomod
     target-branch: "release-2.8"
     directory: "/"
@@ -84,4 +84,4 @@ updates:
       - dependency-name: open-cluster-management.io/api
       # 2.8 tracks Submariner 0.15
       - dependency-name: github.com/submariner-io/*
-        versions: ">= 0.16.0"
+        versions: ">= 0.16.0-m0"
