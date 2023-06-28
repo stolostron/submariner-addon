@@ -157,7 +157,7 @@ vendor: go.mod
 	$(GO) mod tidy
 	$(GO) mod vendor
 
-verify: vendor verify-gofmt verify-govet verify-scripts
+verify: vendor verify-gofmt verify-govet verify-scripts verify-csv verify-crds
 
 verify-gofmt:
 	$(info Running gofmt -s -l on $(go_files_count) file(s).)
