@@ -20,7 +20,7 @@ require (
 	github.com/submariner-io/cloud-prepare v0.12.4
 	github.com/submariner-io/submariner v0.12.4
 	github.com/submariner-io/submariner-operator v0.12.4
-	golang.org/x/oauth2 v0.9.0
+	golang.org/x/oauth2 v0.10.0
 	google.golang.org/api v0.130.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.22.1
@@ -36,7 +36,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.19.3 // indirect
+	cloud.google.com/go/compute v1.20.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
