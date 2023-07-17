@@ -207,69 +207,33 @@ func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *c
 	brokerInfo.Debug = submarinerConfig.Spec.Debug
 	brokerInfo.IPSecDebug = submarinerConfig.Spec.IPSecDebug
 
-	if submarinerConfig.Spec.CableDriver != "" {
-		brokerInfo.CableDriver = submarinerConfig.Spec.CableDriver
-	}
-
-	if submarinerConfig.Spec.IPSecNATTPort != 0 {
-		brokerInfo.IPSecNATTPort = submarinerConfig.Spec.IPSecNATTPort
-	}
-
-	if submarinerConfig.Spec.SubscriptionConfig.Channel != "" {
-		brokerInfo.CatalogChannel = submarinerConfig.Spec.SubscriptionConfig.Channel
-	}
-
-	if submarinerConfig.Spec.SubscriptionConfig.Source != "" {
-		brokerInfo.CatalogSource = submarinerConfig.Spec.SubscriptionConfig.Source
-	}
-
-	if submarinerConfig.Spec.SubscriptionConfig.SourceNamespace != "" {
-		brokerInfo.CatalogSourceNamespace = submarinerConfig.Spec.SubscriptionConfig.SourceNamespace
-	}
-
-	if submarinerConfig.Spec.SubscriptionConfig.StartingCSV != "" {
-		brokerInfo.CatalogStartingCSV = submarinerConfig.Spec.SubscriptionConfig.StartingCSV
-	}
-
-	if submarinerConfig.Spec.SubscriptionConfig.InstallPlanApproval != "" {
-		brokerInfo.InstallPlanApproval = submarinerConfig.Spec.SubscriptionConfig.InstallPlanApproval
-	}
+	setIfValueNotDefault(&brokerInfo.CableDriver, submarinerConfig.Spec.CableDriver)
+	setIfValueNotDefault(&brokerInfo.IPSecNATTPort, submarinerConfig.Spec.IPSecNATTPort)
+	setIfValueNotDefault(&brokerInfo.CatalogChannel, submarinerConfig.Spec.SubscriptionConfig.Channel)
+	setIfValueNotDefault(&brokerInfo.CatalogSource, submarinerConfig.Spec.SubscriptionConfig.Source)
+	setIfValueNotDefault(&brokerInfo.CatalogSourceNamespace, submarinerConfig.Spec.SubscriptionConfig.SourceNamespace)
+	setIfValueNotDefault(&brokerInfo.CatalogStartingCSV, submarinerConfig.Spec.SubscriptionConfig.StartingCSV)
+	setIfValueNotDefault(&brokerInfo.InstallPlanApproval, submarinerConfig.Spec.SubscriptionConfig.InstallPlanApproval)
 
 	applySubmarinerImageConfig(brokerInfo, submarinerConfig)
 }
 
 func applySubmarinerImageConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *configv1alpha1.SubmarinerConfig) {
-	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec != "" {
-		brokerInfo.SubmarinerGatewayImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec
-	}
+	setIfValueNotDefault(&brokerInfo.SubmarinerGatewayImage, submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec)
+	setIfValueNotDefault(&brokerInfo.SubmarinerRouteAgentImage, submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec)
+	setIfValueNotDefault(&brokerInfo.LighthouseCoreDNSImage, submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec)
+	setIfValueNotDefault(&brokerInfo.LighthouseAgentImage, submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec)
+	setIfValueNotDefault(&brokerInfo.SubmarinerGlobalnetImage, submarinerConfig.Spec.ImagePullSpecs.SubmarinerGlobalnetImagePullSpec)
+	setIfValueNotDefault(&brokerInfo.SubmarinerNetworkPluginSyncerImage, submarinerConfig.
+		Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec)
+	setIfValueNotDefault(&brokerInfo.MetricsProxyImage, submarinerConfig.Spec.ImagePullSpecs.MetricsProxyImagePullSpec)
+	setIfValueNotDefault(&brokerInfo.NettestImage, submarinerConfig.Spec.ImagePullSpecs.NettestImagePullSpec)
+}
 
-	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec != "" {
-		brokerInfo.SubmarinerRouteAgentImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec
-	}
-
-	if submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec != "" {
-		brokerInfo.LighthouseCoreDNSImage = submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec
-	}
-
-	if submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec != "" {
-		brokerInfo.LighthouseAgentImage = submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec
-	}
-
-	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerGlobalnetImagePullSpec != "" {
-		brokerInfo.SubmarinerGlobalnetImage = submarinerConfig.Spec.ImagePullSpecs.SubmarinerGlobalnetImagePullSpec
-	}
-
-	if submarinerConfig.Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec != "" {
-		brokerInfo.SubmarinerNetworkPluginSyncerImage = submarinerConfig.
-			Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec
-	}
-
-	if submarinerConfig.Spec.ImagePullSpecs.MetricsProxyImagePullSpec != "" {
-		brokerInfo.MetricsProxyImage = submarinerConfig.Spec.ImagePullSpecs.MetricsProxyImagePullSpec
-	}
-
-	if submarinerConfig.Spec.ImagePullSpecs.NettestImagePullSpec != "" {
-		brokerInfo.NettestImage = submarinerConfig.Spec.ImagePullSpecs.NettestImagePullSpec
+func setIfValueNotDefault[T comparable](target *T, value T) {
+	var defvalue T
+	if value != defvalue {
+		*target = value
 	}
 }
 
