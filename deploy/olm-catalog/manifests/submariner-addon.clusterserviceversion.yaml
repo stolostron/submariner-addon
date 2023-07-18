@@ -211,6 +211,13 @@ spec:
         - apiGroups:
           - addon.open-cluster-management.io
           resources:
+          - clustermanagementaddons/status
+          verbs:
+          - patch
+          - update
+        - apiGroups:
+          - addon.open-cluster-management.io
+          resources:
           - managedclusteraddons
           verbs:
           - get
