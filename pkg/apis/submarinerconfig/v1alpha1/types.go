@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -194,7 +196,7 @@ type GatewayConfig struct {
 	// Submariner gateway HA will be enabled automatically.
 	// +optional
 	// +kubebuilder:default=1
-	Gateways int `json:"gateways,omitempty"`
+	Gateways int `json:"gateways"`
 }
 
 type AWS struct {
@@ -288,4 +290,22 @@ type SubmarinerConfigList struct {
 
 	// Items is a list of SubmarinerConfig.
 	Items []SubmarinerConfig `json:"items"`
+}
+
+func (s *SubmarinerConfig) UnmarshalJSON(data []byte) error {
+	type SubmarinerConfigAlias SubmarinerConfig
+
+	subm := &SubmarinerConfigAlias{
+		Spec: SubmarinerConfigSpec{
+			GatewayConfig: GatewayConfig{
+				Gateways: 1,
+			},
+		},
+	}
+
+	_ = json.Unmarshal(data, subm)
+
+	*s = SubmarinerConfig(*subm)
+
+	return nil
 }
