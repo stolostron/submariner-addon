@@ -7,6 +7,7 @@ const (
 	ProductOCP        = "OpenShift"
 	ProductROSA       = "ROSA"
 	ProductARO        = "ARO"
+	ProductROKS       = "ROKS"
 	OCPVersionForOVNK = "4.11.0-rc"
 
 	IPSecPSKSecretName = "submariner-ipsec-psk"

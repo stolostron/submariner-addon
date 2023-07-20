@@ -100,7 +100,7 @@ func (f *providerFactory) Get(managedClusterInfo *configv1alpha1.ManagedClusterI
 	}
 
 	vendor := managedClusterInfo.Vendor
-	if vendor == constants.ProductROSA || vendor == constants.ProductARO {
+	if vendor == constants.ProductROSA || vendor == constants.ProductARO || vendor == constants.ProductROKS {
 		return nil, false, nil
 	}
 
