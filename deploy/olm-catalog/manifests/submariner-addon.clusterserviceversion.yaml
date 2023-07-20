@@ -225,6 +225,7 @@ spec:
           - watch
           - patch
           - update
+          - delete
         - apiGroups:
           - addon.open-cluster-management.io
           resources:
