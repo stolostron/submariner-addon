@@ -18,7 +18,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.16.0-m1
+	github.com/submariner-io/admiral v0.16.0-m2
 	github.com/submariner-io/cloud-prepare v0.16.0-m1
 	github.com/submariner-io/submariner v0.16.0-m1
 	github.com/submariner-io/submariner-operator v0.16.0-m1
@@ -162,7 +162,7 @@ require (
 	k8s.io/kms v0.27.3 // indirect
 	k8s.io/kube-aggregator v0.27.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
-	k8s.io/utils v0.0.0-20230505201702-9f6742963106 // indirect
+	k8s.io/utils v0.0.0-20230711102312-30195339c3c7 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.2 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
