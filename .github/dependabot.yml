@@ -17,23 +17,9 @@ updates:
       - dependency-name: k8s.io/client-go
       - dependency-name: k8s.io/code-generator
       - dependency-name: k8s.io/component-base
-  - package-ecosystem: gomod
-    target-branch: "release-2.5"
-    directory: "/"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    ignore:
-      # K8s and operator SDK, we need to handle these manually
-      - dependency-name: github.com/operator-framework/*
-      - dependency-name: k8s.io/*
-      - dependency-name: sigs.k8s.io/*
-      # Addon framework, this shouldn't be upgraded on release branches
-      - dependency-name: open-cluster-management.io/addon-framework
-      - dependency-name: open-cluster-management.io/api
-      # 2.5 tracks Submariner 0.12
-      - dependency-name: github.com/submariner-io/*
-        versions: ">= 0.13.0-m0"
+      # These are included with submariner-operator
+      - dependency-name: github.com/submariner-io/admiral
+      - dependency-name: github.com/submariner-io/submariner 
   - package-ecosystem: gomod
     target-branch: "release-2.6"
     directory: "/"
@@ -48,8 +34,13 @@ updates:
       # Addon framework, this shouldn't be upgraded on release branches
       - dependency-name: open-cluster-management.io/addon-framework
       - dependency-name: open-cluster-management.io/api
+      # These are included with submariner-operator
+      - dependency-name: github.com/submariner-io/admiral
+      - dependency-name: github.com/submariner-io/submariner
       # 2.6 tracks Submariner 0.13
-      - dependency-name: github.com/submariner-io/*
+      - dependency-name: github.com/submariner-io/submariner-operator
+        versions: ">= 0.14.0-m0"
+      - dependency-name: github.com/submariner-io/cloud-prepare
         versions: ">= 0.14.0-m0"
   - package-ecosystem: gomod
     target-branch: "release-2.7"
@@ -65,8 +56,13 @@ updates:
       # Addon framework, this shouldn't be upgraded on release branches
       - dependency-name: open-cluster-management.io/addon-framework
       - dependency-name: open-cluster-management.io/api
+      # These are included with submariner-operator
+      - dependency-name: github.com/submariner-io/admiral
+      - dependency-name: github.com/submariner-io/submariner
       # 2.7 tracks Submariner 0.14
-      - dependency-name: github.com/submariner-io/*
+      - dependency-name: github.com/submariner-io/submariner-operator
+        versions: ">= 0.15.0-m0"
+      - dependency-name: github.com/submariner-io/cloud-prepare
         versions: ">= 0.15.0-m0"
   - package-ecosystem: gomod
     target-branch: "release-2.8"
@@ -82,6 +78,11 @@ updates:
       # Addon framework, this shouldn't be upgraded on release branches
       - dependency-name: open-cluster-management.io/addon-framework
       - dependency-name: open-cluster-management.io/api
+      # These are included with submariner-operator
+      - dependency-name: github.com/submariner-io/admiral
+      - dependency-name: github.com/submariner-io/submariner
       # 2.8 tracks Submariner 0.15
-      - dependency-name: github.com/submariner-io/*
+      - dependency-name: github.com/submariner-io/submariner-operator
+        versions: ">= 0.16.0-m0"
+      - dependency-name: github.com/submariner-io/cloud-prepare
         versions: ">= 0.16.0-m0"
