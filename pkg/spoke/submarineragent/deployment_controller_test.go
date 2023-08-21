@@ -12,7 +12,6 @@ import (
 	"github.com/submariner-io/admiral/pkg/syncer/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/names"
-	"github.com/submariner-io/submariner/pkg/cni"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
@@ -317,39 +316,6 @@ var _ = Describe("Deployment Status Controller", func() {
 		})
 	})
 
-	When("network plugin is OVNKubernetes", func() {
-		BeforeEach(func() {
-			t.submariner.Status.NetworkPlugin = cni.OVNKubernetes
-		})
-
-		When("the network plugin syncer deployment doesn't initially exist", func() {
-			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-				t.awaitStatusCondition(metav1.ConditionTrue, "NoNetworkPluginSyncerDeployment")
-
-				t.networkPluginSyncerDeployment = newNetworkPluginsyncerDeployment()
-				t.createNetworkPluginSyncerDeployment()
-
-				t.awaitStatusConditionDeployed()
-			})
-		})
-
-		When("no network plugin syncer deployment replica is initially available", func() {
-			BeforeEach(func() {
-				t.networkPluginSyncerDeployment = newNetworkPluginsyncerDeployment()
-				t.networkPluginSyncerDeployment.Status.AvailableReplicas = 0
-			})
-
-			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-				t.awaitStatusCondition(metav1.ConditionTrue, "NoNetworkPluginSyncerAvailable")
-
-				t.networkPluginSyncerDeployment.Status.AvailableReplicas = 1
-				t.updateDeployment(t.networkPluginSyncerDeployment)
-
-				t.awaitStatusConditionDeployed()
-			})
-		})
-	})
-
 	When("updating the ManagedClusterAddOn status initially fails", func() {
 		Context("", func() {
 			BeforeEach(func() {
@@ -375,20 +341,19 @@ var _ = Describe("Deployment Status Controller", func() {
 
 type deploymentControllerTestDriver struct {
 	managedClusterAddOnTestBase
-	kubeClient                    *kubeFake.Clientset
-	subscriptionClient            dynamic.ResourceInterface
-	submarinerClient              dynamic.ResourceInterface
-	subscription                  *operatorsv1alpha1.Subscription
-	submariner                    *submarinerv1alpha1.Submariner
-	operatorDeployment            *appsv1.Deployment
-	gatewayDaemonSet              *appsv1.DaemonSet
-	routeAgentDaemonSet           *appsv1.DaemonSet
-	metricsProxyDaemonSet         *appsv1.DaemonSet
-	lighthouseAgentDeployment     *appsv1.Deployment
-	lighthouseCoreDNSDeployment   *appsv1.Deployment
-	globalnetDaemonSet            *appsv1.DaemonSet
-	networkPluginSyncerDeployment *appsv1.Deployment
-	stop                          context.CancelFunc
+	kubeClient                  *kubeFake.Clientset
+	subscriptionClient          dynamic.ResourceInterface
+	submarinerClient            dynamic.ResourceInterface
+	subscription                *operatorsv1alpha1.Subscription
+	submariner                  *submarinerv1alpha1.Submariner
+	operatorDeployment          *appsv1.Deployment
+	gatewayDaemonSet            *appsv1.DaemonSet
+	routeAgentDaemonSet         *appsv1.DaemonSet
+	metricsProxyDaemonSet       *appsv1.DaemonSet
+	lighthouseAgentDeployment   *appsv1.Deployment
+	lighthouseCoreDNSDeployment *appsv1.Deployment
+	globalnetDaemonSet          *appsv1.DaemonSet
+	stop                        context.CancelFunc
 }
 
 func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
@@ -406,7 +371,6 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 		t.metricsProxyDaemonSet = newMetricsProxyDaemonSet()
 		t.lighthouseAgentDeployment = newLighthouseAgentDeployment()
 		t.lighthouseCoreDNSDeployment = newLighthouseCoreDNSDeployment()
-		t.networkPluginSyncerDeployment = nil
 		t.globalnetDaemonSet = nil
 	})
 
@@ -451,10 +415,6 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 
 		if t.globalnetDaemonSet != nil {
 			t.createDaemonSet(t.globalnetDaemonSet)
-		}
-
-		if t.networkPluginSyncerDeployment != nil {
-			t.createNetworkPluginSyncerDeployment()
 		}
 
 		kubeInformerFactory := kubeInformers.NewSharedInformerFactory(t.kubeClient, 0)
@@ -513,11 +473,6 @@ func (t *deploymentControllerTestDriver) createLighthouseAgentDeployment() {
 
 func (t *deploymentControllerTestDriver) createLighthouseCoreDNSDeployment() {
 	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(context.TODO(), t.lighthouseCoreDNSDeployment, metav1.CreateOptions{})
-	Expect(err).To(Succeed())
-}
-
-func (t *deploymentControllerTestDriver) createNetworkPluginSyncerDeployment() {
-	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(context.TODO(), t.networkPluginSyncerDeployment, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
@@ -653,18 +608,6 @@ func newGlobalnetDaemonSet() *appsv1.DaemonSet {
 		},
 		Status: appsv1.DaemonSetStatus{
 			DesiredNumberScheduled: 1,
-		},
-	}
-}
-
-func newNetworkPluginsyncerDeployment() *appsv1.Deployment {
-	return &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: submarinerNS,
-			Name:      names.NetworkPluginSyncerComponent,
-		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
 		},
 	}
 }

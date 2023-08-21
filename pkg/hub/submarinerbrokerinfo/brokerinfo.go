@@ -60,40 +60,39 @@ var (
 )
 
 type SubmarinerBrokerInfo struct {
-	AirGappedDeployment                bool
-	NATEnabled                         bool
-	LoadBalancerEnabled                bool
-	InsecureBrokerConnection           bool
-	IPSecDebug                         bool
-	Debug                              bool
-	IPSecNATTPort                      int
-	InstallationNamespace              string
-	InstallPlanApproval                string
-	BrokerAPIServer                    string
-	BrokerNamespace                    string
-	BrokerToken                        string
-	BrokerCA                           string
-	IPSecPSK                           string
-	CableDriver                        string
-	ClusterName                        string
-	ClusterCIDR                        string
-	GlobalCIDR                         string
-	ServiceCIDR                        string
-	CatalogChannel                     string
-	CatalogName                        string
-	CatalogSource                      string
-	CatalogSourceNamespace             string
-	CatalogStartingCSV                 string
-	SubmarinerGatewayImage             string
-	SubmarinerRouteAgentImage          string
-	SubmarinerGlobalnetImage           string
-	SubmarinerNetworkPluginSyncerImage string
-	LighthouseAgentImage               string
-	LighthouseCoreDNSImage             string
-	MetricsProxyImage                  string
-	NettestImage                       string
-	NodeSelector                       map[string]string
-	Tolerations                        []corev1.Toleration
+	AirGappedDeployment       bool
+	NATEnabled                bool
+	LoadBalancerEnabled       bool
+	InsecureBrokerConnection  bool
+	IPSecDebug                bool
+	Debug                     bool
+	IPSecNATTPort             int
+	InstallationNamespace     string
+	InstallPlanApproval       string
+	BrokerAPIServer           string
+	BrokerNamespace           string
+	BrokerToken               string
+	BrokerCA                  string
+	IPSecPSK                  string
+	CableDriver               string
+	ClusterName               string
+	ClusterCIDR               string
+	GlobalCIDR                string
+	ServiceCIDR               string
+	CatalogChannel            string
+	CatalogName               string
+	CatalogSource             string
+	CatalogSourceNamespace    string
+	CatalogStartingCSV        string
+	SubmarinerGatewayImage    string
+	SubmarinerRouteAgentImage string
+	SubmarinerGlobalnetImage  string
+	LighthouseAgentImage      string
+	LighthouseCoreDNSImage    string
+	MetricsProxyImage         string
+	NettestImage              string
+	NodeSelector              map[string]string
+	Tolerations               []corev1.Toleration
 }
 
 // Get retrieves submariner broker information consolidated with hub information.
@@ -224,8 +223,6 @@ func applySubmarinerImageConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConf
 	setIfValueNotDefault(&brokerInfo.LighthouseCoreDNSImage, submarinerConfig.Spec.ImagePullSpecs.LighthouseCoreDNSImagePullSpec)
 	setIfValueNotDefault(&brokerInfo.LighthouseAgentImage, submarinerConfig.Spec.ImagePullSpecs.LighthouseAgentImagePullSpec)
 	setIfValueNotDefault(&brokerInfo.SubmarinerGlobalnetImage, submarinerConfig.Spec.ImagePullSpecs.SubmarinerGlobalnetImagePullSpec)
-	setIfValueNotDefault(&brokerInfo.SubmarinerNetworkPluginSyncerImage, submarinerConfig.
-		Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec)
 	setIfValueNotDefault(&brokerInfo.MetricsProxyImage, submarinerConfig.Spec.ImagePullSpecs.MetricsProxyImagePullSpec)
 	setIfValueNotDefault(&brokerInfo.NettestImage, submarinerConfig.Spec.ImagePullSpecs.NettestImagePullSpec)
 }

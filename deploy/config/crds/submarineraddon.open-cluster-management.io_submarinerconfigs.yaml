@@ -136,7 +136,7 @@ spec:
                     description: SubmarinerImagePullSpec represents the desired image of submariner.
                     type: string
                   submarinerNetworkPluginSyncerImagePullSpec:
-                    description: SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer.
+                    description: 'SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer. Deprecated: The networkplugin syncer was removed in v0.16.0.'
                     type: string
                   submarinerRouteAgentImagePullSpec:
                     description: SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.

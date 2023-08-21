@@ -13,7 +13,6 @@ import (
 	"github.com/submariner-io/admiral/pkg/resource"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/names"
-	"github.com/submariner-io/submariner/pkg/cni"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -212,13 +211,6 @@ func (c *deploymentStatusController) checkOptionals(degradedConditionReasons, de
 
 	if submariner.Spec.GlobalCIDR != "" {
 		err = c.checkGlobalnetDaemonSet(degradedConditionReasons, degradedConditionMessages)
-		if err != nil {
-			return err
-		}
-	}
-
-	if submariner.Status.NetworkPlugin == cni.OVNKubernetes {
-		err = c.checkDeployment(names.NetworkPluginSyncerComponent, "NetworkPluginSyncer", degradedConditionReasons, degradedConditionMessages)
 		if err != nil {
 			return err
 		}

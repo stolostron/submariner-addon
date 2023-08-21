@@ -158,6 +158,7 @@ type SubmarinerImagePullSpecs struct {
 	SubmarinerGlobalnetImagePullSpec string `json:"submarinerGlobalnetImagePullSpec,omitempty"`
 
 	// SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer.
+	// Deprecated: The networkplugin syncer was removed in v0.16.0.
 	// +optional
 	SubmarinerNetworkPluginSyncerImagePullSpec string `json:"submarinerNetworkPluginSyncerImagePullSpec,omitempty"`
 
