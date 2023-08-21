@@ -109,7 +109,8 @@ var _ = Describe("Update Status", func() {
 
 	When("the SubmarinerConfig doesn't exist", func() {
 		JustBeforeEach(func() {
-			Expect(t.client.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).Delete(context.TODO(), configName, metav1.DeleteOptions{}))
+			Expect(t.client.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).Delete(context.TODO(), configName, metav1.DeleteOptions{})).
+				To(Succeed())
 		})
 
 		It("should succeed and report not updated", func() {

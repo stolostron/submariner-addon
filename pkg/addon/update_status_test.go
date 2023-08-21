@@ -110,7 +110,7 @@ var _ = Describe("Update Status", func() {
 	When("the ManagedClusterAddOn doesn't exist", func() {
 		JustBeforeEach(func() {
 			Expect(t.client.AddonV1alpha1().ManagedClusterAddOns(namespace).Delete(context.TODO(), constants.SubmarinerAddOnName,
-				metav1.DeleteOptions{}))
+				metav1.DeleteOptions{})).To(Succeed())
 		})
 
 		It("should succeed and report not updated", func() {
