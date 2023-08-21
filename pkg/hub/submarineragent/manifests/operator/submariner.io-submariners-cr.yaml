@@ -36,9 +36,6 @@ spec:
     {{- if .SubmarinerGlobalnetImage }}
     submariner-globalnet: {{ .SubmarinerGlobalnetImage }}
     {{- end}}
-    {{- if .SubmarinerNetworkPluginSyncerImage }}
-    submariner-networkplugin-syncer: {{ .SubmarinerNetworkPluginSyncerImage }}
-    {{- end}}
     {{- if .LighthouseAgentImage }}
     submariner-lighthouse-agent: {{ .LighthouseAgentImage }}
     {{- end}}

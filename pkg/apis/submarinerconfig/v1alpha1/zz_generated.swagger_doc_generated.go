@@ -128,7 +128,7 @@ var map_SubmarinerImagePullSpecs = map[string]string{
 	"lighthouseCoreDNSImagePullSpec":             "LighthouseCoreDNSImagePullSpec represents the desired image of lighthouse coredns.",
 	"submarinerRouteAgentImagePullSpec":          "SubmarinerRouteAgentImagePullSpec represents the desired image of the submariner route agent.",
 	"submarinerGlobalnetImagePullSpec":           "SubmarinerGlobalnetImagePullSpec represents the desired image of the submariner globalnet.",
-	"submarinerNetworkPluginSyncerImagePullSpec": "SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer.",
+	"submarinerNetworkPluginSyncerImagePullSpec": "SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer. Deprecated: The networkplugin syncer was removed in v0.16.0.",
 	"metricsProxyImagePullSpec":                  "MetricsProxyImagePullSpec represents the desired image of the metrics proxy.",
 	"nettestImagePullSpec":                       "NettestImagePullSpec represents the desired image of nettest.",
 }

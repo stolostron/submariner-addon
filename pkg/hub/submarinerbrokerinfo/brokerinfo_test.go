@@ -195,11 +195,10 @@ var _ = Describe("Function Get", func() {
 							StartingCSV:     "xyz",
 						},
 						ImagePullSpecs: configv1alpha1.SubmarinerImagePullSpecs{
-							SubmarinerImagePullSpec:                    "quay.io/submariner/submariner-gateway:10.0.1",
-							LighthouseAgentImagePullSpec:               "quay.io/submariner/lighthouse-agent:10.0.1",
-							LighthouseCoreDNSImagePullSpec:             "quay.io/submariner/lighthouse-coredns:10.0.1",
-							SubmarinerRouteAgentImagePullSpec:          "quay.io/submariner/submariner-route-agent:10.0.1",
-							SubmarinerNetworkPluginSyncerImagePullSpec: "quay.io/submariner/submariner-networkplugin-syncer:10.0.1",
+							SubmarinerImagePullSpec:           "quay.io/submariner/submariner-gateway:10.0.1",
+							LighthouseAgentImagePullSpec:      "quay.io/submariner/lighthouse-agent:10.0.1",
+							LighthouseCoreDNSImagePullSpec:    "quay.io/submariner/lighthouse-coredns:10.0.1",
+							SubmarinerRouteAgentImagePullSpec: "quay.io/submariner/submariner-route-agent:10.0.1",
 						},
 						CableDriver:              "wireguard",
 						IPSecNATTPort:            5678,
@@ -227,8 +226,6 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.AirGappedDeployment).To(Equal(submarinerConfig.Spec.AirGappedDeployment))
 				Expect(brokerInfo.SubmarinerGatewayImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec))
 				Expect(brokerInfo.SubmarinerRouteAgentImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec))
-				Expect(brokerInfo.SubmarinerNetworkPluginSyncerImage).To(Equal(
-					submarinerConfig.Spec.ImagePullSpecs.SubmarinerNetworkPluginSyncerImagePullSpec))
 				Expect(brokerInfo.InsecureBrokerConnection).To(Equal(submarinerConfig.Spec.InsecureBrokerConnection))
 			})
 
