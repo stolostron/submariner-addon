@@ -83,13 +83,13 @@ var _ = Describe("Function Get", func() {
 				Name:      clusterName,
 				Namespace: brokerNamespace,
 			},
-			Secrets: []corev1.ObjectReference{{Name: "other"}, {Name: clusterName + "-token-5pw5c"}},
 		}
 
 		serviceAccountSecret = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterName + "-token-5pw5c",
-				Namespace: brokerNamespace,
+				Name:        clusterName + "-token-5pw5c",
+				Namespace:   brokerNamespace,
+				Annotations: map[string]string{corev1.ServiceAccountNameKey: serviceAccount.Name},
 			},
 			Data: map[string][]byte{
 				"ca.crt": []byte(brokerCA),
@@ -348,16 +348,6 @@ var _ = Describe("Function Get", func() {
 	When("the cluster ServiceAccount resource is missing", func() {
 		BeforeEach(func() {
 			kubeObjs = []runtime.Object{ipsecSecret, serviceAccountSecret}
-		})
-
-		It("should return an error", func() {
-			Expect(err).ToNot(Succeed())
-		})
-	})
-
-	When("the cluster ServiceAccount resource has no Secrets", func() {
-		BeforeEach(func() {
-			serviceAccount.Secrets = []corev1.ObjectReference{}
 		})
 
 		It("should return an error", func() {

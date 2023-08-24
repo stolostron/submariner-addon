@@ -141,10 +141,6 @@ func SetupServiceAccount(kubeClient kubernetes.Interface, namespace, name string
 			}
 
 			secretName := fmt.Sprintf("%s-token-%s", name, rand.String(5))
-			sa.Secrets = []corev1.ObjectReference{{Name: secretName}}
-			if _, err := kubeClient.CoreV1().ServiceAccounts(namespace).Update(ctx, sa, metav1.UpdateOptions{}); err != nil {
-				return false, err
-			}
 
 			// create a serviceaccount token secret
 			secret := &corev1.Secret{
@@ -152,7 +148,7 @@ func SetupServiceAccount(kubeClient kubernetes.Interface, namespace, name string
 					Namespace: namespace,
 					Name:      secretName,
 					Annotations: map[string]string{
-						"kubernetes.io/service-account.name": sa.Name,
+						corev1.ServiceAccountNameKey: sa.Name,
 					},
 				},
 				Data: map[string][]byte{

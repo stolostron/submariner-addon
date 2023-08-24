@@ -450,12 +450,12 @@ func newTestDriver() *testDriver {
 					Name:      clusterName,
 					Namespace: brokerNamespace,
 				},
-				Secrets: []corev1.ObjectReference{{Name: clusterName + "-token-5pw5c"}},
 			},
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      clusterName + "-token-5pw5c",
-					Namespace: brokerNamespace,
+					Name:        clusterName + "-token-5pw5c",
+					Namespace:   brokerNamespace,
+					Annotations: map[string]string{corev1.ServiceAccountNameKey: clusterName},
 				},
 				Data: map[string][]byte{
 					"ca.crt": []byte(brokerCA),
