@@ -331,27 +331,6 @@ func getBrokerTokenAndCA(ctx context.Context, kubeClient kubernetes.Interface, d
 		return "", "", fmt.Errorf("failed to get agent ServiceAccount %v/%v: %w", brokerNS, clusterName, err)
 	}
 
-	if len(sa.Secrets) < 1 {
-		return "", "", fmt.Errorf("ServiceAccount %v does not have any secret", sa.Name)
-	}
-
-	brokerTokenPrefix := fmt.Sprintf("%s-token-", clusterName)
-
-	for _, secret := range sa.Secrets {
-		if strings.HasPrefix(secret.Name, brokerTokenPrefix) {
-			tokenSecret, err := kubeClient.CoreV1().Secrets(brokerNS).Get(ctx, secret.Name, metav1.GetOptions{})
-			if err != nil {
-				return "", "", fmt.Errorf("failed to get secret %v of agent ServiceAccount %v/%v: %w",
-					secret.Name, brokerNS, clusterName, err)
-			}
-
-			if tokenSecret.Type == corev1.SecretTypeServiceAccountToken {
-				return getTokenAndCAFromSecret(ctx, tokenSecret, kubeAPIServer, kubeClient, dynamicClient)
-			}
-		}
-	}
-
-	// OCP 4.11.0+ doesn't store secret in SA
 	tokenSecret, err := getTokenSecretForSA(ctx, kubeClient, sa)
 	if err != nil {
 		return "", "", err
