@@ -317,7 +317,13 @@ spec:
                   requests:
                     cpu: 100m
                     memory: 128Mi
+                volumeMounts:
+                - mountPath: /tmp
+                  name: tmp
               serviceAccountName: submariner-addon
+              volumes:
+              - emptyDir: {}
+                name: tmp
     strategy: deployment
   installModes:
   - supported: true
