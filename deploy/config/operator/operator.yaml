@@ -1,3 +1,4 @@
+---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -17,32 +18,38 @@ spec:
     spec:
       serviceAccountName: submariner-addon
       containers:
-      - name: submariner-addon
-        image: quay.io/stolostron/submariner-addon:latest
-        args:
-          - "/submariner"
-          - "controller"
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            scheme: HTTPS
-            port: 8443
-          initialDelaySeconds: 2
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            scheme: HTTPS
-            port: 8443
-          initialDelaySeconds: 2
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            memory: 270Mi
-        env:
-          - name: POD_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.name
+        - name: submariner-addon
+          image: quay.io/stolostron/submariner-addon:latest
+          args:
+            - "/submariner"
+            - "controller"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              scheme: HTTPS
+              port: 8443
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              scheme: HTTPS
+              port: 8443
+            initialDelaySeconds: 2
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 270Mi
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
