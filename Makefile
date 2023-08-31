@@ -150,7 +150,7 @@ golangci-lint: vendor | $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) version
 	$(GOLANGCI_LINT) linters
 	$(GOLANGCI_LINT) cache clean
-	$(GOLANGCI_LINT) run --timeout 10m
+	$(GOLANGCI_LINT) run --timeout 15m
 
 vendor: go.mod
 	$(GO) mod download
