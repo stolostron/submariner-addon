@@ -60,7 +60,6 @@ const (
 	OperatorManifestWorkName      = "submariner-operator"
 	SubmarinerCRManifestWorkName  = "submariner-resource"
 	AgentFinalizer                = "cluster.open-cluster-management.io/submariner-agent-cleanup"
-	AddOnFinalizer                = "submarineraddon.open-cluster-management.io/submariner-addon-cleanup"
 	agentRBACFile                 = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
 	submarinerCRFile              = "manifests/operator/submariner.io-submariners-cr.yaml"
 	BrokerCfgApplied              = "SubmarinerBrokerConfigApplied"
@@ -323,7 +322,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 
 	// add a finalizer to the submariner-addon
 	added, err = finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
-		addOn, AddOnFinalizer)
+		addOn, constants.SubmarinerAddOnFinalizer)
 	if added || err != nil {
 		if added {
 			logger.Infof("Added finalizer to ManagedClusterAddOn %q in cluster %q", addOn.Name, addOn.Namespace)
@@ -366,7 +365,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(constants.SubmarinerAddOnName)
 	if err == nil {
 		return finalizer.Remove(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
-			addOn, AddOnFinalizer)
+			addOn, constants.SubmarinerAddOnFinalizer)
 	}
 
 	return nil

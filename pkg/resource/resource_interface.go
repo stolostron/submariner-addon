@@ -70,6 +70,23 @@ func ForAddon(client addonV1alpha1Client.ManagedClusterAddOnInterface) resource.
 	}
 }
 
+func ForClusterAddon(client addonV1alpha1Client.ClusterManagementAddOnInterface) resource.Interface {
+	return &resource.InterfaceFuncs{
+		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (runtime.Object, error) {
+			return client.Get(ctx, name, options)
+		},
+		CreateFunc: func(ctx context.Context, obj runtime.Object, options metav1.CreateOptions) (runtime.Object, error) {
+			return client.Create(ctx, obj.(*addonV1alpha1.ClusterManagementAddOn), options)
+		},
+		UpdateFunc: func(ctx context.Context, obj runtime.Object, options metav1.UpdateOptions) (runtime.Object, error) {
+			return client.Update(ctx, obj.(*addonV1alpha1.ClusterManagementAddOn), options)
+		},
+		DeleteFunc: func(ctx context.Context, name string, options metav1.DeleteOptions) error {
+			return client.Delete(ctx, name, options)
+		},
+	}
+}
+
 func ForSubmarinerConfig(client cfgv1a1clnt.SubmarinerConfigInterface) resource.Interface {
 	return &resource.InterfaceFuncs{
 		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (runtime.Object, error) {

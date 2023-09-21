@@ -160,12 +160,12 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
-	submarinerBrokerController := submarinerbroker.NewController(
+	submarinerBrokerController := submarinerbroker.NewController(kubeClient,
 		clusterClient.ClusterV1beta2().ManagedClusterSets(),
-		kubeClient,
 		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
-		controllerContext.EventRecorder,
-	)
+		addOnClient,
+		addOnInformers.Addon().V1alpha1(),
+		controllerContext.EventRecorder)
 
 	submarinerAgentController := submarineragent.NewSubmarinerAgentController(
 		kubeClient,
@@ -219,9 +219,10 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 }
 
 func createClusterManagementAddon(ctx context.Context, client *addonclient.Clientset) error {
-	submarineerClusterMgmtAddon := &addonv1alpha1.ClusterManagementAddOn{
+	submarinerClusterMgmtAddon := &addonv1alpha1.ClusterManagementAddOn{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.SubmarinerAddOnName,
+			Name:       constants.SubmarinerAddOnName,
+			Finalizers: []string{constants.SubmarinerAddOnFinalizer},
 		},
 		Spec: addonv1alpha1.ClusterManagementAddOnSpec{
 			AddOnMeta: addonv1alpha1.AddOnMeta{
@@ -241,8 +242,9 @@ func createClusterManagementAddon(ctx context.Context, client *addonclient.Clien
 			},
 		},
 	}
+
 	_, err := client.AddonV1alpha1().ClusterManagementAddOns().Create(
-		ctx, submarineerClusterMgmtAddon, metav1.CreateOptions{})
+		ctx, submarinerClusterMgmtAddon, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return errors.Wrap(err, "error creating ClusterManagementAddOn")
 	}

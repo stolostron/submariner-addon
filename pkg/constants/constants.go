@@ -1,8 +1,9 @@
 package constants
 
 const (
-	SubmarinerAddOnName  = "submariner"
-	SubmarinerConfigName = "submariner"
+	SubmarinerAddOnName      = "submariner"
+	SubmarinerConfigName     = "submariner"
+	SubmarinerAddOnFinalizer = "submarineraddon.open-cluster-management.io/submariner-addon-cleanup"
 
 	ProductOCP        = "OpenShift"
 	ProductROSA       = "ROSA"

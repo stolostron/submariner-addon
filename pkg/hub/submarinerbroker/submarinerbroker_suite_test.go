@@ -1,6 +1,7 @@
 package submarinerbroker_test
 
 import (
+	"flag"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -9,6 +10,10 @@ import (
 )
 
 var _ = BeforeSuite(func() {
+	// set logging verbosity of agent in unit test to DEBUG
+	flags := flag.NewFlagSet("kzerolog", flag.ExitOnError)
+	kzerolog.AddFlags(flags)
+	_ = flags.Parse([]string{"-v=2"})
 	kzerolog.InitK8sLogging()
 })
 
