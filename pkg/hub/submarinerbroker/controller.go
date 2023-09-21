@@ -7,19 +7,26 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	brokerinfo "github.com/stolostron/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/finalizer"
 	"github.com/submariner-io/admiral/pkg/log"
+	coreresource "github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	"open-cluster-management.io/api/addon/v1alpha1"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
+	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta2"
 	clusterinformerv1beta2 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta2"
 	clusterlisterv1beta2 "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta2"
@@ -28,9 +35,9 @@ import (
 )
 
 const (
-	brokerFinalizer      = "cluster.open-cluster-management.io/submariner-cleanup"
-	submBrokerNamespace  = "cluster.open-cluster-management.io/submariner-broker-ns"
-	ipSecPSKSecretLength = 48
+	brokerFinalizer        = "cluster.open-cluster-management.io/submariner-cleanup"
+	SubmBrokerNamespaceKey = "cluster.open-cluster-management.io/submariner-broker-ns"
+	ipSecPSKSecretLength   = 48
 )
 
 var staticResourceFiles = []string{
@@ -44,40 +51,94 @@ var manifestFiles embed.FS
 var logger = log.Logger{Logger: logf.Log.WithName("SubmarinerBrokerController")}
 
 type submarinerBrokerController struct {
-	kubeClient       kubernetes.Interface
-	clustersetClient clientset.ManagedClusterSetInterface
-	clusterSetLister clusterlisterv1beta2.ManagedClusterSetLister
-	eventRecorder    events.Recorder
+	kubeClient         kubernetes.Interface
+	clustersetClient   clientset.ManagedClusterSetInterface
+	clusterSetLister   clusterlisterv1beta2.ManagedClusterSetLister
+	addOnClient        addonclient.Interface
+	clusterAddOnLister addonlisterv1alpha1.ClusterManagementAddOnLister
+	addOnLister        addonlisterv1alpha1.ManagedClusterAddOnLister
+	eventRecorder      events.Recorder
 }
 
 type brokerConfig struct {
 	SubmarinerNamespace string
 }
 
-func NewController(
+func NewController(kubeClient kubernetes.Interface,
 	clustersetClient clientset.ManagedClusterSetInterface,
-	kubeClient kubernetes.Interface,
 	clusterSetInformer clusterinformerv1beta2.ManagedClusterSetInformer,
+	addOnClient addonclient.Interface,
+	addOnInformer addoninformerv1alpha1.Interface,
 	recorder events.Recorder,
 ) factory.Controller {
 	c := &submarinerBrokerController{
-		kubeClient:       kubeClient,
-		clustersetClient: clustersetClient,
-		clusterSetLister: clusterSetInformer.Lister(),
-		eventRecorder:    recorder.WithComponentSuffix("submariner-broker-controller"),
+		kubeClient:         kubeClient,
+		clustersetClient:   clustersetClient,
+		clusterSetLister:   clusterSetInformer.Lister(),
+		addOnClient:        addOnClient,
+		clusterAddOnLister: addOnInformer.ClusterManagementAddOns().Lister(),
+		addOnLister:        addOnInformer.ManagedClusterAddOns().Lister(),
+		eventRecorder:      recorder.WithComponentSuffix("submariner-broker-controller"),
 	}
 
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
+			logger.V(log.DEBUG).Infof("Queuing ManagedClusterSet %q", accessor.GetName())
 
 			return accessor.GetName()
 		}, clusterSetInformer.Informer()).
+		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			accessor, _ := meta.Accessor(obj)
+			if accessor.GetName() != constants.SubmarinerAddOnName {
+				return ""
+			}
+
+			logger.V(log.DEBUG).Infof("Queuing ClusterManagementAddon %q", accessor.GetName())
+
+			return factory.DefaultQueueKey
+		}, addOnInformer.ClusterManagementAddOns().Informer()).
+		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			accessor, _ := meta.Accessor(obj)
+			if accessor.GetName() != constants.SubmarinerAddOnName {
+				return ""
+			}
+
+			logger.V(log.DEBUG).Infof("Queuing ManagedClusterAddOn %q for cluster %q", accessor.GetName(), accessor.GetNamespace())
+
+			return factory.DefaultQueueKey
+		}, addOnInformer.ManagedClusterAddOns().Informer()).
 		WithSync(c.sync).
 		ToController("SubmarinerBrokerController", recorder)
 }
 
 func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+	if syncCtx.QueueKey() == "" {
+		return nil
+	}
+
+	logger.V(log.TRACE).Infof("Entering sync for %q", syncCtx.QueueKey())
+	defer logger.V(log.TRACE).Infof("Exiting sync for %q", syncCtx.QueueKey())
+
+	clusterAddOn, err := c.clusterAddOnLister.Get(constants.SubmarinerAddOnName)
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if !clusterAddOn.DeletionTimestamp.IsZero() {
+		logger.Infof("ClusterManagementAddOn %q is deleting", clusterAddOn.Name)
+
+		return c.doAllClusterSetCleanup(ctx, clusterAddOn, syncCtx.Recorder())
+	}
+
+	if syncCtx.QueueKey() == factory.DefaultQueueKey {
+		return nil
+	}
+
 	clusterSetName := syncCtx.QueueKey()
 
 	clusterSet, err := c.clusterSetLister.Get(clusterSetName)
@@ -98,49 +159,56 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 		return nil
 	}
 
-	logger.V(log.DEBUG).Infof("Reconciling ManagedClusterSet %q", clusterSetName)
+	return c.reconcileManagedClusterSet(ctx, clusterSet, syncCtx.Recorder())
+}
 
-	// Update finalizer at first
-	added, err := finalizer.Add(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
-	if added || err != nil {
-		if added {
-			logger.Infof("Added finalizer to ManagedClusterSet %q", clusterSet.Name)
-		}
-
-		return err
-	}
-
-	config := &brokerConfig{
-		SubmarinerNamespace: brokerinfo.GenerateBrokerName(clusterSet.Name),
-	}
-
-	assetFunc := resource.AssetFromFile(manifestFiles, config)
+func (c *submarinerBrokerController) reconcileManagedClusterSet(ctx context.Context, clusterSet *clusterv1beta2.ManagedClusterSet,
+	recorder events.Recorder,
+) error {
+	logger.V(log.DEBUG).Infof("Reconciling ManagedClusterSet %q", clusterSet.Name)
 
 	// ClusterSet is deleting, we remove its related resources on hub
 	if !clusterSet.DeletionTimestamp.IsZero() {
 		logger.Infof("ManagedClusterSet %q is deleting", clusterSet.Name)
 
-		if err := resource.DeleteFromManifests(ctx, c.kubeClient, syncCtx.Recorder(), assetFunc, staticResourceFiles...); err != nil {
-			return err
+		return c.doClusterSetCleanup(ctx, clusterSet, recorder)
+	}
+
+	brokerNS := brokerinfo.GenerateBrokerName(clusterSet.Name)
+
+	if !finalizer.IsPresent(clusterSet, brokerFinalizer) || clusterSet.GetAnnotations()[SubmBrokerNamespaceKey] != brokerNS {
+		err := util.Update(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet,
+			func(existing runtime.Object) (runtime.Object, error) {
+				objMeta := coreresource.MustToMeta(existing)
+
+				annotations := objMeta.GetAnnotations()
+				if annotations == nil {
+					annotations = map[string]string{}
+				}
+
+				annotations[SubmBrokerNamespaceKey] = brokerNS
+				objMeta.SetAnnotations(annotations)
+
+				objMeta.SetFinalizers(append(objMeta.GetFinalizers(), brokerFinalizer))
+
+				return existing, nil
+			})
+		if err != nil {
+			return errors.Wrapf(err, "error updating ManagedClusterSet %q", clusterSet.Name)
 		}
 
-		return finalizer.Remove(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
+		logger.Infof("Updated ManagedClusterSet %q with the finalizer and/or brokerNamespace %q", clusterSet.Name, brokerNS)
+
+		return nil
 	}
 
 	// Apply static files
-	err = resource.ApplyManifests(ctx, c.kubeClient, syncCtx.Recorder(), assetFunc, staticResourceFiles...)
+	err := resource.ApplyManifests(ctx, c.kubeClient, recorder, assetFunc(brokerNS), staticResourceFiles...)
 	if err != nil {
 		return err
 	}
 
-	if clusterSet.GetAnnotations()[submBrokerNamespace] != config.SubmarinerNamespace {
-		err = c.annotateClusterSetWithBrokerNamespace(ctx, config.SubmarinerNamespace, clusterSet)
-		if err != nil {
-			return err
-		}
-	}
-
-	return c.createIPSecPSKSecret(ctx, config.SubmarinerNamespace)
+	return c.createIPSecPSKSecret(ctx, brokerNS)
 }
 
 func (c *submarinerBrokerController) createIPSecPSKSecret(ctx context.Context, brokerNamespace string) error {
@@ -170,29 +238,60 @@ func (c *submarinerBrokerController) createIPSecPSKSecret(ctx context.Context, b
 	return err
 }
 
-func (c *submarinerBrokerController) annotateClusterSetWithBrokerNamespace(ctx context.Context, brokerNamespace string,
-	clusterSet *clusterv1beta2.ManagedClusterSet,
+func (c *submarinerBrokerController) doClusterSetCleanup(ctx context.Context, clusterSet *clusterv1beta2.ManagedClusterSet,
+	recorder events.Recorder,
 ) error {
-	err := util.Update(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet,
-		func(existing runtime.Object) (runtime.Object, error) {
-			clusterSet := existing.(*clusterv1beta2.ManagedClusterSet)
-
-			annotations := clusterSet.GetAnnotations()
-			if annotations == nil {
-				annotations = map[string]string{}
-			}
-
-			annotations[submBrokerNamespace] = brokerNamespace
-			clusterSet.SetAnnotations(annotations)
-
-			return clusterSet, nil
-		})
-	if err != nil {
-		return errors.Wrapf(err, "error annotating ManagedClusterSet %q with brokerNamespace %q",
-			clusterSet.Name, brokerNamespace)
+	brokerNS := clusterSet.GetAnnotations()[SubmBrokerNamespaceKey]
+	if brokerNS == "" {
+		return nil
 	}
 
-	logger.Infof("Successfully annotated ManagedClusterSet %q with brokerNamespace %q", clusterSet.Name, brokerNamespace)
+	if err := resource.DeleteFromManifests(ctx, c.kubeClient, recorder, assetFunc(brokerNS), staticResourceFiles...); err != nil {
+		return err
+	}
 
-	return nil
+	return finalizer.Remove(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
+}
+
+func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context, clusterAddOn *v1alpha1.ClusterManagementAddOn,
+	recorder events.Recorder,
+) error {
+	addOns, err := c.addOnLister.List(labels.Everything())
+	if err != nil {
+		return errors.Wrap(err, "error listing ManagedClusterAddOns")
+	}
+
+	for _, addOn := range addOns {
+		if metav1.IsControlledBy(addOn, clusterAddOn) {
+			// A submariner ManagedClusterAddOn still exists - defer cleanup.
+			logger.Infof("ManagedClusterAddOn in cluster %q still exists - not cleaning up yet", addOn.Namespace)
+
+			return nil
+		}
+	}
+
+	logger.Info("All ManagedClusterAddOns deleted - doing broker cleaning")
+
+	clusterSets, err := c.clusterSetLister.List(labels.Everything())
+	if err != nil {
+		return errors.Wrap(err, "error listing ManagedClusterSets")
+	}
+
+	for _, clusterSet := range clusterSets {
+		err = c.doClusterSetCleanup(ctx, clusterSet, recorder)
+		if err != nil {
+			return err
+		}
+	}
+
+	return finalizer.Remove(ctx, resource.ForClusterAddon(c.addOnClient.AddonV1alpha1().ClusterManagementAddOns()), clusterAddOn,
+		constants.SubmarinerAddOnFinalizer)
+}
+
+func assetFunc(brokerNS string) resourceapply.AssetFunc {
+	config := &brokerConfig{
+		SubmarinerNamespace: brokerNS,
+	}
+
+	return resource.AssetFromFile(manifestFiles, config)
 }

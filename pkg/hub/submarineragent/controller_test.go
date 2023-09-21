@@ -521,7 +521,7 @@ func (t *testDriver) initManifestWorks() {
 func (t *testDriver) testFinalizers() {
 	It("should add finalizers to the ManagedClusterAddon and ManagedCluster", func() {
 		test.AwaitFinalizer(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
-			t.addOn.Name, submarineragent.AddOnFinalizer)
+			t.addOn.Name, constants.SubmarinerAddOnFinalizer)
 		test.AwaitFinalizer(resource.ForManagedCluster(t.clusterClient.ClusterV1().ManagedClusters()), clusterName,
 			submarineragent.AgentFinalizer)
 	})
@@ -536,7 +536,7 @@ func (t *testDriver) testAgentCleanup() {
 		_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.Background(), t.addOn.Name, metav1.GetOptions{})
 		if !apierrors.IsNotFound(err) {
 			test.AwaitNoFinalizer(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
-				t.addOn.Name, submarineragent.AddOnFinalizer)
+				t.addOn.Name, constants.SubmarinerAddOnFinalizer)
 		}
 
 		test.AwaitNoFinalizer(resource.ForManagedCluster(t.clusterClient.ClusterV1().ManagedClusters()), clusterName,
