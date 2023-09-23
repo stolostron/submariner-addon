@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +14,9 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/hub"
 	"github.com/stolostron/submariner-addon/test/util"
 	"github.com/submariner-io/admiral/pkg/log/kzerolog"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -21,6 +24,7 @@ import (
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
 	clusterV1 "open-cluster-management.io/api/cluster/v1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
@@ -113,9 +117,11 @@ var _ = BeforeSuite(func() {
 	Expect(controllerClient).ToNot(BeNil())
 
 	// prepare open-cluster-management namespaces
-	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace("open-cluster-management"),
+	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewNamespace("open-cluster-management"),
 		metav1.CreateOptions{})
-	Expect(err).NotTo(HaveOccurred())
+	if !apierrors.IsAlreadyExists(err) {
+		Expect(err).NotTo(HaveOccurred())
+	}
 
 	// create local cluster with URL in ClientConfig
 	localCluster := util.NewManagedCluster("local-cluster", map[string]string{})
@@ -125,7 +131,9 @@ var _ = BeforeSuite(func() {
 		},
 	}
 	_, err = clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), localCluster, metav1.CreateOptions{})
-	Expect(err).NotTo(HaveOccurred())
+	if !apierrors.IsAlreadyExists(err) {
+		Expect(err).NotTo(HaveOccurred())
+	}
 
 	// start submariner broker and agent controller
 	go func() {
@@ -145,3 +153,53 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
+
+func deployManagedClusterSet() (managedClusterSetName, brokerNamespace string) {
+	managedClusterSetName = fmt.Sprintf("set-%s", rand.String(6))
+	brokerNamespace = fmt.Sprintf("%s-broker", managedClusterSetName)
+
+	By("Create a ManagedClusterSet")
+
+	_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(),
+		util.NewManagedClusterSet(managedClusterSetName), metav1.CreateOptions{})
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Check if the submariner broker is deployed")
+
+	Eventually(func() bool {
+		return util.CheckBrokerResources(kubeClient, brokerNamespace, true)
+	}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+
+	return
+}
+
+func deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, brokerNamespace string) {
+	By("Create a ManagedCluster")
+
+	managedCluster := util.NewManagedCluster(managedClusterName, map[string]string{
+		clusterv1beta2.ClusterSetLabel: managedClusterSetName,
+	})
+	_, err := clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), managedCluster, metav1.CreateOptions{})
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Create the ManagedCluster's namespace")
+
+	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewNamespace(managedClusterName),
+		metav1.CreateOptions{})
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Create the brokers.submariner.io config in the broker namespace")
+
+	createBrokerConfiguration(brokerNamespace)
+
+	By("Create a submariner ManagedClusterAddOn")
+
+	_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(),
+		util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Setup the service account")
+
+	err = util.SetupServiceAccount(kubeClient, brokerNamespace, managedClusterName)
+	Expect(err).NotTo(HaveOccurred())
+}

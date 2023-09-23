@@ -13,196 +13,127 @@ import (
 	"github.com/stolostron/submariner-addon/test/util"
 	"github.com/submariner-io/admiral/pkg/finalizer"
 	"github.com/submariner-io/submariner-operator/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/utils/ptr"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	"open-cluster-management.io/api/client/addon/clientset/versioned/scheme"
-	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-var _ = Describe("Deploy a submariner on hub", func() {
-	var managedClusterSetName string
-	var managedClusterName string
+var _ = Describe("Submariner Deployment", func() {
+	var (
+		managedClusterSetName string
+		managedClusterName    string
+		brokerNamespace       string
+	)
 
 	BeforeEach(func() {
-		managedClusterSetName = fmt.Sprintf("set-%s", rand.String(6))
 		managedClusterName = fmt.Sprintf("cluster-%s", rand.String(6))
+
+		managedClusterSetName, brokerNamespace = deployManagedClusterSet()
 	})
 
-	Context("Deploy submariner agent manifestworks", func() {
-		var expectedBrokerNamespace string
-
-		BeforeEach(func() {
-			By("Create a ManagedClusterSet")
-			managedClusterSet := util.NewManagedClusterSet(managedClusterSetName)
-
-			_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Check if the submariner broker is deployed")
-			expectedBrokerNamespace = fmt.Sprintf("%s-broker", managedClusterSetName)
-			Eventually(func() bool {
-				return util.FindSubmarinerBrokerResources(kubeClient, expectedBrokerNamespace)
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+	When("the submariner ManagedClusterAddOn is deployed on a ManagedCluster", func() {
+		JustBeforeEach(func() {
+			deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, brokerNamespace)
 		})
 
-		It("Should deploy the submariner agent manifestworks on managed cluster namespace successfully", func() {
-			By("Create a ManagedCluster")
-			managedCluster := util.NewManagedCluster(managedClusterName, map[string]string{
-				clusterv1beta2.ClusterSetLabel: managedClusterSetName,
+		It("should successfully deploy the submariner ManifestWork resources", func() {
+			awaitSubmarinerManifestWorks(managedClusterName)
+		})
+	})
+
+	Context("after submariner ManagedClusterAddOn deployment", func() {
+		JustBeforeEach(func() {
+			deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, brokerNamespace)
+			awaitSubmarinerManifestWorks(managedClusterName)
+		})
+
+		When("the ManagedClusterAddOn is deleted", func() {
+			It("should delete the submariner ManifestWork resources", func() {
+				By(fmt.Sprintf("Add a finalizer to the %q ManifestWork", submarineragent.SubmarinerCRManifestWorkName))
+
+				work, err := workClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(),
+					submarineragent.SubmarinerCRManifestWorkName, metav1.GetOptions{})
+				Expect(err).To(Succeed())
+
+				_, err = finalizer.Add(context.Background(), resource.ForManifestWork(workClient.WorkV1().ManifestWorks(managedClusterName)),
+					work, "test-finalizer")
+				Expect(err).To(Succeed())
+
+				By("Delete the submariner ManagedClusterAddOn")
+
+				Expect(addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Delete(context.Background(),
+					constants.SubmarinerAddOnName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
+
+				ensureSubmarinerManifestWorks(managedClusterName)
+
+				By(fmt.Sprintf("Remove the finalizer from the %q ManifestWork", submarineragent.SubmarinerCRManifestWorkName))
+
+				work, err = workClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(),
+					submarineragent.SubmarinerCRManifestWorkName, metav1.GetOptions{})
+				Expect(err).To(Succeed())
+
+				err = finalizer.Remove(context.Background(), resource.ForManifestWork(workClient.WorkV1().ManifestWorks(managedClusterName)),
+					work, "test-finalizer")
+				Expect(err).To(Succeed())
+
+				awaitNoSubmarinerManifestWorks(managedClusterName)
+
+				By("Await deletion of the submariner ManagedClusterAddOn")
+
+				Eventually(func() bool {
+					_, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(context.Background(),
+						constants.SubmarinerAddOnName, metav1.GetOptions{})
+					return apierrors.IsNotFound(err)
+				}, eventuallyTimeout, eventuallyInterval).Should(BeTrue(), "ManagedClusterAddon was not deleted")
 			})
-			_, err := clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), managedCluster, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Setup the managed cluster namespace")
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
-				metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Create the brokers.submariner.io config in the broker namespace")
-			createBrokerConfiguration(expectedBrokerNamespace)
-
-			By("Create a submariner-addon")
-			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(),
-				util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Setup the serviceaccount")
-			err = util.SetupServiceAccount(kubeClient, expectedBrokerNamespace, managedClusterName)
-			Expect(err).NotTo(HaveOccurred())
-
-			awaitSubmarinerManifestMorks(managedClusterName)
 		})
-	})
 
-	Context("Remove submariner agent manifestworks", func() {
-		BeforeEach(func() {
-			By("Create a ManagedClusterSet")
-			managedClusterSet := util.NewManagedClusterSet(managedClusterSetName)
+		When("the cluster set label is removed from the ManagedCluster", func() {
+			It("should delete the submariner ManifestWork resources", func() {
+				By("Remove the cluster set label from the ManagedCluster")
 
-			_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
+				Expect(util.UpdateManagedClusterLabels(clusterClient, managedClusterName, map[string]string{})).NotTo(HaveOccurred())
 
-			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
-			Eventually(func() bool {
-				return util.FindSubmarinerBrokerResources(kubeClient, brokerNamespace)
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
-
-			By("Create a ManagedCluster")
-			managedCluster := util.NewManagedCluster(managedClusterName, map[string]string{
-				clusterv1beta2.ClusterSetLabel: managedClusterSetName,
+				awaitNoSubmarinerManifestWorks(managedClusterName)
 			})
-			_, err = clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), managedCluster, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Setup the managed cluster namespace")
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
-				metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Create the brokers.submariner.io config in the broker namespace")
-			createBrokerConfiguration(brokerNamespace)
-
-			By("Create a submariner-addon")
-			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(),
-				util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Setup the serviceaccount")
-			err = util.SetupServiceAccount(kubeClient, brokerNamespace, managedClusterName)
-			Expect(err).NotTo(HaveOccurred())
-
-			awaitSubmarinerManifestMorks(managedClusterName)
 		})
 
-		It("Should remove the submariner agent manifestworks after the submariner-addon is removed from the managed cluster", func() {
-			By("Adding finalizer to the submariner-resource manifestwork")
-			work, err := workClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(),
-				submarineragent.SubmarinerCRManifestWorkName, metav1.GetOptions{})
-			Expect(err).To(Succeed())
+		When("the ManagedCluster is deleted", func() {
+			It("should delete the submariner ManifestWork resources", func() {
+				By("Delete the ManagedCluster")
 
-			_, err = finalizer.Add(context.Background(), resource.ForManifestWork(workClient.WorkV1().ManifestWorks(managedClusterName)),
-				work, "test-finalizer")
-			Expect(err).To(Succeed())
+				Expect(clusterClient.ClusterV1().ManagedClusters().Delete(context.Background(), managedClusterName,
+					metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
-			By("Remove the submariner-addon from the managed cluster")
-			err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Delete(context.TODO(), "submariner",
-				metav1.DeleteOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			time.Sleep(time.Second * 3)
-
-			By("Removing finalizer from the submariner-resource manifestwork")
-			work, err = workClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(),
-				submarineragent.SubmarinerCRManifestWorkName, metav1.GetOptions{})
-			Expect(err).To(Succeed())
-
-			err = finalizer.Remove(context.Background(), resource.ForManifestWork(workClient.WorkV1().ManifestWorks(managedClusterName)),
-				work, "test-finalizer")
-			Expect(err).To(Succeed())
-
-			awaitNoSubmarinerManifestMorks(managedClusterName)
-		})
-
-		It("Should remove the submariner agent manifestworks after the managedclusterset label is removed from the managed cluster", func() {
-			By("Remove the managedclusterset label from the managed cluster")
-			newLabels := map[string]string{}
-			err := util.UpdateManagedClusterLabels(clusterClient, managedClusterName, newLabels)
-			Expect(err).NotTo(HaveOccurred())
-
-			awaitNoSubmarinerManifestMorks(managedClusterName)
-		})
-
-		It("Should remove the submariner agent manifestworks after the managedcluster is removed", func() {
-			By("Remove the managedcluster")
-			err := clusterClient.ClusterV1().ManagedClusters().Delete(context.Background(), managedClusterName, metav1.DeleteOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			awaitNoSubmarinerManifestMorks(managedClusterName)
+				awaitNoSubmarinerManifestWorks(managedClusterName)
+			})
 		})
 	})
 
-	Context("Remove submariner broker", func() {
-		It("Should remove the submariner broker after the managedclusterset is removed", func() {
-			By("Create a ManagedClusterSet")
-			managedClusterSet := util.NewManagedClusterSet(managedClusterSetName)
+	When("the ManagedClusterSet is deleted", func() {
+		It("should remove the broker resources", func() {
+			By("Delete the ManagedClusterSet")
 
-			_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
+			Expect(clusterClient.ClusterV1beta2().ManagedClusterSets().Delete(context.Background(), managedClusterSetName,
+				metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
-			By("Check if the submariner broker is deployed")
-			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
+			By("Await removal of the broker resources")
+
 			Eventually(func() bool {
-				return util.FindSubmarinerBrokerResources(kubeClient, brokerNamespace)
+				return util.CheckBrokerResources(kubeClient, brokerNamespace, false)
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 
-			By("Remove the managedclusterset")
-			err = clusterClient.ClusterV1beta2().ManagedClusterSets().Delete(context.Background(), managedClusterSetName, metav1.DeleteOptions{})
-			Expect(err).NotTo(HaveOccurred())
+			By("Await deletion of the ManagedClusterSet")
 
-			By("Check if the submariner broker is removed")
 			Eventually(func() bool {
-				ns, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), brokerNamespace, metav1.GetOptions{})
-				if errors.IsNotFound(err) {
-					return true
-				}
-				if err != nil {
-					return false
-				}
-
-				// the controller-runtime does not have a gc controller, so if the namespace is in terminating and
-				// there is no broker finalizer on it, it will be consider as removed
-				if ns.Status.Phase == corev1.NamespaceTerminating &&
-					!util.FindExpectedFinalizer(ns.Finalizers, "cluster.open-cluster-management.io/submariner-cleanup") {
-					return true
-				}
-
-				return false
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+				_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Get(context.Background(), managedClusterSetName,
+					metav1.GetOptions{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue(), "ManagedClusterSet %q was not deleted", managedClusterSetName)
 		})
 	})
 
@@ -220,22 +151,9 @@ var _ = Describe("Deploy a submariner on hub", func() {
 				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
-			By(fmt.Sprintf("Create ManagedClusterSet %q", managedClusterSetName))
-
-			_, err = clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(),
-				util.NewManagedClusterSet(managedClusterSetName), metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Check if the submariner broker is deployed")
-
-			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
-			Eventually(func() bool {
-				return util.FindSubmarinerBrokerResources(kubeClient, brokerNamespace)
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
-
 			By("Create a managed cluster namespace")
 
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
+			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewNamespace(managedClusterName),
 				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -257,7 +175,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 
 				_, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(context.Background(), clusterAddOn,
 					metav1.CreateOptions{})
-				if !errors.IsAlreadyExists(err) {
+				if !apierrors.IsAlreadyExists(err) {
 					Expect(err).NotTo(HaveOccurred())
 				}
 			}
@@ -305,7 +223,7 @@ var _ = Describe("Deploy a submariner on hub", func() {
 			Eventually(func() bool {
 				_, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Get(context.Background(),
 					constants.SubmarinerAddOnName, metav1.GetOptions{})
-				return errors.IsNotFound(err)
+				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 
 			By("Ensure the ManagedClusterSet finalizer is removed")
@@ -321,20 +239,28 @@ var _ = Describe("Deploy a submariner on hub", func() {
 	})
 })
 
-func awaitSubmarinerManifestMorks(managedClusterName string) {
-	By("Check if the submariner agent manifestworks are deployed")
+func awaitSubmarinerManifestWorks(managedClusterName string) {
+	By("Await deployment of the ManifestWorks")
 	Eventually(func() bool {
-		return util.FindManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName,
+		return util.CheckManifestWorks(workClient, managedClusterName, true, submarineragent.OperatorManifestWorkName,
 			submarineragent.SubmarinerCRManifestWorkName)
 	}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 }
 
-func awaitNoSubmarinerManifestMorks(managedClusterName string) {
-	By("Check if the submariner agent manifestworks are removed")
-	Eventually(func() bool {
-		return util.FindManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName,
+func ensureSubmarinerManifestWorks(managedClusterName string) {
+	By("Ensure deployment of the ManifestWorks")
+	Consistently(func() bool {
+		return util.CheckManifestWorks(workClient, managedClusterName, true, submarineragent.OperatorManifestWorkName,
 			submarineragent.SubmarinerCRManifestWorkName)
-	}, eventuallyTimeout, eventuallyInterval).Should(BeFalse())
+	}, 1).Should(BeTrue())
+}
+
+func awaitNoSubmarinerManifestWorks(managedClusterName string) {
+	By("Await deletion of the ManifestWorks")
+	Eventually(func() bool {
+		return util.CheckManifestWorks(workClient, managedClusterName, false, submarineragent.OperatorManifestWorkName,
+			submarineragent.SubmarinerCRManifestWorkName)
+	}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 }
 
 func createBrokerConfiguration(brokerNamespace string) {
@@ -348,6 +274,6 @@ func createBrokerConfiguration(brokerNamespace string) {
 		},
 	}
 
-	err := controllerClient.Create(context.TODO(), brokerCfg)
+	err := controllerClient.Create(context.Background(), brokerCfg)
 	Expect(err).NotTo(HaveOccurred())
 }

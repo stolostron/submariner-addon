@@ -7,14 +7,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
-	"github.com/stolostron/submariner-addon/pkg/hub/submarineragent"
+	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/spoke"
 	"github.com/stolostron/submariner-addon/test/util"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/rand"
-	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
 const (
@@ -22,113 +21,90 @@ const (
 	submarinerCRName  = "submariner"
 )
 
-var _ = Describe("Deploy a submariner-addon agent", func() {
-	var managedClusterSetName string
+var _ = Describe("Submariner addon agent", func() {
 	var managedClusterName string
 
 	BeforeEach(func() {
-		managedClusterSetName = fmt.Sprintf("set-%s", rand.String(6))
 		managedClusterName = fmt.Sprintf("cluster-%s", rand.String(6))
 	})
 
-	Context("Deploy submariner-addon agent manifestworks on the hub", func() {
+	When("the submariner addon agent is deployed", func() {
 		BeforeEach(func() {
-			By("Create a ManagedClusterSet")
-			managedClusterSet := util.NewManagedClusterSet(managedClusterSetName)
-
-			_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), managedClusterSet, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
-			Eventually(func() bool {
-				return util.FindSubmarinerBrokerResources(kubeClient, brokerNamespace)
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
-
-			By("Create a ManagedCluster")
-			managedCluster := util.NewManagedCluster(managedClusterName, map[string]string{
-				clusterv1beta2.ClusterSetLabel: managedClusterSetName,
-			})
-			_, err = clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), managedCluster, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Setup the managed cluster namespace")
-			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
-				metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Create the brokers.submariner.io config in the broker namespace")
-			createBrokerConfiguration(brokerNamespace)
-
-			By("Create a submariner-addon")
-			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(),
-				util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Setup the serviceaccount")
-			err = util.SetupServiceAccount(kubeClient, brokerNamespace, managedClusterName)
-			Expect(err).NotTo(HaveOccurred())
+			managedClusterSetName, brokerNamespace := deployManagedClusterSet()
+			deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, brokerNamespace)
 		})
 
-		It("Should deploy the submariner-addon agent manifestworks on managed cluster namespace successfully", func() {
+		It("should deploy the addon agent ManifestWork resources", func() {
 			Eventually(func() bool {
-				return util.FindManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName, expectedAgentWork)
+				return util.CheckManifestWorks(workClient, managedClusterName, true, expectedAgentWork)
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
 	})
 
-	Context("Run submariner-addon agent on the managed cluster", func() {
+	When("the submariner spoke agent is run on a managed cluster", func() {
 		submarinerGVR, _ := schema.ParseResourceArg("submariners.v1alpha1.submariner.io")
 
+		var installationNamespace string
+
 		BeforeEach(func() {
-			By("Setup the managed cluster namespace")
-			_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
+			By("Create the ManagedCluster's namespace")
+
+			_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewNamespace(managedClusterName),
 				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Create submariner-addon on managed cluster namespace")
-			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.TODO(),
+			By("Create a submariner ManagedClusterAddOn")
+
+			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(),
 				util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
-		})
 
-		It("Should update submariner-addon status on the hub cluster after the submariner agent is deployed", func() {
-			installationNamespace, err := util.GetCurrentNamespace(kubeClient, "submariner-operator")
+			installationNamespace, err = util.GetCurrentNamespace(kubeClient, "submariner-operator")
 			Expect(err).ToNot(HaveOccurred())
 
 			// save the kubeconfig to a file, simulate agent mount hub kubeconfig secret that was created by addon framework
 			Expect(util.CreateHubKubeConfig(cfg)).ToNot(HaveOccurred())
 
-			By(fmt.Sprintf("Start submariner-addon agent on managed cluster namespace %q", installationNamespace))
+			By(fmt.Sprintf("Start submariner spoke agent on managed cluster namespace %q", installationNamespace))
+
+			ctx, cancel := context.WithCancel(context.Background())
+
 			go func() {
+				defer GinkgoRecover()
+
 				agentOptions := spoke.AgentOptions{
 					InstallationNamespace: installationNamespace,
 					HubKubeconfigFile:     util.HubKubeConfigPath,
 					ClusterName:           managedClusterName,
 				}
-				err := agentOptions.RunAgent(context.Background(), &controllercmd.ControllerContext{
+
+				err := agentOptions.RunAgent(ctx, &controllercmd.ControllerContext{
 					KubeConfig:    cfg,
 					EventRecorder: util.NewIntegrationTestEventRecorder("submariner-addon-agent-test"),
 				})
 				Expect(err).NotTo(HaveOccurred())
 			}()
 
-			By("Create a submariner on managed cluster")
-			_, err = dynamicClient.Resource(*submarinerGVR).Namespace(installationNamespace).Create(context.TODO(), util.NewSubmariner(),
-				metav1.CreateOptions{})
+			DeferCleanup(cancel)
+		})
+
+		It("should update the ManagedClusterAddOn status after the Submariner resource status is updated", func() {
+			By("Create Submariner resource on managed cluster")
+
+			submariner, err := dynamicClient.Resource(*submarinerGVR).Namespace(installationNamespace).Create(context.Background(),
+				util.NewSubmariner(submarinerCRName), metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Update the submariner status on managed cluster namespace")
-			submariner, err := dynamicClient.Resource(*submarinerGVR).Namespace(installationNamespace).Get(context.TODO(), submarinerCRName,
-				metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
+			By("Update the Submariner status")
+
 			util.SetSubmarinerDeployedStatus(submariner)
-			_, err = dynamicClient.Resource(*submarinerGVR).Namespace(installationNamespace).UpdateStatus(context.TODO(), submariner,
-				metav1.UpdateOptions{})
+			_, err = dynamicClient.Resource(*submarinerGVR).Namespace(installationNamespace).UpdateStatus(context.Background(),
+				submariner, metav1.UpdateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() bool {
-				addOn, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(context.TODO(), "submariner",
-					metav1.GetOptions{})
+				addOn, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(context.Background(),
+					constants.SubmarinerAddOnName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 
 				return !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded")
