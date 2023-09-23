@@ -28,5 +28,5 @@ clean: clean-integration-test
 
 test-integration: ensure-kubebuilder-tools
 	go test -c ./test/integration
-	./integration.test -ginkgo.slowSpecThreshold=15 -ginkgo.v -ginkgo.failFast
+	./integration.test -ginkgo.v -ginkgo.fail-fast
 .PHONY: test-integration
