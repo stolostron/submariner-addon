@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -19,9 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/retry"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
@@ -34,8 +30,6 @@ const (
 	expectedBrokerRole  = "submariner-k8s-broker-cluster"
 	expectedIPSECSecret = "submariner-ipsec-psk"
 )
-
-var HubKubeConfigPath = path.Join("/tmp", "submaddon-integration-test", "kubeconfig")
 
 // on prow env, the /var/run/secrets/kubernetes.io/serviceaccount/namespace can be found.
 func GetCurrentNamespace(kubeClient kubernetes.Interface, defaultNamespace string) (string, error) {
@@ -52,19 +46,6 @@ func GetCurrentNamespace(kubeClient kubernetes.Interface, defaultNamespace strin
 	}
 
 	return namespace, nil
-}
-
-func CreateHubKubeConfig(cfg *rest.Config) error {
-	config := clientcmdapi.NewConfig()
-	config.Clusters["hub"] = &clientcmdapi.Cluster{
-		Server: cfg.Host,
-	}
-	config.Contexts["hub"] = &clientcmdapi.Context{
-		Cluster: "hub",
-	}
-	config.CurrentContext = "hub"
-
-	return clientcmd.WriteToFile(*config, HubKubeConfigPath)
 }
 
 func UpdateManagedClusterLabels(clusterClient clusterclientset.Interface, managedClusterName string, labels map[string]string) error {

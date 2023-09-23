@@ -62,9 +62,6 @@ var _ = Describe("Submariner addon agent", func() {
 			installationNamespace, err = util.GetCurrentNamespace(kubeClient, "submariner-operator")
 			Expect(err).ToNot(HaveOccurred())
 
-			// save the kubeconfig to a file, simulate agent mount hub kubeconfig secret that was created by addon framework
-			Expect(util.CreateHubKubeConfig(cfg)).ToNot(HaveOccurred())
-
 			By(fmt.Sprintf("Start submariner spoke agent on managed cluster namespace %q", installationNamespace))
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -74,7 +71,7 @@ var _ = Describe("Submariner addon agent", func() {
 
 				agentOptions := spoke.AgentOptions{
 					InstallationNamespace: installationNamespace,
-					HubKubeconfigFile:     util.HubKubeConfigPath,
+					HubRestConfig:         cfg,
 					ClusterName:           managedClusterName,
 				}
 
@@ -107,7 +104,7 @@ var _ = Describe("Submariner addon agent", func() {
 					constants.SubmarinerAddOnName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 
-				return !meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded")
+				return meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded")
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
 	})
