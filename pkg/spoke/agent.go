@@ -47,6 +47,7 @@ var (
 type AgentOptions struct {
 	InstallationNamespace string
 	HubKubeconfigFile     string
+	HubRestConfig         *rest.Config
 	ClusterName           string
 }
 
@@ -65,7 +66,7 @@ func (o *AgentOptions) Complete() {
 }
 
 func (o *AgentOptions) Validate() error {
-	if o.HubKubeconfigFile == "" {
+	if o.HubRestConfig == nil && o.HubKubeconfigFile == "" {
 		return errors.New("hub-kubeconfig is required")
 	}
 
@@ -83,9 +84,15 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		return err
 	}
 
-	hubRestConfig, err := clientcmd.BuildConfigFromFlags("" /* leave masterurl as empty */, o.HubKubeconfigFile)
-	if err != nil {
-		return err
+	var err error
+
+	hubRestConfig := o.HubRestConfig
+
+	if hubRestConfig == nil {
+		hubRestConfig, err = clientcmd.BuildConfigFromFlags("" /* leave masterurl as empty */, o.HubKubeconfigFile)
+		if err != nil {
+			return err
+		}
 	}
 
 	addOnHubKubeClient, err := addonclient.NewForConfig(hubRestConfig)
