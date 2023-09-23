@@ -45,18 +45,17 @@ const (
 	workCRD       = "0000_00_work.open-cluster-management.io_manifestworks.crd.yaml"
 )
 
-var testEnv *envtest.Environment
-
-var cfg *rest.Config
-
 var (
-	kubeClient       kubernetes.Interface
-	clusterClient    clusterclientset.Interface
-	controllerClient client.Client
-	workClient       workclientset.Interface
-	configClinet     configclientset.Interface
-	addOnClient      addonclientset.Interface
-	dynamicClient    dynamic.Interface
+	testEnv               *envtest.Environment
+	cfg                   *rest.Config
+	kubeClient            kubernetes.Interface
+	clusterClient         clusterclientset.Interface
+	controllerClient      client.Client
+	workClient            workclientset.Interface
+	configClinet          configclientset.Interface
+	addOnClient           addonclientset.Interface
+	dynamicClient         dynamic.Interface
+	stopControllerManager context.CancelFunc
 )
 
 var _ = BeforeSuite(func() {
@@ -136,11 +135,15 @@ var _ = BeforeSuite(func() {
 	}
 
 	// start submariner broker and agent controller
+	var ctx context.Context
+
+	ctx, stopControllerManager = context.WithCancel(context.Background())
+
 	go func() {
 		defer GinkgoRecover()
 
 		addOnOptions := hub.AddOnOptions{AgentImage: "test"}
-		err := addOnOptions.RunControllerManager(context.Background(), &controllercmd.ControllerContext{
+		err := addOnOptions.RunControllerManager(ctx, &controllercmd.ControllerContext{
 			KubeConfig:    cfg,
 			EventRecorder: util.NewIntegrationTestEventRecorder("submariner-addon"),
 		})
@@ -149,7 +152,10 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	By("tearing down the test environment")
+	By("Tearing down the test environment")
+
+	stopControllerManager()
+
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })

@@ -185,12 +185,13 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		controllerContext.EventRecorder,
 	)
 
-	go clusterInformers.Start(ctx.Done())
-	go workInformers.Start(ctx.Done())
-	go kubeInformers.Start(ctx.Done())
-	go configInformers.Start(ctx.Done())
-	go apiExtensionsInformers.Start(ctx.Done())
-	go addOnInformers.Start(ctx.Done())
+	clusterInformers.Start(ctx.Done())
+	workInformers.Start(ctx.Done())
+	kubeInformers.Start(ctx.Done())
+	configInformers.Start(ctx.Done())
+	apiExtensionsInformers.Start(ctx.Done())
+	addOnInformers.Start(ctx.Done())
+
 	go submarinerBrokerCRDsController.Run(ctx, 1)
 	go submarinerBrokerController.Run(ctx, 1)
 	go submarinerAgentController.Run(ctx, 1)
@@ -206,12 +207,10 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
-	go func() {
-		err := mgr.Start(ctx)
-		if err != nil {
-			klog.Fatalf("Error starting the manager: %v", err)
-		}
-	}()
+	err = mgr.Start(ctx)
+	if err != nil {
+		return err
+	}
 
 	<-ctx.Done()
 
