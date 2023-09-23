@@ -8,12 +8,14 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/operator/events"
-	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	"github.com/stolostron/submariner-addon/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -37,26 +39,15 @@ var HubKubeConfigPath = path.Join("/tmp", "submaddon-integration-test", "kubecon
 
 // on prow env, the /var/run/secrets/kubernetes.io/serviceaccount/namespace can be found.
 func GetCurrentNamespace(kubeClient kubernetes.Interface, defaultNamespace string) (string, error) {
-	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: defaultNamespace,
-			},
-		}, metav1.CreateOptions{}); err != nil {
-			return "", err
-		}
+	namespace := defaultNamespace
 
-		return defaultNamespace, nil
+	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err == nil {
+		namespace = string(nsBytes)
 	}
 
-	namespace := string(nsBytes)
-
-	if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-		},
-	}, metav1.CreateOptions{}); err != nil && !errors.IsAlreadyExists(err) {
+	if _, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), NewNamespace(namespace),
+		metav1.CreateOptions{}); err != nil && !errors.IsAlreadyExists(err) {
 		return "", err
 	}
 
@@ -76,16 +67,6 @@ func CreateHubKubeConfig(cfg *rest.Config) error {
 	return clientcmd.WriteToFile(*config, HubKubeConfigPath)
 }
 
-func FindExpectedFinalizer(finalizers []string, expected string) bool {
-	for _, finalizer := range finalizers {
-		if finalizer == expected {
-			return true
-		}
-	}
-
-	return false
-}
-
 func UpdateManagedClusterLabels(clusterClient clusterclientset.Interface, managedClusterName string, labels map[string]string) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		managedCluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.Background(), managedClusterName, metav1.GetOptions{})
@@ -101,31 +82,53 @@ func UpdateManagedClusterLabels(clusterClient clusterclientset.Interface, manage
 	})
 }
 
-func FindSubmarinerBrokerResources(kubeClient kubernetes.Interface, brokerNamespace string) bool {
-	_, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), brokerNamespace, metav1.GetOptions{})
-	if err != nil {
+func CheckBrokerResources(kubeClient kubernetes.Interface, brokerNamespace string, expPresent bool) bool {
+	ns, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), brokerNamespace, metav1.GetOptions{})
+
+	// The controller-runtime does not have a gc controller, so if the namespace is in terminating state we consider it deleted.
+	if err == nil && ns.Status.Phase == corev1.NamespaceTerminating {
+		err = errors.NewNotFound(schema.GroupResource{}, brokerNamespace)
+	}
+
+	if !checkPresence(err, expPresent) {
 		return false
 	}
 
+	if !expPresent {
+		return true // short circuit since the other resources are in the brokerNamespace
+	}
+
 	_, err = kubeClient.RbacV1().Roles(brokerNamespace).Get(context.Background(), expectedBrokerRole, metav1.GetOptions{})
-	if err != nil {
+	if !checkPresence(err, expPresent) {
 		return false
 	}
 
 	_, err = kubeClient.CoreV1().Secrets(brokerNamespace).Get(context.Background(), expectedIPSECSecret, metav1.GetOptions{})
 
-	return err == nil
+	return checkPresence(err, expPresent)
 }
 
-func FindManifestWorks(workClient workclientset.Interface, managedClusterName string, works ...string) bool {
+func CheckManifestWorks(workClient workclientset.Interface, managedClusterName string, expPresent bool, works ...string) bool {
 	for _, work := range works {
 		_, err := workClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(), work, metav1.GetOptions{})
-		if err != nil {
+		if !checkPresence(err, expPresent) {
 			return false
 		}
 	}
 
 	return true
+}
+
+func checkPresence(err error, expPresent bool) bool {
+	if err == nil {
+		return expPresent
+	} else if errors.IsNotFound(err) {
+		return !expPresent
+	}
+
+	Expect(err).To(Succeed())
+
+	return false
 }
 
 func SetupServiceAccount(kubeClient kubernetes.Interface, namespace, name string) error {
@@ -165,7 +168,7 @@ func SetupServiceAccount(kubeClient kubernetes.Interface, namespace, name string
 		})
 }
 
-func NewManagedClusterNamespace(namespace string) *corev1.Namespace {
+func NewNamespace(namespace string) *corev1.Namespace {
 	return &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
@@ -190,20 +193,10 @@ func NewManagedClusterSet(name string) *clusterv1beta2.ManagedClusterSet {
 	}
 }
 
-func NewSubmarinerConifg(namespace string) *configv1alpha1.SubmarinerConfig {
-	return &configv1alpha1.SubmarinerConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "submariner",
-			Namespace: namespace,
-		},
-		Spec: configv1alpha1.SubmarinerConfigSpec{},
-	}
-}
-
 func NewManagedClusterAddOn(namespace string) *addonv1alpha1.ManagedClusterAddOn {
 	return &addonv1alpha1.ManagedClusterAddOn{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "submariner",
+			Name:      constants.SubmarinerAddOnName,
 			Namespace: namespace,
 		},
 		Spec: addonv1alpha1.ManagedClusterAddOnSpec{
@@ -212,13 +205,13 @@ func NewManagedClusterAddOn(namespace string) *addonv1alpha1.ManagedClusterAddOn
 	}
 }
 
-func NewSubmariner() *unstructured.Unstructured {
+func NewSubmariner(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "submariner.io/v1alpha1",
 			"kind":       "Submariner",
 			"metadata": map[string]interface{}{
-				"name": "submariner",
+				"name": name,
 			},
 			"spec": map[string]interface{}{
 				"broker":                   "k8s",
