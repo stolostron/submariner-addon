@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarineragent"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/stolostron/submariner-addon/test/util"
@@ -16,7 +17,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/utils/ptr"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	"open-cluster-management.io/api/client/addon/clientset/versioned/scheme"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var _ = Describe("Deploy a submariner on hub", func() {
@@ -197,6 +202,120 @@ var _ = Describe("Deploy a submariner on hub", func() {
 				}
 
 				return false
+			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+		})
+	})
+
+	When("the ClusterManagementAddOn is deleted", func() {
+		var clusterAddOn *addonv1alpha1.ClusterManagementAddOn
+
+		BeforeEach(func() {
+			By("Retrieve the ClusterManagementAddOn")
+
+			var err error
+
+			Eventually(func() error {
+				clusterAddOn, err = addOnClient.AddonV1alpha1().ClusterManagementAddOns().Get(context.Background(),
+					constants.SubmarinerAddOnName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
+
+			By(fmt.Sprintf("Create ManagedClusterSet %q", managedClusterSetName))
+
+			_, err = clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(),
+				util.NewManagedClusterSet(managedClusterSetName), metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Check if the submariner broker is deployed")
+
+			brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
+			Eventually(func() bool {
+				return util.FindSubmarinerBrokerResources(kubeClient, brokerNamespace)
+			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+
+			By("Create a managed cluster namespace")
+
+			_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NewManagedClusterNamespace(managedClusterName),
+				metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			By(fmt.Sprintf("Create ManagedClusterAddOn for cluster %q", managedClusterName))
+
+			addOn := util.NewManagedClusterAddOn(managedClusterName)
+			Expect(controllerutil.SetControllerReference(clusterAddOn, addOn, scheme.Scheme)).NotTo(HaveOccurred())
+
+			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addOn,
+				metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			if clusterAddOn != nil {
+				By("Re-create the ClusterManagementAddOn")
+
+				clusterAddOn.ResourceVersion = ""
+
+				_, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(context.Background(), clusterAddOn,
+					metav1.CreateOptions{})
+				if !errors.IsAlreadyExists(err) {
+					Expect(err).NotTo(HaveOccurred())
+				}
+			}
+		})
+
+		It("should remove the broker resources for the associated ManagedClusterSets", func() {
+			By("Delete the ClusterManagementAddOn")
+
+			var propagationPolicy *metav1.DeletionPropagation
+
+			// The default control plane set up by the K8s test environment does not run the garbage collector so foreground deletion
+			// doesn't clean up owned references, so we need to do it manually. However, if using a real cluster then we can use
+			// foreground deletion.
+			if ptr.Deref(testEnv.UseExistingCluster, false) {
+				propagationPolicy = ptr.To(metav1.DeletePropagationForeground)
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*eventuallyTimeout)
+			err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Delete(ctx, constants.SubmarinerAddOnName, metav1.DeleteOptions{
+				PropagationPolicy: propagationPolicy,
+			})
+
+			cancel()
+			Expect(err).NotTo(HaveOccurred())
+
+			if !ptr.Deref(testEnv.UseExistingCluster, false) {
+				By("Delete all ManagedClusterAddOns")
+
+				list, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(metav1.NamespaceAll).List(context.Background(),
+					metav1.ListOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				for i := range list.Items {
+					addOnInterface := addOnClient.AddonV1alpha1().ManagedClusterAddOns(list.Items[i].Namespace)
+					Expect(finalizer.Remove(context.Background(), resource.ForAddon(addOnInterface), &list.Items[i],
+						constants.SubmarinerAddOnFinalizer)).NotTo(HaveOccurred())
+
+					Expect(addOnInterface.Delete(context.Background(), constants.SubmarinerAddOnName,
+						metav1.DeleteOptions{})).NotTo(HaveOccurred())
+				}
+			}
+
+			By("Ensure the ClusterManagementAddOn is deleted")
+
+			Eventually(func() bool {
+				_, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Get(context.Background(),
+					constants.SubmarinerAddOnName, metav1.GetOptions{})
+				return errors.IsNotFound(err)
+			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+
+			By("Ensure the ManagedClusterSet finalizer is removed")
+
+			Eventually(func() bool {
+				mcs, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Get(context.Background(), managedClusterSetName,
+					metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				return len(mcs.Finalizers) == 0
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
 	})
