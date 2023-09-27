@@ -225,22 +225,12 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 
 	clusterName := key
 
-	managedCluster, err := c.clusterLister.Get(clusterName)
-	if apierrors.IsNotFound(err) {
-		// managed cluster not found, could have been deleted, do nothing.
-		return nil
-	}
-
-	if err != nil {
-		return err
-	}
-
 	config, err := c.configLister.SubmarinerConfigs(clusterName).Get(constants.SubmarinerConfigName)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 
-	return c.syncManagedCluster(ctx, managedCluster, config)
+	return c.syncManagedCluster(ctx, clusterName, config)
 }
 
 func (c *submarinerAgentController) onManagedClusterSetChange(syncCtx factory.SyncContext) error {
@@ -259,55 +249,68 @@ func (c *submarinerAgentController) onManagedClusterSetChange(syncCtx factory.Sy
 // syncManagedCluster syncs one managed cluster.
 func (c *submarinerAgentController) syncManagedCluster(
 	ctx context.Context,
-	managedCluster *clusterv1.ManagedCluster,
+	clusterName string,
 	config *configv1alpha1.SubmarinerConfig,
 ) error {
-	clusterSetName, existed := managedCluster.Labels[clusterv1beta2.ClusterSetLabel]
-	if !existed {
-		// the cluster does not have the clusterset label, try to clean up the submariner agent
-		logger.Infof("ManagedCluster %q is missing the cluster set label", managedCluster.Name)
-
-		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
-	}
-
-	// find the clustersets that contains this managed cluster
-	_, err := c.clusterSetLister.Get(clusterSetName)
+	// Find the submariner ManagedClusterAddOn in the managed cluster namespace.
+	addOn, err := c.addOnLister.ManagedClusterAddOns(clusterName).Get(constants.SubmarinerAddOnName)
 
 	switch {
 	case apierrors.IsNotFound(err):
-		// if one cluster has clusterset label, but the clusterset is not found, it could have been deleted
-		// try to clean up the submariner agent
-		logger.Infof("ManagedClusterSet %q not found", clusterSetName)
-
-		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
-	case err != nil:
-		return err
-	}
-
-	// find the submariner-addon on the managed cluster namespace
-	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(constants.SubmarinerAddOnName)
-
-	switch {
-	case apierrors.IsNotFound(err):
-		// submariner-addon is not found, could have been deleted, do nothing.
+		// No ManagedClusterAddOn, do nothing.
 		return nil
 	case err != nil:
 		return err
 	}
 
-	// submariner-addon is deleting, we remove its related resources
+	// The ManagedClusterAddOn is deleting, clean up its related resources.
 	if !addOn.DeletionTimestamp.IsZero() {
-		logger.Infof("ManagedClusterAddOn %q in cluster %q is deleting", addOn.Name, addOn.Namespace)
+		logger.Infof("ManagedClusterAddOn %q in cluster %q is deleting", addOn.Name, clusterName)
 
-		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
+		return c.cleanUpSubmarinerAgent(ctx, clusterName)
 	}
 
-	// add a finalizer to the submariner-addon
-	added, err := finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
+	// Find the corresponding ManagedCluster.
+	managedCluster, err := c.clusterLister.Get(clusterName)
+	if apierrors.IsNotFound(err) {
+		// ManagedCluster not found, probably deleted, do nothing. This probably shouldn't happen without the ManagedClusterAddOn being
+		// deleted first but, if it does, we expect the ManagedClusterAddOn to also be deleted, so we don't do clean up here.
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	clusterSetName, existed := managedCluster.Labels[clusterv1beta2.ClusterSetLabel]
+	if !existed {
+		// We only deploy submariner on managed clusters that are part of only one exclusive cluster set so if it doesn't have the label,
+		// we do clean in case submariner was previously deployed.
+		logger.Infof("ManagedCluster %q is missing the cluster set label", managedCluster.Name)
+
+		return c.cleanUpSubmarinerAgent(ctx, clusterName)
+	}
+
+	// Find the ManagedClusterSet containing the managed cluster.
+	_, err = c.clusterSetLister.Get(clusterSetName)
+
+	switch {
+	case apierrors.IsNotFound(err):
+		// ManagedClusterSet not found, probably deleted. We would expect the cluster set label on the ManagedCluster to also be removed,
+		// but we'll do clean up here just in case.
+		logger.Infof("ManagedClusterSet %q not found", clusterSetName)
+
+		return c.cleanUpSubmarinerAgent(ctx, clusterName)
+	case err != nil:
+		return err
+	}
+
+	// Add the finalizer to the ManagedClusterAddOn.
+	added, err := finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
 		addOn, constants.SubmarinerAddOnFinalizer)
 	if added || err != nil {
 		if added {
-			logger.Infof("Added finalizer to ManagedClusterAddOn %q in cluster %q", addOn.Name, addOn.Namespace)
+			logger.Infof("Added finalizer to ManagedClusterAddOn %q in cluster %q", addOn.Name, clusterName)
 		}
 
 		return err
@@ -317,31 +320,31 @@ func (c *submarinerAgentController) syncManagedCluster(
 }
 
 // clean up the submariner agent from this managedCluster.
-func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
-	submarinerManifestWork, err := c.manifestWorkLister.ManifestWorks(managedCluster.Name).Get(SubmarinerCRManifestWorkName)
+func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedClusterName string) error {
+	submarinerManifestWork, err := c.manifestWorkLister.ManifestWorks(managedClusterName).Get(SubmarinerCRManifestWorkName)
 
 	switch {
 	case apierrors.IsNotFound(err):
-		if err := c.deleteManifestWork(ctx, OperatorManifestWorkName, managedCluster.Name); err != nil {
+		if err := c.deleteManifestWork(ctx, OperatorManifestWorkName, managedClusterName); err != nil {
 			return err
 		}
 	case err != nil:
 		return errors.Wrapf(err, "error retrieving ManifestWork %q", SubmarinerCRManifestWorkName)
 	case submarinerManifestWork.DeletionTimestamp.IsZero():
-		return c.deleteManifestWork(ctx, SubmarinerCRManifestWorkName, managedCluster.Name)
+		return c.deleteManifestWork(ctx, SubmarinerCRManifestWorkName, managedClusterName)
 	default:
 		logger.Infof("ManifestWork %q is still deleting", SubmarinerCRManifestWorkName)
 		return nil
 	}
 
 	// remove service account and its rolebinding from broker namespace
-	if err := c.removeClusterRBACFiles(ctx, managedCluster.Name); err != nil {
+	if err := c.removeClusterRBACFiles(ctx, managedClusterName); err != nil {
 		return err
 	}
 
-	addOn, err := c.addOnLister.ManagedClusterAddOns(managedCluster.Name).Get(constants.SubmarinerAddOnName)
+	addOn, err := c.addOnLister.ManagedClusterAddOns(managedClusterName).Get(constants.SubmarinerAddOnName)
 	if err == nil {
-		return finalizer.Remove(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
+		return finalizer.Remove(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName)),
 			addOn, constants.SubmarinerAddOnFinalizer)
 	}
 
