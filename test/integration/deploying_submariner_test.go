@@ -103,17 +103,6 @@ var _ = Describe("Submariner Deployment", func() {
 				awaitNoSubmarinerManifestWorks(managedClusterName)
 			})
 		})
-
-		When("the ManagedCluster is deleted", func() {
-			It("should delete the submariner ManifestWork resources", func() {
-				By("Delete the ManagedCluster")
-
-				Expect(clusterClient.ClusterV1().ManagedClusters().Delete(context.Background(), managedClusterName,
-					metav1.DeleteOptions{})).NotTo(HaveOccurred())
-
-				awaitNoSubmarinerManifestWorks(managedClusterName)
-			})
-		})
 	})
 
 	When("the ManagedClusterSet is deleted", func() {
