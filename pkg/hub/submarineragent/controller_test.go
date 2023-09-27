@@ -301,26 +301,6 @@ var _ = Describe("Controller", func() {
 		t.testAgentCleanup()
 	})
 
-	When("the ManagedCluster is being deleted", func() {
-		JustBeforeEach(func() {
-			t.initManifestWorks()
-			test.SetDeleting(resource.ForManagedCluster(t.clusterClient.ClusterV1().ManagedClusters()), t.managedCluster.Name)
-		})
-
-		t.testAgentCleanup()
-	})
-
-	When("the ManagedCluster is being deleted and the ManagedClusterAddon doesn't exist", func() {
-		JustBeforeEach(func() {
-			t.initManifestWorks()
-			test.SetDeleting(resource.ForManagedCluster(t.clusterClient.ClusterV1().ManagedClusters()), t.managedCluster.Name)
-			Expect(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Delete(
-				context.Background(), t.addOn.Name, metav1.DeleteOptions{})).To(Succeed())
-		})
-
-		t.testAgentCleanup()
-	})
-
 	When("the ManagedCluster is removed from the ManagedClusterSet", func() {
 		JustBeforeEach(func() {
 			t.initManifestWorks()
@@ -522,8 +502,6 @@ func (t *testDriver) testFinalizers() {
 	It("should add finalizers to the ManagedClusterAddon and ManagedCluster", func() {
 		test.AwaitFinalizer(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
 			t.addOn.Name, constants.SubmarinerAddOnFinalizer)
-		test.AwaitFinalizer(resource.ForManagedCluster(t.clusterClient.ClusterV1().ManagedClusters()), clusterName,
-			submarineragent.AgentFinalizer)
 	})
 }
 
@@ -538,9 +516,6 @@ func (t *testDriver) testAgentCleanup() {
 			test.AwaitNoFinalizer(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
 				t.addOn.Name, constants.SubmarinerAddOnFinalizer)
 		}
-
-		test.AwaitNoFinalizer(resource.ForManagedCluster(t.clusterClient.ClusterV1().ManagedClusters()), clusterName,
-			submarineragent.AgentFinalizer)
 	})
 
 	It("should delete the RBAC resources for the managed cluster", func() {

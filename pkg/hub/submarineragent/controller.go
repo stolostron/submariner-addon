@@ -59,7 +59,6 @@ const (
 	serviceAccountLabel           = "cluster.open-cluster-management.io/submariner-cluster-sa"
 	OperatorManifestWorkName      = "submariner-operator"
 	SubmarinerCRManifestWorkName  = "submariner-resource"
-	AgentFinalizer                = "cluster.open-cluster-management.io/submariner-agent-cleanup"
 	agentRBACFile                 = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
 	submarinerCRFile              = "manifests/operator/submariner.io-submariners-cr.yaml"
 	BrokerCfgApplied              = "SubmarinerBrokerConfigApplied"
@@ -263,13 +262,6 @@ func (c *submarinerAgentController) syncManagedCluster(
 	managedCluster *clusterv1.ManagedCluster,
 	config *configv1alpha1.SubmarinerConfig,
 ) error {
-	// managed cluster is deleting, we remove its related resources
-	if !managedCluster.DeletionTimestamp.IsZero() {
-		logger.Infof("ManagedCluster %q is deleting", managedCluster.Name)
-
-		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
-	}
-
 	clusterSetName, existed := managedCluster.Labels[clusterv1beta2.ClusterSetLabel]
 	if !existed {
 		// the cluster does not have the clusterset label, try to clean up the submariner agent
@@ -310,18 +302,8 @@ func (c *submarinerAgentController) syncManagedCluster(
 		return c.cleanUpSubmarinerAgent(ctx, managedCluster)
 	}
 
-	// add a submariner agent finalizer to a managed cluster
-	added, err := finalizer.Add(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster, AgentFinalizer)
-	if added || err != nil {
-		if added {
-			logger.Infof("Added finalizer to ManagedCluster %q", managedCluster.Name)
-		}
-
-		return err
-	}
-
 	// add a finalizer to the submariner-addon
-	added, err = finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
+	added, err := finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster.Name)),
 		addOn, constants.SubmarinerAddOnFinalizer)
 	if added || err != nil {
 		if added {
@@ -354,11 +336,6 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 
 	// remove service account and its rolebinding from broker namespace
 	if err := c.removeClusterRBACFiles(ctx, managedCluster.Name); err != nil {
-		return err
-	}
-
-	if err := finalizer.Remove(ctx, resource.ForManagedCluster(c.clusterClient.ClusterV1().ManagedClusters()), managedCluster,
-		AgentFinalizer); err != nil {
 		return err
 	}
 
