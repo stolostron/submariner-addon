@@ -18,6 +18,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarineragent"
 	"github.com/stolostron/submariner-addon/pkg/resource"
+	fakereactor "github.com/submariner-io/admiral/pkg/fake"
 	coreresource "github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
@@ -295,7 +296,9 @@ var _ = Describe("Controller", func() {
 	When("the ManagedClusterAddon is being deleted", func() {
 		JustBeforeEach(func() {
 			t.initManifestWorks()
-			test.SetDeleting(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)), t.addOn.Name)
+
+			Expect(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Delete(context.Background(), t.addOn.Name,
+				metav1.DeleteOptions{})).To(Succeed())
 		})
 
 		t.testAgentCleanup()
@@ -411,9 +414,12 @@ func newTestDriver() *testDriver {
 		t.clusterClient = fakeclusterclient.NewSimpleClientset()
 		t.manifestWorkClient = fakeworkclient.NewSimpleClientset()
 		t.configClient = fakeconfigclient.NewSimpleClientset()
-		t.addOnClient = addonfake.NewSimpleClientset()
 		t.cloudProvider = cloudFake.NewMockProvider(t.mockCtrl)
 		t.controllerClient = fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+
+		addOnClient := addonfake.NewSimpleClientset()
+		fakereactor.AddBasicReactors(&addOnClient.Fake)
+		t.addOnClient = addOnClient
 
 		t.kubeClient = kubefake.NewSimpleClientset(
 			&corev1.Secret{
@@ -471,10 +477,14 @@ func newTestDriver() *testDriver {
 		configInformerFactory.Start(ctx.Done())
 		addOnInformerFactory.Start(ctx.Done())
 
-		cache.WaitForCacheSync(ctx.Done(), clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().HasSynced,
+		cache.WaitForCacheSync(ctx.Done(),
+			clusterInformerFactory.Cluster().V1beta2().ManagedClusterSets().Informer().HasSynced,
+			clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().HasSynced,
 			workInformerFactory.Work().V1().ManifestWorks().Informer().HasSynced,
 			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer().HasSynced,
-			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().HasSynced)
+			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().HasSynced,
+			addOnInformerFactory.Addon().V1alpha1().AddOnDeploymentConfigs().Informer().HasSynced,
+			addOnInformerFactory.Addon().V1alpha1().ClusterManagementAddOns().Informer().HasSynced)
 
 		go controller.Run(ctx, 1)
 	})
@@ -510,7 +520,7 @@ func (t *testDriver) testAgentCleanup() {
 		t.awaitNoManifestWorks()
 	})
 
-	It("should delete the finalizers", func() {
+	It("should remove the finalizer", func() {
 		_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.Background(), t.addOn.Name, metav1.GetOptions{})
 		if !apierrors.IsNotFound(err) {
 			test.AwaitNoFinalizer(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
