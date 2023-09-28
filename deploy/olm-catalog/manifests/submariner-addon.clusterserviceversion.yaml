@@ -202,11 +202,6 @@ spec:
           - get
           - list
           - watch
-        - apiGroups:
-          - addon.open-cluster-management.io
-          resources:
-          - clustermanagementaddons/finalizers
-          verbs:
           - update
         - apiGroups:
           - addon.open-cluster-management.io
@@ -226,12 +221,6 @@ spec:
           - patch
           - update
           - delete
-        - apiGroups:
-          - addon.open-cluster-management.io
-          resources:
-          - managedclusteraddons/finalizers
-          verbs:
-          - update
         - apiGroups:
           - addon.open-cluster-management.io
           resources:
