@@ -11,15 +11,20 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	configclientset "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
+	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/hub"
+	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/stolostron/submariner-addon/test/util"
 	"github.com/submariner-io/admiral/pkg/log/kzerolog"
+	admutil "github.com/submariner-io/admiral/pkg/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclientset "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
@@ -46,16 +51,15 @@ const (
 )
 
 var (
-	testEnv               *envtest.Environment
-	cfg                   *rest.Config
-	kubeClient            kubernetes.Interface
-	clusterClient         clusterclientset.Interface
-	controllerClient      client.Client
-	workClient            workclientset.Interface
-	configClinet          configclientset.Interface
-	addOnClient           addonclientset.Interface
-	dynamicClient         dynamic.Interface
-	stopControllerManager context.CancelFunc
+	testEnv          *envtest.Environment
+	cfg              *rest.Config
+	kubeClient       kubernetes.Interface
+	clusterClient    clusterclientset.Interface
+	controllerClient client.Client
+	workClient       workclientset.Interface
+	configClinet     configclientset.Interface
+	addOnClient      addonclientset.Interface
+	dynamicClient    dynamic.Interface
 )
 
 var _ = BeforeSuite(func() {
@@ -133,28 +137,10 @@ var _ = BeforeSuite(func() {
 	if !apierrors.IsAlreadyExists(err) {
 		Expect(err).NotTo(HaveOccurred())
 	}
-
-	// start submariner broker and agent controller
-	var ctx context.Context
-
-	ctx, stopControllerManager = context.WithCancel(context.Background())
-
-	go func() {
-		defer GinkgoRecover()
-
-		addOnOptions := hub.AddOnOptions{AgentImage: "test"}
-		err := addOnOptions.RunControllerManager(ctx, &controllercmd.ControllerContext{
-			KubeConfig:    cfg,
-			EventRecorder: util.NewIntegrationTestEventRecorder("submariner-addon"),
-		})
-		Expect(err).NotTo(HaveOccurred())
-	}()
 })
 
 var _ = AfterSuite(func() {
 	By("Tearing down the test environment")
-
-	stopControllerManager()
 
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
@@ -208,4 +194,42 @@ func deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, br
 
 	err = util.SetupServiceAccount(kubeClient, brokerNamespace, managedClusterName)
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func startControllerManager() func() {
+	ctx, stop := context.WithCancel(context.Background())
+
+	go func() {
+		defer GinkgoRecover()
+
+		addOnOptions := hub.AddOnOptions{AgentImage: "test"}
+		err := addOnOptions.RunControllerManager(ctx, &controllercmd.ControllerContext{
+			KubeConfig:    cfg,
+			EventRecorder: util.NewIntegrationTestEventRecorder("submariner-addon"),
+		})
+		Expect(err).NotTo(HaveOccurred())
+	}()
+
+	return func() {
+		stop()
+
+		err := admutil.Update(context.Background(), resource.ForClusterAddon(addOnClient.AddonV1alpha1().ClusterManagementAddOns()),
+			&addonv1alpha1.ClusterManagementAddOn{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: constants.SubmarinerAddOnName,
+				},
+			}, func(existing runtime.Object) (runtime.Object, error) {
+				existing.(*addonv1alpha1.ClusterManagementAddOn).Finalizers = nil
+				return existing, nil
+			})
+		if !apierrors.IsNotFound(err) {
+			Expect(err).NotTo(HaveOccurred())
+		}
+
+		err = addOnClient.AddonV1alpha1().ClusterManagementAddOns().Delete(context.Background(), constants.SubmarinerAddOnName,
+			metav1.DeleteOptions{})
+		if !apierrors.IsNotFound(err) {
+			Expect(err).NotTo(HaveOccurred())
+		}
+	}
 }

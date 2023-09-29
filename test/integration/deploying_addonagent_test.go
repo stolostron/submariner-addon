@@ -30,6 +30,8 @@ var _ = Describe("Submariner addon agent", func() {
 
 	When("the submariner addon agent is deployed", func() {
 		BeforeEach(func() {
+			DeferCleanup(startControllerManager())
+
 			managedClusterSetName, brokerNamespace := deployManagedClusterSet()
 			deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, brokerNamespace)
 		})
