@@ -32,6 +32,8 @@ var _ = Describe("Submariner Deployment", func() {
 	BeforeEach(func() {
 		managedClusterName = fmt.Sprintf("cluster-%s", rand.String(6))
 
+		DeferCleanup(startControllerManager())
+
 		managedClusterSetName, brokerNamespace = deployManagedClusterSet()
 	})
 
@@ -165,20 +167,6 @@ var _ = Describe("Submariner Deployment", func() {
 			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addOn,
 				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			if clusterAddOn != nil {
-				By("Re-create the ClusterManagementAddOn")
-
-				clusterAddOn.ResourceVersion = ""
-
-				_, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(context.Background(), clusterAddOn,
-					metav1.CreateOptions{})
-				if !apierrors.IsAlreadyExists(err) {
-					Expect(err).NotTo(HaveOccurred())
-				}
-			}
 		})
 
 		It("should remove the broker resources for the associated ManagedClusterSets", func() {
