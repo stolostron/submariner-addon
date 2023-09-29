@@ -16,12 +16,15 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/hub/submarineragent"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbroker"
 	"github.com/stolostron/submariner-addon/pkg/resource"
+	"github.com/submariner-io/admiral/pkg/slices"
+	"github.com/submariner-io/admiral/pkg/util"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/dynamic"
 	kubeinformers "k8s.io/client-go/informers"
@@ -242,13 +245,18 @@ func createClusterManagementAddon(ctx context.Context, client *addonclient.Clien
 		},
 	}
 
-	_, err := client.AddonV1alpha1().ClusterManagementAddOns().Create(
-		ctx, submarinerClusterMgmtAddon, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return errors.Wrap(err, "error creating ClusterManagementAddOn")
-	}
+	_, err := util.CreateOrUpdate(ctx, resource.ForClusterAddon(client.AddonV1alpha1().ClusterManagementAddOns()), submarinerClusterMgmtAddon,
+		func(obj runtime.Object) (runtime.Object, error) {
+			existing := obj.(*addonv1alpha1.ClusterManagementAddOn)
+			existing.Spec = submarinerClusterMgmtAddon.Spec
+			existing.Finalizers, _ = slices.AppendIfNotPresent(existing.Finalizers, constants.SubmarinerAddOnFinalizer, func(s string) string {
+				return s
+			})
 
-	return nil
+			return existing, nil
+		})
+
+	return errors.Wrap(err, "error creating/updating ClusterManagementAddOn")
 }
 
 func createClusterRoleToAllowBrokerCRD(ctx context.Context, kubeClient *kubernetes.Clientset) error {
