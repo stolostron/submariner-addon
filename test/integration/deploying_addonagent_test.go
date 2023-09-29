@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/rand"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 )
 
 const (
@@ -108,6 +109,44 @@ var _ = Describe("Submariner addon agent", func() {
 
 				return meta.IsStatusConditionTrue(addOn.Status.Conditions, "SubmarinerConnectionDegraded")
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+		})
+	})
+
+	When("the ClusterManagementAddOn already exists when the submariner addon agent is deployed", func() {
+		BeforeEach(func() {
+			_, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(context.Background(),
+				&addonv1alpha1.ClusterManagementAddOn{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: constants.SubmarinerAddOnName,
+					},
+					Spec: addonv1alpha1.ClusterManagementAddOnSpec{
+						InstallStrategy: addonv1alpha1.InstallStrategy{
+							Type: addonv1alpha1.AddonInstallStrategyManual,
+						},
+					},
+				},
+				metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			DeferCleanup(startControllerManager())
+		})
+
+		It("should update the ClusterManagementAddOn", func() {
+			var (
+				cma *addonv1alpha1.ClusterManagementAddOn
+				err error
+			)
+
+			Eventually(func() []string {
+				cma, err = addOnClient.AddonV1alpha1().ClusterManagementAddOns().Get(context.Background(),
+					constants.SubmarinerAddOnName, metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				return cma.Finalizers
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(BeEmpty())
+
+			Expect(cma.Spec.AddOnMeta.DisplayName).ToNot(BeEmpty())
+			Expect(cma.Spec.SupportedConfigs).ToNot(BeEmpty())
 		})
 	})
 })
