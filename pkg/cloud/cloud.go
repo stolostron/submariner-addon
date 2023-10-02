@@ -29,8 +29,7 @@ type Provider interface {
 }
 
 type ProviderFactory interface {
-	Get(managedClusterInfo *configv1alpha1.ManagedClusterInfo, config *configv1alpha1.SubmarinerConfig,
-		eventsRecorder events.Recorder) (Provider, bool, error)
+	Get(config *configv1alpha1.SubmarinerConfig, eventsRecorder events.Recorder) (Provider, bool, error)
 }
 
 type providerFactory struct {
@@ -77,9 +76,9 @@ func NewProviderFactory(restMapper meta.RESTMapper, kubeClient kubernetes.Interf
 	}
 }
 
-func (f *providerFactory) Get(managedClusterInfo *configv1alpha1.ManagedClusterInfo, config *configv1alpha1.SubmarinerConfig,
-	eventsRecorder events.Recorder,
-) (Provider, bool, error) {
+func (f *providerFactory) Get(config *configv1alpha1.SubmarinerConfig, eventsRecorder events.Recorder) (Provider, bool, error) {
+	managedClusterInfo := &config.Status.ManagedClusterInfo
+
 	klog.V(4).Infof("Get cloud provider: ManagedClusterInfo: %#v", managedClusterInfo)
 
 	info := &provider.Info{

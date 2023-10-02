@@ -3,6 +3,8 @@ package submarineragent_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -692,8 +694,7 @@ func (t *configControllerTestDriver) expectProviderFactoryGet() {
 			provider = nil
 		}
 
-		t.providerFactory.EXPECT().Get(&t.config.Status.ManagedClusterInfo, gomock.Not(gomock.Nil()), gomock.Any()).
-			Return(provider, provider != nil, nil).AnyTimes()
+		t.providerFactory.EXPECT().Get(eqSubmarinerConfig(t.config), gomock.Any()).Return(provider, provider != nil, nil).AnyTimes()
 	}
 }
 
@@ -832,4 +833,24 @@ func newSubmarinerConfig() *configv1alpha1.SubmarinerConfig {
 			},
 		},
 	}
+}
+
+func eqSubmarinerConfig(expected *configv1alpha1.SubmarinerConfig) gomock.Matcher {
+	return submarinerConfigMatcher{expected: expected}
+}
+
+type submarinerConfigMatcher struct {
+	expected *configv1alpha1.SubmarinerConfig
+}
+
+func (m submarinerConfigMatcher) Matches(x interface{}) bool {
+	if x == nil {
+		return false
+	}
+
+	return reflect.DeepEqual(m.expected.Status.ManagedClusterInfo, x.(*configv1alpha1.SubmarinerConfig).Status.ManagedClusterInfo)
+}
+
+func (m submarinerConfigMatcher) String() string {
+	return fmt.Sprintf("is equal to %v", m.expected)
 }

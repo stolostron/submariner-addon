@@ -23,10 +23,9 @@ var _ = Describe("ProviderFactory Get", func() {
 	clusterName := "east"
 
 	var (
-		providerFactory    cloud.ProviderFactory
-		managedClusterInfo *configv1alpha1.ManagedClusterInfo
-		submarinerConfig   *configv1alpha1.SubmarinerConfig
-		hubKubeClient      kubernetes.Interface
+		providerFactory  cloud.ProviderFactory
+		submarinerConfig *configv1alpha1.SubmarinerConfig
+		hubKubeClient    kubernetes.Interface
 	)
 
 	BeforeEach(func() {
@@ -35,21 +34,22 @@ var _ = Describe("ProviderFactory Get", func() {
 		providerFactory = cloud.NewProviderFactory(nil, kubeFake.NewSimpleClientset(),
 			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()), hubKubeClient)
 
-		managedClusterInfo = &configv1alpha1.ManagedClusterInfo{
-			ClusterName: clusterName,
-			Vendor:      constants.ProductOCP,
-			Platform:    "no-provider-available",
-			Region:      "test-region",
-			InfraID:     "test-infraID",
+		submarinerConfig = &configv1alpha1.SubmarinerConfig{
+			Status: configv1alpha1.SubmarinerConfigStatus{
+				ManagedClusterInfo: configv1alpha1.ManagedClusterInfo{
+					ClusterName: clusterName,
+					Vendor:      constants.ProductOCP,
+					Platform:    "no-provider-available",
+					Region:      "test-region",
+					InfraID:     "test-infraID",
+				},
+			},
 		}
-
-		submarinerConfig = &configv1alpha1.SubmarinerConfig{}
 	})
 
 	When("the ManagedClusterInfo Platform has no provider implementation", func() {
 		It("should return false", func() {
-			provider, found, err := providerFactory.Get(managedClusterInfo, submarinerConfig,
-				events.NewLoggingEventRecorder("test"))
+			provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
 			Expect(err).To(Succeed())
 			Expect(found).To(BeFalse())
 			Expect(provider).To(BeNil())
@@ -58,24 +58,22 @@ var _ = Describe("ProviderFactory Get", func() {
 
 	When("the ManagedClusterInfo Vendor is not supported", func() {
 		BeforeEach(func() {
-			managedClusterInfo.Vendor = "not-supported"
+			submarinerConfig.Status.ManagedClusterInfo.Vendor = "not-supported"
 		})
 
 		It("should return an error", func() {
-			_, _, err := providerFactory.Get(managedClusterInfo, submarinerConfig,
-				events.NewLoggingEventRecorder("test"))
+			_, _, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
 			Expect(err).To(HaveOccurred())
 		})
 	})
 
 	When("the ManagedClusterInfo Vendor is ROSA", func() {
 		BeforeEach(func() {
-			managedClusterInfo.Vendor = constants.ProductROSA
+			submarinerConfig.Status.ManagedClusterInfo.Vendor = constants.ProductROSA
 		})
 
 		It("should return false", func() {
-			provider, found, err := providerFactory.Get(managedClusterInfo, submarinerConfig,
-				events.NewLoggingEventRecorder("test"))
+			provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
 			Expect(err).To(Succeed())
 			Expect(found).To(BeFalse())
 			Expect(provider).To(BeNil())
@@ -92,8 +90,8 @@ var _ = Describe("ProviderFactory Get", func() {
 		}
 
 		BeforeEach(func() {
-			managedClusterInfo.Platform = "FOO"
-			cloud.RegisterProvider(managedClusterInfo.Platform, func(info *provider.Info) (cloud.Provider, error) {
+			submarinerConfig.Status.ManagedClusterInfo.Platform = "FOO"
+			cloud.RegisterProvider(submarinerConfig.Status.ManagedClusterInfo.Platform, func(info *provider.Info) (cloud.Provider, error) {
 				Expect(info.IPSecNATTPort).To(Equal(constants.SubmarinerNatTPort))
 				Expect(info.NATTDiscoveryPort).To(Equal(constants.SubmarinerNatTDiscoveryPort))
 				Expect(info.CredentialsSecret).To(Equal(credentialsSecret))
@@ -106,14 +104,13 @@ var _ = Describe("ProviderFactory Get", func() {
 			BeforeEach(func() {
 				submarinerConfig.Spec.CredentialsSecret = &corev1.LocalObjectReference{Name: credentialsSecret.Name}
 
-				_, err := hubKubeClient.CoreV1().Secrets(managedClusterInfo.ClusterName).Create(context.TODO(), credentialsSecret,
-					metav1.CreateOptions{})
+				_, err := hubKubeClient.CoreV1().Secrets(submarinerConfig.Status.ManagedClusterInfo.ClusterName).Create(context.TODO(),
+					credentialsSecret, metav1.CreateOptions{})
 				Expect(err).To(Succeed())
 			})
 
 			It("should return an instance", func() {
-				provider, found, err := providerFactory.Get(managedClusterInfo, submarinerConfig,
-					events.NewLoggingEventRecorder("test"))
+				provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
 
 				Expect(err).To(Succeed())
 				Expect(found).To(BeTrue())
@@ -123,7 +120,7 @@ var _ = Describe("ProviderFactory Get", func() {
 
 		Context("and the credentials Secret reference isn't provided", func() {
 			It("should return an error", func() {
-				_, _, err := providerFactory.Get(managedClusterInfo, submarinerConfig, events.NewLoggingEventRecorder("test"))
+				_, _, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -134,7 +131,7 @@ var _ = Describe("ProviderFactory Get", func() {
 			})
 
 			It("should return an error", func() {
-				_, _, err := providerFactory.Get(managedClusterInfo, submarinerConfig, events.NewLoggingEventRecorder("test"))
+				_, _, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
 				Expect(err).To(HaveOccurred())
 			})
 		})
