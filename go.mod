@@ -8,7 +8,7 @@ require (
 	github.com/coreos/go-semver v0.3.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/golang/mock v1.6.0
-	github.com/gophercloud/gophercloud v1.6.0
+	github.com/gophercloud/gophercloud v1.7.0
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo/v2 v2.12.1
 	github.com/onsi/gomega v1.27.10
@@ -32,6 +32,7 @@ require (
 	k8s.io/code-generator v0.27.5
 	k8s.io/component-base v0.27.5
 	k8s.io/klog/v2 v2.100.1
+	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	open-cluster-management.io/addon-framework v0.7.1
 	open-cluster-management.io/api v0.11.0
 	sigs.k8s.io/controller-runtime v0.15.2
@@ -164,7 +165,6 @@ require (
 	k8s.io/kms v0.27.5 // indirect
 	k8s.io/kube-aggregator v0.27.5 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
-	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.2 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
