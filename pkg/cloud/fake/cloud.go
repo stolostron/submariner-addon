@@ -88,9 +88,9 @@ func (m *MockProviderFactory) EXPECT() *MockProviderFactoryMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockProviderFactory) Get(managedClusterInfo *v1alpha1.ManagedClusterInfo, config *v1alpha1.SubmarinerConfig, eventsRecorder events.Recorder) (cloud.Provider, bool, error) {
+func (m *MockProviderFactory) Get(config *v1alpha1.SubmarinerConfig, eventsRecorder events.Recorder) (cloud.Provider, bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", managedClusterInfo, config, eventsRecorder)
+	ret := m.ctrl.Call(m, "Get", config, eventsRecorder)
 	ret0, _ := ret[0].(cloud.Provider)
 	ret1, _ := ret[1].(bool)
 	ret2, _ := ret[2].(error)
@@ -98,7 +98,7 @@ func (m *MockProviderFactory) Get(managedClusterInfo *v1alpha1.ManagedClusterInf
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockProviderFactoryMockRecorder) Get(managedClusterInfo, config, eventsRecorder interface{}) *gomock.Call {
+func (mr *MockProviderFactoryMockRecorder) Get(config, eventsRecorder interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockProviderFactory)(nil).Get), managedClusterInfo, config, eventsRecorder)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockProviderFactory)(nil).Get), config, eventsRecorder)
 }

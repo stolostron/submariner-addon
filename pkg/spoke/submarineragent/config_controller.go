@@ -240,7 +240,7 @@ func (c *submarinerConfigController) skipSyncingUnchangedConfig(config *configv1
 func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
 	recorder events.Recorder,
 ) error {
-	cloudProvider, providerFound, preparedErr := c.cloudProviderFactory.Get(&config.Status.ManagedClusterInfo, config, recorder)
+	cloudProvider, providerFound, preparedErr := c.cloudProviderFactory.Get(config, recorder)
 	errs := []error{}
 
 	if providerFound && preparedErr == nil {
@@ -301,7 +301,7 @@ func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, c
 func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
 	recorder events.Recorder,
 ) error {
-	cloudProvider, found, err := c.cloudProviderFactory.Get(&config.Status.ManagedClusterInfo, config, recorder)
+	cloudProvider, found, err := c.cloudProviderFactory.Get(config, recorder)
 	if !found {
 		return errors.WithMessagef(c.removeAllGateways(ctx), "failed to unlabel the gateway nodes")
 	}
