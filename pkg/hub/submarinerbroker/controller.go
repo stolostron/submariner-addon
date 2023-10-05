@@ -174,6 +174,11 @@ func (c *submarinerBrokerController) reconcileManagedClusterSet(ctx context.Cont
 		return c.doClusterSetCleanup(ctx, clusterSet, recorder)
 	}
 
+	if meta.IsStatusConditionPresentAndEqual(clusterSet.Status.Conditions, clusterv1beta2.ManagedClusterSetConditionEmpty,
+		metav1.ConditionTrue) && finalizer.IsPresent(clusterSet, brokerFinalizer) {
+		return c.deleteBrokerResources(ctx, clusterSet, recorder)
+	}
+
 	brokerNS := brokerinfo.GenerateBrokerName(clusterSet.Name)
 
 	if !finalizer.IsPresent(clusterSet, brokerFinalizer) || clusterSet.GetAnnotations()[SubmBrokerNamespaceKey] != brokerNS {
@@ -236,6 +241,31 @@ func (c *submarinerBrokerController) createIPSecPSKSecret(ctx context.Context, b
 	}
 
 	return err
+}
+
+func (c *submarinerBrokerController) deleteBrokerResources(ctx context.Context, clusterSet *clusterv1beta2.ManagedClusterSet,
+	recorder events.Recorder,
+) error {
+	brokerNS := clusterSet.GetAnnotations()[SubmBrokerNamespaceKey]
+	if brokerNS == "" {
+		return nil
+	}
+	// TODO: Ideally, submariner finalizer check in caller should be enough and
+	//       we should just delete resources unconditionally if here. But we need
+	//       this check coz we're adding finalizer to non-submariner clustersets too
+	_, err := c.kubeClient.CoreV1().Namespaces().Get(ctx, brokerNS, metav1.GetOptions{})
+
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+
+	if err != nil {
+		return errors.Wrapf(err, "error getting namespace %q", brokerNS)
+	}
+
+	logger.Infof("Deleting broker resources for  %q", brokerNS)
+
+	return resource.DeleteFromManifests(ctx, c.kubeClient, recorder, assetFunc(brokerNS), staticResourceFiles...)
 }
 
 func (c *submarinerBrokerController) doClusterSetCleanup(ctx context.Context, clusterSet *clusterv1beta2.ManagedClusterSet,
