@@ -383,7 +383,6 @@ github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d/go.mod h1:qOGlfG
 github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
-github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7/go.mod h1:FecbI9+v66THATjSRHfNgh1IVFe/9kFxbXtjV0ctIMA=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
 github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 h1:+9834+KizmvFV7pXQGSXQTsaWhq2GjuNUt0aUU0YBYw=
@@ -1123,8 +1122,8 @@ modernc.org/strutil v1.0.0/go.mod h1:lstksw84oURvj9y3tn8lGvRxyRC1S2+g5uuIzNfIOBs
 modernc.org/xc v1.0.0/go.mod h1:mRNCo0bvLjGhHO9WsyuKVU4q0ceiDDDoEeWDJHrNx8I=
 open-cluster-management.io/addon-framework v0.7.1 h1:+qAu+9tcdVgMG14Y5llhLJAJLqx+JlEAIjheTvp27x4=
 open-cluster-management.io/addon-framework v0.7.1/go.mod h1:UL2n40LeBaTDDMz8bbkz94c+HG248nH28TFLKv+qPK8=
-open-cluster-management.io/api v0.11.0 h1:zBxa33Co3wseLBF4HEJobhl0P6ygj+Drhe7Wrfo0/h8=
-open-cluster-management.io/api v0.11.0/go.mod h1:WgKUCJ7+Bf40DsOmH1Gdkpyj3joco+QLzrlM6Ak39zE=
+open-cluster-management.io/api v0.12.0 h1:sNkj4k2XyWA/GLsTiFg82bLIZ7JDZKkLLLyZjJUlJMs=
+open-cluster-management.io/api v0.12.0/go.mod h1:/CZhelEH+30/pX7vXGSZOzLMX0zvjthYOkT/5ZTzVTQ=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
