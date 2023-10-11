@@ -263,32 +263,39 @@ func (c *submarinerAgentController) syncManagedCluster(
 		return err
 	}
 
+	var clusterSetName string
+
+	// Find the corresponding ManagedCluster.
+	managedCluster, err := c.clusterLister.Get(clusterName)
+
+	switch {
+	case apierrors.IsNotFound(err):
+		managedCluster = nil
+	case err != nil:
+		return err
+	default:
+		clusterSetName = managedCluster.Labels[clusterv1beta2.ClusterSetLabel]
+	}
+
 	// The ManagedClusterAddOn is deleting, clean up its related resources.
 	if !addOn.DeletionTimestamp.IsZero() {
 		logger.Infof("ManagedClusterAddOn %q in cluster %q is deleting", addOn.Name, clusterName)
 
-		return c.cleanUpSubmarinerAgent(ctx, clusterName)
+		return c.cleanUpSubmarinerAgent(ctx, clusterName, clusterSetName)
 	}
 
-	// Find the corresponding ManagedCluster.
-	managedCluster, err := c.clusterLister.Get(clusterName)
-	if apierrors.IsNotFound(err) {
+	if managedCluster == nil {
 		// ManagedCluster not found, probably deleted, do nothing. This probably shouldn't happen without the ManagedClusterAddOn being
 		// deleted first but, if it does, we expect the ManagedClusterAddOn to also be deleted, so we don't do clean up here.
 		return nil
 	}
 
-	if err != nil {
-		return err
-	}
-
-	clusterSetName, existed := managedCluster.Labels[clusterv1beta2.ClusterSetLabel]
-	if !existed {
+	if clusterSetName == "" {
 		// We only deploy submariner on managed clusters that are part of only one exclusive cluster set so if it doesn't have the label,
 		// we do clean in case submariner was previously deployed.
 		logger.Infof("ManagedCluster %q is missing the cluster set label", managedCluster.Name)
 
-		return c.cleanUpSubmarinerAgent(ctx, clusterName)
+		return c.cleanUpSubmarinerAgent(ctx, clusterName, "")
 	}
 
 	// Find the ManagedClusterSet containing the managed cluster.
@@ -300,7 +307,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		// but we'll do clean up here just in case.
 		logger.Infof("ManagedClusterSet %q not found", clusterSetName)
 
-		return c.cleanUpSubmarinerAgent(ctx, clusterName)
+		return c.cleanUpSubmarinerAgent(ctx, clusterName, "")
 	case err != nil:
 		return err
 	}
@@ -320,7 +327,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 }
 
 // clean up the submariner agent from this managedCluster.
-func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedClusterName string) error {
+func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedClusterName, clusterSetName string) error {
 	submarinerManifestWork, err := c.manifestWorkLister.ManifestWorks(managedClusterName).Get(SubmarinerCRManifestWorkName)
 
 	switch {
@@ -339,6 +346,10 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 
 	// remove service account and its rolebinding from broker namespace
 	if err := c.removeClusterRBACFiles(ctx, managedClusterName); err != nil {
+		return err
+	}
+
+	if err := c.deleteBrokerResourcesIfNecessary(ctx, clusterSetName); err != nil {
 		return err
 	}
 
@@ -698,6 +709,52 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 	}
 
 	return errors.Wrapf(err, "error creating globalnet configmap on Broker")
+}
+
+func (c *submarinerAgentController) deleteBrokerResourcesIfNecessary(ctx context.Context, clusterSetName string) error {
+	if clusterSetName == "" {
+		return nil
+	}
+
+	clusters, err := c.clusterLister.List(labels.SelectorFromSet(labels.Set{clusterv1beta2.ClusterSetLabel: clusterSetName}))
+	if err != nil {
+		return err
+	}
+
+	for _, cluster := range clusters {
+		addOn, err := c.addOnLister.ManagedClusterAddOns(cluster.Name).Get(constants.SubmarinerAddOnName)
+		if apierrors.IsNotFound(err) {
+			continue
+		}
+
+		if err != nil {
+			return err
+		}
+
+		if addOn.DeletionTimestamp.IsZero() {
+			return nil
+		}
+	}
+
+	brokerNamespace := brokerinfo.GenerateBrokerName(clusterSetName)
+
+	logger.Infof("Deleting Globalnet ConfigMap and Broker resources from broker namespace %q in cluster set %q",
+		brokerNamespace, clusterSetName)
+
+	err = globalnet.DeleteConfigMap(ctx, c.controllerClient, brokerNamespace)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	err = c.controllerClient.Delete(ctx, &submarinerv1a1.Broker{ObjectMeta: metav1.ObjectMeta{
+		Name:      BrokerObjectName,
+		Namespace: brokerNamespace,
+	}})
+	if apierrors.IsNotFound(err) {
+		err = nil
+	}
+
+	return err
 }
 
 func (c *submarinerAgentController) getBrokerObject(ctx context.Context, brokerNamespace string) (*submarinerv1a1.Broker, error) {

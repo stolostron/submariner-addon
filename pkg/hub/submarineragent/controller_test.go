@@ -65,7 +65,7 @@ const (
 var _ = Describe("Controller", func() {
 	t := newTestDriver()
 
-	When("the ManagedClusterAddon is created", func() {
+	When("a ManagedClusterAddon is created", func() {
 		Context("after the ManagedCluster and ManagedClusterSet", func() {
 			JustBeforeEach(func() {
 				t.createManagedClusterSet()
@@ -250,7 +250,7 @@ var _ = Describe("Controller", func() {
 		})
 	})
 
-	When("globalnet is enabled", func() {
+	When("Globalnet is enabled", func() {
 		var submarinerConfig *configv1alpha1.SubmarinerConfig
 
 		BeforeEach(func() {
@@ -293,15 +293,53 @@ var _ = Describe("Controller", func() {
 		})
 	})
 
-	When("the ManagedClusterAddon is being deleted", func() {
+	When("a ManagedClusterAddon is being deleted", func() {
+		const otherClusterName = "west"
+
+		BeforeEach(func() {
+			_, err := t.clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   otherClusterName,
+					Labels: map[string]string{clusterv1beta2.ClusterSetLabel: clusterSetName},
+				},
+			}, metav1.CreateOptions{})
+			Expect(err).To(Succeed())
+		})
+
 		JustBeforeEach(func() {
 			t.initManifestWorks()
+			t.createSubmarinerBroker(true)
 
 			Expect(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Delete(context.Background(), t.addOn.Name,
 				metav1.DeleteOptions{})).To(Succeed())
 		})
 
 		t.testAgentCleanup()
+
+		It("should delete the Globalnet ConfigMap and Broker resources", func() {
+			t.awaitNoGlobalnetConfigMap()
+			t.awaitNoBrokerResource()
+		})
+
+		Context("but it's not the last one in the cluster set", func() {
+			BeforeEach(func() {
+				_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(otherClusterName).Create(context.Background(),
+					&addonv1alpha1.ManagedClusterAddOn{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: constants.SubmarinerAddOnName,
+						},
+						Spec: addonv1alpha1.ManagedClusterAddOnSpec{
+							InstallNamespace: installNamespace,
+						},
+					}, metav1.CreateOptions{})
+				Expect(err).To(Succeed())
+			})
+
+			It("should not delete the Globalnet ConfigMap and Broker resources", func() {
+				t.ensureGlobalnetConfigMap()
+				t.ensureBrokerResource()
+			})
+		})
 	})
 
 	When("the ManagedCluster is removed from the ManagedClusterSet", func() {
@@ -789,6 +827,26 @@ func (t *testDriver) createGlobalnetConfigMap() {
 	}
 }
 
+func (t *testDriver) awaitNoGlobalnetConfigMap() {
+	Eventually(func() bool {
+		err := t.controllerClient.Get(context.Background(), types.NamespacedName{
+			Namespace: t.globalnetConfigMap.Namespace,
+			Name:      t.globalnetConfigMap.Name,
+		}, &corev1.ConfigMap{})
+
+		return apierrors.IsNotFound(err)
+	}, 3).Should(BeTrue(), "Found unexpected Globalnet ConfigMap")
+}
+
+func (t *testDriver) ensureGlobalnetConfigMap() {
+	Consistently(func() error {
+		return t.controllerClient.Get(context.Background(), types.NamespacedName{
+			Namespace: t.globalnetConfigMap.Namespace,
+			Name:      t.globalnetConfigMap.Name,
+		}, &corev1.ConfigMap{})
+	}).Should(Succeed(), "Expected Globalnet ConfigMap not found")
+}
+
 func (t *testDriver) createSubmarinerBroker(globalnetEnabled bool) {
 	t.broker = &submarinerv1alpha1.Broker{
 		ObjectMeta: metav1.ObjectMeta{
@@ -802,6 +860,26 @@ func (t *testDriver) createSubmarinerBroker(globalnetEnabled bool) {
 
 	err := t.controllerClient.Create(context.Background(), t.broker)
 	Expect(err).To(Succeed())
+}
+
+func (t *testDriver) awaitNoBrokerResource() {
+	Eventually(func() bool {
+		err := t.controllerClient.Get(context.Background(), types.NamespacedName{
+			Namespace: brokerNamespace,
+			Name:      submarineragent.BrokerObjectName,
+		}, &submarinerv1alpha1.Broker{})
+
+		return apierrors.IsNotFound(err)
+	}, 3).Should(BeTrue(), "Found unexpected Broker")
+}
+
+func (t *testDriver) ensureBrokerResource() {
+	Consistently(func() error {
+		return t.controllerClient.Get(context.Background(), types.NamespacedName{
+			Namespace: brokerNamespace,
+			Name:      submarineragent.BrokerObjectName,
+		}, &submarinerv1alpha1.Broker{})
+	}).Should(Succeed(), "Expected Broker found")
 }
 
 func (t *testDriver) deleteGlobalnetConfigMap() {
