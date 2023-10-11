@@ -15,6 +15,7 @@ import (
 	"github.com/submariner-io/admiral/pkg/finalizer"
 	"github.com/submariner-io/admiral/pkg/log"
 	coreresource "github.com/submariner-io/admiral/pkg/resource"
+	"github.com/submariner-io/admiral/pkg/slices"
 	"github.com/submariner-io/admiral/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -171,17 +172,26 @@ func (c *submarinerBrokerController) reconcileManagedClusterSet(ctx context.Cont
 	if !clusterSet.DeletionTimestamp.IsZero() {
 		logger.Infof("ManagedClusterSet %q is deleting", clusterSet.Name)
 
-		return c.doClusterSetCleanup(ctx, clusterSet, recorder)
+		return c.doClusterSetCleanup(ctx, clusterSet, true, recorder)
 	}
 
 	if meta.IsStatusConditionPresentAndEqual(clusterSet.Status.Conditions, clusterv1beta2.ManagedClusterSetConditionEmpty,
 		metav1.ConditionTrue) && finalizer.IsPresent(clusterSet, brokerFinalizer) {
-		return c.deleteBrokerResources(ctx, clusterSet, recorder)
+		return c.doClusterSetCleanup(ctx, clusterSet, false, recorder)
 	}
 
 	brokerNS := brokerinfo.GenerateBrokerName(clusterSet.Name)
 
-	if !finalizer.IsPresent(clusterSet, brokerFinalizer) || clusterSet.GetAnnotations()[SubmBrokerNamespaceKey] != brokerNS {
+	added, err := finalizer.Add(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
+	if added || err != nil {
+		if added {
+			logger.Infof("Added finalizer to ManagedClusterSet %q ", clusterSet.Name)
+		}
+
+		return err
+	}
+
+	if clusterSet.GetAnnotations()[SubmBrokerNamespaceKey] != brokerNS {
 		err := util.Update(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet,
 			func(existing runtime.Object) (runtime.Object, error) {
 				objMeta := coreresource.MustToMeta(existing)
@@ -194,21 +204,19 @@ func (c *submarinerBrokerController) reconcileManagedClusterSet(ctx context.Cont
 				annotations[SubmBrokerNamespaceKey] = brokerNS
 				objMeta.SetAnnotations(annotations)
 
-				objMeta.SetFinalizers(append(objMeta.GetFinalizers(), brokerFinalizer))
-
 				return existing, nil
 			})
 		if err != nil {
 			return errors.Wrapf(err, "error updating ManagedClusterSet %q", clusterSet.Name)
 		}
 
-		logger.Infof("Updated ManagedClusterSet %q with the finalizer and/or brokerNamespace %q", clusterSet.Name, brokerNS)
+		logger.Infof("Annotated ManagedClusterSet %q with the brokerNamespace %q", clusterSet.Name, brokerNS)
 
 		return nil
 	}
 
 	// Apply static files
-	err := resource.ApplyManifests(ctx, c.kubeClient, recorder, assetFunc(brokerNS), staticResourceFiles...)
+	err = resource.ApplyManifests(ctx, c.kubeClient, recorder, assetFunc(brokerNS), staticResourceFiles...)
 	if err != nil {
 		return err
 	}
@@ -243,33 +251,8 @@ func (c *submarinerBrokerController) createIPSecPSKSecret(ctx context.Context, b
 	return err
 }
 
-func (c *submarinerBrokerController) deleteBrokerResources(ctx context.Context, clusterSet *clusterv1beta2.ManagedClusterSet,
-	recorder events.Recorder,
-) error {
-	brokerNS := clusterSet.GetAnnotations()[SubmBrokerNamespaceKey]
-	if brokerNS == "" {
-		return nil
-	}
-	// TODO: Ideally, submariner finalizer check in caller should be enough and
-	//       we should just delete resources unconditionally if here. But we need
-	//       this check coz we're adding finalizer to non-submariner clustersets too
-	_, err := c.kubeClient.CoreV1().Namespaces().Get(ctx, brokerNS, metav1.GetOptions{})
-
-	if apierrors.IsNotFound(err) {
-		return nil
-	}
-
-	if err != nil {
-		return errors.Wrapf(err, "error getting namespace %q", brokerNS)
-	}
-
-	logger.Infof("Deleting broker resources for  %q", brokerNS)
-
-	return resource.DeleteFromManifests(ctx, c.kubeClient, recorder, assetFunc(brokerNS), staticResourceFiles...)
-}
-
 func (c *submarinerBrokerController) doClusterSetCleanup(ctx context.Context, clusterSet *clusterv1beta2.ManagedClusterSet,
-	recorder events.Recorder,
+	removeFinalizer bool, recorder events.Recorder,
 ) error {
 	brokerNS := clusterSet.GetAnnotations()[SubmBrokerNamespaceKey]
 	if brokerNS == "" {
@@ -280,7 +263,23 @@ func (c *submarinerBrokerController) doClusterSetCleanup(ctx context.Context, cl
 		return err
 	}
 
-	return finalizer.Remove(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
+	return util.Update(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet,
+		func(existing runtime.Object) (runtime.Object, error) {
+			objMeta := coreresource.MustToMeta(existing)
+
+			annotations := objMeta.GetAnnotations()
+			delete(annotations, SubmBrokerNamespaceKey)
+			objMeta.SetAnnotations(annotations)
+
+			if removeFinalizer {
+				f, _ := slices.Remove(objMeta.GetFinalizers(), brokerFinalizer, func(s string) string {
+					return s
+				})
+				objMeta.SetFinalizers(f)
+			}
+
+			return existing, nil
+		})
 }
 
 func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context, clusterAddOn *v1alpha1.ClusterManagementAddOn,
@@ -308,7 +307,7 @@ func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context,
 	}
 
 	for _, clusterSet := range clusterSets {
-		err = c.doClusterSetCleanup(ctx, clusterSet, recorder)
+		err = c.doClusterSetCleanup(ctx, clusterSet, true, recorder)
 		if err != nil {
 			return err
 		}

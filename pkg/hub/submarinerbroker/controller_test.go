@@ -140,6 +140,8 @@ func testManagedClusterSet() {
 
 			test.AwaitNoFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
 				clusterSetName, finalizerName)
+
+			t.awaitNoBrokerNamespaceAnnotation()
 		})
 
 		Context("and deletion of the broker Namespace initially fails", func() {
@@ -152,6 +154,43 @@ func testManagedClusterSet() {
 			It("should eventually delete it", func() {
 				t.awaitNoNamespace()
 			})
+		})
+	})
+
+	When("a ManagedClusterSet becomes empty", func() {
+		BeforeEach(func() {
+			t.initBrokerSetup()
+		})
+
+		JustBeforeEach(func() {
+			test.AwaitFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
+				clusterSetName, finalizerName)
+
+			By(fmt.Sprintf("Adding %q condition", clusterv1beta2.ManagedClusterSetConditionEmpty))
+
+			t.clusterSet.Status.Conditions = []metav1.Condition{
+				{
+					Type:               clusterv1beta2.ManagedClusterSetConditionEmpty,
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: metav1.Now(),
+				},
+			}
+
+			_, err := t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().UpdateStatus(context.Background(), t.clusterSet,
+				metav1.UpdateOptions{})
+			Expect(err).To(Succeed())
+		})
+
+		It("should clean up the broker resources", func() {
+			t.awaitNoNamespace()
+			t.awaitNoBrokerRole()
+
+			Consistently(func() []string {
+				return test.GetFinalizers(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
+					clusterSetName)
+			}).Should(ContainElement(finalizerName))
+
+			t.awaitNoBrokerNamespaceAnnotation()
 		})
 	})
 }
@@ -265,6 +304,7 @@ func testClusterManagementAddOn() {
 				Expect(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Delete(context.Background(), t.clusterSet.Name,
 					metav1.DeleteOptions{})).To(Succeed())
 
+				t.clusterSet.ResourceVersion = ""
 				_, err := t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), t.clusterSet,
 					metav1.CreateOptions{})
 				Expect(err).To(Succeed())
@@ -334,7 +374,9 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 	JustBeforeEach(func() {
 		t.kubeClient = kubeFake.NewSimpleClientset(t.kubeObjs...)
 
-		_, err := t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), t.clusterSet,
+		var err error
+
+		t.clusterSet, err = t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), t.clusterSet,
 			metav1.CreateOptions{})
 		Expect(err).To(Succeed())
 
@@ -439,4 +481,14 @@ func (t *brokerControllerTestDriver) initBrokerSetup() {
 			},
 		},
 	}
+}
+
+func (t *brokerControllerTestDriver) awaitNoBrokerNamespaceAnnotation() {
+	Eventually(func() map[string]string {
+		cs, err := t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Get(context.Background(), t.clusterSet.Name,
+			metav1.GetOptions{})
+		Expect(err).To(Succeed())
+
+		return cs.Annotations
+	}).ShouldNot(HaveKey(submarinerbroker.SubmBrokerNamespaceKey))
 }
