@@ -18,19 +18,19 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.14.6
-	github.com/submariner-io/cloud-prepare v0.14.6
-	github.com/submariner-io/submariner v0.14.6
-	github.com/submariner-io/submariner-operator v0.14.6
+	github.com/submariner-io/admiral v0.14.7
+	github.com/submariner-io/cloud-prepare v0.14.7
+	github.com/submariner-io/submariner v0.14.7
+	github.com/submariner-io/submariner-operator v0.14.7
 	golang.org/x/oauth2 v0.13.0
 	google.golang.org/api v0.147.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.25.4
-	k8s.io/apiextensions-apiserver v0.25.4
-	k8s.io/apimachinery v0.25.4
-	k8s.io/client-go v0.25.4
-	k8s.io/code-generator v0.25.5
-	k8s.io/component-base v0.25.4
+	k8s.io/api v0.25.14
+	k8s.io/apiextensions-apiserver v0.25.14
+	k8s.io/apimachinery v0.25.14
+	k8s.io/client-go v0.25.14
+	k8s.io/code-generator v0.25.14
+	k8s.io/component-base v0.25.14
 	k8s.io/klog/v2 v2.80.1
 	open-cluster-management.io/addon-framework v0.5.0
 	open-cluster-management.io/api v0.9.0
@@ -146,13 +146,13 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.25.4 // indirect
+	k8s.io/apiserver v0.25.14 // indirect
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kube-aggregator v0.24.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea // indirect
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73 // indirect
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.33 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.37 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
