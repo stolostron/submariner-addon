@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
 	corev1 "k8s.io/api/core/v1"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -42,6 +44,8 @@ const (
 )
 
 var (
+	logger = log.Logger{Logger: logf.Log.WithName("BrokerInfo")}
+
 	infrastructureGVR = schema.GroupVersionResource{
 		Group:    "config.openshift.io",
 		Version:  "v1",
@@ -53,6 +57,8 @@ var (
 		Version:  "v1",
 		Resource: "apiservers",
 	}
+
+	loggedCatalogChannel string
 )
 
 type SubmarinerBrokerInfo struct {
@@ -221,6 +227,11 @@ func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *c
 
 	if submarinerConfig.Spec.SubscriptionConfig.InstallPlanApproval != "" {
 		brokerInfo.InstallPlanApproval = submarinerConfig.Spec.SubscriptionConfig.InstallPlanApproval
+	}
+
+	if brokerInfo.CatalogChannel != defaultCatalogChannel && brokerInfo.CatalogChannel != loggedCatalogChannel {
+		logger.Infof("Tracking non-default catalog channel %q (default is %q)", brokerInfo.CatalogChannel, defaultCatalogChannel)
+		loggedCatalogChannel = brokerInfo.CatalogChannel
 	}
 
 	applySubmarinerImageConfig(brokerInfo, submarinerConfig)
