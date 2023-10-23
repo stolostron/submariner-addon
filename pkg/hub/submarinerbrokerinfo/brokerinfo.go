@@ -43,9 +43,9 @@ const (
 	namespaceMaxLength            = 63
 )
 
-var logger = log.Logger{Logger: logf.Log.WithName("BrokerInfo")}
-
 var (
+	logger = log.Logger{Logger: logf.Log.WithName("BrokerInfo")}
+
 	infrastructureGVR = schema.GroupVersionResource{
 		Group:    "config.openshift.io",
 		Version:  "v1",
@@ -57,6 +57,8 @@ var (
 		Version:  "v1",
 		Resource: "apiservers",
 	}
+
+	loggedCatalogChannel string
 )
 
 type SubmarinerBrokerInfo struct {
@@ -213,6 +215,11 @@ func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *c
 	setIfValueNotDefault(&brokerInfo.CatalogSourceNamespace, submarinerConfig.Spec.SubscriptionConfig.SourceNamespace)
 	setIfValueNotDefault(&brokerInfo.CatalogStartingCSV, submarinerConfig.Spec.SubscriptionConfig.StartingCSV)
 	setIfValueNotDefault(&brokerInfo.InstallPlanApproval, submarinerConfig.Spec.SubscriptionConfig.InstallPlanApproval)
+
+	if brokerInfo.CatalogChannel != defaultCatalogChannel && brokerInfo.CatalogChannel != loggedCatalogChannel {
+		logger.Infof("Tracking non-default catalog channel %q (default is %q)", brokerInfo.CatalogChannel, defaultCatalogChannel)
+		loggedCatalogChannel = brokerInfo.CatalogChannel
+	}
 
 	applySubmarinerImageConfig(brokerInfo, submarinerConfig)
 }
