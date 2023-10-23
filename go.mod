@@ -11,7 +11,7 @@ require (
 	github.com/gophercloud/gophercloud v1.7.0
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo/v2 v2.13.0
-	github.com/onsi/gomega v1.28.0
+	github.com/onsi/gomega v1.28.1
 	github.com/openshift/api v0.0.0-20230120195050-6ba31fa438f2
 	github.com/openshift/library-go v0.0.0-20230222090221-582055a1d5c4
 	github.com/operator-framework/api v0.17.5
@@ -84,7 +84,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/cel-go v0.12.6 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
