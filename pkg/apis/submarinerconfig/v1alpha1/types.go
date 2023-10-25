@@ -76,6 +76,11 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=false
 	InsecureBrokerConnection bool `json:"insecureBrokerConnection"`
 
+	// IgnoreCertificateErrors disables restarts on certificate errors.
+	// +optional
+	// +kubebuilder:default=false
+	IgnoreCertificateErrors bool `json:"ignoreCertificateErrors"`
+
 	// IPSecDebug enables IPSec debugging.
 	// +optional
 	// +kubebuilder:default=false

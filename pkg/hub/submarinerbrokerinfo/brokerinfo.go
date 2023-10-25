@@ -66,6 +66,7 @@ type SubmarinerBrokerInfo struct {
 	InsecureBrokerConnection  bool
 	IPSecDebug                bool
 	Debug                     bool
+	HaltOnCertificateError    bool
 	IPSecNATTPort             int
 	InstallationNamespace     string
 	InstallPlanApproval       string
@@ -205,6 +206,7 @@ func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *c
 	brokerInfo.InsecureBrokerConnection = submarinerConfig.Spec.InsecureBrokerConnection
 	brokerInfo.Debug = submarinerConfig.Spec.Debug
 	brokerInfo.IPSecDebug = submarinerConfig.Spec.IPSecDebug
+	brokerInfo.HaltOnCertificateError = !submarinerConfig.Spec.IgnoreCertificateErrors
 
 	setIfValueNotDefault(&brokerInfo.CableDriver, submarinerConfig.Spec.CableDriver)
 	setIfValueNotDefault(&brokerInfo.IPSecNATTPort, submarinerConfig.Spec.IPSecNATTPort)
