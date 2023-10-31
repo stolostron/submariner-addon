@@ -112,6 +112,10 @@ spec:
               globalCIDR:
                 description: GlobalCIDR specifies the global CIDR used by the cluster.
                 type: string
+              haltOnCertificateError:
+                default: true
+                description: HaltOnCertificateError halts pods on certificate errors (so they are restarted).
+                type: boolean
               imagePullSpecs:
                 description: ImagePullSpecs represents the desired images of submariner components installed on the managed cluster. If not specified, the default submariner images that was defined by submariner operator will be used.
                 properties:
