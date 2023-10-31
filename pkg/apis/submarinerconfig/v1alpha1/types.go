@@ -76,6 +76,11 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=false
 	InsecureBrokerConnection bool `json:"insecureBrokerConnection"`
 
+	// HaltOnCertificateError halts pods on certificate errors (so they are restarted).
+	// +optional
+	// +kubebuilder:default=true
+	HaltOnCertificateError bool `json:"haltOnCertificateError"`
+
 	// IPSecDebug enables IPSec debugging.
 	// +optional
 	// +kubebuilder:default=false
@@ -301,6 +306,7 @@ func (s *SubmarinerConfig) UnmarshalJSON(data []byte) error {
 			GatewayConfig: GatewayConfig{
 				Gateways: 1,
 			},
+			HaltOnCertificateError: true,
 		},
 	}
 

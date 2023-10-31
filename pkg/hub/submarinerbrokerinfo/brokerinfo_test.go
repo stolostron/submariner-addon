@@ -181,6 +181,7 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.SubmarinerGatewayImage).To(BeEmpty())
 				Expect(brokerInfo.SubmarinerRouteAgentImage).To(BeEmpty())
 				Expect(brokerInfo.InsecureBrokerConnection).To(BeFalse())
+				Expect(brokerInfo.HaltOnCertificateError).To(BeTrue())
 			})
 		})
 
@@ -206,6 +207,7 @@ var _ = Describe("Function Get", func() {
 						LoadBalancerEnable:       true,
 						AirGappedDeployment:      true,
 						InsecureBrokerConnection: true,
+						HaltOnCertificateError:   false,
 						GlobalCIDR:               "242.1.0.0/16",
 					},
 				}
@@ -227,6 +229,7 @@ var _ = Describe("Function Get", func() {
 				Expect(brokerInfo.SubmarinerGatewayImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.SubmarinerImagePullSpec))
 				Expect(brokerInfo.SubmarinerRouteAgentImage).To(Equal(submarinerConfig.Spec.ImagePullSpecs.SubmarinerRouteAgentImagePullSpec))
 				Expect(brokerInfo.InsecureBrokerConnection).To(Equal(submarinerConfig.Spec.InsecureBrokerConnection))
+				Expect(brokerInfo.HaltOnCertificateError).To(Equal(submarinerConfig.Spec.HaltOnCertificateError))
 			})
 
 			It("should return an empty GlobalCIDR as globalnet is disabled", func() {
