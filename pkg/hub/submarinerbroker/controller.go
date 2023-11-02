@@ -58,6 +58,7 @@ type submarinerBrokerController struct {
 	clusterAddOnLister addonlisterv1alpha1.ClusterManagementAddOnLister
 	addOnLister        addonlisterv1alpha1.ManagedClusterAddOnLister
 	eventRecorder      events.Recorder
+	resourceCache      resourceapply.ResourceCache
 }
 
 type brokerConfig struct {
@@ -79,6 +80,7 @@ func NewController(kubeClient kubernetes.Interface,
 		clusterAddOnLister: addOnInformer.ClusterManagementAddOns().Lister(),
 		addOnLister:        addOnInformer.ManagedClusterAddOns().Lister(),
 		eventRecorder:      recorder.WithComponentSuffix("submariner-broker-controller"),
+		resourceCache:      resourceapply.NewResourceCache(),
 	}
 
 	return factory.New().
@@ -203,7 +205,7 @@ func (c *submarinerBrokerController) reconcileManagedClusterSet(ctx context.Cont
 	}
 
 	// Apply static files
-	err := resource.ApplyManifests(ctx, c.kubeClient, recorder, assetFunc(brokerNS), staticResourceFiles...)
+	err := resource.ApplyManifests(ctx, c.kubeClient, recorder, c.resourceCache, assetFunc(brokerNS), staticResourceFiles...)
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/addon"
 	"github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig"
@@ -121,6 +122,7 @@ type submarinerAgentController struct {
 	addOnLister            addonlisterv1alpha1.ManagedClusterAddOnLister
 	deploymentConfigLister addonlisterv1alpha1.AddOnDeploymentConfigLister
 	eventRecorder          events.Recorder
+	resourceCache          resourceapply.ResourceCache
 }
 
 // NewSubmarinerAgentController returns a submarinerAgentController instance.
@@ -157,6 +159,7 @@ func NewSubmarinerAgentController(
 		addOnLister:            addOnInformer.Lister(),
 		deploymentConfigLister: deploymentConfigInformer.Lister(),
 		eventRecorder:          recorder.WithComponentSuffix("submariner-agent-controller"),
+		resourceCache:          resourceapply.NewResourceCache(),
 	}
 
 	return factory.New().
@@ -542,7 +545,8 @@ func (c *submarinerAgentController) applyClusterRBACFiles(ctx context.Context, b
 		SubmarinerBrokerNamespace: brokerNamespace,
 	}
 
-	return resource.ApplyManifests(ctx, c.kubeClient, c.eventRecorder, resource.AssetFromFile(manifestFiles, config), clusterRBACFiles...)
+	return resource.ApplyManifests(ctx, c.kubeClient, c.eventRecorder, c.resourceCache, resource.AssetFromFile(manifestFiles, config),
+		clusterRBACFiles...)
 }
 
 func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, managedClusterName string) error {
