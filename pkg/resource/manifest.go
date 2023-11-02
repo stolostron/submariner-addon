@@ -31,7 +31,6 @@ var logger = log.Logger{Logger: logf.Log.WithName("Resource")}
 var (
 	genericScheme = runtime.NewScheme()
 	genericCodec  = serializer.NewCodecFactory(genericScheme).UniversalDeserializer()
-	resourceCache = resourceapply.NewResourceCache()
 )
 
 func init() {
@@ -42,9 +41,9 @@ func init() {
 }
 
 func ApplyManifests(ctx context.Context, kubeClient kubernetes.Interface, recorder events.Recorder,
-	assetFunc resourceapply.AssetFunc, files ...string,
+	cache resourceapply.ResourceCache, assetFunc resourceapply.AssetFunc, files ...string,
 ) error {
-	applyResults := resourceapply.ApplyDirectly(ctx, resourceapply.NewKubeClientHolder(kubeClient), recorder, resourceCache,
+	applyResults := resourceapply.ApplyDirectly(ctx, resourceapply.NewKubeClientHolder(kubeClient), recorder, cache,
 		assetFunc, files...)
 
 	errs := []error{}
