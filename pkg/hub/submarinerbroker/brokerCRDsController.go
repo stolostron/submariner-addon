@@ -3,7 +3,6 @@ package submarinerbroker
 import (
 	"context"
 
-	"github.com/aws/smithy-go/ptr"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/stolostron/submariner-addon/pkg/resource"
@@ -16,6 +15,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -77,8 +77,8 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 		Kind:               "CustomResourceDefinition",
 		Name:               configCRD.GetName(),
 		UID:                configCRD.GetUID(),
-		Controller:         ptr.Bool(true),
-		BlockOwnerDeletion: ptr.Bool(true),
+		Controller:         ptr.To(true),
+		BlockOwnerDeletion: ptr.To(true),
 	}
 
 	return resource.ApplyCRDs(ctx, c.crdClient, syncCtx.Recorder(), ownerRef, func(yaml string) ([]byte, error) {
