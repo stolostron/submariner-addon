@@ -18,21 +18,21 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.15.2
+	github.com/submariner-io/admiral v0.15.3
 	github.com/submariner-io/cloud-prepare v0.15.2
-	github.com/submariner-io/submariner v0.15.2
-	github.com/submariner-io/submariner-operator v0.15.2
+	github.com/submariner-io/submariner v0.15.3
+	github.com/submariner-io/submariner-operator v0.15.3
 	golang.org/x/oauth2 v0.13.0
 	google.golang.org/api v0.148.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.26.7
-	k8s.io/apiextensions-apiserver v0.26.7
-	k8s.io/apimachinery v0.26.7
-	k8s.io/client-go v0.26.7
-	k8s.io/code-generator v0.26.7
-	k8s.io/component-base v0.26.7
+	k8s.io/api v0.26.10
+	k8s.io/apiextensions-apiserver v0.26.10
+	k8s.io/apimachinery v0.26.10
+	k8s.io/client-go v0.26.10
+	k8s.io/code-generator v0.26.10
+	k8s.io/component-base v0.26.10
 	k8s.io/klog/v2 v2.100.1
-	open-cluster-management.io/addon-framework v0.6.1
+	open-cluster-management.io/addon-framework v0.1.0
 	open-cluster-management.io/api v0.10.1-0.20230216050312-b716d4a5c514
 	sigs.k8s.io/controller-runtime v0.14.6
 )
@@ -82,7 +82,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/cel-go v0.12.6 // indirect
+	github.com/google/cel-go v0.12.7 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
@@ -128,7 +128,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.5 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.36.3 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.35.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.35.1 // indirect
 	go.opentelemetry.io/otel v1.11.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.11.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.11.0 // indirect
@@ -158,10 +158,10 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.26.7 // indirect
+	k8s.io/apiserver v0.26.10 // indirect
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/klog v1.0.0 // indirect
-	k8s.io/kms v0.26.7 // indirect
+	k8s.io/kms v0.26.10 // indirect
 	k8s.io/kube-aggregator v0.26.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230202010329-39b3636cbaa3 // indirect
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5 // indirect
