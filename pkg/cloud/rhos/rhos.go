@@ -1,8 +1,10 @@
 package rhos
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/gophercloud/gophercloud"
@@ -20,6 +22,7 @@ import (
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -174,6 +177,13 @@ func newClient(credentialsSecret *corev1.Secret) (string, string, *gophercloud.P
 	providerClient, err := openstack.AuthenticatedClient(opts)
 	if err != nil {
 		return "", "", nil, err
+	}
+
+	if !ptr.Deref(cloud.Verify, true) {
+		config := &tls.Config{InsecureSkipVerify: true} //nolint:gosec // Disabling certificate validation is explicitly requested
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = config
+		providerClient.HTTPClient = http.Client{Transport: transport}
 	}
 
 	return projectID, cloudNameStr, providerClient, nil
