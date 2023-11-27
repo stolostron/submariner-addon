@@ -14,7 +14,7 @@ require (
 	github.com/openshift/library-go v0.0.0-20230531082824-be85f8400975
 	github.com/operator-framework/api v0.19.0
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/submariner-io/admiral v0.16.2
 	github.com/submariner-io/cloud-prepare v0.16.2
