@@ -6,6 +6,7 @@ import (
 	"embed"
 	"encoding/pem"
 	"fmt"
+	"os"
 
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -131,6 +132,9 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 		AddonInstallNamespace string
 		Image                 string
 		HubHost               string
+		OpenShiftProfile      string
+		OpenShiftProfileHost  string
+		OpenShiftProfilePort  string
 		NodeSelector          map[string]string
 		Tolerations           []corev1.Toleration
 	}{
@@ -139,6 +143,9 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 		ClusterName:           cluster.Name,
 		Image:                 a.agentImage,
 		HubHost:               a.hubHost,
+		OpenShiftProfile:      os.Getenv("OPENSHIFT_PROFILE"),
+		OpenShiftProfileHost:  os.Getenv("OPENSHIFT_PROFILE_HOST"),
+		OpenShiftProfilePort:  os.Getenv("OPENSHIFT_PROFILE_PORT"),
 		NodeSelector:          make(map[string]string),
 		Tolerations:           make([]corev1.Toleration, 0),
 	}
