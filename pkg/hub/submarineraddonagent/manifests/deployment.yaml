@@ -22,6 +22,18 @@ spec:
         env:
         - name: HUB_HOST
           value: "{{ .HubHost }}"
+        {{- if .OpenShiftProfile }}
+        - name: OPENSHIFT_PROFILE
+          value: "{{ .OpenShiftProfile }}"
+          {{- if .OpenShiftProfileHost }}
+        - name: OPENSHIFT_PROFILE_HOST
+          value: "{{ .OpenShiftProfileHost }}"
+          {{- end }}
+          {{- if .OpenShiftProfilePort }}
+        - name: OPENSHIFT_PROFILE_PORT
+          value: "{{ .OpenShiftProfilePort }}"
+          {{- end }}
+        {{- end }}
         args:
           - "/submariner"
           - "agent"
