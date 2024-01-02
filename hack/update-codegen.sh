@@ -12,7 +12,7 @@ verify="${VERIFY:-}"
 set -x
 
 for group in submarinerconfig submarinerdiagnoseconfig; do
-  bash ${CODEGEN_PKG}/generate-groups.sh "client,lister,informer" \
+  bash ${CODEGEN_PKG}/kube_codegen.sh "client,lister,informer" \
     github.com/stolostron/submariner-addon/pkg/client/${group} \
     github.com/stolostron/submariner-addon/pkg/apis \
     "${group}:v1alpha1" \
