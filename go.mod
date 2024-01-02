@@ -20,7 +20,7 @@ require (
 	github.com/submariner-io/cloud-prepare v0.16.2
 	github.com/submariner-io/submariner v0.16.2
 	github.com/submariner-io/submariner-operator v0.16.2
-	go.uber.org/mock v0.3.0
+	go.uber.org/mock v0.4.0
 	golang.org/x/oauth2 v0.15.0
 	google.golang.org/api v0.154.0
 	gopkg.in/yaml.v2 v2.4.0
