@@ -16,11 +16,13 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/stolostron/submariner-addon/test/util"
 	"github.com/submariner-io/admiral/pkg/log/kzerolog"
+	resourceu "github.com/submariner-io/admiral/pkg/resource"
 	admutil "github.com/submariner-io/admiral/pkg/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -202,6 +204,8 @@ func startControllerManager() func() {
 	go func() {
 		defer GinkgoRecover()
 
+		createClusterManagementAddOn(ctx)
+
 		addOnOptions := hub.AddOnOptions{AgentImage: "test"}
 		err := addOnOptions.RunControllerManager(ctx, &controllercmd.ControllerContext{
 			KubeConfig:    cfg,
@@ -232,4 +236,17 @@ func startControllerManager() func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 	}
+}
+
+func createClusterManagementAddOn(ctx context.Context) {
+	data, err := os.ReadFile(filepath.Join(".", "deploy", "olm-catalog", "manifests", "submarineraddon.cluster-management-addon.yaml"))
+	Expect(err).To(Succeed())
+
+	cma := &addonv1alpha1.ClusterManagementAddOn{}
+	err = yaml.Unmarshal(data, cma)
+	Expect(err).To(Succeed())
+
+	o, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(ctx, cma, metav1.CreateOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	By(fmt.Sprintf("****CREEATED CMA: %s", resourceu.ToJSON(o)))
 }
