@@ -37,6 +37,9 @@ updates:
       # These are included with submariner-operator
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner
+      # Pin to v0.153.0 as newer versions require go.opentelemetry* v1.21.0 but that
+      # conflicts with other dependencies.
+      - dependency-name: google.golang.org/api
       # 2.7 tracks Submariner 0.14
       - dependency-name: github.com/submariner-io/submariner-operator
         versions: ">= 0.15.0-m0"
