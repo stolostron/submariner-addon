@@ -5,10 +5,18 @@ updates:
     directory: '/'
     schedule:
       interval: monthly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
   - package-ecosystem: gomod
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
     open-pull-requests-limit: 5
     ignore:
       # Kept in sync k8s.io/apiextensions-apiserver
@@ -25,6 +33,10 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
     open-pull-requests-limit: 5
     ignore:
       # K8s and operator SDK, we need to handle these manually
@@ -50,6 +62,10 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
     open-pull-requests-limit: 5
     ignore:
       # K8s and operator SDK, we need to handle these manually
@@ -72,6 +88,10 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
     open-pull-requests-limit: 5
     ignore:
       # K8s and operator SDK, we need to handle these manually
