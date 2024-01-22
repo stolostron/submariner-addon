@@ -16,10 +16,10 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.16.2
+	github.com/submariner-io/admiral v0.16.3
 	github.com/submariner-io/cloud-prepare v0.16.2
-	github.com/submariner-io/submariner v0.16.2
-	github.com/submariner-io/submariner-operator v0.16.2
+	github.com/submariner-io/submariner v0.16.3
+	github.com/submariner-io/submariner-operator v0.16.3
 	go.uber.org/mock v0.4.0
 	golang.org/x/oauth2 v0.16.0
 	google.golang.org/api v0.156.0
@@ -116,6 +116,7 @@ require (
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
+	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rs/zerolog v1.30.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
