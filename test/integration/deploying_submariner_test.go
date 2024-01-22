@@ -16,7 +16,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
-	"k8s.io/utils/ptr"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	"open-cluster-management.io/api/client/addon/clientset/versioned/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -161,39 +160,11 @@ var _ = Describe("Submariner Deployment", func() {
 		It("should remove the broker resources for the associated ManagedClusterSets", func() {
 			By("Delete the ClusterManagementAddOn")
 
-			var propagationPolicy *metav1.DeletionPropagation
-
-			// The default control plane set up by the K8s test environment does not run the garbage collector so foreground deletion
-			// doesn't clean up owned references, so we need to do it manually. However, if using a real cluster then we can use
-			// foreground deletion.
-			if ptr.Deref(testEnv.UseExistingCluster, false) {
-				propagationPolicy = ptr.To(metav1.DeletePropagationForeground)
-			}
-
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*eventuallyTimeout)
-			err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Delete(ctx, constants.SubmarinerAddOnName, metav1.DeleteOptions{
-				PropagationPolicy: propagationPolicy,
-			})
+			err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Delete(ctx, constants.SubmarinerAddOnName, metav1.DeleteOptions{})
 
 			cancel()
 			Expect(err).NotTo(HaveOccurred())
-
-			if !ptr.Deref(testEnv.UseExistingCluster, false) {
-				By("Delete all ManagedClusterAddOns")
-
-				list, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(metav1.NamespaceAll).List(context.Background(),
-					metav1.ListOptions{})
-				Expect(err).NotTo(HaveOccurred())
-
-				for i := range list.Items {
-					addOnInterface := addOnClient.AddonV1alpha1().ManagedClusterAddOns(list.Items[i].Namespace)
-					Expect(finalizer.Remove(context.Background(), resource.ForAddon(addOnInterface), &list.Items[i],
-						constants.SubmarinerAddOnFinalizer)).NotTo(HaveOccurred())
-
-					Expect(addOnInterface.Delete(context.Background(), constants.SubmarinerAddOnName,
-						metav1.DeleteOptions{})).NotTo(HaveOccurred())
-				}
-			}
 
 			By("Ensure the ClusterManagementAddOn is deleted")
 

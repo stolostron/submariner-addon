@@ -2,7 +2,6 @@ package submarinerbroker_test
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -12,6 +11,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbroker"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	fakereactor "github.com/submariner-io/admiral/pkg/fake"
+	"github.com/submariner-io/admiral/pkg/finalizer"
 	"github.com/submariner-io/admiral/pkg/test"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -214,6 +214,7 @@ func testClusterManagementAddOn() {
 						Name:            constants.SubmarinerAddOnName,
 						Namespace:       "cluster1",
 						OwnerReferences: []metav1.OwnerReference{ownerRef},
+						Finalizers:      []string{constants.SubmarinerAddOnFinalizer},
 					},
 				}
 
@@ -234,20 +235,14 @@ func testClusterManagementAddOn() {
 				Expect(err).To(Succeed())
 			})
 
-			It("should clean up the broker resources after the owned ManagedClusterAddOns are deleted", func() {
+			It("should delete the owned ManagedClusterAddOns and clean up the broker resources after all the ManagedClusterAddOns "+
+				"are deleted", func() {
 				t.ensureNamespace()
 
-				By(fmt.Sprintf("Deleting ManagedClusterAddOn in %q", addOn1.Namespace))
-
-				Expect(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(addOn1.Namespace).Delete(
-					context.Background(), addOn1.Name, metav1.DeleteOptions{})).To(Succeed())
-
-				t.ensureNamespace()
-
-				By(fmt.Sprintf("Deleting ManagedClusterAddOn in %q", addOn2.Namespace))
-
-				Expect(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(addOn2.Namespace).Delete(
-					context.Background(), addOn2.Name, metav1.DeleteOptions{})).To(Succeed())
+				Eventually(func() error {
+					return finalizer.Remove(context.Background(), resource.ForAddon(t.addOnClient.AddonV1alpha1().
+						ManagedClusterAddOns(addOn1.Namespace)), addOn1, constants.SubmarinerAddOnFinalizer)
+				}).Should(Succeed())
 
 				t.awaitNoNamespace()
 				t.awaitNoBrokerRole()
