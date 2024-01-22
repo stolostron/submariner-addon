@@ -263,13 +263,23 @@ func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context,
 		return errors.Wrap(err, "error listing ManagedClusterAddOns")
 	}
 
+	addOnsExist := false
+
 	for _, addOn := range addOns {
 		if metav1.IsControlledBy(addOn, clusterAddOn) {
-			// A submariner ManagedClusterAddOn still exists - defer cleanup.
-			logger.Infof("ManagedClusterAddOn in cluster %q still exists - not cleaning up yet", addOn.Namespace)
+			logger.Infof("ManagedClusterAddOn in cluster %q still exists - deleting", addOn.Namespace)
 
-			return nil
+			err = c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(addOn.Namespace).Delete(ctx, addOn.Name, metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+
+			addOnsExist = true
 		}
+	}
+
+	if addOnsExist {
+		return nil
 	}
 
 	logger.Info("All ManagedClusterAddOns deleted - doing broker cleaning")
