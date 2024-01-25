@@ -5,10 +5,18 @@ updates:
     directory: '/'
     schedule:
       interval: monthly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
   - package-ecosystem: gomod
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
     open-pull-requests-limit: 5
     ignore:
       # Kept in sync k8s.io/apiextensions-apiserver
@@ -21,32 +29,14 @@ updates:
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner 
   - package-ecosystem: gomod
-    target-branch: "release-2.6"
-    directory: "/"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    ignore:
-      # K8s and operator SDK, we need to handle these manually
-      - dependency-name: github.com/operator-framework/*
-      - dependency-name: k8s.io/*
-      - dependency-name: sigs.k8s.io/*
-      # Addon framework, this shouldn't be upgraded on release branches
-      - dependency-name: open-cluster-management.io/addon-framework
-      - dependency-name: open-cluster-management.io/api
-      # These are included with submariner-operator
-      - dependency-name: github.com/submariner-io/admiral
-      - dependency-name: github.com/submariner-io/submariner
-      # 2.6 tracks Submariner 0.13
-      - dependency-name: github.com/submariner-io/submariner-operator
-        versions: ">= 0.14.0-m0"
-      - dependency-name: github.com/submariner-io/cloud-prepare
-        versions: ">= 0.14.0-m0"
-  - package-ecosystem: gomod
     target-branch: "release-2.7"
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
     open-pull-requests-limit: 5
     ignore:
       # K8s and operator SDK, we need to handle these manually
@@ -59,6 +49,9 @@ updates:
       # These are included with submariner-operator
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner
+      # Pin to v0.153.0 as newer versions require go.opentelemetry* v1.21.0 but that
+      # conflicts with other dependencies.
+      - dependency-name: google.golang.org/api
       # 2.7 tracks Submariner 0.14
       - dependency-name: github.com/submariner-io/submariner-operator
         versions: ">= 0.15.0-m0"
@@ -69,6 +62,10 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
     open-pull-requests-limit: 5
     ignore:
       # K8s and operator SDK, we need to handle these manually
@@ -86,3 +83,29 @@ updates:
         versions: ">= 0.16.0-m0"
       - dependency-name: github.com/submariner-io/cloud-prepare
         versions: ">= 0.16.0-m0"
+  - package-ecosystem: gomod
+    target-branch: "release-2.9"
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+    ignore:
+      # K8s and operator SDK, we need to handle these manually
+      - dependency-name: github.com/operator-framework/*
+      - dependency-name: k8s.io/*
+      - dependency-name: sigs.k8s.io/*
+      # Addon framework, this shouldn't be upgraded on release branches
+      - dependency-name: open-cluster-management.io/addon-framework
+      - dependency-name: open-cluster-management.io/api
+      # These are included with submariner-operator
+      - dependency-name: github.com/submariner-io/admiral
+      - dependency-name: github.com/submariner-io/submariner
+      # 2.9 tracks Submariner 0.16
+      - dependency-name: github.com/submariner-io/submariner-operator
+        versions: ">= 0.17.0-m0"
+      - dependency-name: github.com/submariner-io/cloud-prepare
+        versions: ">= 0.17.0-m0"
