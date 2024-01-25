@@ -10,7 +10,7 @@ require (
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.31.1
-	github.com/openshift/api v0.0.0-20230714214528-de6ad7979b00
+	github.com/openshift/api v0.0.0-20240124164020-e2ce40831f2e
 	github.com/openshift/library-go v0.0.0-20230531082824-be85f8400975
 	github.com/operator-framework/api v0.20.0
 	github.com/pkg/errors v0.9.1
