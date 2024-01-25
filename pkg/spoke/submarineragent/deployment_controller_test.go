@@ -10,7 +10,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/spoke/submarineragent"
 	fakereactor "github.com/submariner-io/admiral/pkg/fake"
 	"github.com/submariner-io/admiral/pkg/names"
-	"github.com/submariner-io/admiral/pkg/syncer/test"
+	"github.com/submariner-io/admiral/pkg/resource"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -447,17 +447,17 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 }
 
 func (t *deploymentControllerTestDriver) createSubscription() {
-	_, err := t.subscriptionClient.Create(context.TODO(), test.ToUnstructured(t.subscription), metav1.CreateOptions{})
+	_, err := t.subscriptionClient.Create(context.TODO(), resource.MustToUnstructured(t.subscription), metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
 func (t *deploymentControllerTestDriver) createSubmariner() {
-	_, err := t.submarinerClient.Create(context.TODO(), test.ToUnstructured(t.submariner), metav1.CreateOptions{})
+	_, err := t.submarinerClient.Create(context.TODO(), resource.MustToUnstructured(t.submariner), metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
 func (t *deploymentControllerTestDriver) updateSubscription() {
-	_, err := t.subscriptionClient.Update(context.TODO(), test.ToUnstructured(t.subscription), metav1.UpdateOptions{})
+	_, err := t.subscriptionClient.Update(context.TODO(), resource.MustToUnstructured(t.subscription), metav1.UpdateOptions{})
 	Expect(err).To(Succeed())
 }
 

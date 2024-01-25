@@ -77,7 +77,7 @@ func NewProvider(info *provider.Info) (*azureProvider, error) {
 
 	azureCloud := azure.NewCloud(&cloudInfo)
 
-	gwDeployer, err := azure.NewOcpGatewayDeployer(&cloudInfo, azureCloud, msDeployer, instanceType, true)
+	gwDeployer, err := azure.NewOcpGatewayDeployer(&cloudInfo, azureCloud, msDeployer, instanceType)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialise a GatewayDeployer config")
 	}

@@ -180,7 +180,7 @@ func (c *submarinerBrokerController) reconcileManagedClusterSet(ctx context.Cont
 
 	if !finalizer.IsPresent(clusterSet, brokerFinalizer) || clusterSet.GetAnnotations()[SubmBrokerNamespaceKey] != brokerNS {
 		err := util.Update(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet,
-			func(existing runtime.Object) (runtime.Object, error) {
+			func(existing *clusterv1beta2.ManagedClusterSet) (*clusterv1beta2.ManagedClusterSet, error) {
 				objMeta := coreresource.MustToMeta(existing)
 
 				annotations := objMeta.GetAnnotations()

@@ -389,7 +389,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	}
 
 	// broker object exists, add backup label if not already present
-	err = c.addBackupLabel(ctx, &submarinerv1a1.Broker{
+	err = addBackupLabel(ctx, c.controllerClient, &submarinerv1a1.Broker{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      BrokerObjectName,
 			Namespace: brokerNamespace,
@@ -681,7 +681,7 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 
 	if gnCmErr == nil {
 		// This should handle upgrade from a version that didn't add the label
-		return c.addBackupLabel(ctx, gmConfigMap)
+		return addBackupLabel(ctx, c.controllerClient, gmConfigMap)
 	}
 
 	// globalnetConfig is missing in the broker-namespace, try creating it from submariner-broker object.
@@ -772,15 +772,15 @@ func (c *submarinerAgentController) getBrokerObject(ctx context.Context, brokerN
 	return broker, nil
 }
 
-func (c *submarinerAgentController) addBackupLabel(ctx context.Context, to client.Object) error {
+func addBackupLabel[T client.Object](ctx context.Context, cl client.Client, to T) error {
 	if to.GetLabels() != nil {
 		if _, ok := to.GetLabels()[BackupLabelKey]; ok {
 			return nil
 		}
 	}
 
-	return errors.Wrapf(util.Update(ctx, coreresource.ForControllerClient(c.controllerClient, to.GetNamespace(), to), to,
-		func(obj runtime.Object) (runtime.Object, error) {
+	return errors.Wrapf(util.Update[T](ctx, coreresource.ForControllerClient[T](cl, to.GetNamespace(), to), to,
+		func(obj T) (T, error) {
 			existing := coreresource.MustToMeta(obj)
 
 			existingLabels := existing.GetLabels()

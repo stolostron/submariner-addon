@@ -8,11 +8,9 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/stolostron/submariner-addon/pkg/redact"
+	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/log"
-	"github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/util"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 	workv1 "open-cluster-management.io/api/work/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -21,23 +19,14 @@ import (
 var logger = log.Logger{Logger: logf.Log.WithName("ManifestWork")}
 
 func Apply(ctx context.Context, client workclient.Interface, toApply *workv1.ManifestWork, recorder events.Recorder) error {
-	resourceInterface := &resource.InterfaceFuncs{
-		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (runtime.Object, error) {
-			return client.WorkV1().ManifestWorks(toApply.Namespace).Get(ctx, toApply.Name, options)
-		},
-		CreateFunc: func(ctx context.Context, obj runtime.Object, options metav1.CreateOptions) (runtime.Object, error) {
-			return client.WorkV1().ManifestWorks(toApply.Namespace).Create(ctx, obj.(*workv1.ManifestWork), options)
-		},
-		UpdateFunc: func(ctx context.Context, obj runtime.Object, options metav1.UpdateOptions) (runtime.Object, error) {
-			return client.WorkV1().ManifestWorks(toApply.Namespace).Update(ctx, obj.(*workv1.ManifestWork), options)
-		},
-	}
+	resourceInterface := resource.ForManifestWork(client.WorkV1().ManifestWorks(toApply.Namespace))
 
-	result, err := util.CreateOrUpdate(ctx, resourceInterface, toApply, func(existing runtime.Object) (runtime.Object, error) {
-		existing.(*workv1.ManifestWork).Spec = toApply.Spec
+	result, err := util.CreateOrUpdate[*workv1.ManifestWork](ctx, resourceInterface, toApply,
+		func(existing *workv1.ManifestWork) (*workv1.ManifestWork, error) {
+			existing.Spec = toApply.Spec
 
-		return existing, nil
-	})
+			return existing, nil
+		})
 
 	if result == util.OperationResultCreated {
 		recorder.Event("ManifestWorkApplied", fmt.Sprintf("manifestwork %s/%s was created", toApply.Namespace, toApply.Name))

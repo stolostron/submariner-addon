@@ -314,7 +314,7 @@ var _ = Describe("Controller", func() {
 				metav1.DeleteOptions{})).To(Succeed())
 		})
 
-		t.testAgentCleanup()
+		t.testAgentCleanup(true)
 
 		It("should delete the Globalnet ConfigMap and Broker resources", func() {
 			t.awaitNoGlobalnetConfigMap()
@@ -351,7 +351,7 @@ var _ = Describe("Controller", func() {
 			Expect(err).To(Succeed())
 		})
 
-		t.testAgentCleanup()
+		t.testAgentCleanup(false)
 	})
 })
 
@@ -553,18 +553,22 @@ func (t *testDriver) testFinalizers() {
 	})
 }
 
-func (t *testDriver) testAgentCleanup() {
+func (t *testDriver) testAgentCleanup(expMCADeleted bool) {
 	It("should delete the ManifestWorks", func() {
 		t.awaitNoManifestWorks()
 	})
 
-	It("should remove the finalizer", func() {
-		_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.Background(), t.addOn.Name, metav1.GetOptions{})
-		if !apierrors.IsNotFound(err) {
+	if expMCADeleted {
+		Specify("the ManagedClusterAddOn should be deleted", func() {
+			test.AwaitNoResource(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
+				constants.SubmarinerAddOnName)
+		})
+	} else {
+		It("should remove the ManagedClusterAddOn finalizer", func() {
 			test.AwaitNoFinalizer(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
-				t.addOn.Name, constants.SubmarinerAddOnFinalizer)
-		}
-	})
+				constants.SubmarinerAddOnName, constants.SubmarinerAddOnFinalizer)
+		})
+	}
 
 	It("should delete the RBAC resources for the managed cluster", func() {
 		test.AwaitNoResource(coreresource.ForRoleBinding(t.kubeClient, brokerNamespace), "submariner-k8s-broker-cluster-"+clusterName)
@@ -578,8 +582,8 @@ func (t *testDriver) awaitManifestWorks() {
 }
 
 func (t *testDriver) awaitOperatorManifestWork() []*unstructured.Unstructured {
-	return t.assertOperatorManifestWork(test.AwaitResource(resource.ForManifestWork(
-		t.manifestWorkClient.WorkV1().ManifestWorks(clusterName)), submarineragent.OperatorManifestWorkName).(*workv1.ManifestWork))
+	return t.assertOperatorManifestWork(test.AwaitResource[*workv1.ManifestWork](resource.ForManifestWork(
+		t.manifestWorkClient.WorkV1().ManifestWorks(clusterName)), submarineragent.OperatorManifestWorkName))
 }
 
 func (t *testDriver) assertOperatorManifestWork(work *workv1.ManifestWork) []*unstructured.Unstructured {
@@ -611,8 +615,8 @@ func (t *testDriver) assertOperatorManifestWork(work *workv1.ManifestWork) []*un
 }
 
 func (t *testDriver) awaitSubmarinerManifestWork() {
-	t.assertSubmarinerManifestWork(test.AwaitResource(resource.ForManifestWork(
-		t.manifestWorkClient.WorkV1().ManifestWorks(clusterName)), submarineragent.SubmarinerCRManifestWorkName).(*workv1.ManifestWork))
+	t.assertSubmarinerManifestWork(test.AwaitResource[*workv1.ManifestWork](resource.ForManifestWork(
+		t.manifestWorkClient.WorkV1().ManifestWorks(clusterName)), submarineragent.SubmarinerCRManifestWorkName))
 }
 
 func (t *testDriver) assertSubmarinerManifestWork(work *workv1.ManifestWork) {
@@ -692,8 +696,8 @@ func (t *testDriver) awaitNoManifestWork(name string) {
 }
 
 func (t *testDriver) awaitClusterRBACResources() {
-	roleBinding := test.AwaitResource(coreresource.ForRoleBinding(t.kubeClient, brokerNamespace),
-		"submariner-k8s-broker-cluster-"+clusterName).(*rbacv1.RoleBinding)
+	roleBinding := test.AwaitResource[*rbacv1.RoleBinding](coreresource.ForRoleBinding(t.kubeClient, brokerNamespace),
+		"submariner-k8s-broker-cluster-"+clusterName)
 	Expect(roleBinding.Subjects).To(HaveLen(1))
 	Expect(roleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
 	Expect(roleBinding.Subjects[0].Name).To(Equal(clusterName))
