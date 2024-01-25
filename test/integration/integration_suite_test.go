@@ -20,7 +20,6 @@ import (
 	admutil "github.com/submariner-io/admiral/pkg/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/dynamic"
@@ -222,8 +221,8 @@ func startControllerManager() func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: constants.SubmarinerAddOnName,
 				},
-			}, func(existing runtime.Object) (runtime.Object, error) {
-				existing.(*addonv1alpha1.ClusterManagementAddOn).Finalizers = nil
+			}, func(existing *addonv1alpha1.ClusterManagementAddOn) (*addonv1alpha1.ClusterManagementAddOn, error) {
+				existing.Finalizers = nil
 				return existing, nil
 			})
 		if !apierrors.IsNotFound(err) {

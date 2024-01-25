@@ -75,8 +75,7 @@ func NewProvider(info *provider.Info) (*rhosProvider, error) {
 	cloudPrepare := cloudpreparerhos.NewCloud(cloudInfo)
 	msDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
 
-	gwDeployer := cloudpreparerhos.NewOcpGatewayDeployer(cloudInfo, msDeployer, projectID, instanceType,
-		"", cloudEntry, true)
+	gwDeployer := cloudpreparerhos.NewOcpGatewayDeployer(cloudInfo, msDeployer, projectID, instanceType, "", cloudEntry)
 
 	return &rhosProvider{
 		infraID:           info.InfraID,

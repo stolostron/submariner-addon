@@ -138,8 +138,7 @@ func testManagedClusterSet() {
 			t.awaitNoNamespace()
 			t.awaitNoBrokerRole()
 
-			test.AwaitNoFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
-				clusterSetName, finalizerName)
+			test.AwaitNoResource(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()), clusterSetName)
 		})
 
 		Context("and deletion of the broker Namespace initially fails", func() {
@@ -250,13 +249,11 @@ func testClusterManagementAddOn() {
 				test.AwaitNoFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
 					clusterSetName, finalizerName)
 
-				test.AwaitNoFinalizer(resource.ForClusterAddon(t.addOnClient.AddonV1alpha1().ClusterManagementAddOns()),
-					t.clusterMgmtAddon.Name, constants.SubmarinerAddOnFinalizer)
-
 				// Ensure broker setup doesn't happen after the ClusterManagementAddOn is actually deleted.
 
-				Expect(t.addOnClient.AddonV1alpha1().ClusterManagementAddOns().Delete(context.Background(), t.clusterMgmtAddon.Name,
-					metav1.DeleteOptions{})).To(Succeed())
+				test.AwaitNoResource(resource.ForClusterAddon(t.addOnClient.AddonV1alpha1().ClusterManagementAddOns()),
+					t.clusterMgmtAddon.Name)
+
 				Expect(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Delete(context.Background(), t.clusterSet.Name,
 					metav1.DeleteOptions{})).To(Succeed())
 
