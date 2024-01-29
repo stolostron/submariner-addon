@@ -246,8 +246,9 @@ func createClusterManagementAddOn(ctx context.Context) {
 
 	// Adding installStrategy for testing purposes.
 	cma.Spec.InstallStrategy = addonv1alpha1.InstallStrategy{
-		Type: "manual",
+		Type: "Manual",
 	}
+
 	Expect(err).To(Succeed())
 
 	o, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(ctx, cma, metav1.CreateOptions{})
