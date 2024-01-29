@@ -9,8 +9,6 @@ spec:
   addOnMeta:
     description: Submariner Addon for MultiCluster connectivity
     displayName: Submariner Addon
-  installStrategy:
-    type: Manual
   supportedConfigs:
     - group: addon.open-cluster-management.io
       resource: addondeploymentconfigs
