@@ -314,7 +314,7 @@ spec:
                   initialDelaySeconds: 2
                 resources:
                   limits:
-                    memory: 270Mi
+                    memory: 1024Mi
                   requests:
                     cpu: 100m
                     memory: 128Mi
