@@ -82,7 +82,7 @@ demo:
 	scripts/demo.sh
 
 update-csv: ensure-operator-sdk
-	cd deploy && rm -rf olm-catalog/manifests && ../$(OPERATOR_SDK) generate bundle --manifests --deploy-dir config/ --crds-dir config/crds/ --output-dir olm-catalog/ --version $(CSV_VERSION)
+	cd deploy && rm olm-catalog/manifests/*clusterserviceversion.yaml olm-catalog/manifests/*submarinerconfigs.yaml olm-catalog/manifests/*submarinerdiagnoseconfigs.yaml && ../$(OPERATOR_SDK) generate bundle --manifests --deploy-dir config/ --crds-dir config/crds/ --output-dir olm-catalog/ --version $(CSV_VERSION)
 	rm ./deploy/olm-catalog/manifests/submariner-addon_v1_serviceaccount.yaml
 
 update-scripts:
