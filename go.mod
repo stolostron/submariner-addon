@@ -6,23 +6,23 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
 	github.com/coreos/go-semver v0.3.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
-	github.com/gophercloud/gophercloud v1.8.0
+	github.com/gophercloud/gophercloud v1.9.0
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.31.1
 	github.com/openshift/api v0.0.0-20240124164020-e2ce40831f2e
 	github.com/openshift/library-go v0.0.0-20240124134907-4dfbf6bc7b11
-	github.com/operator-framework/api v0.21.0
+	github.com/operator-framework/api v0.22.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.17.0-rc0
-	github.com/submariner-io/cloud-prepare v0.17.0-rc0
-	github.com/submariner-io/submariner v0.17.0-rc0
-	github.com/submariner-io/submariner-operator v0.17.0-rc0
+	github.com/submariner-io/admiral v0.18.0-m0
+	github.com/submariner-io/cloud-prepare v0.18.0-m0
+	github.com/submariner-io/submariner v0.18.0-m0
+	github.com/submariner-io/submariner-operator v0.18.0-m0
 	go.uber.org/mock v0.4.0
 	golang.org/x/oauth2 v0.16.0
-	google.golang.org/api v0.159.0
+	google.golang.org/api v0.161.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.29.1
 	k8s.io/apiextensions-apiserver v0.29.1
