@@ -19,6 +19,7 @@ import (
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/dynamic"
@@ -133,11 +134,24 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
+	// Informer transform to trim ManagedFields for memory efficiency.
+	// TODO: Apply trim to all informers when they support WithTransform.
+	trim := func(obj interface{}) (interface{}, error) {
+		if accessor, err := meta.Accessor(obj); err == nil {
+			accessor.SetManagedFields(nil)
+		}
+
+		return obj, nil
+	}
+
 	clusterInformers := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
 	workInformers := workinformers.NewSharedInformerFactory(workClient, 10*time.Minute)
-	kubeInformers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-	configInformers := configinformers.NewSharedInformerFactory(configClient, 10*time.Minute)
-	apiExtensionsInformers := apiextensionsinformers.NewSharedInformerFactory(apiExtensionClient, 10*time.Minute)
+	kubeInformers := kubeinformers.NewSharedInformerFactoryWithOptions(
+		kubeClient, 10*time.Minute, kubeinformers.WithTransform(trim))
+	configInformers := configinformers.NewSharedInformerFactoryWithOptions(
+		configClient, 10*time.Minute, configinformers.WithTransform(trim))
+	apiExtensionsInformers := apiextensionsinformers.NewSharedInformerFactoryWithOptions(
+		apiExtensionClient, 10*time.Minute, apiextensionsinformers.WithTransform(trim))
 	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnClient, 10*time.Minute)
 
 	submarinerBrokerCRDsController := submarinerbroker.NewCRDsController(
