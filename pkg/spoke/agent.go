@@ -135,9 +135,9 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	}
 
 	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnHubKubeClient, 10*time.Minute,
-		addoninformers.WithNamespace(o.ClusterName))
+		addoninformers.WithNamespace(o.ClusterName), addoninformers.WithTransform(trim))
 	configInformers := configinformers.NewSharedInformerFactoryWithOptions(configHubKubeClient, 10*time.Minute,
-		configinformers.WithNamespace(o.ClusterName))
+		configinformers.WithNamespace(o.ClusterName), configinformers.WithTransform(trim))
 
 	spokeKubeInformers := informers.NewSharedInformerFactoryWithOptions(spokeKubeClient, 10*time.Minute,
 		informers.WithNamespace(o.InstallationNamespace), informers.WithTransform(trim))

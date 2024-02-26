@@ -144,15 +144,18 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return obj, nil
 	}
 
-	clusterInformers := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
-	workInformers := workinformers.NewSharedInformerFactory(workClient, 10*time.Minute)
+	clusterInformers := clusterinformers.NewSharedInformerFactoryWithOptions(clusterClient, 10*time.Minute,
+		clusterinformers.WithTransform(trim))
+	workInformers := workinformers.NewSharedInformerFactoryWithOptions(workClient, 10*time.Minute,
+		workinformers.WithTransform(trim))
 	kubeInformers := kubeinformers.NewSharedInformerFactoryWithOptions(
 		kubeClient, 10*time.Minute, kubeinformers.WithTransform(trim))
 	configInformers := configinformers.NewSharedInformerFactoryWithOptions(
 		configClient, 10*time.Minute, configinformers.WithTransform(trim))
 	apiExtensionsInformers := apiextensionsinformers.NewSharedInformerFactoryWithOptions(
 		apiExtensionClient, 10*time.Minute, apiextensionsinformers.WithTransform(trim))
-	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnClient, 10*time.Minute)
+	addOnInformers := addoninformers.NewSharedInformerFactoryWithOptions(addOnClient, 10*time.Minute,
+		addoninformers.WithTransform(trim))
 
 	submarinerBrokerCRDsController := submarinerbroker.NewCRDsController(
 		apiExtensionClient,
