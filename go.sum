@@ -179,8 +179,8 @@ github.com/googleapis/enterprise-certificate-proxy v0.3.2/go.mod h1:VLSiSSBs/ksP
 github.com/googleapis/gax-go/v2 v2.12.1 h1:9F8GV9r9ztXyAi00gsMQHNoF51xPZm8uj1dpYt2ZETM=
 github.com/googleapis/gax-go/v2 v2.12.1/go.mod h1:61M8vcyyXR2kqKFxKrfA22jaA8JGF7Dc8App1U3H6jc=
 github.com/gophercloud/gophercloud v0.20.0/go.mod h1:wRtmUelyIIv3CSSDI47aUwbs075O6i+LY+pXsKCBsb4=
-github.com/gophercloud/gophercloud v1.9.0 h1:zKvmHOmHuaZlnx9d2DJpEgbMxrGt/+CJ/bKOKQh9Xzo=
-github.com/gophercloud/gophercloud v1.9.0/go.mod h1:aAVqcocTSXh2vYFZ1JTvx4EQmfgzxRcNupUfxZbBNDM=
+github.com/gophercloud/gophercloud v1.10.0 h1:watRMsaMDlSLuLkpLeLSQ87yvcuwIajNg6A5uLcjoIU=
+github.com/gophercloud/gophercloud v1.10.0/go.mod h1:aAVqcocTSXh2vYFZ1JTvx4EQmfgzxRcNupUfxZbBNDM=
 github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d h1:0Wsi5dvUuPF6dVn/CNfEA4xLxmaEtOt7tV2HD16xIf8=
 github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d/go.mod h1:qOGlfG6OIJ193/c3Xt/XjOfHataNZdQcVgiu93LxBUM=
 github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
