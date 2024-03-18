@@ -28,11 +28,6 @@ updates:
       # These are included with submariner-operator
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner 
-      # Currently main syncs to release-2.10 which tracks 0.17.* Update when main syncs to release-2.11
-      - dependency-name: github.com/submariner-io/submariner-operator
-        versions: ">= 0.18.0-m0"
-      - dependency-name: github.com/submariner-io/cloud-prepare
-        versions: ">= 0.18.0-m0"
   - package-ecosystem: gomod
     target-branch: "release-2.7"
     directory: "/"
