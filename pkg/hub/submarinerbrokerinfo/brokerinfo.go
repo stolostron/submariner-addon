@@ -351,6 +351,7 @@ func getBrokerTokenAndCA(ctx context.Context, kubeClient kubernetes.Interface, d
 
 func getTokenSecretForSA(ctx context.Context, client kubernetes.Interface, sa *corev1.ServiceAccount,
 ) (*corev1.Secret, error) {
+	var secret *corev1.Secret
 	saSecrets, err := client.CoreV1().Secrets(sa.Namespace).List(ctx, metav1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector("type", string(corev1.SecretTypeServiceAccountToken)).String(),
 	})
@@ -360,19 +361,37 @@ func getTokenSecretForSA(ctx context.Context, client kubernetes.Interface, sa *c
 
 	for i := 0; i < len(saSecrets.Items); i++ {
 		if saSecrets.Items[i].Annotations[corev1.ServiceAccountNameKey] == sa.Name {
-			return &saSecrets.Items[i], nil
+			secret = &saSecrets.Items[i]
 		}
 	}
 
-	return nil, apierrors.NewNotFound(schema.GroupResource{
-		Group:    corev1.SchemeGroupVersion.Group,
-		Resource: "secrets",
-	}, sa.Name)
+	// Secret not found, so create one and return.
+	if secret == nil {
+		secret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        GenerateBrokerName(sa.Name),
+				Annotations: map[string]string{corev1.ServiceAccountNameKey: sa.Name},
+			},
+			Type: corev1.SecretTypeServiceAccountToken,
+		}
+
+		secret, err = client.CoreV1().Secrets(sa.Namespace).Create(ctx, secret, metav1.CreateOptions{})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create secret %s/%s of type service-account",
+				sa.Name, sa.Namespace)
+		}
+	}
+
+	return secret, nil
 }
 
 func getTokenAndCAFromSecret(ctx context.Context, tokenSecret *corev1.Secret, kubeAPIServer string,
 	kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
 ) (token, ca string, err error) {
+	if len(tokenSecret.Data) == 0 || tokenSecret.Data["token"] == nil {
+		return "", "", fmt.Errorf("token data not yet generated for secret %s/%s", tokenSecret.Namespace, tokenSecret.Name)
+	}
+
 	// try to get ca from apiserver secret firstly, if the ca cannot be found, get it from sa
 	kubeAPIServerCA, err := getKubeAPIServerCA(ctx, kubeAPIServer, kubeClient, dynamicClient)
 	if err != nil {
@@ -386,13 +405,13 @@ func getTokenAndCAFromSecret(ctx context.Context, tokenSecret *corev1.Secret, ku
 	return string(tokenSecret.Data["token"]), base64.StdEncoding.EncodeToString(kubeAPIServerCA), nil
 }
 
-func GenerateBrokerName(clusterSetName string) string {
-	name := fmt.Sprintf("%s-%s", clusterSetName, brokerSuffix)
-	if len(name) > namespaceMaxLength {
-		truncatedClusterSetName := clusterSetName[(len(brokerSuffix) - 1):]
+func GenerateBrokerName(name string) string {
+	brokerName := fmt.Sprintf("%s-%s", name, brokerSuffix)
+	if len(brokerName) > namespaceMaxLength {
+		truncatedName := name[(len(brokerSuffix) - 1):]
 
-		return fmt.Sprintf("%s-%s", truncatedClusterSetName, brokerSuffix)
+		return fmt.Sprintf("%s-%s", truncatedName, brokerSuffix)
 	}
 
-	return name
+	return brokerName
 }
