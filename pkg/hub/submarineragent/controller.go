@@ -566,6 +566,15 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 		return fmt.Errorf("one more than service accounts are found for %q", managedClusterName)
 	}
 
+	// Delete created secret if present
+	brokerNamespace := serviceAccounts.Items[0].Namespace
+	secretName := brokerinfo.GenerateBrokerName(managedClusterName)
+	err = c.kubeClient.CoreV1().Secrets(brokerNamespace).Delete(ctx, secretName, metav1.DeleteOptions{})
+
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
 	config := &clusterRBACConfig{
 		ManagedClusterName:        managedClusterName,
 		SubmarinerBrokerNamespace: serviceAccounts.Items[0].Namespace,
