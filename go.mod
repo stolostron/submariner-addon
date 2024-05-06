@@ -22,7 +22,7 @@ require (
 	github.com/submariner-io/cloud-prepare v0.14.7
 	github.com/submariner-io/submariner v0.14.7
 	github.com/submariner-io/submariner-operator v0.14.7
-	golang.org/x/oauth2 v0.19.0
+	golang.org/x/oauth2 v0.20.0
 	google.golang.org/api v0.153.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.25.14
@@ -38,8 +38,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.23.3 // indirect
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute v1.0.0 // indirect
