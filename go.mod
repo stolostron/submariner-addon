@@ -1,6 +1,6 @@
 module github.com/stolostron/submariner-addon
 
-go 1.21
+go 1.22.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.2
