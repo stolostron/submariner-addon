@@ -8,7 +8,7 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gophercloud/gophercloud v1.11.0
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
-	github.com/onsi/ginkgo/v2 v2.17.3
+	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/openshift/api v0.0.0-20230714214528-de6ad7979b00
 	github.com/openshift/library-go v0.0.0-20230531082824-be85f8400975
@@ -16,20 +16,20 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.16.4
-	github.com/submariner-io/cloud-prepare v0.16.4
-	github.com/submariner-io/submariner v0.16.4
-	github.com/submariner-io/submariner-operator v0.16.4
+	github.com/submariner-io/admiral v0.16.5
+	github.com/submariner-io/cloud-prepare v0.16.5
+	github.com/submariner-io/submariner v0.16.5
+	github.com/submariner-io/submariner-operator v0.16.5
 	go.uber.org/mock v0.4.0
 	golang.org/x/oauth2 v0.20.0
 	google.golang.org/api v0.181.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.27.13
-	k8s.io/apiextensions-apiserver v0.27.13
-	k8s.io/apimachinery v0.27.13
-	k8s.io/client-go v0.27.13
-	k8s.io/code-generator v0.27.13
-	k8s.io/component-base v0.27.13
+	k8s.io/api v0.27.14
+	k8s.io/apiextensions-apiserver v0.27.14
+	k8s.io/apimachinery v0.27.14
+	k8s.io/client-go v0.27.14
+	k8s.io/code-generator v0.27.14
+	k8s.io/component-base v0.27.14
 	k8s.io/klog/v2 v2.110.1
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	open-cluster-management.io/addon-framework v0.8.0
@@ -148,7 +148,7 @@ require (
 	golang.org/x/term v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.20.0 // indirect
+	golang.org/x/tools v0.21.0 // indirect
 	google.golang.org/genproto v0.0.0-20240401170217-c3f982113cda // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240506185236-b8a5c65736ae // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240513163218-0867130af1f8 // indirect
@@ -157,10 +157,10 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.27.13 // indirect
+	k8s.io/apiserver v0.27.14 // indirect
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/klog v1.0.0 // indirect
-	k8s.io/kms v0.27.13 // indirect
+	k8s.io/kms v0.27.14 // indirect
 	k8s.io/kube-aggregator v0.27.5 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.2 // indirect
