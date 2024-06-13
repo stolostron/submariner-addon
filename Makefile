@@ -7,7 +7,7 @@ GOHOSTOS ?=$(shell $(GO) env GOHOSTOS)
 GOHOSTARCH ?=$(shell $(GO) env GOHOSTARCH)
 GO_FILES ?=$(shell find . -name '*.go' -not -path '*/vendor/*' -not -path '*/_output/*' -print)
 go_files_count :=$(words $(GO_FILES))
-GO_BUILD_FLAGS ?=-trimpath -mod=mod
+GO_BUILD_FLAGS += -trimpath
 
 SOURCE_GIT_TAG ?=$(shell git describe --long --tags --abbrev=7 --match 'v[0-9]*' || echo 'v0.0.0-unknown-$(SOURCE_GIT_COMMIT)')
 SOURCE_GIT_COMMIT ?=$(shell git rev-parse --short "HEAD^{commit}" 2>/dev/null)
@@ -23,6 +23,7 @@ IMAGE_REGISTRY ?= quay.io/stolostron
 GIT_HOST ?= github.com/stolostron
 BASE_DIR := $(shell basename $(PWD))
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
+DOCKERFILE ?= ./Dockerfile
 
 # CSV_VERSION is used to generate new CSV manifests
 CSV_VERSION?=0.4.0
@@ -52,7 +53,7 @@ endif
 
 images: ensure-imagebuilder
 	$(strip imagebuilder $(IMAGE_BUILD_DEFAULT_FLAGS) $(IMAGE_BUILD_EXTRA_FLAGS) \
-		-t $(IMAGE_REGISTRY)/$(IMAGE) -f ./Dockerfile.konflux . \
+		-t $(IMAGE_REGISTRY)/$(IMAGE) -f $(DOCKERFILE) . \
 	)
 
 ensure-imagebuilder:
