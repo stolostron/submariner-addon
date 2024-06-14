@@ -69,6 +69,10 @@ spec:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              forceUDPEncaps:
+                default: false
+                description: ForceUDPEncaps forces UDP Encapsulation for IPSec.
+                type: boolean
               gatewayConfig:
                 description: GatewayConfig represents the gateways configuration of the Submariner.
                 properties:
