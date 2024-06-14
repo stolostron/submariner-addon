@@ -86,6 +86,11 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=false
 	IPSecDebug bool `json:"IPSecDebug,omitempty"`
 
+	// ForceUDPEncaps forces UDP Encapsulation for IPSec.
+	// +optional
+	// +kubebuilder:default=false
+	ForceUDPEncaps bool `json:"forceUDPEncaps,omitempty"`
+
 	// Debug enables Submariner debugging (in the logs).
 	// +optional
 	// +kubebuilder:default=false
