@@ -12,6 +12,7 @@ spec:
   brokerK8sInsecure: {{ .InsecureBrokerConnection }}
   cableDriver: {{ .CableDriver }}
   ceIPSecDebug: {{ .IPSecDebug }}
+  ceIPSecForceUDPEncaps: {{ .ForceUDPEncaps }}
   ceIPSecNATTPort: {{ .IPSecNATTPort }}
   ceIPSecPSK: {{ .IPSecPSK }}
   clusterCIDR: ""

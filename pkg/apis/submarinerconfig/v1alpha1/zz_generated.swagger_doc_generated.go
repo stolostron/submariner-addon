@@ -102,6 +102,7 @@ var map_SubmarinerConfigSpec = map[string]string{
 	"insecureBrokerConnection": "InsecureBrokerConnection disables certificate validation when contacting the broker. This is useful for scenarios where the certificate chain isn't the same everywhere, e.g. with self-signed certificates with a different trust chain in each cluster.",
 	"haltOnCertificateError":   "HaltOnCertificateError halts pods on certificate errors (so they are restarted).",
 	"IPSecDebug":               "IPSecDebug enables IPSec debugging.",
+	"forceUDPEncaps":           "ForceUDPEncaps forces UDP Encapsulation for IPSec.",
 	"Debug":                    "Debug enables Submariner debugging (in the logs).",
 	"credentialsSecret":        "CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.",
 	"subscriptionConfig":       "SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.",
