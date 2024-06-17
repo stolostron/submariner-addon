@@ -129,6 +129,28 @@ spec:
           - update
           - delete
         - apiGroups:
+          - submariner.io
+          resources:
+          - endpoints
+          - clusters
+          verbs:
+          - deletecollection
+        - apiGroups:
+          - discovery.k8s.io
+          resources:
+          - endpointslices
+          verbs:
+          - deletecollection
+        - apiGroups:
+          - multicluster.x-k8s.io
+          resources:
+          - serviceimports
+          verbs:
+          - list
+          - get
+          - update
+          - delete
+        - apiGroups:
           - ""
           resources:
           - secrets

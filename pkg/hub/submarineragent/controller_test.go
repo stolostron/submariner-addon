@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,18 +19,25 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/hub/submarineragent"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	fakereactor "github.com/submariner-io/admiral/pkg/fake"
+	"github.com/submariner-io/admiral/pkg/federate"
 	coreresource "github.com/submariner-io/admiral/pkg/resource"
+	syncertest "github.com/submariner-io/admiral/pkg/syncer/test"
 	"github.com/submariner-io/admiral/pkg/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
+	submarinerv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
+	discovery "k8s.io/api/discovery/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/dynamic"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
@@ -50,6 +58,7 @@ import (
 	workv1 "open-cluster-management.io/api/work/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	mcsv1a1 "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
 )
 
 const (
@@ -61,6 +70,11 @@ const (
 	brokerToken      = "broker-token"
 	brokerCA         = "broker-CA"
 )
+
+func init() {
+	utilruntime.Must(submarinerv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(mcsv1a1.AddToScheme(scheme.Scheme))
+}
 
 var _ = Describe("Controller", func() {
 	t := newTestDriver()
@@ -296,7 +310,11 @@ var _ = Describe("Controller", func() {
 	When("a ManagedClusterAddon is being deleted", func() {
 		const otherClusterName = "west"
 
+		var beforeAddonDelete func()
+
 		BeforeEach(func() {
+			beforeAddonDelete = nil
+
 			_, err := t.clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), &clusterv1.ManagedCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   otherClusterName,
@@ -309,6 +327,10 @@ var _ = Describe("Controller", func() {
 		JustBeforeEach(func() {
 			t.initManifestWorks()
 			t.createSubmarinerBroker(true)
+
+			if beforeAddonDelete != nil {
+				beforeAddonDelete()
+			}
 
 			Expect(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Delete(context.Background(), t.addOn.Name,
 				metav1.DeleteOptions{})).To(Succeed())
@@ -338,6 +360,154 @@ var _ = Describe("Controller", func() {
 			It("should not delete the Globalnet ConfigMap and Broker resources", func() {
 				t.ensureGlobalnetConfigMap()
 				t.ensureBrokerResource()
+			})
+		})
+
+		Context("and cluster-specific Submariner resources remain on the broker", func() {
+			const otherClusterName = "other"
+
+			brokerEndpointClient := func() dynamic.ResourceInterface {
+				return t.dynamicClient.Resource(submarinerv1.EndpointGVR).Namespace(brokerNamespace)
+			}
+
+			brokerClusterClient := func() dynamic.ResourceInterface {
+				return t.dynamicClient.Resource(submarinerv1.ClusterGVR).Namespace(brokerNamespace)
+			}
+
+			brokerEPSClient := func() dynamic.ResourceInterface {
+				return t.dynamicClient.Resource(discovery.SchemeGroupVersion.WithResource("endpointslices")).
+					Namespace(brokerNamespace)
+			}
+
+			brokerServiceImportClient := func() dynamic.ResourceInterface {
+				return t.dynamicClient.Resource(schema.GroupVersionResource{
+					Group:    mcsv1a1.GroupName,
+					Version:  mcsv1a1.GroupVersion.Version,
+					Resource: "serviceimports",
+				}).Namespace(brokerNamespace)
+			}
+
+			BeforeEach(func() {
+				syncertest.CreateResource(brokerEndpointClient(), &submarinerv1.Endpoint{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   clusterName + "-endpoint",
+						Labels: map[string]string{federate.ClusterIDLabelKey: clusterName},
+					},
+					Spec: submarinerv1.EndpointSpec{
+						ClusterID: clusterName,
+					},
+				})
+
+				syncertest.CreateResource(brokerEndpointClient(), &submarinerv1.Endpoint{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   otherClusterName + "-endpoint",
+						Labels: map[string]string{federate.ClusterIDLabelKey: otherClusterName},
+					},
+					Spec: submarinerv1.EndpointSpec{
+						ClusterID: otherClusterName,
+					},
+				})
+
+				syncertest.CreateResource(brokerClusterClient(), &submarinerv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   clusterName,
+						Labels: map[string]string{federate.ClusterIDLabelKey: clusterName},
+					},
+				})
+
+				syncertest.CreateResource(brokerClusterClient(), &submarinerv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   otherClusterName,
+						Labels: map[string]string{federate.ClusterIDLabelKey: otherClusterName},
+					},
+				})
+
+				syncertest.CreateResource(brokerEPSClient(), &discovery.EndpointSlice{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "eps-" + clusterName,
+						Labels: map[string]string{federate.ClusterIDLabelKey: clusterName},
+					},
+				})
+
+				syncertest.CreateResource(brokerEPSClient(), &discovery.EndpointSlice{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "eps-" + otherClusterName,
+						Labels: map[string]string{federate.ClusterIDLabelKey: otherClusterName},
+					},
+				})
+
+				syncertest.CreateResource(brokerServiceImportClient(), &mcsv1a1.ServiceImport{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "nginx-ns1",
+						Labels: map[string]string{
+							mcsv1a1.LabelServiceName: "nginx",
+						},
+					},
+					Status: mcsv1a1.ServiceImportStatus{Clusters: []mcsv1a1.ClusterStatus{
+						{
+							Cluster: clusterName,
+						},
+					}},
+				})
+
+				syncertest.CreateResource(brokerServiceImportClient(), &mcsv1a1.ServiceImport{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "nginx2-ns1",
+						Labels: map[string]string{
+							mcsv1a1.LabelServiceName: "nginx2",
+						},
+					},
+					Status: mcsv1a1.ServiceImportStatus{Clusters: []mcsv1a1.ClusterStatus{
+						{
+							Cluster: clusterName,
+						},
+						{
+							Cluster: otherClusterName,
+						},
+					}},
+				})
+			})
+
+			It("should delete them", func() {
+				syncertest.AwaitNoResource(brokerEndpointClient(), clusterName+"-endpoint")
+				syncertest.AwaitResource(brokerEndpointClient(), otherClusterName+"-endpoint")
+
+				syncertest.AwaitNoResource(brokerClusterClient(), clusterName)
+				syncertest.AwaitResource(brokerClusterClient(), otherClusterName)
+
+				syncertest.AwaitNoResource(brokerEPSClient(), "eps-"+clusterName)
+				syncertest.AwaitResource(brokerEPSClient(), "eps-"+otherClusterName)
+
+				syncertest.AwaitNoResource(brokerServiceImportClient(), "nginx-ns1")
+				si := syncertest.AwaitResource(brokerServiceImportClient(), "nginx2-ns1")
+				Expect(coreresource.MustFromUnstructured(si, &mcsv1a1.ServiceImport{}).Status.Clusters).To(Equal([]mcsv1a1.ClusterStatus{
+					{
+						Cluster: otherClusterName,
+					},
+				}))
+			})
+		})
+
+		Context("and the Submariner ManifestWork does not complete deletion", func() {
+			BeforeEach(func() {
+				submarineragent.ManifestWorkDeletionTimeout = 2 * time.Second
+				submarineragent.ManifestWorkDeletionRetryInterval = 500 * time.Millisecond
+
+				beforeAddonDelete = func() {
+					mw, err := t.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Get(context.TODO(),
+						submarineragent.SubmarinerCRManifestWorkName, metav1.GetOptions{})
+					Expect(err).To(Succeed())
+
+					mw.Finalizers = []string{workv1.ManifestWorkFinalizer}
+
+					_, err = t.manifestWorkClient.WorkV1().ManifestWorks(clusterName).Update(context.TODO(), mw, metav1.UpdateOptions{})
+					Expect(err).To(Succeed())
+				}
+			})
+
+			It("should eventually finish the clean up", func() {
+				test.AwaitNoResource(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
+					constants.SubmarinerAddOnName)
 			})
 		})
 	})
@@ -448,12 +618,16 @@ func newTestDriver() *testDriver {
 		t.broker = nil
 		t.clusterADConfig = nil
 		t.mockCtrl = gomock.NewController(GinkgoT())
-		t.dynamicClient = dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
 		t.clusterClient = fakeclusterclient.NewSimpleClientset()
-		t.manifestWorkClient = fakeworkclient.NewSimpleClientset()
 		t.configClient = fakeconfigclient.NewSimpleClientset()
 		t.cloudProvider = cloudFake.NewMockProvider(t.mockCtrl)
 		t.controllerClient = fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+
+		t.manifestWorkClient = fakeworkclient.NewSimpleClientset()
+		fakereactor.AddBasicReactors(&t.manifestWorkClient.Fake)
+
+		t.dynamicClient = dynamicfake.NewSimpleDynamicClient(scheme.Scheme)
+		fakereactor.AddBasicReactors(&t.dynamicClient.Fake)
 
 		addOnClient := addonfake.NewSimpleClientset()
 		fakereactor.AddBasicReactors(&addOnClient.Fake)
