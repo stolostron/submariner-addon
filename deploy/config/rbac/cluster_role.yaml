@@ -35,6 +35,16 @@ rules:
 - apiGroups: ["submariner.io"]
   resources: ["brokers"]
   verbs: ["create", "get", "update", "delete"]
+# Allow submariner-addon hub controller to delete cluster-specific broker resources
+- apiGroups: ["submariner.io"]
+  resources: ["endpoints", "clusters"]
+  verbs: ["deletecollection"]
+- apiGroups: ["discovery.k8s.io"]
+  resources: ["endpointslices"]
+  verbs: ["deletecollection"]
+- apiGroups: ["multicluster.x-k8s.io"]
+  resources: ["serviceimports"]
+  verbs: ["list", "get", "update", "delete"]
 # Allow submariner-addon hub controller to deploy submariner agent
 - apiGroups: [""]
   resources: ["secrets"]

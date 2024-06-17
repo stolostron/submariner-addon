@@ -5,6 +5,8 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"slices"
+	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/openshift/library-go/pkg/assets"
@@ -22,21 +24,27 @@ import (
 	brokerinfo "github.com/stolostron/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	"github.com/stolostron/submariner-addon/pkg/manifestwork"
 	"github.com/stolostron/submariner-addon/pkg/resource"
+	"github.com/submariner-io/admiral/pkg/federate"
 	"github.com/submariner-io/admiral/pkg/finalizer"
 	"github.com/submariner-io/admiral/pkg/log"
 	coreresource "github.com/submariner-io/admiral/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/util"
 	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
+	submarinerv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
+	discovery "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	k8serrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
@@ -54,6 +62,7 @@ import (
 	workv1 "open-cluster-management.io/api/work/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	mcsv1a1 "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
 )
 
 const (
@@ -96,6 +105,11 @@ var BrokerGVR = schema.GroupVersionResource{
 	Version:  "v1alpha1",
 	Resource: "brokers",
 }
+
+var (
+	ManifestWorkDeletionRetryInterval = 15 * time.Second
+	ManifestWorkDeletionTimeout       = 2 * time.Minute
+)
 
 var logger = log.Logger{Logger: logf.Log.WithName("SubmarinerAgentController")}
 
@@ -233,7 +247,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		return err
 	}
 
-	return c.syncManagedCluster(ctx, clusterName, config)
+	return c.syncManagedCluster(ctx, clusterName, config, syncCtx)
 }
 
 func (c *submarinerAgentController) onManagedClusterSetChange(syncCtx factory.SyncContext) error {
@@ -254,6 +268,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 	ctx context.Context,
 	clusterName string,
 	config *configv1alpha1.SubmarinerConfig,
+	syncCtx factory.SyncContext,
 ) error {
 	// Find the submariner ManagedClusterAddOn in the managed cluster namespace.
 	addOn, err := c.addOnLister.ManagedClusterAddOns(clusterName).Get(constants.SubmarinerAddOnName)
@@ -284,7 +299,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 	if !addOn.DeletionTimestamp.IsZero() {
 		logger.Infof("ManagedClusterAddOn %q in cluster %q is deleting", addOn.Name, clusterName)
 
-		return c.cleanUpSubmarinerAgent(ctx, clusterName, clusterSetName)
+		return c.cleanUpSubmarinerAgent(ctx, clusterName, clusterSetName, syncCtx)
 	}
 
 	if managedCluster == nil {
@@ -298,7 +313,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		// we do clean in case submariner was previously deployed.
 		logger.Infof("ManagedCluster %q is missing the cluster set label", managedCluster.Name)
 
-		return c.cleanUpSubmarinerAgent(ctx, clusterName, "")
+		return c.cleanUpSubmarinerAgent(ctx, clusterName, "", syncCtx)
 	}
 
 	// Find the ManagedClusterSet containing the managed cluster.
@@ -310,7 +325,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		// but we'll do clean up here just in case.
 		logger.Infof("ManagedClusterSet %q not found", clusterSetName)
 
-		return c.cleanUpSubmarinerAgent(ctx, clusterName, "")
+		return c.cleanUpSubmarinerAgent(ctx, clusterName, "", syncCtx)
 	case err != nil:
 		return err
 	}
@@ -330,7 +345,9 @@ func (c *submarinerAgentController) syncManagedCluster(
 }
 
 // clean up the submariner agent from this managedCluster.
-func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedClusterName, clusterSetName string) error {
+func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, managedClusterName, clusterSetName string,
+	syncCtx factory.SyncContext,
+) error {
 	submarinerManifestWork, err := c.manifestWorkLister.ManifestWorks(managedClusterName).Get(SubmarinerCRManifestWorkName)
 
 	switch {
@@ -343,8 +360,21 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 	case submarinerManifestWork.DeletionTimestamp.IsZero():
 		return c.deleteManifestWork(ctx, SubmarinerCRManifestWorkName, managedClusterName)
 	default:
-		logger.Infof("ManifestWork %q is still deleting", SubmarinerCRManifestWorkName)
-		return nil
+		elapsed := time.Now().UTC().UnixMilli() - submarinerManifestWork.DeletionTimestamp.UTC().UnixMilli()
+		if elapsed < ManifestWorkDeletionTimeout.Milliseconds() {
+			logger.Infof("ManifestWork %q for cluster %q is still deleting after %v - re-queueing",
+				SubmarinerCRManifestWorkName, managedClusterName, time.Millisecond*time.Duration(elapsed))
+			syncCtx.Queue().AddAfter(managedClusterName, ManifestWorkDeletionRetryInterval)
+
+			return nil
+		}
+
+		logger.Infof("ManifestWork %q for cluster %q did not complete deletion after %v - finishing clean up",
+			SubmarinerCRManifestWorkName, managedClusterName, time.Millisecond*time.Duration(elapsed))
+	}
+
+	if err := c.deleteClusterBrokerResources(ctx, managedClusterName, clusterSetName); err != nil {
+		return err
 	}
 
 	// remove service account and its rolebinding from broker namespace
@@ -352,7 +382,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 		return err
 	}
 
-	if err := c.deleteBrokerResourcesIfNecessary(ctx, clusterSetName); err != nil {
+	if err := c.deleteGlobalBrokerResourcesIfNecessary(ctx, clusterSetName); err != nil {
 		return err
 	}
 
@@ -724,7 +754,79 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 	return errors.Wrapf(err, "error creating globalnet configmap on Broker")
 }
 
-func (c *submarinerAgentController) deleteBrokerResourcesIfNecessary(ctx context.Context, clusterSetName string) error {
+func (c *submarinerAgentController) deleteClusterBrokerResources(ctx context.Context, clusterName, clusterSetName string) error {
+	if clusterSetName == "" {
+		return nil
+	}
+
+	brokerNamespace := brokerinfo.GenerateBrokerName(clusterSetName)
+
+	//nolint:prealloc // No need to pre-allocate since normally there won't be any errors.
+	var errs []error
+
+	deleteCollection := func(gvr schema.GroupVersionResource) {
+		err := c.dynamicClient.Resource(gvr).Namespace(brokerNamespace).DeleteCollection(ctx, metav1.DeleteOptions{},
+			metav1.ListOptions{
+				LabelSelector: labels.Set(map[string]string{federate.ClusterIDLabelKey: clusterName}).String(),
+			})
+		if !apierrors.IsNotFound(err) {
+			errs = append(errs, err)
+		}
+	}
+
+	deleteCollection(submarinerv1.EndpointGVR)
+	deleteCollection(submarinerv1.ClusterGVR)
+	deleteCollection(discovery.SchemeGroupVersion.WithResource("endpointslices"))
+
+	serviceImportClient := c.dynamicClient.Resource(schema.GroupVersionResource{
+		Group:    mcsv1a1.GroupName,
+		Version:  mcsv1a1.GroupVersion.Version,
+		Resource: "serviceimports",
+	}).Namespace(brokerNamespace)
+
+	listServiceImports := func() []unstructured.Unstructured {
+		siList, err := serviceImportClient.List(ctx, metav1.ListOptions{})
+		errs = append(errs, err)
+
+		if err != nil {
+			return nil
+		}
+
+		return siList.Items
+	}
+
+	siList := listServiceImports()
+	for i := range siList {
+		err := util.Update(ctx, coreresource.ForDynamic(serviceImportClient), &siList[i],
+			func(obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+				existing := coreresource.MustFromUnstructured(obj, &mcsv1a1.ServiceImport{})
+
+				existing.Status.Clusters = slices.DeleteFunc(existing.Status.Clusters, func(s mcsv1a1.ClusterStatus) bool {
+					return s.Cluster == clusterName
+				})
+
+				if len(existing.Status.Clusters) == 0 {
+					err := serviceImportClient.Delete(ctx, existing.Name, metav1.DeleteOptions{
+						Preconditions: &metav1.Preconditions{
+							ResourceVersion: ptr.To(existing.ResourceVersion),
+						},
+					})
+					if apierrors.IsNotFound(err) {
+						err = nil
+					}
+
+					return obj, errors.Wrapf(err, "error deleting aggregated ServiceImport %q", existing.Name)
+				}
+
+				return coreresource.MustToUnstructured(existing), nil
+			})
+		errs = append(errs, err)
+	}
+
+	return errors.Wrapf(k8serrors.NewAggregate(errs), "error deleting broker resources for cluster %q", clusterName)
+}
+
+func (c *submarinerAgentController) deleteGlobalBrokerResourcesIfNecessary(ctx context.Context, clusterSetName string) error {
 	if clusterSetName == "" {
 		return nil
 	}
