@@ -7,16 +7,28 @@ set -o pipefail
 SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
 CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../../../k8s.io/code-generator)}
 
-verify="${VERIFY:-}"
+if [ "${VERIFY:-}" = "--verify-only" ]; then
+  outprefix=$(mktemp -d -p .)/
+  trap "rm -rf ${outprefix}" EXIT
+else
+  outprefix=
+fi
 
 set -x
 
+. "${CODEGEN_PKG}/kube_codegen.sh"
+
 for group in submarinerconfig submarinerdiagnoseconfig; do
-  bash ${CODEGEN_PKG}/kube_codegen.sh "client,lister,informer" \
-    github.com/stolostron/submariner-addon/pkg/client/${group} \
-    github.com/stolostron/submariner-addon/pkg/apis \
-    "${group}:v1alpha1" \
-    --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
-    ${verify}
+   kube::codegen::gen_client \
+     --output-dir "${outprefix}pkg/client/${group}" \
+     --output-pkg "github.com/stolostron/submariner-addon/pkg/client/${group}" \
+     --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.txt" \
+     --with-watch \
+     --one-input-api "${group}" \
+     "pkg/apis"
 done
 
+if [ "${VERIFY:-}" = "--verify-only" ]; then
+  diff -urN "${outprefix}/pkg/client" pkg/client >& /dev/null
+  exit $?
+fi
