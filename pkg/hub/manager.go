@@ -15,6 +15,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbroker"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
+	submarinerv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
@@ -35,6 +36,7 @@ import (
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 	workinformers "open-cluster-management.io/api/client/work/informers/externalversions"
 	controllerclient "sigs.k8s.io/controller-runtime/pkg/client"
+	mcsv1a1 "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
 )
 
 const (
@@ -89,6 +91,8 @@ func (o *AddOnOptions) Complete(ctx context.Context, kubeClient kubernetes.Inter
 // RunControllerManager starts the controllers on hub to manage submariner deployment.
 func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
 	utilruntime.Must(submarinerv1alpha1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(submarinerv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(mcsv1a1.AddToScheme(scheme.Scheme))
 
 	kubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {

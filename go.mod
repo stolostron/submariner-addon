@@ -35,6 +35,7 @@ require (
 	open-cluster-management.io/addon-framework v0.9.3
 	open-cluster-management.io/api v0.13.0
 	sigs.k8s.io/controller-runtime v0.18.4
+	sigs.k8s.io/mcs-api v0.1.0
 )
 
 require (
