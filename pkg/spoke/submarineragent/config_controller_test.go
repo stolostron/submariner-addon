@@ -351,89 +351,6 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 		})
 	})
 
-	When("the SubmarinerConfig is being deleted", func() {
-		BeforeEach(func() {
-			t.config.Spec.Gateways = 2
-			labelGateway(t.nodes[0], true)
-			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
-
-			labelGateway(t.nodes[1], true)
-			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
-
-			now := metav1.Now()
-			t.config.DeletionTimestamp = &now
-		})
-
-		It("should unlabel the gateway nodes", func() {
-			t.awaitNoLabeledNodes()
-		})
-
-		Context("and unlabeling a node initially fails", func() {
-			BeforeEach(func() {
-				fake.FailOnAction(&t.kubeClient.Fake, "nodes", "update", nil, true)
-			})
-
-			It("should eventually unlabel it", func() {
-				t.awaitNoLabeledNodes()
-			})
-		})
-
-		Context("the SubmarinerConfig's Platform field is set to AWS", func() {
-			var invoked chan bool
-
-			BeforeEach(func() {
-				t.config.Status.ManagedClusterInfo.Platform = aws
-				invoked = make(chan bool)
-				t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().DoAndReturn(func() error {
-					invoked <- true
-
-					return nil
-				}).Times(1)
-			})
-
-			It("should invoke the cloud provider to clean up", func() {
-				Eventually(invoked).Should(Receive())
-			})
-
-			It("should not unlabel the gateway nodes", func() {
-				t.ensureLabeledNodes()
-			})
-		})
-
-		Context("the SubmarinerConfig's Platform field is set to GCP", func() {
-			BeforeEach(func() {
-				t.config.Status.ManagedClusterInfo.Platform = gcp
-			})
-
-			Context("", func() {
-				BeforeEach(func() {
-					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().AnyTimes()
-				})
-
-				It("should not unlabel the gateway nodes", func() {
-					t.ensureLabeledNodes()
-				})
-			})
-
-			Context("", func() {
-				var invoked chan bool
-
-				BeforeEach(func() {
-					invoked = make(chan bool)
-					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().DoAndReturn(func() error {
-						invoked <- true
-
-						return nil
-					}).Times(1)
-				})
-
-				It("should invoke the cloud provider to clean up", func() {
-					Eventually(invoked).Should(Receive())
-				})
-			})
-		})
-	})
-
 	When("updating the SubmarinerConfig status initially fails", func() {
 		BeforeEach(func() {
 			fake.FailOnAction(&t.configClient.Fake, "*", "update", nil, true)
@@ -518,6 +435,10 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 					Status: metav1.ConditionFalse,
 					Reason: "ManagedClusterAddOnDeleted",
 				})
+			})
+
+			It("should not unlabel the gateway nodes", func() {
+				t.ensureLabeledNodes()
 			})
 		})
 

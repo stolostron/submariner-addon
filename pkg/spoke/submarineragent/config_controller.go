@@ -204,19 +204,6 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 func (c *submarinerConfigController) syncConfig(ctx context.Context, recorder events.Recorder,
 	config *configv1alpha1.SubmarinerConfig,
 ) error {
-	// config is deleting from hub, remove its related resources
-	// TODO: add finalizer in next release
-	if !config.DeletionTimestamp.IsZero() {
-		c.logger.Infof("SubmarinerConfig in cluster %q is deleting", config.Namespace)
-
-		err := c.cleanupClusterEnvironment(ctx, config, recorder)
-		if err == nil {
-			delete(c.knownConfigs, config.Namespace)
-		}
-
-		return err
-	}
-
 	if c.skipSyncingUnchangedConfig(config) {
 		c.logger.V(log.DEBUG).Infof("Skip syncing submariner config %q as it didn't change", config.Namespace+"/"+config.Name)
 		return nil
