@@ -144,9 +144,11 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	// TODO if submariner provides the informer in future, we will use it instead of dynamic informer
 	dynamicInformers := dynamicinformer.NewFilteredDynamicSharedInformerFactory(spokeDynamicClient, 10*time.Minute, o.InstallationNamespace,
 		nil)
+	submarinerInformer := dynamicInformers.ForResource(submarinerGVR)
 
 	submarinerConfigController := submarineragent.NewSubmarinerConfigController(&submarineragent.SubmarinerConfigControllerInput{
 		ClusterName:          o.ClusterName,
+		Namespace:            o.InstallationNamespace,
 		KubeClient:           spokeKubeClient,
 		ConfigClient:         configHubKubeClient,
 		AddOnClient:          addOnHubKubeClient,
@@ -154,6 +156,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		NodeInformer:         spokeKubeInformers.Core().V1().Nodes(),
 		AddOnInformer:        addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 		ConfigInformer:       configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
+		SubmarinerInformer:   submarinerInformer,
 		CloudProviderFactory: cloud.NewProviderFactory(restMapper, spokeKubeClient, spokeDynamicClient, hubClient),
 		Recorder:             controllerContext.EventRecorder,
 	})
@@ -167,7 +170,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 
 	deploymentStatusController := submarineragent.NewDeploymentStatusController(o.ClusterName, o.InstallationNamespace,
 		addOnHubKubeClient, spokeKubeInformers.Apps().V1().DaemonSets(), spokeKubeInformers.Apps().V1().Deployments(),
-		dynamicInformers.ForResource(subscriptionGVR), dynamicInformers.ForResource(submarinerGVR), controllerContext.EventRecorder)
+		dynamicInformers.ForResource(subscriptionGVR), submarinerInformer, controllerContext.EventRecorder)
 
 	connectionsStatusController := submarineragent.NewConnectionsStatusController(o.ClusterName, addOnHubKubeClient,
 		dynamicInformers.ForResource(submarinerGVR), controllerContext.EventRecorder)
