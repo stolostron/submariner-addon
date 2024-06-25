@@ -23,6 +23,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/resource"
+	"github.com/submariner-io/admiral/pkg/util"
 	"github.com/submariner-io/submariner/pkg/cni"
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,7 +37,6 @@ import (
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	corev1lister "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/util/retry"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
@@ -431,25 +431,26 @@ func (c *submarinerConfigController) labelNode(ctx context.Context, config *conf
 }
 
 func (c *submarinerConfigController) updateNode(ctx context.Context, node *corev1.Node, mutate func(node *corev1.Node)) error {
-	name := node.Name
+	client := &resource.InterfaceFuncs[*corev1.Node]{
+		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (*corev1.Node, error) {
+			var err error
 
-	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		var err error
-
-		if node == nil {
-			node, err = c.kubeClient.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
-			if err != nil {
-				return err
+			if node == nil {
+				node, err = c.kubeClient.CoreV1().Nodes().Get(ctx, name, options)
 			}
-		}
 
-		node = node.DeepCopy()
-		mutate(node)
+			return node, err
+		},
+		UpdateFunc: c.kubeClient.CoreV1().Nodes().Update,
+	}
 
-		_, err = c.kubeClient.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+	node = node.DeepCopy()
+
+	return util.Update[*corev1.Node](ctx, client, node, func(existing *corev1.Node) (*corev1.Node, error) {
+		mutate(existing)
 		node = nil
 
-		return err
+		return existing, nil
 	})
 }
 
