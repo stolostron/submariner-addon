@@ -17,17 +17,24 @@ import (
 	configInformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
 	cloudFake "github.com/stolostron/submariner-addon/pkg/cloud/fake"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/stolostron/submariner-addon/pkg/spoke/submarineragent"
 	"github.com/submariner-io/admiral/pkg/fake"
+	"github.com/submariner-io/admiral/pkg/finalizer"
+	syncertest "github.com/submariner-io/admiral/pkg/syncer/test"
 	"github.com/submariner-io/admiral/pkg/test"
+	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubeInformers "k8s.io/client-go/informers"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
+	k8sScheme "k8s.io/client-go/kubernetes/scheme"
 	clientTesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	addonInformers "open-cluster-management.io/api/client/addon/informers/externalversions"
@@ -382,6 +389,8 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 	When("the ManagedClusterAddOn is being deleted", func() {
 		BeforeEach(func() {
+			fake.AddBasicReactors(&t.addOnClient.Fake)
+
 			t.config.Spec.Gateways = 2
 			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
@@ -389,8 +398,13 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 			labelGateway(t.nodes[1], true)
 			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
 
-			now := metav1.Now()
-			t.addOn.DeletionTimestamp = &now
+			t.addOn.Finalizers = []string{constants.SubmarinerAddOnFinalizer}
+		})
+
+		JustBeforeEach(func() {
+			err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(t.addOn.Namespace).Delete(context.TODO(), t.addOn.Name,
+				metav1.DeleteOptions{})
+			Expect(err).To(Succeed())
 		})
 
 		It("should unlabel the gateway nodes", func() {
@@ -399,6 +413,38 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 				Type:   gatewayConditionType,
 				Status: metav1.ConditionFalse,
 				Reason: "ManagedClusterAddOnDeleted",
+			})
+
+			t.finalizeAddOn()
+		})
+
+		Context("and the Submariner resource initially exists", func() {
+			submarinerName := "submariner"
+
+			submarinerClient := func() dynamic.ResourceInterface {
+				return t.dynamicClient.Resource(submarinerv1a1.GroupVersion.WithResource("submariners")).Namespace(submarinerNS)
+			}
+
+			BeforeEach(func() {
+				submariner := &submarinerv1a1.Submariner{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      submarinerName,
+						Namespace: submarinerNS,
+					},
+				}
+
+				syncertest.CreateResource(submarinerClient(), submariner)
+			})
+
+			It("should eventually perform cleanup after the Submariner resource is deleted", func() {
+				t.ensureLabeledNodes()
+
+				err := submarinerClient().Delete(context.TODO(), submarinerName, metav1.DeleteOptions{})
+				Expect(err).To(Succeed())
+
+				t.awaitNoLabeledNodes()
+
+				t.finalizeAddOn()
 			})
 		})
 
@@ -426,6 +472,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 		Context("the SubmarinerConfig's Platform field is set to AWS", func() {
 			BeforeEach(func() {
 				t.config.Status.ManagedClusterInfo.Platform = aws
+				t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(nil).AnyTimes()
 				t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(nil).MinTimes(1)
 			})
 
@@ -444,6 +491,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 		Context("the SubmarinerConfig's Platform field is set to GCP", func() {
 			BeforeEach(func() {
+				t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(nil).AnyTimes()
 				t.config.Status.ManagedClusterInfo.Platform = gcp
 			})
 
@@ -536,7 +584,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 
 		t.kubeClient = kubeFake.NewSimpleClientset()
 		t.configClient = configFake.NewSimpleClientset()
-		t.dynamicClient = dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+		t.dynamicClient = dynamicfake.NewSimpleDynamicClient(k8sScheme.Scheme)
 
 		t.managedClusterAddOnTestBase.init()
 
@@ -571,8 +619,11 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 
 		t.expectProviderFactoryGet()
 
+		dynInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(t.dynamicClient, 0)
+
 		t.controller = submarineragent.NewSubmarinerConfigController(&submarineragent.SubmarinerConfigControllerInput{
 			ClusterName:          clusterName,
+			Namespace:            submarinerNS,
 			KubeClient:           t.kubeClient,
 			ConfigClient:         t.configClient,
 			DynamicClient:        t.dynamicClient,
@@ -580,6 +631,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 			NodeInformer:         kubeInformerFactory.Core().V1().Nodes(),
 			AddOnInformer:        addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
 			ConfigInformer:       configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
+			SubmarinerInformer:   dynInformerFactory.ForResource(submarinerv1a1.GroupVersion.WithResource("submariners")),
 			CloudProviderFactory: t.providerFactory,
 			Recorder:             events.NewLoggingEventRecorder("test"),
 			OnSyncDefer:          GinkgoRecover,
@@ -592,6 +644,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 		kubeInformerFactory.Start(ctx.Done())
 		configInformerFactory.Start(ctx.Done())
 		addOnInformerFactory.Start(ctx.Done())
+		dynInformerFactory.Start(ctx.Done())
 
 		cache.WaitForCacheSync(ctx.Done(), kubeInformerFactory.Core().V1().Nodes().Informer().HasSynced,
 			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer().HasSynced,
@@ -722,6 +775,18 @@ func (t *configControllerTestDriver) ensureLabeledNodes() {
 	Consistently(func() int {
 		return len(t.getLabeledWorkerNodes())
 	}, 300*time.Millisecond).Should(Equal(t.config.Spec.Gateways))
+}
+
+func (t *configControllerTestDriver) finalizeAddOn() {
+	err := finalizer.Remove(context.TODO(), resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(
+		t.addOn.Namespace)), t.addOn, constants.SubmarinerAddOnFinalizer)
+	Expect(err).To(Succeed())
+
+	Eventually(func() bool {
+		_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(t.addOn.Namespace).Get(context.TODO(),
+			t.addOn.Name, metav1.GetOptions{})
+		return apierrors.IsNotFound(err)
+	}).Should(BeTrue())
 }
 
 func newWorkerNode(name string) *corev1.Node {
