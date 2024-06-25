@@ -30,13 +30,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/informers"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	corev1lister "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/tools/cache"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
@@ -76,7 +79,9 @@ type submarinerConfigController struct {
 	nodeLister           corev1lister.NodeLister
 	addOnLister          addonlisterv1alpha1.ManagedClusterAddOnLister
 	configLister         configlister.SubmarinerConfigLister
+	submarinerLister     cache.GenericLister
 	clusterName          string
+	namespace            string
 	cloudProviderFactory cloud.ProviderFactory
 	onSyncDefer          func()
 	knownConfigs         map[string]*configv1alpha1.SubmarinerConfig
@@ -85,6 +90,7 @@ type submarinerConfigController struct {
 
 type SubmarinerConfigControllerInput struct {
 	ClusterName          string
+	Namespace            string
 	KubeClient           kubernetes.Interface
 	ConfigClient         configclient.Interface
 	AddOnClient          addonclient.Interface
@@ -92,6 +98,7 @@ type SubmarinerConfigControllerInput struct {
 	NodeInformer         corev1informers.NodeInformer
 	AddOnInformer        addoninformerv1alpha1.ManagedClusterAddOnInformer
 	ConfigInformer       configinformer.SubmarinerConfigInformer
+	SubmarinerInformer   informers.GenericInformer
 	CloudProviderFactory cloud.ProviderFactory
 	Recorder             events.Recorder
 	// This is a hook for unit tests to invoke a defer (specifically GinkgoRecover) when the sync function is called.
@@ -109,7 +116,9 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 		nodeLister:           input.NodeInformer.Lister(),
 		addOnLister:          input.AddOnInformer.Lister(),
 		configLister:         input.ConfigInformer.Lister(),
+		submarinerLister:     input.SubmarinerInformer.Lister(),
 		clusterName:          input.ClusterName,
+		namespace:            input.Namespace,
 		cloudProviderFactory: input.CloudProviderFactory,
 		onSyncDefer:          input.OnSyncDefer,
 		knownConfigs:         make(map[string]*configv1alpha1.SubmarinerConfig),
@@ -136,6 +145,10 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 
 			return false
 		}, input.NodeInformer.Informer()).
+		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+			key, _ := cache.MetaNamespaceKeyFunc(obj)
+			return key
+		}, input.SubmarinerInformer.Informer()).
 		WithSync(c.sync).
 		ToController(name, input.Recorder)
 }
@@ -176,6 +189,19 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	if !addOn.DeletionTimestamp.IsZero() {
 		c.logger.Infof("ManagedClusterAddOn %q in cluster %q is deleting", addOn.Name, addOn.Namespace)
 
+		// Wait for the Submariner CR to be completely deleted before doing cloud provider cleanup to ensure uninstall completes
+		// for all Submariner components. Specifically, the gateway and globalnet pods run on nodes labeled as gateways, so we
+		// don't want to prematurely remove the gateway labels.
+		present, err := c.isSubmarinerCRPresent()
+		if err != nil {
+			return err
+		}
+
+		if present {
+			c.logger.Info("Submariner resource still exists - not cleaning up")
+			return nil
+		}
+
 		// if the addon is deleted before config, clean up the submariner cluster environment.
 		condition := metav1.Condition{
 			Type:    submarinerGatewayCondition,
@@ -184,7 +210,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 			Message: "There are no nodes labeled as gateways",
 		}
 
-		err := c.cleanupClusterEnvironment(ctx, config, recorder)
+		err = c.cleanupClusterEnvironment(ctx, config, recorder)
 		if err != nil {
 			condition = failedCondition(err.Error())
 		}
@@ -698,6 +724,15 @@ func (c *submarinerConfigController) validateOCPVersion(ctx context.Context, con
 	}
 
 	return true, nil
+}
+
+func (c *submarinerConfigController) isSubmarinerCRPresent() (bool, error) {
+	list, err := c.submarinerLister.ByNamespace(c.namespace).List(labels.Everything())
+	if err != nil {
+		return false, err
+	}
+
+	return len(list) > 0, nil
 }
 
 func failedCondition(formatMsg string, args ...interface{}) metav1.Condition {
