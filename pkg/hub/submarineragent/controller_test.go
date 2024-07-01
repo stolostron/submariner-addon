@@ -624,7 +624,7 @@ func (t *testDriver) createAddon() {
 }
 
 func (t *testDriver) createGlobalnetConfigMap() {
-	err := globalnet.CreateConfigMap(t.controllerClient, false, "", 0, brokerNamespace)
+	err := globalnet.CreateConfigMap(context.TODO(), t.controllerClient, false, "", 0, brokerNamespace)
 	Expect(err).To(Succeed())
 }
 
@@ -646,7 +646,7 @@ func (t *testDriver) createSubmarinerBroker() {
 }
 
 func (t *testDriver) deleteGlobalnetConfigMap() {
-	err := globalnet.DeleteConfigMap(t.controllerClient, brokerNamespace)
+	err := globalnet.DeleteConfigMap(context.TODO(), t.controllerClient, brokerNamespace)
 	Expect(err).To(Succeed())
 }
 
