@@ -780,7 +780,7 @@ func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) configv1alp
 }
 
 func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Context, brokerNamespace string) error {
-	_, gnCmErr := globalnet.GetConfigMap(c.controllerClient, brokerNamespace)
+	_, gnCmErr := globalnet.GetConfigMap(ctx, c.controllerClient, brokerNamespace)
 	if gnCmErr != nil && !apierrors.IsNotFound(gnCmErr) {
 		return errors.Wrapf(gnCmErr, "error getting globalnet configmap from broker namespace %q", brokerNamespace)
 	}
@@ -823,7 +823,7 @@ func (c *submarinerAgentController) createGNConfigMapIfNecessary(ctx context.Con
 
 func (c *submarinerAgentController) updateBackupLabelOnGnConfigMap(ctx context.Context, namespace string) error {
 	return errors.Wrapf(retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		gnConfigMap, err := globalnet.GetConfigMap(c.controllerClient, namespace)
+		gnConfigMap, err := globalnet.GetConfigMap(ctx, c.controllerClient, namespace)
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
