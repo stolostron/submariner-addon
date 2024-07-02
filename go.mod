@@ -16,20 +16,20 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.18.0-rc0
-	github.com/submariner-io/cloud-prepare v0.18.0-rc0
-	github.com/submariner-io/submariner v0.18.0-rc0
-	github.com/submariner-io/submariner-operator v0.18.0-rc0
+	github.com/submariner-io/admiral v0.18.0-rc1
+	github.com/submariner-io/cloud-prepare v0.18.0-rc1
+	github.com/submariner-io/submariner v0.18.0-rc1
+	github.com/submariner-io/submariner-operator v0.18.0-rc1
 	go.uber.org/mock v0.4.0
 	golang.org/x/oauth2 v0.21.0
 	google.golang.org/api v0.184.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.30.1
-	k8s.io/apiextensions-apiserver v0.30.1
-	k8s.io/apimachinery v0.30.1
-	k8s.io/client-go v0.30.1
-	k8s.io/code-generator v0.30.1
-	k8s.io/component-base v0.30.1
+	k8s.io/api v0.30.2
+	k8s.io/apiextensions-apiserver v0.30.2
+	k8s.io/apimachinery v0.30.2
+	k8s.io/client-go v0.30.2
+	k8s.io/code-generator v0.30.2
+	k8s.io/component-base v0.30.2
 	k8s.io/klog/v2 v2.130.0
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0
 	open-cluster-management.io/addon-framework v0.9.3
@@ -154,9 +154,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.30.1 // indirect
+	k8s.io/apiserver v0.30.2 // indirect
 	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
-	k8s.io/kms v0.30.1 // indirect
+	k8s.io/kms v0.30.2 // indirect
 	k8s.io/kube-aggregator v0.29.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20240322212309-b815d8309940 // indirect
 	open-cluster-management.io/sdk-go v0.13.1-0.20240416030555-aa744f426379 // indirect
