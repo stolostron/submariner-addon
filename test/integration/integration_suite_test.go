@@ -16,7 +16,6 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/stolostron/submariner-addon/test/util"
 	"github.com/submariner-io/admiral/pkg/log/kzerolog"
-	resourceu "github.com/submariner-io/admiral/pkg/resource"
 	admutil "github.com/submariner-io/admiral/pkg/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -187,8 +186,16 @@ func deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, br
 
 	By("Create a submariner ManagedClusterAddOn")
 
-	_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(),
-		util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
+	cma, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Get(context.Background(), constants.SubmarinerAddOnName,
+		metav1.GetOptions{})
+	Expect(err).NotTo(HaveOccurred())
+
+	addOn := util.NewManagedClusterAddOn(managedClusterName)
+	addOn.OwnerReferences = []metav1.OwnerReference{
+		*metav1.NewControllerRef(cma, addonv1alpha1.GroupVersion.WithKind("ClusterManagementAddOn")),
+	}
+
+	_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addOn, metav1.CreateOptions{})
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Setup the service account")
@@ -251,7 +258,6 @@ func createClusterManagementAddOn(ctx context.Context) {
 
 	Expect(err).To(Succeed())
 
-	o, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(ctx, cma, metav1.CreateOptions{})
+	_, err = addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(ctx, cma, metav1.CreateOptions{})
 	Expect(err).NotTo(HaveOccurred())
-	By(fmt.Sprintf("****CREEATED CMA: %s", resourceu.ToJSON(o)))
 }
