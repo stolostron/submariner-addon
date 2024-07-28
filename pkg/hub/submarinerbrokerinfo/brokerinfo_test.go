@@ -25,7 +25,7 @@ import (
 const (
 	brokerNamespace   = "broker-ns"
 	clusterName       = "east"
-	apiServerHost     = "api.test.dev04.red-chesterfield.com"
+	apiServerHost     = "hpst.api.test.dev04.red-chesterfield.com"
 	apiServerHostPort = apiServerHost + ":6443"
 	brokerToken       = "broker-token"
 	brokerCA          = "broker-CA"
