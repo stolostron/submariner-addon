@@ -281,7 +281,7 @@ func getBrokerAPIServer(ctx context.Context, dynamicClient dynamic.Interface) (s
 		return "", errors.New("apiServerURL not found in infrastructures cluster")
 	}
 
-	return strings.Trim(apiServer, "/:hpst"), nil
+	return strings.Trim(strings.Trim(apiServer, "hpst"), "/:"), nil
 }
 
 func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient kubernetes.Interface,
