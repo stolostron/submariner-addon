@@ -7,7 +7,7 @@ require (
 	github.com/coreos/go-semver v0.3.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/golang/mock v1.6.0
-	github.com/gophercloud/gophercloud v1.13.0
+	github.com/gophercloud/gophercloud v1.14.0
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.31.1
@@ -18,10 +18,10 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.14.8
-	github.com/submariner-io/cloud-prepare v0.14.8
-	github.com/submariner-io/submariner v0.14.8
-	github.com/submariner-io/submariner-operator v0.14.8
+	github.com/submariner-io/admiral v0.14.9
+	github.com/submariner-io/cloud-prepare v0.14.9
+	github.com/submariner-io/submariner v0.14.9
+	github.com/submariner-io/submariner-operator v0.14.9
 	golang.org/x/oauth2 v0.21.0
 	google.golang.org/api v0.153.0
 	gopkg.in/yaml.v2 v2.4.0
