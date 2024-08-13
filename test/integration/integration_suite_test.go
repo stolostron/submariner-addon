@@ -127,7 +127,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	// create local cluster with URL in ClientConfig
-	localCluster := util.NewManagedCluster("local-cluster", map[string]string{})
+	localCluster := util.NewManagedCluster("cluster-local", map[string]string{"local-cluster": "true"})
 	localCluster.Spec.ManagedClusterClientConfigs = []clusterV1.ClientConfig{
 		{
 			URL: "https://dummy:443",

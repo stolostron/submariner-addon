@@ -16,7 +16,6 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -50,6 +49,7 @@ const (
 	defaultInstallationNamespace  = "open-cluster-management-agent-addon"
 	addonDeploymentConfigResource = "addondeploymentconfigs"
 	addonDeploymentConfigGroup    = "addon.open-cluster-management.io"
+	selfManagedClusterLabelKey    = "local-cluster"
 )
 
 const (
@@ -289,19 +289,19 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, _ *addo
 // local-cluster was missing at startup, by the time we hit this code it should be available.
 func (a *addOnAgent) setHubHostIfEmpty() error {
 	if a.hubHost == "" {
-		localCluster, err := a.clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), "local-cluster", metav1.GetOptions{})
+		localClusters, err := a.clusterClient.ClusterV1().ManagedClusters().List(context.TODO(), metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("%s=true", selfManagedClusterLabelKey),
+		})
 		if err != nil {
-			if apierrors.IsNotFound(err) {
-				klog.Info("local cluster not found")
-				return nil
-			}
-
 			return err
 		}
 
-		if localCluster != nil {
-			a.hubHost = localCluster.Spec.ManagedClusterClientConfigs[0].URL
+		if len(localClusters.Items) == 0 {
+			klog.Info("local cluster not found")
+			return nil
 		}
+
+		a.hubHost = localClusters.Items[0].Spec.ManagedClusterClientConfigs[0].URL
 	}
 
 	return nil
