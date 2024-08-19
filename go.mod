@@ -22,7 +22,7 @@ require (
 	github.com/submariner-io/submariner-operator v0.17.2
 	go.uber.org/mock v0.4.0
 	golang.org/x/oauth2 v0.22.0
-	google.golang.org/api v0.191.0
+	google.golang.org/api v0.192.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.29.6
 	k8s.io/apiextensions-apiserver v0.29.6
@@ -39,7 +39,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/auth v0.7.3 // indirect
+	cloud.google.com/go/auth v0.8.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.3 // indirect
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1 // indirect
