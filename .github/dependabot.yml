@@ -29,35 +29,6 @@ updates:
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner 
   - package-ecosystem: gomod
-    target-branch: "release-2.7"
-    directory: "/"
-    schedule:
-      interval: weekly
-    groups:
-      gomod:
-        patterns:
-          - "*"
-    open-pull-requests-limit: 5
-    ignore:
-      # K8s and operator SDK, we need to handle these manually
-      - dependency-name: github.com/operator-framework/*
-      - dependency-name: k8s.io/*
-      - dependency-name: sigs.k8s.io/*
-      # Addon framework, this shouldn't be upgraded on release branches
-      - dependency-name: open-cluster-management.io/addon-framework
-      - dependency-name: open-cluster-management.io/api
-      # These are included with submariner-operator
-      - dependency-name: github.com/submariner-io/admiral
-      - dependency-name: github.com/submariner-io/submariner
-      # Pin to v0.153.0 as newer versions require go.opentelemetry* v1.21.0 but that
-      # conflicts with other dependencies.
-      - dependency-name: google.golang.org/api
-      # 2.7 tracks Submariner 0.14
-      - dependency-name: github.com/submariner-io/submariner-operator
-        versions: ">= 0.15.0-m0"
-      - dependency-name: github.com/submariner-io/cloud-prepare
-        versions: ">= 0.15.0-m0"
-  - package-ecosystem: gomod
     target-branch: "release-2.8"
     directory: "/"
     schedule:
@@ -83,6 +54,8 @@ updates:
         versions: ">= 0.16.0-m0"
       - dependency-name: github.com/submariner-io/cloud-prepare
         versions: ">= 0.16.0-m0"
+      # Versions >= 0.196.0 cause incompatibilities
+      - dependency-name: google.golang.org/api
   - package-ecosystem: gomod
     target-branch: "release-2.9"
     directory: "/"
@@ -109,6 +82,8 @@ updates:
         versions: ">= 0.17.0-m0"
       - dependency-name: github.com/submariner-io/cloud-prepare
         versions: ">= 0.17.0-m0"
+      # Versions >= 0.196.0 cause incompatibilities
+      - dependency-name: google.golang.org/api
   - package-ecosystem: gomod
     target-branch: "release-2.10"
     directory: "/"
@@ -135,6 +110,8 @@ updates:
         versions: ">= 0.18.0-m0"
       - dependency-name: github.com/submariner-io/cloud-prepare
         versions: ">= 0.18.0-m0"
+      # Versions >= 0.196.0 cause incompatibilities
+      - dependency-name: google.golang.org/api
   - package-ecosystem: gomod
     target-branch: "release-2.11"
     directory: "/"
