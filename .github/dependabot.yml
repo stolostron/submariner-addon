@@ -19,12 +19,10 @@ updates:
           - "*"
     open-pull-requests-limit: 5
     ignore:
-      # Kept in sync k8s.io/apiextensions-apiserver
-      - dependency-name: k8s.io/api
-      - dependency-name: k8s.io/apimachinery
-      - dependency-name: k8s.io/client-go
-      - dependency-name: k8s.io/code-generator
-      - dependency-name: k8s.io/component-base
+      # Handled through github.com/submariner-io or the addon framework
+      - dependency-name: github.com/operator-framework/*
+      - dependency-name: k8s.io/*
+      - dependency-name: sigs.k8s.io/*
       # These are included with submariner-operator
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner 
