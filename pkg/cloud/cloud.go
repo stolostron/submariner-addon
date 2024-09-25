@@ -129,6 +129,8 @@ func (f *providerFactory) Get(config *configv1alpha1.SubmarinerConfig, eventsRec
 		return nil, true, err
 	}
 
+	info.SubmarinerConfigAnnotations = config.Annotations
+
 	instance, err := providerFn(info)
 
 	return instance, true, err
