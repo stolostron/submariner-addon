@@ -17,4 +17,5 @@ type Info struct {
 	CredentialsSecret *corev1.Secret
 	configv1alpha1.SubmarinerConfigSpec
 	configv1alpha1.ManagedClusterInfo
+	SubmarinerConfigAnnotations map[string]string
 }

@@ -70,7 +70,33 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 		return nil, err
 	}
 
-	cloudPrepare := cpaws.NewCloud(awsClient, info.InfraID, info.Region)
+	var cloudOptions []cpaws.CloudOption
+
+	if info.SubmarinerConfigAnnotations != nil {
+		annotations := info.SubmarinerConfigAnnotations
+
+		if vpcID, exists := annotations["submariner.io/vpc-id"]; exists {
+			cloudOptions = append(cloudOptions, cpaws.WithVPCName(vpcID))
+		}
+
+		if subnetIDList, exists := annotations["submariner.io/subnet-id-list"]; exists {
+			subnetIDs := strings.Split(subnetIDList, ",")
+			for i := range subnetIDs {
+				subnetIDs[i] = strings.TrimSpace(subnetIDs[i])
+			}
+			cloudOptions = append(cloudOptions, cpaws.WithPublicSubnetList(subnetIDs))
+		}
+
+		if controlPlaneSGID, exists := annotations["submariner.io/control-plane-sg-id"]; exists {
+			cloudOptions = append(cloudOptions, cpaws.WithControlPlaneSecurityGroup(controlPlaneSGID))
+		}
+
+		if workerSGID, exists := annotations["submariner.io/worker-sg-id"]; exists {
+			cloudOptions = append(cloudOptions, cpaws.WithWorkerSecurityGroup(workerSGID))
+		}
+	}
+
+	cloudPrepare := cpaws.NewCloud(awsClient, info.InfraID, info.Region, cloudOptions...)
 
 	machineSetDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
 	gwDeployer, err := cpaws.NewOcpGatewayDeployer(cloudPrepare, machineSetDeployer, instanceType)
