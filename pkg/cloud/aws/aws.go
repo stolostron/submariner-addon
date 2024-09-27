@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
@@ -32,6 +33,7 @@ type awsProvider struct {
 	gateways          int
 	cloudPrepare      cpapi.Cloud
 	gatewayDeployer   cpapi.GatewayDeployer
+	skipPrepare       bool
 }
 
 //nolint:revive // Ignore unexported-return - we can't reference the Provider interface here.
@@ -72,6 +74,8 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 
 	var cloudOptions []cpaws.CloudOption
 
+	var skipPrepare bool
+
 	if info.SubmarinerConfigAnnotations != nil {
 		annotations := info.SubmarinerConfigAnnotations
 
@@ -94,6 +98,10 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 		if workerSGID, exists := annotations["submariner.io/worker-sg-id"]; exists {
 			cloudOptions = append(cloudOptions, cpaws.WithWorkerSecurityGroup(workerSGID))
 		}
+
+		if skipPrepareStr, exists := annotations["submariner.io/skip-prepare"]; exists {
+			skipPrepare, _ = strconv.ParseBool(skipPrepareStr) // Ignoring error, defaults to false if invalid
+		}
 	}
 
 	cloudPrepare := cpaws.NewCloud(awsClient, info.InfraID, info.Region, cloudOptions...)
@@ -104,7 +112,7 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 		return nil, err
 	}
 
-	return &awsProvider{
+	awsProvider := &awsProvider{
 		reporter:          reporter.NewEventRecorderWrapper("AWSCloudProvider", info.EventRecorder),
 		nattPort:          int64(info.IPSecNATTPort),
 		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
@@ -113,13 +121,25 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 		gateways:          info.Gateways,
 		cloudPrepare:      cloudPrepare,
 		gatewayDeployer:   gwDeployer,
-	}, nil
+	}
+
+	if skipPrepare {
+		awsProvider.skipPrepare = true
+	}
+
+	return awsProvider, nil
 }
 
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on AWS.
 func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	// See AWS() in https://github.com/submariner-io/subctl/blob/devel/pkg/cloud/prepare/aws.go
 	// For now we only support at least one gateway (no load-balancer)
+
+	if a.skipPrepare {
+		a.reporter.Success("The skip-prepare flag  is enabled hence skipping the cloud-prepare")
+		return nil
+	}
+
 	if err := a.gatewayDeployer.Deploy(cpapi.GatewayDeployInput{
 		PublicPorts: []cpapi.PortSpec{
 			{Port: uint16(a.nattPort), Protocol: "udp"},
