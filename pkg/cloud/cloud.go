@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
@@ -77,6 +78,10 @@ func NewProviderFactory(restMapper meta.RESTMapper, kubeClient kubernetes.Interf
 }
 
 func (f *providerFactory) Get(config *configv1alpha1.SubmarinerConfig, eventsRecorder events.Recorder) (Provider, bool, error) {
+	if config.Annotations["submariner.io/skip-cloud-prepare"] == strconv.FormatBool(true) {
+		return nil, false, nil
+	}
+
 	managedClusterInfo := &config.Status.ManagedClusterInfo
 
 	klog.V(4).Infof("Get cloud provider: ManagedClusterInfo: %#v", managedClusterInfo)

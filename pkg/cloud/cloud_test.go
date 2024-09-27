@@ -2,6 +2,7 @@ package cloud_test
 
 import (
 	"context"
+	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -134,6 +135,19 @@ var _ = Describe("ProviderFactory Get", func() {
 				_, _, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
 				Expect(err).To(HaveOccurred())
 			})
+		})
+	})
+
+	When("skip prepare is enabled", func() {
+		BeforeEach(func() {
+			submarinerConfig.Annotations = map[string]string{"submariner.io/skip-cloud-prepare": strconv.FormatBool(true)}
+		})
+
+		It("should return false", func() {
+			provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
+			Expect(err).To(Succeed())
+			Expect(found).To(BeFalse())
+			Expect(provider).To(BeNil())
 		})
 	})
 })
