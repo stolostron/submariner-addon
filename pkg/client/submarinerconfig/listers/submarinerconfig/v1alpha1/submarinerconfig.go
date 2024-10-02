@@ -4,8 +4,8 @@ package v1alpha1
 
 import (
 	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/listers"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -22,25 +22,17 @@ type SubmarinerConfigLister interface {
 
 // submarinerConfigLister implements the SubmarinerConfigLister interface.
 type submarinerConfigLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*v1alpha1.SubmarinerConfig]
 }
 
 // NewSubmarinerConfigLister returns a new SubmarinerConfigLister.
 func NewSubmarinerConfigLister(indexer cache.Indexer) SubmarinerConfigLister {
-	return &submarinerConfigLister{indexer: indexer}
-}
-
-// List lists all SubmarinerConfigs in the indexer.
-func (s *submarinerConfigLister) List(selector labels.Selector) (ret []*v1alpha1.SubmarinerConfig, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.SubmarinerConfig))
-	})
-	return ret, err
+	return &submarinerConfigLister{listers.New[*v1alpha1.SubmarinerConfig](indexer, v1alpha1.Resource("submarinerconfig"))}
 }
 
 // SubmarinerConfigs returns an object that can list and get SubmarinerConfigs.
 func (s *submarinerConfigLister) SubmarinerConfigs(namespace string) SubmarinerConfigNamespaceLister {
-	return submarinerConfigNamespaceLister{indexer: s.indexer, namespace: namespace}
+	return submarinerConfigNamespaceLister{listers.NewNamespaced[*v1alpha1.SubmarinerConfig](s.ResourceIndexer, namespace)}
 }
 
 // SubmarinerConfigNamespaceLister helps list and get SubmarinerConfigs.
@@ -58,26 +50,5 @@ type SubmarinerConfigNamespaceLister interface {
 // submarinerConfigNamespaceLister implements the SubmarinerConfigNamespaceLister
 // interface.
 type submarinerConfigNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all SubmarinerConfigs in the indexer for a given namespace.
-func (s submarinerConfigNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.SubmarinerConfig, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.SubmarinerConfig))
-	})
-	return ret, err
-}
-
-// Get retrieves the SubmarinerConfig from the indexer for a given namespace and name.
-func (s submarinerConfigNamespaceLister) Get(name string) (*v1alpha1.SubmarinerConfig, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("submarinerconfig"), name)
-	}
-	return obj.(*v1alpha1.SubmarinerConfig), nil
+	listers.ResourceIndexer[*v1alpha1.SubmarinerConfig]
 }

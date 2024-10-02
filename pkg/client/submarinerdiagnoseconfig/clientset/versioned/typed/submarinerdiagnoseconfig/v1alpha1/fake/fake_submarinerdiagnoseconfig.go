@@ -25,22 +25,24 @@ var submarinerdiagnoseconfigsKind = v1alpha1.SchemeGroupVersion.WithKind("Submar
 
 // Get takes name of the submarinerDiagnoseConfig, and returns the corresponding submarinerDiagnoseConfig object, and an error if there is any.
 func (c *FakeSubmarinerDiagnoseConfigs) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.SubmarinerDiagnoseConfig, err error) {
+	emptyResult := &v1alpha1.SubmarinerDiagnoseConfig{}
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(submarinerdiagnoseconfigsResource, c.ns, name), &v1alpha1.SubmarinerDiagnoseConfig{})
+		Invokes(testing.NewGetActionWithOptions(submarinerdiagnoseconfigsResource, c.ns, name, options), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.SubmarinerDiagnoseConfig), err
 }
 
 // List takes label and field selectors, and returns the list of SubmarinerDiagnoseConfigs that match those selectors.
 func (c *FakeSubmarinerDiagnoseConfigs) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.SubmarinerDiagnoseConfigList, err error) {
+	emptyResult := &v1alpha1.SubmarinerDiagnoseConfigList{}
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(submarinerdiagnoseconfigsResource, submarinerdiagnoseconfigsKind, c.ns, opts), &v1alpha1.SubmarinerDiagnoseConfigList{})
+		Invokes(testing.NewListActionWithOptions(submarinerdiagnoseconfigsResource, submarinerdiagnoseconfigsKind, c.ns, opts), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 
 	label, _, _ := testing.ExtractFromListOptions(opts)
@@ -59,40 +61,43 @@ func (c *FakeSubmarinerDiagnoseConfigs) List(ctx context.Context, opts v1.ListOp
 // Watch returns a watch.Interface that watches the requested submarinerDiagnoseConfigs.
 func (c *FakeSubmarinerDiagnoseConfigs) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(submarinerdiagnoseconfigsResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchActionWithOptions(submarinerdiagnoseconfigsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a submarinerDiagnoseConfig and creates it.  Returns the server's representation of the submarinerDiagnoseConfig, and an error, if there is any.
 func (c *FakeSubmarinerDiagnoseConfigs) Create(ctx context.Context, submarinerDiagnoseConfig *v1alpha1.SubmarinerDiagnoseConfig, opts v1.CreateOptions) (result *v1alpha1.SubmarinerDiagnoseConfig, err error) {
+	emptyResult := &v1alpha1.SubmarinerDiagnoseConfig{}
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(submarinerdiagnoseconfigsResource, c.ns, submarinerDiagnoseConfig), &v1alpha1.SubmarinerDiagnoseConfig{})
+		Invokes(testing.NewCreateActionWithOptions(submarinerdiagnoseconfigsResource, c.ns, submarinerDiagnoseConfig, opts), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.SubmarinerDiagnoseConfig), err
 }
 
 // Update takes the representation of a submarinerDiagnoseConfig and updates it. Returns the server's representation of the submarinerDiagnoseConfig, and an error, if there is any.
 func (c *FakeSubmarinerDiagnoseConfigs) Update(ctx context.Context, submarinerDiagnoseConfig *v1alpha1.SubmarinerDiagnoseConfig, opts v1.UpdateOptions) (result *v1alpha1.SubmarinerDiagnoseConfig, err error) {
+	emptyResult := &v1alpha1.SubmarinerDiagnoseConfig{}
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(submarinerdiagnoseconfigsResource, c.ns, submarinerDiagnoseConfig), &v1alpha1.SubmarinerDiagnoseConfig{})
+		Invokes(testing.NewUpdateActionWithOptions(submarinerdiagnoseconfigsResource, c.ns, submarinerDiagnoseConfig, opts), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.SubmarinerDiagnoseConfig), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeSubmarinerDiagnoseConfigs) UpdateStatus(ctx context.Context, submarinerDiagnoseConfig *v1alpha1.SubmarinerDiagnoseConfig, opts v1.UpdateOptions) (*v1alpha1.SubmarinerDiagnoseConfig, error) {
+func (c *FakeSubmarinerDiagnoseConfigs) UpdateStatus(ctx context.Context, submarinerDiagnoseConfig *v1alpha1.SubmarinerDiagnoseConfig, opts v1.UpdateOptions) (result *v1alpha1.SubmarinerDiagnoseConfig, err error) {
+	emptyResult := &v1alpha1.SubmarinerDiagnoseConfig{}
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(submarinerdiagnoseconfigsResource, "status", c.ns, submarinerDiagnoseConfig), &v1alpha1.SubmarinerDiagnoseConfig{})
+		Invokes(testing.NewUpdateSubresourceActionWithOptions(submarinerdiagnoseconfigsResource, "status", c.ns, submarinerDiagnoseConfig, opts), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.SubmarinerDiagnoseConfig), err
 }
@@ -107,7 +112,7 @@ func (c *FakeSubmarinerDiagnoseConfigs) Delete(ctx context.Context, name string,
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeSubmarinerDiagnoseConfigs) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(submarinerdiagnoseconfigsResource, c.ns, listOpts)
+	action := testing.NewDeleteCollectionActionWithOptions(submarinerdiagnoseconfigsResource, c.ns, opts, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.SubmarinerDiagnoseConfigList{})
 	return err
@@ -115,11 +120,12 @@ func (c *FakeSubmarinerDiagnoseConfigs) DeleteCollection(ctx context.Context, op
 
 // Patch applies the patch and returns the patched submarinerDiagnoseConfig.
 func (c *FakeSubmarinerDiagnoseConfigs) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.SubmarinerDiagnoseConfig, err error) {
+	emptyResult := &v1alpha1.SubmarinerDiagnoseConfig{}
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(submarinerdiagnoseconfigsResource, c.ns, name, pt, data, subresources...), &v1alpha1.SubmarinerDiagnoseConfig{})
+		Invokes(testing.NewPatchSubresourceActionWithOptions(submarinerdiagnoseconfigsResource, c.ns, name, pt, data, opts, subresources...), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.SubmarinerDiagnoseConfig), err
 }
