@@ -4,8 +4,8 @@ package v1alpha1
 
 import (
 	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/listers"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -22,25 +22,17 @@ type SubmarinerDiagnoseConfigLister interface {
 
 // submarinerDiagnoseConfigLister implements the SubmarinerDiagnoseConfigLister interface.
 type submarinerDiagnoseConfigLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*v1alpha1.SubmarinerDiagnoseConfig]
 }
 
 // NewSubmarinerDiagnoseConfigLister returns a new SubmarinerDiagnoseConfigLister.
 func NewSubmarinerDiagnoseConfigLister(indexer cache.Indexer) SubmarinerDiagnoseConfigLister {
-	return &submarinerDiagnoseConfigLister{indexer: indexer}
-}
-
-// List lists all SubmarinerDiagnoseConfigs in the indexer.
-func (s *submarinerDiagnoseConfigLister) List(selector labels.Selector) (ret []*v1alpha1.SubmarinerDiagnoseConfig, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.SubmarinerDiagnoseConfig))
-	})
-	return ret, err
+	return &submarinerDiagnoseConfigLister{listers.New[*v1alpha1.SubmarinerDiagnoseConfig](indexer, v1alpha1.Resource("submarinerdiagnoseconfig"))}
 }
 
 // SubmarinerDiagnoseConfigs returns an object that can list and get SubmarinerDiagnoseConfigs.
 func (s *submarinerDiagnoseConfigLister) SubmarinerDiagnoseConfigs(namespace string) SubmarinerDiagnoseConfigNamespaceLister {
-	return submarinerDiagnoseConfigNamespaceLister{indexer: s.indexer, namespace: namespace}
+	return submarinerDiagnoseConfigNamespaceLister{listers.NewNamespaced[*v1alpha1.SubmarinerDiagnoseConfig](s.ResourceIndexer, namespace)}
 }
 
 // SubmarinerDiagnoseConfigNamespaceLister helps list and get SubmarinerDiagnoseConfigs.
@@ -58,26 +50,5 @@ type SubmarinerDiagnoseConfigNamespaceLister interface {
 // submarinerDiagnoseConfigNamespaceLister implements the SubmarinerDiagnoseConfigNamespaceLister
 // interface.
 type submarinerDiagnoseConfigNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all SubmarinerDiagnoseConfigs in the indexer for a given namespace.
-func (s submarinerDiagnoseConfigNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.SubmarinerDiagnoseConfig, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.SubmarinerDiagnoseConfig))
-	})
-	return ret, err
-}
-
-// Get retrieves the SubmarinerDiagnoseConfig from the indexer for a given namespace and name.
-func (s submarinerDiagnoseConfigNamespaceLister) Get(name string) (*v1alpha1.SubmarinerDiagnoseConfig, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("submarinerdiagnoseconfig"), name)
-	}
-	return obj.(*v1alpha1.SubmarinerDiagnoseConfig), nil
+	listers.ResourceIndexer[*v1alpha1.SubmarinerDiagnoseConfig]
 }
