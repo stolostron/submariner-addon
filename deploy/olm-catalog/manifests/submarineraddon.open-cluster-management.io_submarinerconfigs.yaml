@@ -63,7 +63,6 @@ spec:
                 description: CableDriver represents the submariner cable driver implementation. Available options are libreswan (default) strongswan, wireguard, and vxlan.
                 type: string
               credentialsSecret:
-                $ref: '#/definitions/k8s.io~1api~1core~1v1~0LocalObjectReference'
                 description: CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.
               forceUDPEncaps:
                 default: false
