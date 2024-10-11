@@ -16,20 +16,20 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.17.2
-	github.com/submariner-io/cloud-prepare v0.17.2
-	github.com/submariner-io/submariner v0.17.2
-	github.com/submariner-io/submariner-operator v0.17.2
+	github.com/submariner-io/admiral v0.17.3
+	github.com/submariner-io/cloud-prepare v0.17.3
+	github.com/submariner-io/submariner v0.17.3
+	github.com/submariner-io/submariner-operator v0.17.3
 	go.uber.org/mock v0.4.0
 	golang.org/x/oauth2 v0.23.0
 	google.golang.org/api v0.195.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.29.6
-	k8s.io/apiextensions-apiserver v0.29.6
-	k8s.io/apimachinery v0.29.6
-	k8s.io/client-go v0.29.6
-	k8s.io/code-generator v0.29.6
-	k8s.io/component-base v0.29.6
+	k8s.io/api v0.29.9
+	k8s.io/apiextensions-apiserver v0.29.9
+	k8s.io/apimachinery v0.29.9
+	k8s.io/client-go v0.29.9
+	k8s.io/code-generator v0.29.9
+	k8s.io/component-base v0.29.9
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 	open-cluster-management.io/addon-framework v0.9.0
@@ -155,9 +155,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.29.6 // indirect
+	k8s.io/apiserver v0.29.9 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
-	k8s.io/kms v0.29.6 // indirect
+	k8s.io/kms v0.29.9 // indirect
 	k8s.io/kube-aggregator v0.29.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20231129212854-f0671cc7e66a // indirect
 	open-cluster-management.io/sdk-go v0.13.0 // indirect
