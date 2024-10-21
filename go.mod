@@ -20,9 +20,9 @@ require (
 	github.com/submariner-io/cloud-prepare v0.19.0-rc2
 	github.com/submariner-io/submariner v0.19.0-rc2
 	github.com/submariner-io/submariner-operator v0.19.0-rc2
-	go.uber.org/mock v0.4.0
+	go.uber.org/mock v0.5.0
 	golang.org/x/oauth2 v0.23.0
-	google.golang.org/api v0.200.0
+	google.golang.org/api v0.201.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.31.1
 	k8s.io/apiextensions-apiserver v0.31.1
@@ -32,8 +32,8 @@ require (
 	k8s.io/component-base v0.31.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20240921022957-49e7df575cb6
-	open-cluster-management.io/addon-framework v0.10.0
-	open-cluster-management.io/api v0.14.0
+	open-cluster-management.io/addon-framework v0.11.0
+	open-cluster-management.io/api v0.15.0
 	sigs.k8s.io/controller-runtime v0.19.0
 	sigs.k8s.io/mcs-api v0.1.0
 )
@@ -138,7 +138,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.26.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.20.0 // indirect
@@ -162,7 +162,7 @@ require (
 	k8s.io/kms v0.31.1 // indirect
 	k8s.io/kube-aggregator v0.31.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240808142205-8e686545bdb8 // indirect
-	open-cluster-management.io/sdk-go v0.13.1-0.20240416062924-20307e6fe090 // indirect
+	open-cluster-management.io/sdk-go v0.15.0 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96 // indirect
