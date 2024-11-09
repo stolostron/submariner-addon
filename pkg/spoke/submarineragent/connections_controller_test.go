@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	submarinerNS           = "submariner-ns"
-	connectionDegradedType = "SubmarinerConnectionDegraded"
+	submarinerNS                 = "submariner-ns"
+	connectionDegradedType       = "SubmarinerConnectionDegraded"
+	routeAgentConnectionDegraded = "RouteAgentConnectionDegraded"
 )
 
 var _ = Describe("Connections Status Controller", func() {
@@ -120,11 +121,48 @@ var _ = Describe("Connections Status Controller", func() {
 			})
 		})
 	})
+
+	When("when all RouteAgents have healthy connections", func() {
+		It("should update the ManagedClusterAddOn status condition to connections established", func() {
+			t.awaitRouteAgentsEstablishedStatusCondition()
+		})
+	})
+
+	When("a RouteAgent's remote endpoint has a Connecting status", func() {
+		BeforeEach(func() {
+			t.routeAgents[0].Status.RemoteEndpoints[0].Status = submv1.Connecting
+		})
+
+		It("should update the ManagedClusterAddOn status condition to degraded", func() {
+			t.awaitRouteAgentsDegradedStatusCondition()
+		})
+	})
+
+	When("a RouteAgent's remote endpoint has a ConnectionNone status", func() {
+		BeforeEach(func() {
+			t.routeAgents[0].Status.RemoteEndpoints[0].Status = submv1.ConnectionNone
+		})
+
+		It("should update the ManagedClusterAddOn status condition to connections established", func() {
+			t.awaitRouteAgentsEstablishedStatusCondition()
+		})
+	})
+
+	When("a RouteAgent's remote endpoint has a ConnectionError status", func() {
+		BeforeEach(func() {
+			t.routeAgents[0].Status.RemoteEndpoints[0].Status = submv1.ConnectionError
+		})
+
+		It("should update the ManagedClusterAddOn status condition to degraded", func() {
+			t.awaitRouteAgentsDegradedStatusCondition()
+		})
+	})
 })
 
 type connStatusControllerTestDriver struct {
 	managedClusterAddOnTestBase
 	submariner       *submarinerv1alpha1.Submariner
+	routeAgents      []*submv1.RouteAgent
 	submarinerClient dynamic.ResourceInterface
 	stop             context.CancelFunc
 }
@@ -172,28 +210,74 @@ func newConnStatusControllerTestDriver() *connStatusControllerTestDriver {
 			},
 		}
 
+		t.routeAgents = []*submv1.RouteAgent{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "routeagent1",
+					Namespace: submarinerNS,
+				},
+				Status: submv1.RouteAgentStatus{
+					RemoteEndpoints: []submv1.RemoteEndpoint{
+						{
+							Status:        submv1.Connected,
+							Spec:          submv1.EndpointSpec{Hostname: "remote1"},
+							StatusMessage: "Success",
+						},
+						{
+							Status:        submv1.Connected,
+							Spec:          submv1.EndpointSpec{Hostname: "remote2"},
+							StatusMessage: "Success",
+						},
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "routeagent2",
+					Namespace: submarinerNS,
+				},
+				Status: submv1.RouteAgentStatus{
+					RemoteEndpoints: []submv1.RemoteEndpoint{
+						{
+							Status:        submv1.Connected,
+							Spec:          submv1.EndpointSpec{Hostname: "remote3"},
+							StatusMessage: "Success3",
+						},
+					},
+				},
+			},
+		}
+
 		t.managedClusterAddOnTestBase.init()
 	})
 
 	JustBeforeEach(func() {
-		submarinerClient, dynamicInformerFactory, submarinerInformer := newDynamicClientWithInformer(submarinerNS)
+		submarinerClient, submarinerInformerFactory, submarinerInformer := newDynamicClientWithInformer(submarinerNS)
 		t.submarinerClient = submarinerClient
+
+		routeAgentClient, routeAgentInformerFactory, routeAgentInformer := newDynamicClientWithInformer(submarinerNS)
 
 		_, err := t.submarinerClient.Create(context.TODO(), resource.MustToUnstructured(t.submariner), metav1.CreateOptions{})
 		Expect(err).To(Succeed())
 
+		for i := range t.routeAgents {
+			_, err := routeAgentClient.Create(context.TODO(), resource.MustToUnstructured(t.routeAgents[i]), metav1.CreateOptions{})
+			Expect(err).To(Succeed())
+		}
+
 		t.managedClusterAddOnTestBase.run()
 
 		controller := submarineragent.NewConnectionsStatusController(clusterName, t.addOnClient, submarinerInformer,
-			events.NewLoggingEventRecorder("test"))
+			routeAgentInformer, events.NewLoggingEventRecorder("test"))
 
 		var ctx context.Context
 
 		ctx, t.stop = context.WithCancel(context.TODO())
 
-		dynamicInformerFactory.Start(ctx.Done())
+		submarinerInformerFactory.Start(ctx.Done())
+		routeAgentInformerFactory.Start(ctx.Done())
 
-		cache.WaitForCacheSync(ctx.Done(), submarinerInformer.Informer().HasSynced)
+		cache.WaitForCacheSync(ctx.Done(), submarinerInformer.Informer().HasSynced, routeAgentInformer.Informer().HasSynced)
 
 		go controller.Run(ctx, 1)
 	})
@@ -223,4 +307,20 @@ func (t *connStatusControllerTestDriver) awaitConnectionsNotEstablishedStatusCon
 
 func (t *connStatusControllerTestDriver) awaitConnectionsDegradedStatusCondition() {
 	t.awaitStatusCondition(metav1.ConditionTrue, "ConnectionsDegraded")
+}
+
+func (t *connStatusControllerTestDriver) awaitRouteAgentsDegradedStatusCondition() {
+	t.awaitRouteAgentStatusCondition(metav1.ConditionTrue, "ConnectionsDegraded")
+}
+
+func (t *connStatusControllerTestDriver) awaitRouteAgentsEstablishedStatusCondition() {
+	t.awaitRouteAgentStatusCondition(metav1.ConditionFalse, "ConnectionsEstablished")
+}
+
+func (t *connStatusControllerTestDriver) awaitRouteAgentStatusCondition(status metav1.ConditionStatus, reason string) {
+	t.awaitManagedClusterAddOnStatusCondition(&metav1.Condition{
+		Type:   routeAgentConnectionDegraded,
+		Status: status,
+		Reason: reason,
+	})
 }

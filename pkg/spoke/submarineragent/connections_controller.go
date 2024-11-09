@@ -14,7 +14,9 @@ import (
 	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
@@ -23,6 +25,8 @@ import (
 
 const (
 	submarinerConnectionDegraded = "SubmarinerConnectionDegraded"
+	routeAgentConnectionDegraded = "RouteAgentConnectionDegraded"
+	connectionsDegraded          = "ConnectionsDegraded"
 )
 
 // connectionsStatusController watches the status of submariner CR and reflect the status
@@ -30,19 +34,21 @@ const (
 type connectionsStatusController struct {
 	addOnClient      addonclient.Interface
 	submarinerLister cache.GenericLister
+	routeAgentLister cache.GenericLister
 	clusterName      string
 	logger           log.Logger
 }
 
 // NewConnectionsStatusController returns an instance of submarinerAgentStatusController.
 func NewConnectionsStatusController(clusterName string, addOnClient addonclient.Interface, submarinerInformer informers.GenericInformer,
-	recorder events.Recorder,
+	routeAgentInformer informers.GenericInformer, recorder events.Recorder,
 ) factory.Controller {
 	name := "ConnectionsStatusController"
 	c := &connectionsStatusController{
 		addOnClient:      addOnClient,
 		submarinerLister: submarinerInformer.Lister(),
 		clusterName:      clusterName,
+		routeAgentLister: routeAgentInformer.Lister(),
 		logger:           log.Logger{Logger: logf.Log.WithName(name)},
 	}
 
@@ -68,28 +74,45 @@ func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.
 		return err
 	}
 
-	unstructuredSubmariner, err := runtime.DefaultUnstructuredConverter.ToUnstructured(runtimeSubmariner)
+	submariner := convert(runtimeSubmariner, &submarinerv1alpha1.Submariner{})
+
+	// check submariner agent status and update submariner-addon status on the hub cluster
+	gatewaycondition := c.checkSubmarinerConnections(submariner)
+
+	routeAgents, err := c.routeAgentLister.ByNamespace(namespace).List(labels.Everything())
 	if err != nil {
 		return err
 	}
 
-	submariner := &submarinerv1alpha1.Submariner{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredSubmariner, &submariner); err != nil {
-		return err
+	var allUnhealthyMessages []string
+
+	for i := range routeAgents {
+		routeAgent := convert(routeAgents[i], &submarinermv1.RouteAgent{})
+		allUnhealthyMessages = append(allUnhealthyMessages, c.checkRouteAgentConnections(routeAgent)...)
 	}
 
-	// check submariner agent status and update submariner-addon status on the hub cluster
-	condition := c.checkSubmarinerConnections(submariner)
+	routeAgentCondition := &metav1.Condition{
+		Type:    routeAgentConnectionDegraded,
+		Status:  metav1.ConditionFalse,
+		Reason:  "ConnectionsEstablished",
+		Message: "All RouteAgent connections to remote endpoints are established and healthy.",
+	}
 
-	updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(condition))
+	if len(allUnhealthyMessages) > 0 {
+		routeAgentCondition.Status = metav1.ConditionTrue
+		routeAgentCondition.Reason = connectionsDegraded
+		routeAgentCondition.Message = strings.Join(allUnhealthyMessages, "\n")
+	}
+
+	updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(gatewaycondition),
+		addon.UpdateConditionFn(routeAgentCondition))
 	if err != nil {
 		return err
 	}
 
 	if updated {
-		c.logger.Infof("Updated submariner ManagedClusterAddOn status condition: %s", resource.ToJSON(condition))
-
-		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "Updated status conditions:  %#v",
+		c.logger.Infof("Updated submariner ManagedClusterAddOn status condition: %s", resource.ToJSON(updatedStatus.Conditions))
+		syncCtx.Recorder().Eventf("ManagedClusterAddOnStatusUpdated", "Updated status condition: %#v",
 			updatedStatus.Conditions)
 	}
 
@@ -139,7 +162,7 @@ func (c *connectionsStatusController) checkSubmarinerConnections(submariner *sub
 
 	if len(unconnectedMessages) != 0 {
 		condition.Status = metav1.ConditionTrue
-		condition.Reason = "ConnectionsDegraded"
+		condition.Reason = connectionsDegraded
 
 		connectedMessages = append(connectedMessages, unconnectedMessages...)
 		condition.Message = strings.Join(connectedMessages, "\n")
@@ -152,4 +175,29 @@ func (c *connectionsStatusController) checkSubmarinerConnections(submariner *sub
 	condition.Message = strings.Join(connectedMessages, "\n")
 
 	return condition
+}
+
+func (c *connectionsStatusController) checkRouteAgentConnections(routeAgent *submarinermv1.RouteAgent) []string {
+	var unhealthyMessages []string
+
+	remoteEndpoints := routeAgent.Status.RemoteEndpoints
+	for i := range remoteEndpoints {
+		if remoteEndpoints[i].Status != submarinermv1.Connected && remoteEndpoints[i].Status != submarinermv1.ConnectionNone {
+			unhealthyMessages = append(unhealthyMessages,
+				fmt.Sprintf("The RouteAgent connection to remote endpoint %q from %q  is not established (status=%s): %s",
+					remoteEndpoints[i].Spec.Hostname, routeAgent.Name, remoteEndpoints[i].Status, remoteEndpoints[i].StatusMessage))
+		}
+	}
+
+	return unhealthyMessages
+}
+
+func convert[T runtime.Object](from runtime.Object, to T) T {
+	u, err := runtime.DefaultUnstructuredConverter.ToUnstructured(from)
+	utilruntime.Must(err)
+
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(u, to)
+	utilruntime.Must(err)
+
+	return to
 }
