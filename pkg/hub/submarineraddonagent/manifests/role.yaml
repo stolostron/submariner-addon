@@ -30,5 +30,5 @@ rules:
   verbs: ["get", "list", "watch"]
 # Allow submariner-addon agent to get submariners
 - apiGroups: ["submariner.io"]
-  resources: ["submariners"]
+  resources: ["submariners", "routeagents"]
   verbs: ["get", "list", "watch"]

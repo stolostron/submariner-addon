@@ -12,6 +12,7 @@ import (
 	"github.com/submariner-io/admiral/pkg/log/kzerolog"
 	"github.com/submariner-io/admiral/pkg/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
+	submv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -35,6 +36,7 @@ var _ = BeforeSuite(func() {
 
 	Expect(submarinerv1alpha1.AddToScheme(k8sScheme.Scheme)).To(Succeed())
 	Expect(operatorsv1alpha1.AddToScheme(k8sScheme.Scheme)).To(Succeed())
+	Expect(submv1.AddToScheme(k8sScheme.Scheme)).To(Succeed())
 })
 
 func TestSubmarinerAgent(t *testing.T) {
@@ -93,6 +95,7 @@ func newAddOn() *addonv1alpha1.ManagedClusterAddOn {
 	}
 }
 
+//nolint:unparam // Ignore "`namespace` always receives ..."
 func newDynamicClientWithInformer(namespace string) (dynamic.ResourceInterface, dynamicinformer.DynamicSharedInformerFactory,
 	informers.GenericInformer,
 ) {

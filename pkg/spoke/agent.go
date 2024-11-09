@@ -14,6 +14,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/stolostron/submariner-addon/pkg/spoke/submarineragent"
+	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -42,6 +43,7 @@ var (
 		Version:  "v1alpha1",
 		Resource: "subscriptions",
 	}
+	routeAgentGVR = submarinermv1.SchemeGroupVersion.WithResource("routeagents")
 )
 
 type AgentOptions struct {
@@ -145,6 +147,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	dynamicInformers := dynamicinformer.NewFilteredDynamicSharedInformerFactory(spokeDynamicClient, 10*time.Minute, o.InstallationNamespace,
 		nil)
 	submarinerInformer := dynamicInformers.ForResource(submarinerGVR)
+	routeAgentInformer := dynamicInformers.ForResource(routeAgentGVR)
 
 	submarinerConfigController := submarineragent.NewSubmarinerConfigController(&submarineragent.SubmarinerConfigControllerInput{
 		ClusterName:          o.ClusterName,
@@ -173,7 +176,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		dynamicInformers.ForResource(subscriptionGVR), submarinerInformer, controllerContext.EventRecorder)
 
 	connectionsStatusController := submarineragent.NewConnectionsStatusController(o.ClusterName, addOnHubKubeClient,
-		dynamicInformers.ForResource(submarinerGVR), controllerContext.EventRecorder)
+		dynamicInformers.ForResource(submarinerGVR), routeAgentInformer, controllerContext.EventRecorder)
 
 	go addOnInformers.Start(ctx.Done())
 	go configInformers.Start(ctx.Done())
