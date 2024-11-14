@@ -30,6 +30,7 @@ import (
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
 	clusterV1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+	workv1 "open-cluster-management.io/api/work/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
@@ -260,4 +261,26 @@ func createClusterManagementAddOn(ctx context.Context) {
 
 	_, err = addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(ctx, cma, metav1.CreateOptions{})
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func awaitManifestWorks(workClient workclientset.Interface, managedClusterName string, works ...string,
+) []*workv1.ManifestWork {
+	var (
+		actual []*workv1.ManifestWork
+		ok     bool
+	)
+
+	Eventually(func() bool {
+		ok, actual = util.CheckManifestWorks(workClient, managedClusterName, true, works...)
+		return ok
+	}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+
+	return actual
+}
+
+func awaitNoManifestWorks(workClient workclientset.Interface, managedClusterName string, works ...string) {
+	Eventually(func() bool {
+		ok, _ := util.CheckManifestWorks(workClient, managedClusterName, false, works...)
+		return ok
+	}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 }

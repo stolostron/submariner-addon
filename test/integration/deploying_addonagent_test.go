@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/rand"
+	workv1 "open-cluster-management.io/api/work/v1"
 )
 
 const (
@@ -37,9 +38,16 @@ var _ = Describe("Submariner addon agent", func() {
 		})
 
 		It("should deploy the addon agent ManifestWork resources", func() {
-			Eventually(func() bool {
-				return util.CheckManifestWorks(workClient, managedClusterName, true, expectedAgentWork)
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+			w := awaitManifestWorks(workClient, managedClusterName, expectedAgentWork)[0]
+			Expect(w.Spec.DeleteOption).To(Equal(&workv1.DeleteOption{
+				PropagationPolicy: workv1.DeletePropagationPolicyTypeSelectivelyOrphan,
+				SelectivelyOrphan: &workv1.SelectivelyOrphan{OrphaningRules: []workv1.OrphaningRule{
+					{
+						Resource: "namespaces",
+						Name:     util.InstallationNamespace,
+					},
+				}},
+			}))
 		})
 	})
 
@@ -61,7 +69,7 @@ var _ = Describe("Submariner addon agent", func() {
 				util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			installationNamespace, err = util.GetCurrentNamespace(kubeClient, "submariner-operator")
+			installationNamespace, err = util.GetCurrentNamespace(kubeClient, util.InstallationNamespace)
 			Expect(err).ToNot(HaveOccurred())
 
 			By(fmt.Sprintf("Start submariner spoke agent on managed cluster namespace %q", installationNamespace))
