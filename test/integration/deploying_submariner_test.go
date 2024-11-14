@@ -189,26 +189,20 @@ var _ = Describe("Submariner Deployment", func() {
 
 func awaitSubmarinerManifestWorks(managedClusterName string) {
 	By("Await deployment of the ManifestWorks")
-	Eventually(func() bool {
-		return util.CheckManifestWorks(workClient, managedClusterName, true, submarineragent.OperatorManifestWorkName,
-			submarineragent.SubmarinerCRManifestWorkName)
-	}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+	awaitManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName,
+		submarineragent.SubmarinerCRManifestWorkName)
 }
 
 func ensureSubmarinerManifestWorks(managedClusterName string) {
 	By("Ensure deployment of the ManifestWorks")
-	Consistently(func() bool {
-		return util.CheckManifestWorks(workClient, managedClusterName, true, submarineragent.OperatorManifestWorkName,
-			submarineragent.SubmarinerCRManifestWorkName)
-	}, 1).Should(BeTrue())
+	awaitManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName,
+		submarineragent.SubmarinerCRManifestWorkName)
 }
 
 func awaitNoSubmarinerManifestWorks(managedClusterName string) {
 	By("Await deletion of the ManifestWorks")
-	Eventually(func() bool {
-		return util.CheckManifestWorks(workClient, managedClusterName, false, submarineragent.OperatorManifestWorkName,
-			submarineragent.SubmarinerCRManifestWorkName)
-	}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+	awaitNoManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName,
+		submarineragent.SubmarinerCRManifestWorkName)
 }
 
 func createBrokerConfiguration(brokerNamespace string) {
