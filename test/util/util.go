@@ -24,11 +24,13 @@ import (
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+	workv1 "open-cluster-management.io/api/work/v1"
 )
 
 const (
-	expectedBrokerRole  = "submariner-k8s-broker-cluster"
-	expectedIPSECSecret = "submariner-ipsec-psk"
+	expectedBrokerRole    = "submariner-k8s-broker-cluster"
+	expectedIPSECSecret   = "submariner-ipsec-psk"
+	InstallationNamespace = "submariner-operator"
 )
 
 // on prow env, the /var/run/secrets/kubernetes.io/serviceaccount/namespace can be found.
@@ -89,15 +91,20 @@ func CheckBrokerResources(kubeClient kubernetes.Interface, brokerNamespace strin
 	return checkPresence(err, expPresent)
 }
 
-func CheckManifestWorks(workClient workclientset.Interface, managedClusterName string, expPresent bool, works ...string) bool {
-	for _, work := range works {
-		_, err := workClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(), work, metav1.GetOptions{})
+func CheckManifestWorks(workClient workclientset.Interface, managedClusterName string, expPresent bool, works ...string,
+) (bool, []*workv1.ManifestWork) {
+	actual := make([]*workv1.ManifestWork, len(works))
+
+	for i, work := range works {
+		w, err := workClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(), work, metav1.GetOptions{})
 		if !checkPresence(err, expPresent) {
-			return false
+			return false, nil
 		}
+
+		actual[i] = w
 	}
 
-	return true
+	return true, actual
 }
 
 func checkPresence(err error, expPresent bool) bool {
@@ -181,7 +188,7 @@ func NewManagedClusterAddOn(namespace string) *addonv1alpha1.ManagedClusterAddOn
 			Namespace: namespace,
 		},
 		Spec: addonv1alpha1.ManagedClusterAddOnSpec{
-			InstallNamespace: "submariner-operator",
+			InstallNamespace: InstallationNamespace,
 		},
 	}
 }
@@ -206,7 +213,7 @@ func NewSubmariner(name string) *unstructured.Unstructured {
 				"clusterCIDR":              "",
 				"clusterID":                "test",
 				"debug":                    false,
-				"namespace":                "submariner-operator",
+				"namespace":                InstallationNamespace,
 				"natEnabled":               true,
 				"serviceCIDR":              "",
 			},
