@@ -9,17 +9,17 @@ require (
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo/v2 v2.22.0
-	github.com/onsi/gomega v1.35.1
+	github.com/onsi/gomega v1.36.0
 	github.com/openshift/api v0.0.0-20241001152557-e415140e5d5f
 	github.com/openshift/library-go v0.0.0-20241001171606-756adf2188fc
 	github.com/operator-framework/api v0.27.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.19.0
-	github.com/submariner-io/cloud-prepare v0.19.0
-	github.com/submariner-io/submariner v0.19.0
-	github.com/submariner-io/submariner-operator v0.19.0
+	github.com/submariner-io/admiral v0.19.1
+	github.com/submariner-io/cloud-prepare v0.19.1
+	github.com/submariner-io/submariner v0.19.1
+	github.com/submariner-io/submariner-operator v0.19.1
 	go.uber.org/mock v0.5.0
 	golang.org/x/oauth2 v0.24.0
 	google.golang.org/api v0.209.0
