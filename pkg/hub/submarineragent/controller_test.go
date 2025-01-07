@@ -765,6 +765,8 @@ func (t *testDriver) assertOperatorManifestWork(work *workv1.ManifestWork) []*un
 
 	assertNoManifestObj(manifestObjs, "Submariner", "")
 
+	assertManifestObj(manifestObjs, "Namespace", installNamespace)
+
 	subscription := assertManifestObj(manifestObjs, "Subscription", "")
 	assertNestedString(subscription, installNamespace, "metadata", "namespace")
 	assertNestedString(subscription, "submariner", "spec", "name")
