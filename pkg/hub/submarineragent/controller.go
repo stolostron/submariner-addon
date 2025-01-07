@@ -71,6 +71,7 @@ const (
 	SubmarinerCRManifestWorkName  = "submariner-resource"
 	agentRBACFile                 = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
 	submarinerCRFile              = "manifests/operator/submariner.io-submariners-cr.yaml"
+	operatorNamespaceFile         = "manifests/operator/submariner-operator-namespace.yaml"
 	BrokerCfgApplied              = "SubmarinerBrokerConfigApplied"
 	BrokerObjectName              = "submariner-broker"
 	BackupLabelKey                = "cluster.open-cluster-management.io/backup"
@@ -620,7 +621,7 @@ func newSubmarinerManifestWork(managedCluster *clusterv1.ManagedCluster, config 
 
 func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}, skipOperatorGroup bool,
 ) (*workv1.ManifestWork, error) {
-	files := []string{agentRBACFile}
+	files := []string{operatorNamespaceFile, agentRBACFile}
 	clusterProduct := getClusterProduct(managedCluster)
 	if clusterProduct == constants.ProductOCP || clusterProduct == constants.ProductROSA ||
 		clusterProduct == constants.ProductARO || clusterProduct == constants.ProductROKS {
