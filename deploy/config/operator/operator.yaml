@@ -40,8 +40,6 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
-            limits:
-              memory: 1Gi
           env:
             - name: POD_NAME
               valueFrom:
