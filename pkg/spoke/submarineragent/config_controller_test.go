@@ -368,6 +368,16 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 			t.awaitGatewaysLabeledSuccessCondition()
 		})
 	})
+
+	When("the SubmarinerConfig requests fewer than one gateway", func() {
+		BeforeEach(func() {
+			t.config.Spec.Gateways = 0
+		})
+
+		It("should report an invalid input condition", func() {
+			t.awaitGatewaysLabeledInvalidInputCondition()
+		})
+	})
 }
 
 func testManagedClusterAddOn(t *configControllerTestDriver) {
@@ -687,6 +697,14 @@ func (t *configControllerTestDriver) awaitGatewaysLabeledFailureCondition() {
 		Type:   gatewayConditionType,
 		Status: metav1.ConditionFalse,
 		Reason: "Failure",
+	})
+}
+
+func (t *configControllerTestDriver) awaitGatewaysLabeledInvalidInputCondition() {
+	t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
+		Type:   gatewayConditionType,
+		Status: metav1.ConditionFalse,
+		Reason: "InvalidInput",
 	})
 }
 
