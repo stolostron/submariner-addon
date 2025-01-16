@@ -55,9 +55,11 @@ func main() {
 		if err != nil {
 			klog.Fatalf("Couldn't search for files matching -s: %v", err)
 		}
+
 		if len(m) == 0 {
 			klog.Fatalf("-s must be a valid file or file glob pattern")
 		}
+
 		for _, file := range m {
 			docsForTypes = append(docsForTypes, kruntime.ParseDocumentationFrom(file)...)
 		}

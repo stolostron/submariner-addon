@@ -29,6 +29,7 @@ linters:
     - bodyclose
     - containedctx
     - contextcheck
+    - copyloopvar
     # - cyclop # This is equivalent to gocyclo
     - decorder
     # - depguard # depguard now denies by default, it should only be enabled if we actually use it
@@ -36,6 +37,7 @@ linters:
     - dupl
     - dupword
     - durationcheck
+    - err113
     - errcheck
     - errchkjson
     - errorlint
@@ -43,7 +45,6 @@ linters:
     # - execinquery # No SQL
     - exhaustive
     # - exhauststruct # Not recommended for general use - meant to be used only for special cases
-    - exportloopref
     # - forbidigo # We don't forbid any statements
     # - forcetypeassert # There are many unchecked type assertions that would be the result of a programming error so the
     #                     reasonable recourse would be to panic anyway if checked so this doesn't seem useful
@@ -56,7 +57,6 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - goerr113
     - godot
     # - godox #  Let's not forbid inline TODOs, FIXMEs et al
     - gofmt
@@ -167,6 +167,6 @@ issues:
     # https://github.com/Djarvur/go-err113/issues/10 for an interesting discussion of this error. While there are cases
     # where wrapped sentinel errors are useful, it seems a bit pedantic to force that pattern in all cases.
     - linters:
-        - goerr113
+        - err113
       text: "do not define dynamic errors"
 

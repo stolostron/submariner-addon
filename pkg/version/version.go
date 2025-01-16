@@ -35,7 +35,7 @@ func Get() version.Info {
 
 func init() {
 	buildInfo := metrics.NewGaugeVec(
-		&metrics.GaugeOpts{
+		&metrics.GaugeOpts{ //nolint:promlinter // False positive, the metric name is snake case as expected
 			Name: "open_cluster_management_submariner_addon_build_info",
 			Help: "A metric with a constant '1' value labeled by major, minor, git commit & git version from which Open Cluster Management " +
 				"submariner-addon was built.",

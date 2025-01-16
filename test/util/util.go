@@ -124,10 +124,11 @@ func SetupServiceAccount(kubeClient kubernetes.Interface, namespace, name string
 		func(ctx context.Context) (bool, error) {
 			// add a token secret to serviceaccount
 			sa, err := kubeClient.CoreV1().ServiceAccounts(namespace).Get(ctx, name, metav1.GetOptions{})
-			if errors.IsNotFound(err) {
-				return false, nil
-			}
 			if err != nil {
+				if errors.IsNotFound(err) {
+					return false, nil
+				}
+
 				return false, err
 			}
 

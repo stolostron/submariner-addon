@@ -330,6 +330,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 			BeforeEach(func() {
 				waitCh = make(chan struct{})
+
 				gomock.InOrder(
 					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(errors.New("fake error")).Times(1),
 					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().DoAndReturn(func() error {
@@ -524,6 +525,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 				BeforeEach(func() {
 					waitCh = make(chan struct{})
+
 					gomock.InOrder(
 						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(errors.New("fake error")).Times(1),
 						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().DoAndReturn(func() error {

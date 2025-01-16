@@ -365,7 +365,7 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context,
 		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},
 	)
 	if err != nil {
-		return failedCondition("Error retrieving nodes: %v", err), err
+		return failedConditionf("Error retrieving nodes: %v", err), err
 	}
 
 	currentGatewayNames := []string{}
@@ -406,7 +406,7 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context,
 	}
 
 	if err != nil {
-		return failedCondition("Unable to label the gateway nodes: %v", err), err
+		return failedConditionf("Unable to label the gateway nodes: %v", err), err
 	}
 
 	if len(updatedGatewayNames) == 0 {
@@ -452,6 +452,7 @@ func (c *submarinerConfigController) labelNode(ctx context.Context, config *conf
 			node.Annotations[gatewayLabeledBySubmariner] = "true"
 			node.Labels[submarinerGatewayLabel] = "true"
 		}
+
 		node.Labels[submarinerUDPPortLabel] = nattPort
 	})
 }
@@ -472,8 +473,9 @@ func (c *submarinerConfigController) updateNode(ctx context.Context, node *corev
 
 	node = node.DeepCopy()
 
-	return util.Update[*corev1.Node](ctx, client, node, func(existing *corev1.Node) (*corev1.Node, error) {
+	return util.Update(ctx, client, node, func(existing *corev1.Node) (*corev1.Node, error) {
 		mutate(existing)
+
 		node = nil
 
 		return existing, nil
@@ -665,8 +667,8 @@ func (c *submarinerConfigController) setNetworkTypeIfAbsent(ctx context.Context,
 
 	if updated {
 		msg := fmt.Sprintf("SubmarinerConfig network type was set to %q for managed cluster %q", networkType, config.Namespace)
-		c.logger.Infof(msg)
-		recorder.Eventf("SubmarinerConfigNetworkTypeSet", msg)
+		c.logger.Info(msg)
+		recorder.Event("SubmarinerConfigNetworkTypeSet", msg)
 	}
 
 	return updatedErr
@@ -735,12 +737,16 @@ func (c *submarinerConfigController) isSubmarinerCRPresent() (bool, error) {
 	return len(list) > 0, nil
 }
 
-func failedCondition(formatMsg string, args ...interface{}) metav1.Condition {
+func failedConditionf(formatMsg string, args ...interface{}) metav1.Condition {
+	return failedCondition(fmt.Sprintf(formatMsg, args...))
+}
+
+func failedCondition(msg string) metav1.Condition {
 	return metav1.Condition{
 		Type:    submarinerGatewayCondition,
 		Status:  metav1.ConditionFalse,
 		Reason:  "Failure",
-		Message: fmt.Sprintf(formatMsg, args...),
+		Message: msg,
 	}
 }
 
