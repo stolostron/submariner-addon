@@ -120,6 +120,10 @@ spec:
                 default: true
                 description: HaltOnCertificateError halts pods on certificate errors (so they are restarted).
                 type: boolean
+              hostedCluster:
+                default: false
+                description: HostedCluster enabled if the cluster is a hosted cluster.
+                type: boolean
               imagePullSpecs:
                 description: ImagePullSpecs represents the desired images of submariner components installed on the managed cluster. If not specified, the default submariner images that was defined by submariner operator will be used.
                 properties:
