@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/utils/clock"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
@@ -249,7 +250,7 @@ func newTestDriver() *testDriver {
 		t.clusterClient = fakeclusterclient.NewSimpleClientset()
 		t.addOnClient = addonfake.NewSimpleClientset()
 		t.addOnAgent = submarineraddonagent.NewAddOnAgent(t.kubeClient, t.clusterClient, t.addOnClient,
-			events.NewLoggingEventRecorder("test"), "test")
+			events.NewLoggingEventRecorder("test", clock.RealClock{}), "test")
 	})
 
 	return t

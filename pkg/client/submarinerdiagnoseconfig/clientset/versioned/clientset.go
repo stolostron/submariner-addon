@@ -3,8 +3,8 @@
 package versioned
 
 import (
-	"fmt"
-	"net/http"
+	fmt "fmt"
+	http "net/http"
 
 	submarineraddonv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/clientset/versioned/typed/submarinerdiagnoseconfig/v1alpha1"
 	discovery "k8s.io/client-go/discovery"

@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/clock"
 	"k8s.io/utils/ptr"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
@@ -343,7 +344,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 			clusterInformerFactory.Cluster().V1beta2().ManagedClusterSets(),
 			t.addOnClient,
 			addOnInformerFactory.Addon().V1alpha1(),
-			events.NewLoggingEventRecorder("test"))
+			events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
 		var ctx context.Context
 

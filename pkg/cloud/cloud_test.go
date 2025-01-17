@@ -18,6 +18,7 @@ import (
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/utils/clock"
 )
 
 var _ = Describe("ProviderFactory Get", func() {
@@ -50,7 +51,7 @@ var _ = Describe("ProviderFactory Get", func() {
 
 	When("the ManagedClusterInfo Platform has no provider implementation", func() {
 		It("should return false", func() {
-			provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
+			provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 			Expect(err).To(Succeed())
 			Expect(found).To(BeFalse())
 			Expect(provider).To(BeNil())
@@ -63,7 +64,7 @@ var _ = Describe("ProviderFactory Get", func() {
 		})
 
 		It("should return an error", func() {
-			_, _, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
+			_, _, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -74,7 +75,7 @@ var _ = Describe("ProviderFactory Get", func() {
 		})
 
 		It("should return false", func() {
-			provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
+			provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 			Expect(err).To(Succeed())
 			Expect(found).To(BeFalse())
 			Expect(provider).To(BeNil())
@@ -111,7 +112,7 @@ var _ = Describe("ProviderFactory Get", func() {
 			})
 
 			It("should return an instance", func() {
-				provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
+				provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
 				Expect(err).To(Succeed())
 				Expect(found).To(BeTrue())
@@ -121,7 +122,7 @@ var _ = Describe("ProviderFactory Get", func() {
 
 		Context("and the credentials Secret reference isn't provided", func() {
 			It("should return an error", func() {
-				_, _, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
+				_, _, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -132,7 +133,7 @@ var _ = Describe("ProviderFactory Get", func() {
 			})
 
 			It("should return an error", func() {
-				_, _, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
+				_, _, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -144,7 +145,7 @@ var _ = Describe("ProviderFactory Get", func() {
 		})
 
 		It("should return false", func() {
-			provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test"))
+			provider, found, err := providerFactory.Get(submarinerConfig, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 			Expect(err).To(Succeed())
 			Expect(found).To(BeFalse())
 			Expect(provider).To(BeNil())

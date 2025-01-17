@@ -3,9 +3,9 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 
-	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	submarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	scheme "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -21,33 +21,36 @@ type SubmarinerConfigsGetter interface {
 
 // SubmarinerConfigInterface has methods to work with SubmarinerConfig resources.
 type SubmarinerConfigInterface interface {
-	Create(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.CreateOptions) (*v1alpha1.SubmarinerConfig, error)
-	Update(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.UpdateOptions) (*v1alpha1.SubmarinerConfig, error)
+	Create(ctx context.Context, submarinerConfig *submarinerconfigv1alpha1.SubmarinerConfig, opts v1.CreateOptions) (*submarinerconfigv1alpha1.SubmarinerConfig, error)
+	Update(ctx context.Context, submarinerConfig *submarinerconfigv1alpha1.SubmarinerConfig, opts v1.UpdateOptions) (*submarinerconfigv1alpha1.SubmarinerConfig, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.UpdateOptions) (*v1alpha1.SubmarinerConfig, error)
+	UpdateStatus(ctx context.Context, submarinerConfig *submarinerconfigv1alpha1.SubmarinerConfig, opts v1.UpdateOptions) (*submarinerconfigv1alpha1.SubmarinerConfig, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.SubmarinerConfig, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.SubmarinerConfigList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*submarinerconfigv1alpha1.SubmarinerConfig, error)
+	List(ctx context.Context, opts v1.ListOptions) (*submarinerconfigv1alpha1.SubmarinerConfigList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.SubmarinerConfig, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *submarinerconfigv1alpha1.SubmarinerConfig, err error)
 	SubmarinerConfigExpansion
 }
 
 // submarinerConfigs implements SubmarinerConfigInterface
 type submarinerConfigs struct {
-	*gentype.ClientWithList[*v1alpha1.SubmarinerConfig, *v1alpha1.SubmarinerConfigList]
+	*gentype.ClientWithList[*submarinerconfigv1alpha1.SubmarinerConfig, *submarinerconfigv1alpha1.SubmarinerConfigList]
 }
 
 // newSubmarinerConfigs returns a SubmarinerConfigs
 func newSubmarinerConfigs(c *SubmarineraddonV1alpha1Client, namespace string) *submarinerConfigs {
 	return &submarinerConfigs{
-		gentype.NewClientWithList[*v1alpha1.SubmarinerConfig, *v1alpha1.SubmarinerConfigList](
+		gentype.NewClientWithList[*submarinerconfigv1alpha1.SubmarinerConfig, *submarinerconfigv1alpha1.SubmarinerConfigList](
 			"submarinerconfigs",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1alpha1.SubmarinerConfig { return &v1alpha1.SubmarinerConfig{} },
-			func() *v1alpha1.SubmarinerConfigList { return &v1alpha1.SubmarinerConfigList{} }),
+			func() *submarinerconfigv1alpha1.SubmarinerConfig { return &submarinerconfigv1alpha1.SubmarinerConfig{} },
+			func() *submarinerconfigv1alpha1.SubmarinerConfigList {
+				return &submarinerconfigv1alpha1.SubmarinerConfigList{}
+			},
+		),
 	}
 }

@@ -3,10 +3,10 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/listers"
-	"k8s.io/client-go/tools/cache"
+	submarinerdiagnoseconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // SubmarinerDiagnoseConfigLister helps list SubmarinerDiagnoseConfigs.
@@ -14,7 +14,7 @@ import (
 type SubmarinerDiagnoseConfigLister interface {
 	// List lists all SubmarinerDiagnoseConfigs in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.SubmarinerDiagnoseConfig, err error)
+	List(selector labels.Selector) (ret []*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, err error)
 	// SubmarinerDiagnoseConfigs returns an object that can list and get SubmarinerDiagnoseConfigs.
 	SubmarinerDiagnoseConfigs(namespace string) SubmarinerDiagnoseConfigNamespaceLister
 	SubmarinerDiagnoseConfigListerExpansion
@@ -22,17 +22,17 @@ type SubmarinerDiagnoseConfigLister interface {
 
 // submarinerDiagnoseConfigLister implements the SubmarinerDiagnoseConfigLister interface.
 type submarinerDiagnoseConfigLister struct {
-	listers.ResourceIndexer[*v1alpha1.SubmarinerDiagnoseConfig]
+	listers.ResourceIndexer[*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig]
 }
 
 // NewSubmarinerDiagnoseConfigLister returns a new SubmarinerDiagnoseConfigLister.
 func NewSubmarinerDiagnoseConfigLister(indexer cache.Indexer) SubmarinerDiagnoseConfigLister {
-	return &submarinerDiagnoseConfigLister{listers.New[*v1alpha1.SubmarinerDiagnoseConfig](indexer, v1alpha1.Resource("submarinerdiagnoseconfig"))}
+	return &submarinerDiagnoseConfigLister{listers.New[*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig](indexer, submarinerdiagnoseconfigv1alpha1.Resource("submarinerdiagnoseconfig"))}
 }
 
 // SubmarinerDiagnoseConfigs returns an object that can list and get SubmarinerDiagnoseConfigs.
 func (s *submarinerDiagnoseConfigLister) SubmarinerDiagnoseConfigs(namespace string) SubmarinerDiagnoseConfigNamespaceLister {
-	return submarinerDiagnoseConfigNamespaceLister{listers.NewNamespaced[*v1alpha1.SubmarinerDiagnoseConfig](s.ResourceIndexer, namespace)}
+	return submarinerDiagnoseConfigNamespaceLister{listers.NewNamespaced[*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig](s.ResourceIndexer, namespace)}
 }
 
 // SubmarinerDiagnoseConfigNamespaceLister helps list and get SubmarinerDiagnoseConfigs.
@@ -40,15 +40,15 @@ func (s *submarinerDiagnoseConfigLister) SubmarinerDiagnoseConfigs(namespace str
 type SubmarinerDiagnoseConfigNamespaceLister interface {
 	// List lists all SubmarinerDiagnoseConfigs in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.SubmarinerDiagnoseConfig, err error)
+	List(selector labels.Selector) (ret []*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, err error)
 	// Get retrieves the SubmarinerDiagnoseConfig from the indexer for a given namespace and name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.SubmarinerDiagnoseConfig, error)
+	Get(name string) (*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, error)
 	SubmarinerDiagnoseConfigNamespaceListerExpansion
 }
 
 // submarinerDiagnoseConfigNamespaceLister implements the SubmarinerDiagnoseConfigNamespaceLister
 // interface.
 type submarinerDiagnoseConfigNamespaceLister struct {
-	listers.ResourceIndexer[*v1alpha1.SubmarinerDiagnoseConfig]
+	listers.ResourceIndexer[*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig]
 }

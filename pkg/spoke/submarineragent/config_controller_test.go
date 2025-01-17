@@ -37,6 +37,7 @@ import (
 	k8sScheme "k8s.io/client-go/kubernetes/scheme"
 	clientTesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/clock"
 	addonInformers "open-cluster-management.io/api/client/addon/informers/externalversions"
 )
 
@@ -645,7 +646,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 			ConfigInformer:       configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 			SubmarinerInformer:   dynInformerFactory.ForResource(submarinerv1a1.GroupVersion.WithResource("submariners")),
 			CloudProviderFactory: t.providerFactory,
-			Recorder:             events.NewLoggingEventRecorder("test"),
+			Recorder:             events.NewLoggingEventRecorder("test", clock.RealClock{}),
 			OnSyncDefer:          GinkgoRecover,
 		})
 

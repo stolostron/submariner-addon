@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/clock"
 )
 
 const (
@@ -268,7 +269,7 @@ func newConnStatusControllerTestDriver() *connStatusControllerTestDriver {
 		t.managedClusterAddOnTestBase.run()
 
 		controller := submarineragent.NewConnectionsStatusController(clusterName, t.addOnClient, submarinerInformer,
-			routeAgentInformer, events.NewLoggingEventRecorder("test"))
+			routeAgentInformer, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
 		var ctx context.Context
 
