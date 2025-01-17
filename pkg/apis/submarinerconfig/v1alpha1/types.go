@@ -81,6 +81,11 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=true
 	HaltOnCertificateError bool `json:"haltOnCertificateError"`
 
+	// HostedCluster enabled if the cluster is a hosted cluster.
+	// +optional
+	// +kubebuilder:default=false
+	HostedCluster bool `json:"hostedCluster,omitempty"`
+
 	// IPSecDebug enables IPSec debugging.
 	// +optional
 	// +kubebuilder:default=false
