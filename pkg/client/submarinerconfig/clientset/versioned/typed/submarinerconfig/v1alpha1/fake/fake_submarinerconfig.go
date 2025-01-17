@@ -3,129 +3,34 @@
 package fake
 
 import (
-	"context"
-
 	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
-	types "k8s.io/apimachinery/pkg/types"
-	watch "k8s.io/apimachinery/pkg/watch"
-	testing "k8s.io/client-go/testing"
+	submarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
+	gentype "k8s.io/client-go/gentype"
 )
 
-// FakeSubmarinerConfigs implements SubmarinerConfigInterface
-type FakeSubmarinerConfigs struct {
+// fakeSubmarinerConfigs implements SubmarinerConfigInterface
+type fakeSubmarinerConfigs struct {
+	*gentype.FakeClientWithList[*v1alpha1.SubmarinerConfig, *v1alpha1.SubmarinerConfigList]
 	Fake *FakeSubmarineraddonV1alpha1
-	ns   string
 }
 
-var submarinerconfigsResource = v1alpha1.SchemeGroupVersion.WithResource("submarinerconfigs")
-
-var submarinerconfigsKind = v1alpha1.SchemeGroupVersion.WithKind("SubmarinerConfig")
-
-// Get takes name of the submarinerConfig, and returns the corresponding submarinerConfig object, and an error if there is any.
-func (c *FakeSubmarinerConfigs) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.SubmarinerConfig, err error) {
-	emptyResult := &v1alpha1.SubmarinerConfig{}
-	obj, err := c.Fake.
-		Invokes(testing.NewGetActionWithOptions(submarinerconfigsResource, c.ns, name, options), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
+func newFakeSubmarinerConfigs(fake *FakeSubmarineraddonV1alpha1, namespace string) submarinerconfigv1alpha1.SubmarinerConfigInterface {
+	return &fakeSubmarinerConfigs{
+		gentype.NewFakeClientWithList[*v1alpha1.SubmarinerConfig, *v1alpha1.SubmarinerConfigList](
+			fake.Fake,
+			namespace,
+			v1alpha1.SchemeGroupVersion.WithResource("submarinerconfigs"),
+			v1alpha1.SchemeGroupVersion.WithKind("SubmarinerConfig"),
+			func() *v1alpha1.SubmarinerConfig { return &v1alpha1.SubmarinerConfig{} },
+			func() *v1alpha1.SubmarinerConfigList { return &v1alpha1.SubmarinerConfigList{} },
+			func(dst, src *v1alpha1.SubmarinerConfigList) { dst.ListMeta = src.ListMeta },
+			func(list *v1alpha1.SubmarinerConfigList) []*v1alpha1.SubmarinerConfig {
+				return gentype.ToPointerSlice(list.Items)
+			},
+			func(list *v1alpha1.SubmarinerConfigList, items []*v1alpha1.SubmarinerConfig) {
+				list.Items = gentype.FromPointerSlice(items)
+			},
+		),
+		fake,
 	}
-	return obj.(*v1alpha1.SubmarinerConfig), err
-}
-
-// List takes label and field selectors, and returns the list of SubmarinerConfigs that match those selectors.
-func (c *FakeSubmarinerConfigs) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.SubmarinerConfigList, err error) {
-	emptyResult := &v1alpha1.SubmarinerConfigList{}
-	obj, err := c.Fake.
-		Invokes(testing.NewListActionWithOptions(submarinerconfigsResource, submarinerconfigsKind, c.ns, opts), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
-	}
-
-	label, _, _ := testing.ExtractFromListOptions(opts)
-	if label == nil {
-		label = labels.Everything()
-	}
-	list := &v1alpha1.SubmarinerConfigList{ListMeta: obj.(*v1alpha1.SubmarinerConfigList).ListMeta}
-	for _, item := range obj.(*v1alpha1.SubmarinerConfigList).Items {
-		if label.Matches(labels.Set(item.Labels)) {
-			list.Items = append(list.Items, item)
-		}
-	}
-	return list, err
-}
-
-// Watch returns a watch.Interface that watches the requested submarinerConfigs.
-func (c *FakeSubmarinerConfigs) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	return c.Fake.
-		InvokesWatch(testing.NewWatchActionWithOptions(submarinerconfigsResource, c.ns, opts))
-
-}
-
-// Create takes the representation of a submarinerConfig and creates it.  Returns the server's representation of the submarinerConfig, and an error, if there is any.
-func (c *FakeSubmarinerConfigs) Create(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.CreateOptions) (result *v1alpha1.SubmarinerConfig, err error) {
-	emptyResult := &v1alpha1.SubmarinerConfig{}
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateActionWithOptions(submarinerconfigsResource, c.ns, submarinerConfig, opts), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1alpha1.SubmarinerConfig), err
-}
-
-// Update takes the representation of a submarinerConfig and updates it. Returns the server's representation of the submarinerConfig, and an error, if there is any.
-func (c *FakeSubmarinerConfigs) Update(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.UpdateOptions) (result *v1alpha1.SubmarinerConfig, err error) {
-	emptyResult := &v1alpha1.SubmarinerConfig{}
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateActionWithOptions(submarinerconfigsResource, c.ns, submarinerConfig, opts), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1alpha1.SubmarinerConfig), err
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeSubmarinerConfigs) UpdateStatus(ctx context.Context, submarinerConfig *v1alpha1.SubmarinerConfig, opts v1.UpdateOptions) (result *v1alpha1.SubmarinerConfig, err error) {
-	emptyResult := &v1alpha1.SubmarinerConfig{}
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceActionWithOptions(submarinerconfigsResource, "status", c.ns, submarinerConfig, opts), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1alpha1.SubmarinerConfig), err
-}
-
-// Delete takes name of the submarinerConfig and deletes it. Returns an error if one occurs.
-func (c *FakeSubmarinerConfigs) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteActionWithOptions(submarinerconfigsResource, c.ns, name, opts), &v1alpha1.SubmarinerConfig{})
-
-	return err
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *FakeSubmarinerConfigs) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionActionWithOptions(submarinerconfigsResource, c.ns, opts, listOpts)
-
-	_, err := c.Fake.Invokes(action, &v1alpha1.SubmarinerConfigList{})
-	return err
-}
-
-// Patch applies the patch and returns the patched submarinerConfig.
-func (c *FakeSubmarinerConfigs) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.SubmarinerConfig, err error) {
-	emptyResult := &v1alpha1.SubmarinerConfig{}
-	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceActionWithOptions(submarinerconfigsResource, c.ns, name, pt, data, opts, subresources...), emptyResult)
-
-	if obj == nil {
-		return emptyResult, err
-	}
-	return obj.(*v1alpha1.SubmarinerConfig), err
 }

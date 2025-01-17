@@ -44,6 +44,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/clock"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
@@ -678,7 +679,7 @@ func newTestDriver() *testDriver {
 			addOnInformerFactory.Addon().V1alpha1().ClusterManagementAddOns(),
 			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
 			addOnInformerFactory.Addon().V1alpha1().AddOnDeploymentConfigs(),
-			events.NewLoggingEventRecorder("test"))
+			events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
 		var ctx context.Context
 

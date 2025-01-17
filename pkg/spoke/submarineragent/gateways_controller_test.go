@@ -13,6 +13,7 @@ import (
 	kubeInformers "k8s.io/client-go/informers"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/clock"
 )
 
 const gatewayNodesLabeledType = "SubmarinerGatewayNodesLabeled"
@@ -132,7 +133,7 @@ func newGatewaysControllerTestDriver() *gatewaysControllerTestDriver {
 		t.managedClusterAddOnTestBase.run()
 
 		controller := submarineragent.NewGatewaysStatusController(clusterName, t.addOnClient,
-			kubeInformerFactory.Core().V1().Nodes(), events.NewLoggingEventRecorder("test"))
+			kubeInformerFactory.Core().V1().Nodes(), events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
 		var ctx context.Context
 

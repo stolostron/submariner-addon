@@ -13,7 +13,7 @@ type FakeSubmarineraddonV1alpha1 struct {
 }
 
 func (c *FakeSubmarineraddonV1alpha1) SubmarinerDiagnoseConfigs(namespace string) v1alpha1.SubmarinerDiagnoseConfigInterface {
-	return &FakeSubmarinerDiagnoseConfigs{c, namespace}
+	return newFakeSubmarinerDiagnoseConfigs(c, namespace)
 }
 
 // RESTClient returns a RESTClient that is used to communicate
