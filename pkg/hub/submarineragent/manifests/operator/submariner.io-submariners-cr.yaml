@@ -27,6 +27,7 @@ spec:
   serviceCIDR: ""
   serviceDiscoveryEnabled: true
   haltOnCertificateError: {{ .HaltOnCertificateError }}
+  hostedCluster: {{ .HostedCluster}}
 {{- if or .SubmarinerGatewayImage .SubmarinerRouteAgentImage .SubmarinerGlobalnetImage .LighthouseAgentImage .LighthouseCoreDNSImage }}
   imageOverrides:
     {{- if .SubmarinerGatewayImage }}
