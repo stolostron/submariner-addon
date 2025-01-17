@@ -11,6 +11,7 @@ import (
 	"github.com/submariner-io/admiral/pkg/test"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/clock"
 	"open-cluster-management.io/api/client/work/clientset/versioned/fake"
 	workv1 "open-cluster-management.io/api/work/v1"
 )
@@ -50,7 +51,7 @@ var _ = Describe("Apply", func() {
 	})
 
 	doApply := func() error {
-		return manifestwork.Apply(context.TODO(), workClient, work, events.NewLoggingEventRecorder("test"))
+		return manifestwork.Apply(context.TODO(), workClient, work, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 	}
 
 	ensureWork := func() {

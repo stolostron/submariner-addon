@@ -3,13 +3,13 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	submarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	apissubmarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	versioned "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	internalinterfaces "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
+	submarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/listers/submarinerconfig/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -20,7 +20,7 @@ import (
 // SubmarinerConfigs.
 type SubmarinerConfigInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.SubmarinerConfigLister
+	Lister() submarinerconfigv1alpha1.SubmarinerConfigLister
 }
 
 type submarinerConfigInformer struct {
@@ -55,7 +55,7 @@ func NewFilteredSubmarinerConfigInformer(client versioned.Interface, namespace s
 				return client.SubmarineraddonV1alpha1().SubmarinerConfigs(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&submarinerconfigv1alpha1.SubmarinerConfig{},
+		&apissubmarinerconfigv1alpha1.SubmarinerConfig{},
 		resyncPeriod,
 		indexers,
 	)
@@ -66,9 +66,9 @@ func (f *submarinerConfigInformer) defaultInformer(client versioned.Interface, r
 }
 
 func (f *submarinerConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&submarinerconfigv1alpha1.SubmarinerConfig{}, f.defaultInformer)
+	return f.factory.InformerFor(&apissubmarinerconfigv1alpha1.SubmarinerConfig{}, f.defaultInformer)
 }
 
-func (f *submarinerConfigInformer) Lister() v1alpha1.SubmarinerConfigLister {
-	return v1alpha1.NewSubmarinerConfigLister(f.Informer().GetIndexer())
+func (f *submarinerConfigInformer) Lister() submarinerconfigv1alpha1.SubmarinerConfigLister {
+	return submarinerconfigv1alpha1.NewSubmarinerConfigLister(f.Informer().GetIndexer())
 }

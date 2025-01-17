@@ -18,6 +18,7 @@ import (
 	kubeInformers "k8s.io/client-go/informers"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/clock"
 )
 
 const (
@@ -423,7 +424,7 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 
 		controller := submarineragent.NewDeploymentStatusController(clusterName, submarinerNS, t.addOnClient,
 			kubeInformerFactory.Apps().V1().DaemonSets(), kubeInformerFactory.Apps().V1().Deployments(),
-			subscriptionInformer, submarinerInformer, events.NewLoggingEventRecorder("test"))
+			subscriptionInformer, submarinerInformer, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
 		var ctx context.Context
 

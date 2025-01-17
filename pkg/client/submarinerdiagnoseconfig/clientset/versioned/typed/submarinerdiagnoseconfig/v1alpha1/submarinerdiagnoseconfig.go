@@ -3,9 +3,9 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 
-	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
+	submarinerdiagnoseconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
 	scheme "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -21,33 +21,38 @@ type SubmarinerDiagnoseConfigsGetter interface {
 
 // SubmarinerDiagnoseConfigInterface has methods to work with SubmarinerDiagnoseConfig resources.
 type SubmarinerDiagnoseConfigInterface interface {
-	Create(ctx context.Context, submarinerDiagnoseConfig *v1alpha1.SubmarinerDiagnoseConfig, opts v1.CreateOptions) (*v1alpha1.SubmarinerDiagnoseConfig, error)
-	Update(ctx context.Context, submarinerDiagnoseConfig *v1alpha1.SubmarinerDiagnoseConfig, opts v1.UpdateOptions) (*v1alpha1.SubmarinerDiagnoseConfig, error)
+	Create(ctx context.Context, submarinerDiagnoseConfig *submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, opts v1.CreateOptions) (*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, error)
+	Update(ctx context.Context, submarinerDiagnoseConfig *submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, opts v1.UpdateOptions) (*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, submarinerDiagnoseConfig *v1alpha1.SubmarinerDiagnoseConfig, opts v1.UpdateOptions) (*v1alpha1.SubmarinerDiagnoseConfig, error)
+	UpdateStatus(ctx context.Context, submarinerDiagnoseConfig *submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, opts v1.UpdateOptions) (*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.SubmarinerDiagnoseConfig, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.SubmarinerDiagnoseConfigList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, error)
+	List(ctx context.Context, opts v1.ListOptions) (*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.SubmarinerDiagnoseConfig, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, err error)
 	SubmarinerDiagnoseConfigExpansion
 }
 
 // submarinerDiagnoseConfigs implements SubmarinerDiagnoseConfigInterface
 type submarinerDiagnoseConfigs struct {
-	*gentype.ClientWithList[*v1alpha1.SubmarinerDiagnoseConfig, *v1alpha1.SubmarinerDiagnoseConfigList]
+	*gentype.ClientWithList[*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, *submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigList]
 }
 
 // newSubmarinerDiagnoseConfigs returns a SubmarinerDiagnoseConfigs
 func newSubmarinerDiagnoseConfigs(c *SubmarineraddonV1alpha1Client, namespace string) *submarinerDiagnoseConfigs {
 	return &submarinerDiagnoseConfigs{
-		gentype.NewClientWithList[*v1alpha1.SubmarinerDiagnoseConfig, *v1alpha1.SubmarinerDiagnoseConfigList](
+		gentype.NewClientWithList[*submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig, *submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigList](
 			"submarinerdiagnoseconfigs",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1alpha1.SubmarinerDiagnoseConfig { return &v1alpha1.SubmarinerDiagnoseConfig{} },
-			func() *v1alpha1.SubmarinerDiagnoseConfigList { return &v1alpha1.SubmarinerDiagnoseConfigList{} }),
+			func() *submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig {
+				return &submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig{}
+			},
+			func() *submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigList {
+				return &submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigList{}
+			},
+		),
 	}
 }
