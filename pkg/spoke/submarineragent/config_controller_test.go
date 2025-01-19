@@ -330,6 +330,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 			BeforeEach(func() {
 				waitCh = make(chan struct{})
+
 				gomock.InOrder(
 					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(errors.New("fake error")).Times(1),
 					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().DoAndReturn(func() error {
@@ -365,6 +366,16 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 		It("should eventually update it", func() {
 			t.awaitGatewaysLabeledSuccessCondition()
+		})
+	})
+
+	When("the SubmarinerConfig requests fewer than one gateway", func() {
+		BeforeEach(func() {
+			t.config.Spec.Gateways = 0
+		})
+
+		It("should report an invalid input condition", func() {
+			t.awaitGatewaysLabeledInvalidInputCondition()
 		})
 	})
 }
@@ -524,6 +535,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 				BeforeEach(func() {
 					waitCh = make(chan struct{})
+
 					gomock.InOrder(
 						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(errors.New("fake error")).Times(1),
 						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().DoAndReturn(func() error {
@@ -685,6 +697,14 @@ func (t *configControllerTestDriver) awaitGatewaysLabeledFailureCondition() {
 		Type:   gatewayConditionType,
 		Status: metav1.ConditionFalse,
 		Reason: "Failure",
+	})
+}
+
+func (t *configControllerTestDriver) awaitGatewaysLabeledInvalidInputCondition() {
+	t.awaitSubmarinerConfigStatusCondition(&metav1.Condition{
+		Type:   gatewayConditionType,
+		Status: metav1.ConditionFalse,
+		Reason: "InvalidInput",
 	})
 }
 

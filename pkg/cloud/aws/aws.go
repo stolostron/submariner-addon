@@ -123,8 +123,8 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	// For now we only support at least one gateway (no load-balancer)
 	if err := a.gatewayDeployer.Deploy(cpapi.GatewayDeployInput{
 		PublicPorts: []cpapi.PortSpec{
-			{Port: uint16(a.nattPort), Protocol: "udp"},
-			{Port: uint16(a.nattDiscoveryPort), Protocol: "udp"},
+			{Port: uint16(a.nattPort), Protocol: "udp"},          //nolint:gosec // Valid port numbers fit in 16 bits
+			{Port: uint16(a.nattDiscoveryPort), Protocol: "udp"}, //nolint:gosec // Valid port numbers fit in 16 bits
 			// ESP & AH protocols are used for private-ip to private-ip gateway communications
 			{Port: 0, Protocol: "50"},
 			{Port: 0, Protocol: "51"},
