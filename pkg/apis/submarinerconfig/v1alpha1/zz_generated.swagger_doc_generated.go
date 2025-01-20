@@ -101,6 +101,7 @@ var map_SubmarinerConfigSpec = map[string]string{
 	"loadBalancerEnable":       "LoadBalancerEnable enables or disables load balancer mode. When enabled, a LoadBalancer is created in the submariner-operator namespace (default false).",
 	"insecureBrokerConnection": "InsecureBrokerConnection disables certificate validation when contacting the broker. This is useful for scenarios where the certificate chain isn't the same everywhere, e.g. with self-signed certificates with a different trust chain in each cluster.",
 	"haltOnCertificateError":   "HaltOnCertificateError halts pods on certificate errors (so they are restarted).",
+	"hostedCluster":            "HostedCluster enabled if the cluster is a hosted cluster.",
 	"IPSecDebug":               "IPSecDebug enables IPSec debugging.",
 	"forceUDPEncaps":           "ForceUDPEncaps forces UDP Encapsulation for IPSec.",
 	"Debug":                    "Debug enables Submariner debugging (in the logs).",
