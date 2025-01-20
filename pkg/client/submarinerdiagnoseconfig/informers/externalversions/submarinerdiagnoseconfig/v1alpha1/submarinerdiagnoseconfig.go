@@ -3,13 +3,13 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	submarinerdiagnoseconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
+	apissubmarinerdiagnoseconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
 	versioned "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/clientset/versioned"
 	internalinterfaces "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/listers/submarinerdiagnoseconfig/v1alpha1"
+	submarinerdiagnoseconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/listers/submarinerdiagnoseconfig/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -20,7 +20,7 @@ import (
 // SubmarinerDiagnoseConfigs.
 type SubmarinerDiagnoseConfigInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.SubmarinerDiagnoseConfigLister
+	Lister() submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigLister
 }
 
 type submarinerDiagnoseConfigInformer struct {
@@ -55,7 +55,7 @@ func NewFilteredSubmarinerDiagnoseConfigInformer(client versioned.Interface, nam
 				return client.SubmarineraddonV1alpha1().SubmarinerDiagnoseConfigs(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig{},
+		&apissubmarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig{},
 		resyncPeriod,
 		indexers,
 	)
@@ -66,9 +66,9 @@ func (f *submarinerDiagnoseConfigInformer) defaultInformer(client versioned.Inte
 }
 
 func (f *submarinerDiagnoseConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig{}, f.defaultInformer)
+	return f.factory.InformerFor(&apissubmarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig{}, f.defaultInformer)
 }
 
-func (f *submarinerDiagnoseConfigInformer) Lister() v1alpha1.SubmarinerDiagnoseConfigLister {
-	return v1alpha1.NewSubmarinerDiagnoseConfigLister(f.Informer().GetIndexer())
+func (f *submarinerDiagnoseConfigInformer) Lister() submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigLister {
+	return submarinerdiagnoseconfigv1alpha1.NewSubmarinerDiagnoseConfigLister(f.Informer().GetIndexer())
 }

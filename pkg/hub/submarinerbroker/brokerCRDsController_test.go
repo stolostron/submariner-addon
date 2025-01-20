@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/clock"
 )
 
 var _ = Describe("CRDs Controller", func() {
@@ -61,7 +62,7 @@ func newBrokerCRDsControllerTestDriver() *brokerCRDsControllerTestDriver {
 		t.justBeforeRun()
 
 		controller := submarinerbroker.NewCRDsController(t.crdClient,
-			informerFactory.Apiextensions().V1().CustomResourceDefinitions(), events.NewLoggingEventRecorder("test"))
+			informerFactory.Apiextensions().V1().CustomResourceDefinitions(), events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
 		var ctx context.Context
 
