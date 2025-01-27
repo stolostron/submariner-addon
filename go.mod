@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.1
-	github.com/aws/smithy-go v1.22.1
+	github.com/aws/smithy-go v1.22.2
 	github.com/coreos/go-semver v0.3.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/golang/mock v1.6.0
