@@ -16,25 +16,25 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/submariner-io/admiral v0.19.2
-	github.com/submariner-io/cloud-prepare v0.19.2
+	github.com/submariner-io/admiral v0.20.0-m3
+	github.com/submariner-io/cloud-prepare v0.20.0-m3.0.20250121152252-afc98724884f
 	github.com/submariner-io/submariner v0.19.2
 	github.com/submariner-io/submariner-operator v0.19.2
 	go.uber.org/mock v0.5.0
 	golang.org/x/oauth2 v0.25.0
 	google.golang.org/api v0.218.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.31.1
+	k8s.io/api v0.31.4
 	k8s.io/apiextensions-apiserver v0.31.1
-	k8s.io/apimachinery v0.31.1
-	k8s.io/client-go v0.31.1
+	k8s.io/apimachinery v0.31.4
+	k8s.io/client-go v0.31.4
 	k8s.io/code-generator v0.31.1
 	k8s.io/component-base v0.31.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20240921022957-49e7df575cb6
 	open-cluster-management.io/addon-framework v0.11.0
 	open-cluster-management.io/api v0.15.0
-	sigs.k8s.io/controller-runtime v0.19.0
+	sigs.k8s.io/controller-runtime v0.19.3
 	sigs.k8s.io/mcs-api v0.1.0
 )
 
@@ -50,20 +50,20 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.30.4 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.27.31 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.30 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.12 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.16 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.16 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.33.0 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.29.0 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.53 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.24 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.28 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.28 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.177.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.18 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.22.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.26.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.30.5 // indirect
-	github.com/aws/smithy-go v1.20.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.199.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.9 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.24.10 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.9 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.33.8 // indirect
+	github.com/aws/smithy-go v1.22.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -115,7 +115,7 @@ require (
 	github.com/openshift/client-go v0.0.0-20241001162912-da6d55e4611f // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/profile v1.7.0 // indirect
-	github.com/prometheus/client_golang v1.20.4 // indirect
+	github.com/prometheus/client_golang v1.20.5 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect

@@ -66,6 +66,18 @@ func NewProvider(info *provider.Info) (*gcpProvider, error) {
 		Client:    gcpClient,
 	}
 
+	if info.SubmarinerConfigAnnotations != nil {
+		annotations := info.SubmarinerConfigAnnotations
+
+		if vpcName, exists := annotations["submariner.io/vpc-name"]; exists {
+			cloudInfo.VpcName = vpcName
+		}
+
+		if publicSubnetName, exists := annotations["submariner.io/public-subnet-name"]; exists {
+			cloudInfo.PublicSubnetName = publicSubnetName
+		}
+	}
+
 	cloudPrepare := cloudpreparegcp.NewCloud(cloudInfo)
 
 	msDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
