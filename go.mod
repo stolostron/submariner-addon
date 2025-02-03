@@ -15,7 +15,7 @@ require (
 	github.com/operator-framework/api v0.20.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	github.com/submariner-io/admiral v0.16.8
 	github.com/submariner-io/cloud-prepare v0.16.8
 	github.com/submariner-io/submariner v0.16.8
