@@ -1,6 +1,6 @@
 module github.com/stolostron/submariner-addon
 
-go 1.22.0
+go 1.23.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.2
@@ -10,7 +10,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
-	github.com/onsi/ginkgo/v2 v2.22.2
+	github.com/onsi/ginkgo/v2 v2.23.0
 	github.com/onsi/gomega v1.36.2
 	github.com/openshift/api v0.0.0-20230120195050-6ba31fa438f2
 	github.com/openshift/library-go v0.0.0-20230222090221-582055a1d5c4
@@ -22,7 +22,7 @@ require (
 	github.com/submariner-io/cloud-prepare v0.15.5
 	github.com/submariner-io/submariner v0.15.5
 	github.com/submariner-io/submariner-operator v0.15.5
-	golang.org/x/oauth2 v0.26.0
+	golang.org/x/oauth2 v0.28.0
 	google.golang.org/api v0.195.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.26.15
@@ -138,14 +138,14 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
-	golang.org/x/mod v0.22.0 // indirect
+	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
-	golang.org/x/tools v0.28.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240823204242-4ba0660f739c // indirect
 	google.golang.org/grpc v1.65.0 // indirect
