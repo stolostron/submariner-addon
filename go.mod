@@ -8,7 +8,7 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
-	github.com/onsi/ginkgo/v2 v2.22.2
+	github.com/onsi/ginkgo/v2 v2.23.0
 	github.com/onsi/gomega v1.36.2
 	github.com/openshift/api v0.0.0-20230714214528-de6ad7979b00
 	github.com/openshift/library-go v0.0.0-20230531082824-be85f8400975
@@ -21,7 +21,7 @@ require (
 	github.com/submariner-io/submariner v0.16.8
 	github.com/submariner-io/submariner-operator v0.16.8
 	go.uber.org/mock v0.4.0
-	golang.org/x/oauth2 v0.27.0
+	golang.org/x/oauth2 v0.28.0
 	google.golang.org/api v0.194.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.27.16
@@ -141,14 +141,14 @@ require (
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
-	golang.org/x/mod v0.22.0 // indirect
+	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
-	golang.org/x/tools v0.28.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240730163845-b1a4ccb954bf // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
