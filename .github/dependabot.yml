@@ -162,4 +162,30 @@ updates:
         versions: ">= 0.20.0-m0"
       - dependency-name: github.com/submariner-io/cloud-prepare
         versions: ">= 0.20.0-m0"
+  - package-ecosystem: gomod
+    target-branch: "release-2.13"
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+    ignore:
+      # K8s and operator SDK, we need to handle these manually
+      - dependency-name: github.com/operator-framework/*
+      - dependency-name: k8s.io/*
+      - dependency-name: sigs.k8s.io/*
+      # Addon framework, this shouldn't be upgraded on release branches
+      - dependency-name: open-cluster-management.io/addon-framework
+      - dependency-name: open-cluster-management.io/api
+      # These are included with submariner-operator
+      - dependency-name: github.com/submariner-io/admiral
+      - dependency-name: github.com/submariner-io/submariner
+      # 2.13 tracks Submariner 0.20
+      - dependency-name: github.com/submariner-io/submariner-operator
+        versions: ">= 0.21.0-m0"
+      - dependency-name: github.com/submariner-io/cloud-prepare
+        versions: ">= 0.21.0-m0"
 
