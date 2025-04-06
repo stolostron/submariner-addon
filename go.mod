@@ -10,7 +10,7 @@ require (
 	github.com/gophercloud/utils v0.0.0-20231010081019-80377eca5d56
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.3
-	github.com/openshift/api v0.0.0-20250124212313-a770960d61e0
+	github.com/openshift/api v0.0.0-20250402094343-3d7abe90f97e
 	github.com/openshift/library-go v0.0.0-20250129210218-fe56c2cf5d70
 	github.com/operator-framework/api v0.27.0
 	github.com/pkg/errors v0.9.1
@@ -24,9 +24,9 @@ require (
 	golang.org/x/oauth2 v0.28.0
 	google.golang.org/api v0.228.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.32.2
+	k8s.io/api v0.32.3
 	k8s.io/apiextensions-apiserver v0.32.2
-	k8s.io/apimachinery v0.32.2
+	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.2
 	k8s.io/code-generator v0.32.2
 	k8s.io/component-base v0.32.2
@@ -112,7 +112,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/openshift/client-go v0.0.0-20250125113824-8e1f0b8fa9a7 // indirect
+	github.com/openshift/client-go v0.0.0-20250402181141-b3bad3b645f2 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/profile v1.7.0 // indirect
 	github.com/prometheus/client_golang v1.20.5 // indirect
@@ -166,6 +166,6 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.5.0 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
