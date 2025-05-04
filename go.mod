@@ -162,7 +162,7 @@ require (
 	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
 	k8s.io/kms v0.31.7 // indirect
 	k8s.io/kube-aggregator v0.31.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20240808142205-8e686545bdb8 // indirect
+	k8s.io/kube-openapi c8a335a9a2ff // indirect
 	open-cluster-management.io/sdk-go v0.13.1-0.20240416062924-20307e6fe090 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
