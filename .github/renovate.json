@@ -16,12 +16,6 @@
       "matchManagers": ["gomod"],
       "groupSlug": "kubernetes-go",
       "enabled": true
-    },
-    {
-      "description": "Re-enable Operator Framework Go module updates",
-      "matchManagers": ["gomod"],
-      "matchPackagePatterns": ["^github\\.com/operator-framework/"],
-      "enabled": true
     }
   ]
 }
