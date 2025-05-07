@@ -16,20 +16,20 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
-	github.com/submariner-io/admiral v0.18.4
-	github.com/submariner-io/cloud-prepare v0.18.4
-	github.com/submariner-io/submariner v0.18.4
-	github.com/submariner-io/submariner-operator v0.18.4
+	github.com/submariner-io/admiral v0.18.5
+	github.com/submariner-io/cloud-prepare v0.18.5
+	github.com/submariner-io/submariner v0.18.5
+	github.com/submariner-io/submariner-operator v0.18.5
 	go.uber.org/mock v0.5.2
 	golang.org/x/oauth2 v0.29.0
 	google.golang.org/api v0.231.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.30.8
-	k8s.io/apiextensions-apiserver v0.30.8
-	k8s.io/apimachinery v0.30.8
-	k8s.io/client-go v0.30.8
-	k8s.io/code-generator v0.30.8
-	k8s.io/component-base v0.30.8
+	k8s.io/api v0.30.12
+	k8s.io/apiextensions-apiserver v0.30.12
+	k8s.io/apimachinery v0.30.12
+	k8s.io/client-go v0.30.12
+	k8s.io/code-generator v0.30.12
+	k8s.io/component-base v0.30.12
 	k8s.io/klog/v2 v2.130.0
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0
 	open-cluster-management.io/addon-framework v0.9.3
@@ -44,8 +44,8 @@ require (
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.1 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute v1.0.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork v1.1.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v6 v6.4.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v6 v6.2.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230305170008-8188dc5388df // indirect
@@ -156,9 +156,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.30.8 // indirect
+	k8s.io/apiserver v0.30.12 // indirect
 	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
-	k8s.io/kms v0.30.8 // indirect
+	k8s.io/kms v0.30.12 // indirect
 	k8s.io/kube-aggregator v0.29.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20240322212309-b815d8309940 // indirect
 	open-cluster-management.io/sdk-go v0.13.1-0.20240416030555-aa744f426379 // indirect
