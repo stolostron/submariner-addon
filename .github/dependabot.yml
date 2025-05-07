@@ -19,8 +19,7 @@ updates:
           - "*"
     open-pull-requests-limit: 5
     ignore:
-      # Handled through github.com/submariner-io or the addon framework
-      - dependency-name: github.com/operator-framework/*
+      # Handled through github.com/submariner-io
       - dependency-name: k8s.io/*
       - dependency-name: sigs.k8s.io/*
       # These are included with submariner-operator
@@ -37,8 +36,7 @@ updates:
           - "*"
     open-pull-requests-limit: 5
     ignore:
-      # K8s and operator SDK, we need to handle these manually
-      - dependency-name: github.com/operator-framework/*
+      # Handled through github.com/submariner-io
       - dependency-name: k8s.io/*
       - dependency-name: sigs.k8s.io/*
       # Addon framework, this shouldn't be upgraded on release branches
@@ -65,8 +63,7 @@ updates:
           - "*"
     open-pull-requests-limit: 5
     ignore:
-      # K8s and operator SDK, we need to handle these manually
-      - dependency-name: github.com/operator-framework/*
+      # Handled through github.com/submariner-io
       - dependency-name: k8s.io/*
       - dependency-name: sigs.k8s.io/*
       # Addon framework, this shouldn't be upgraded on release branches
@@ -93,8 +90,7 @@ updates:
           - "*"
     open-pull-requests-limit: 5
     ignore:
-      # K8s and operator SDK, we need to handle these manually
-      - dependency-name: github.com/operator-framework/*
+      # Handled through github.com/submariner-io
       - dependency-name: k8s.io/*
       - dependency-name: sigs.k8s.io/*
       # Addon framework, this shouldn't be upgraded on release branches
@@ -121,8 +117,7 @@ updates:
           - "*"
     open-pull-requests-limit: 5
     ignore:
-      # K8s and operator SDK, we need to handle these manually
-      - dependency-name: github.com/operator-framework/*
+      # Handled through github.com/submariner-io
       - dependency-name: k8s.io/*
       - dependency-name: sigs.k8s.io/*
       # Addon framework, this shouldn't be upgraded on release branches
@@ -147,8 +142,7 @@ updates:
           - "*"
     open-pull-requests-limit: 5
     ignore:
-      # K8s and operator SDK, we need to handle these manually
-      - dependency-name: github.com/operator-framework/*
+      # Handled through github.com/submariner-io
       - dependency-name: k8s.io/*
       - dependency-name: sigs.k8s.io/*
       # Addon framework, this shouldn't be upgraded on release branches
@@ -173,8 +167,7 @@ updates:
           - "*"
     open-pull-requests-limit: 5
     ignore:
-      # K8s and operator SDK, we need to handle these manually
-      - dependency-name: github.com/operator-framework/*
+      # Handled through github.com/submariner-io
       - dependency-name: k8s.io/*
       - dependency-name: sigs.k8s.io/*
       # Addon framework, this shouldn't be upgraded on release branches
