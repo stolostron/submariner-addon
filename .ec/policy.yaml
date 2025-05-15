@@ -1,0 +1,3 @@
+configuration:
+  exclude:
+    - hermetic_build_task.build_task_hermetic
