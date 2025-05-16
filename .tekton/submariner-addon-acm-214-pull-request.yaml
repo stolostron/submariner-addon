@@ -34,6 +34,8 @@ spec:
     value: Dockerfile.konflux
   - name: path-context
     value: .
+  - name: POLICY_CONFIGURATION
+    value: github.com/stolostron/submariner-addon//.ec
   pipelineSpec:
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.
