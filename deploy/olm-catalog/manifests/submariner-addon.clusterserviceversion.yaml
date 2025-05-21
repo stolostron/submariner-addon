@@ -3,7 +3,7 @@ kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: '[]'
-    capabilities: Basic Install
+    capabilities: Seamless Upgrades
     operators.operatorframework.io/builder: operator-sdk-v1.1.0
     operators.operatorframework.io/project_layout: go
   name: submariner-addon.v0.4.0
@@ -363,13 +363,15 @@ spec:
   - name: Submariner Addon
     url: https://github.com/stolostron/submariner-addon
   maintainers:
-  - email: jqiu@redhat.com
-    name: Jian Qiu
-  - email: zyin@redhat.com
-    name: Zhiwei Yin
-  - email: wliu1@redhat.com
-    name: Wei Liu
-  maturity: alpha
+  - email: vthapar@redhat.com
+    name: Vishal Thapar
+  - email: tpanteli@redhat.com
+    name: Tom Pantelis
+  - email: skitt@redhat.com
+    name: Stephen Kitt
+  - email: dfarrell@redhat.com
+    name: Daniel Farrell
+  maturity: stable
   provider:
     name: Red Hat, Inc.
   replaces: cluster-manager.v0.3.0
