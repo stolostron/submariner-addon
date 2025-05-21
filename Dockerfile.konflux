@@ -1,15 +1,6 @@
 FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.23 AS builder
 
-LABEL com.redhat.component="rhacm-submariner-addon" \
-      description="This image provides the Submariner addon, which integrates with Red Hat Advanced Cluster Management (ACM) to establish secure and direct Layer 3 network connectivity between Kubernetes clusters." \
-      io.k8s.description="Provides Submariner (cross-cluster L3 networking) capabilities as an addon managed by Red Hat Advanced Cluster Management." \
-      io.k8s.display-name="Red Hat ACM Submariner Addon" \
-      io.openshift.tags="acm,submariner,networking,multicluster,redhat" \
-      name="submariner-addon-acm" \
-      summary="Submariner addon for Red Hat Advanced Cluster Management enabling cross-cluster network connectivity."
-
 WORKDIR /go/src/github.com/stolostron/submariner-addon
-COPY LICENSE /licenses/LICENSE
 COPY . .
 ENV GO_PACKAGE github.com/stolostron/submariner-addon
 RUN make GO_BUILD_FLAGS=-mod=mod build --warn-undefined-variables
