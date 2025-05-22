@@ -6,14 +6,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/operator/events"
-	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/spoke/submarineragent"
 	fakereactor "github.com/submariner-io/admiral/pkg/fake"
 	"github.com/submariner-io/admiral/pkg/names"
 	"github.com/submariner-io/admiral/pkg/syncer/test"
+	"github.com/submariner-io/admiral/pkg/util"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 	kubeInformers "k8s.io/client-go/informers"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
@@ -45,13 +46,13 @@ var _ = Describe("Deployment Status Controller", func() {
 
 	When("the submariner subscription CSV isn't installed", func() {
 		BeforeEach(func() {
-			t.subscription.Status.InstalledCSV = ""
+			util.SetNestedField(t.subscription.Object, "", util.StatusField, "installedCSV")
 		})
 
 		It("should eventually update the ManagedClusterAddOn status condition to deployed", func() {
 			t.awaitStatusCondition(metav1.ConditionTrue, "CSVNotInstalled")
 
-			t.subscription.Status.InstalledCSV = "submariner-csv"
+			util.SetNestedField(t.subscription.Object, "submariner-csv", util.StatusField, "installedCSV")
 			t.updateSubscription()
 
 			t.awaitStatusConditionDeployed()
@@ -344,7 +345,7 @@ type deploymentControllerTestDriver struct {
 	kubeClient                  *kubeFake.Clientset
 	subscriptionClient          dynamic.ResourceInterface
 	submarinerClient            dynamic.ResourceInterface
-	subscription                *operatorsv1alpha1.Subscription
+	subscription                *unstructured.Unstructured
 	submariner                  *submarinerv1alpha1.Submariner
 	operatorDeployment          *appsv1.Deployment
 	gatewayDaemonSet            *appsv1.DaemonSet
@@ -447,7 +448,7 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 }
 
 func (t *deploymentControllerTestDriver) createSubscription() {
-	_, err := t.subscriptionClient.Create(context.TODO(), test.ToUnstructured(t.subscription), metav1.CreateOptions{})
+	_, err := t.subscriptionClient.Create(context.TODO(), t.subscription.DeepCopy(), metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
@@ -457,7 +458,7 @@ func (t *deploymentControllerTestDriver) createSubmariner() {
 }
 
 func (t *deploymentControllerTestDriver) updateSubscription() {
-	_, err := t.subscriptionClient.Update(context.TODO(), test.ToUnstructured(t.subscription), metav1.UpdateOptions{})
+	_, err := t.subscriptionClient.Update(context.TODO(), t.subscription.DeepCopy(), metav1.UpdateOptions{})
 	Expect(err).To(Succeed())
 }
 
@@ -503,17 +504,12 @@ func (t *deploymentControllerTestDriver) awaitStatusConditionDeployed() {
 	t.awaitStatusCondition(metav1.ConditionFalse, "SubmarinerAgentDeployed")
 }
 
-func newSubscription() *operatorsv1alpha1.Subscription {
-	return &operatorsv1alpha1.Subscription{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "submariner",
-			Namespace: submarinerNS,
-		},
-		Spec: &operatorsv1alpha1.SubscriptionSpec{},
-		Status: operatorsv1alpha1.SubscriptionStatus{
-			InstalledCSV: "submariner-csv",
-		},
-	}
+func newSubscription() *unstructured.Unstructured {
+	sub := &unstructured.Unstructured{}
+	sub.SetName("submariner")
+	util.SetNestedField(sub.Object, "submariner-csv", util.StatusField, "installedCSV")
+
+	return sub
 }
 
 func newSubmariner() *submarinerv1alpha1.Submariner {

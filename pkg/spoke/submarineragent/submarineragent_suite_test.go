@@ -7,7 +7,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/submariner-io/admiral/pkg/log/kzerolog"
 	"github.com/submariner-io/admiral/pkg/test"
@@ -34,7 +33,6 @@ var _ = BeforeSuite(func() {
 	kzerolog.InitK8sLogging()
 
 	Expect(submarinerv1alpha1.AddToScheme(k8sScheme.Scheme)).To(Succeed())
-	Expect(operatorsv1alpha1.AddToScheme(k8sScheme.Scheme)).To(Succeed())
 })
 
 func TestSubmarinerAgent(t *testing.T) {
