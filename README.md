@@ -17,18 +17,18 @@ The steps below can be used for testing on a local environment:
 2. Build the `submariner-addon` image locally by running `make images`.
 
 3. Prepare clusters by running `make clusters`. This will:
-    - Create two clusters: `cluster1` and `cluster2`. `cluster1` is going to be used as the Hub.
+    - Create two clusters: `cluster1` and `cluster2`. `cluster1` is going to be used as the hub.
     - Load the local Docker images to the kind cluster `cluster1`.
     - Deploy the [operator-lifecycle-manager](https://github.com/operator-framework/operator-lifecycle-manager)
-    - Deploy the `ClusterManager` and `submariner-addon` on `cluster1`. This includes the required Hub cluster components.
+    - Deploy the `ClusterManager` and `submariner-addon` on `cluster1`. This includes the required hub cluster components.
     - Deploy the `Klusterlet` on `cluster1` and `cluster2`. This includes the required the managed cluster agents.
-    - Join `cluster1` and `cluster2` to the Hub cluster `cluster1`, the `cluster1` and `cluster2` are the managed clusters.
+    - Join `cluster1` and `cluster2` to the hub cluster `cluster1`, the `cluster1` and `cluster2` are the managed clusters.
 
 4. Run the demo by issuing `make demo`. This will:
     - Label the managed clusters with `cluster.open-cluster-management.io/clusterset: clusterset1`.
     - Create a `ClusterSet`.
     - Create `ManagedClusterAddon` on each managed cluster namespaces.
-    - Deploy the Submariner Broker on the Hub cluster and the required Submariner components on the managed clusters.
+    - Deploy the Submariner Broker on the hub cluster and the required Submariner components on the managed clusters.
     - Interconnect `cluster1` and `cluster2` using Submariner.
 
 To delete the kind environment, use `make clean`.
@@ -41,9 +41,9 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
 
 ### Setup of Cluster Manager and Klusterlet
 
-1. Prepare 3 OCP clusters (1 Hub cluster and 2 managed clusters) on AWS for Submariner. Please refer to [this section](https://submariner.io/getting-started/quickstart/openshift/aws/) for detailed instructions.
+1. Prepare 3 OCP clusters (1 hub cluster and 2 managed clusters) on AWS for Submariner. Please refer to [this section](https://submariner.io/getting-started/quickstart/openshift/aws/) for detailed instructions.
 
-2. On the Hub cluster, install `Cluster Manager` Operator and instance (version >= 0.2.0) from OperatorHub.
+2. On the hub cluster, install `Cluster Manager` Operator and instance (version >= 0.2.0) from OperatorHub.
 
 3. On the managed clusters, install `Klusterlet` Operator and instance (version >= 0.2.0) from OperatorHub.
 
@@ -55,13 +55,14 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
     $ oc adm certificate approve <managedcluster csr>
     ```
 
-5. Accept the `ManagedClusters` on the Hub cluster.
+5. Accept the `ManagedClusters` on the hcccccckvuivhiibibgklngvddthhvebdhehehnvjjvde
+6. ub cluster.
 
    ```
    $ oc patch managedclusters <managedcluster name> --type merge --patch '{"spec":{"hubAcceptsClient":true}}'
    ```
 
-### Install the Submariner-addon on the Hub cluster
+### Install the Submariner-addon on the Hub Cluster
 
 1. Apply the manifests of submariner-addon.
 
@@ -69,7 +70,7 @@ The steps below can be used to test with OpenShift Container Platform (OCP) clus
     $ oc apply -k deploy/config/manifests
     ```
 
-### Setup Submariner on the Hub cluster
+### Setup Submariner on the Hub Cluster
 
 1. Create a `ManagedClusterSet`.
 
