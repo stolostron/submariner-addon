@@ -7,17 +7,20 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
-	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/addon"
 	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/resource"
+	"github.com/submariner-io/admiral/pkg/util"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/names"
 	"github.com/submariner-io/submariner/pkg/cni"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	appsv1informers "k8s.io/client-go/informers/apps/v1"
 	appsv1lister "k8s.io/client-go/listers/apps/v1"
@@ -73,12 +76,19 @@ func NewDeploymentStatusController(clusterName string, installationNamespace str
 		ToController(name, recorder)
 }
 
+func getNestedString(obj *unstructured.Unstructured, fields ...string) string {
+	s, _, err := unstructured.NestedString(obj.Object, fields...)
+	utilruntime.Must(errors.Wrapf(err, "error retrieving %v field for %#v", fields, obj))
+
+	return s
+}
+
 func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	degradedConditionReasons := []string{}
 	degradedConditionMessages := []string{}
 
 	runtimeSub, err := c.subscriptionLister.ByNamespace(c.namespace).Get(subscriptionName)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		// submariner subscription is not found, could be deleted, ignore it.
 		return nil
 	}
@@ -87,23 +97,16 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	unstructuredSub, err := runtime.DefaultUnstructuredConverter.ToUnstructured(runtimeSub)
-	if err != nil {
-		return err
-	}
+	unstructuredSub := resource.MustToUnstructured(runtimeSub)
 
-	sub := &operatorsv1alpha1.Subscription{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredSub, &sub); err != nil {
-		return err
-	}
-
-	if sub.Status.InstalledCSV == "" {
-		startingCSV := sub.Spec.StartingCSV
+	installedCSV := getNestedString(unstructuredSub, util.StatusField, "installedCSV")
+	if installedCSV == "" {
+		startingCSV := getNestedString(unstructuredSub, "spec", "startingCSV")
 		if startingCSV == "" {
 			startingCSV = "default"
 		}
 
-		channel := sub.Spec.Channel
+		channel := getNestedString(unstructuredSub, "spec", "channel")
 		if channel == "" {
 			channel = "default"
 		}
@@ -111,7 +114,8 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 		degradedConditionReasons = append(degradedConditionReasons, "CSVNotInstalled")
 		degradedConditionMessages = append(degradedConditionMessages,
 			fmt.Sprintf("The submariner-operator CSV (%s) is not installed from channel (%s) in catalog source (%s/%s)",
-				startingCSV, channel, sub.Spec.CatalogSourceNamespace, sub.Spec.CatalogSource))
+				startingCSV, channel, getNestedString(unstructuredSub, "spec", "sourceNamespace"),
+				getNestedString(unstructuredSub, "spec", "source")))
 	}
 
 	err = c.checkDeployments(&degradedConditionReasons, &degradedConditionMessages)
@@ -133,7 +137,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 		Type:    submarinerAgentDegraded,
 		Status:  metav1.ConditionFalse,
 		Reason:  "SubmarinerAgentDeployed",
-		Message: fmt.Sprintf("Submariner (%s) is deployed on managed cluster.", sub.Status.InstalledCSV),
+		Message: fmt.Sprintf("Submariner (%s) is deployed on managed cluster.", installedCSV),
 	}
 
 	if len(degradedConditionReasons) != 0 {
@@ -165,7 +169,7 @@ func (c *deploymentStatusController) checkDeployment(name, reasonName string, de
 	msgName := strings.ReplaceAll(name, "-", " ")
 
 	switch {
-	case errors.IsNotFound(err):
+	case apierrors.IsNotFound(err):
 		*degradedConditionReasons = append(*degradedConditionReasons, fmt.Sprintf("No%sDeployment", reasonName))
 		*degradedConditionMessages = append(*degradedConditionMessages, fmt.Sprintf("The %s deployment does not exist", msgName))
 	case err == nil:
@@ -231,7 +235,7 @@ func (c *deploymentStatusController) checkGatewayDaemonSet(degradedConditionReas
 	gateways, err := c.daemonSetLister.DaemonSets(c.namespace).Get(names.GatewayComponent)
 
 	switch {
-	case errors.IsNotFound(err):
+	case apierrors.IsNotFound(err):
 		*degradedConditionReasons = append(*degradedConditionReasons, "NoGatewayDaemonSet")
 		*degradedConditionMessages = append(*degradedConditionMessages, "The gateway daemon set does not exist")
 	case err == nil:
@@ -256,7 +260,7 @@ func (c *deploymentStatusController) checkRouteAgentDaemonSet(degradedConditionR
 	routeAgent, err := c.daemonSetLister.DaemonSets(c.namespace).Get(names.RouteAgentComponent)
 
 	switch {
-	case errors.IsNotFound(err):
+	case apierrors.IsNotFound(err):
 		*degradedConditionReasons = append(*degradedConditionReasons, "NoRouteAgentDaemonSet")
 		*degradedConditionMessages = append(*degradedConditionMessages, "The route agents are not found")
 	case err == nil:
@@ -276,7 +280,7 @@ func (c *deploymentStatusController) checkMetricsProxyDaemonSet(degradedConditio
 	metricProxy, err := c.daemonSetLister.DaemonSets(c.namespace).Get(names.MetricsProxyComponent)
 
 	switch {
-	case errors.IsNotFound(err):
+	case apierrors.IsNotFound(err):
 		*degradedConditionReasons = append(*degradedConditionReasons, "NoMetricsProxyDaemonSet")
 		*degradedConditionMessages = append(*degradedConditionMessages, "The metrics proxy daemon set does not exist")
 	case err == nil:
@@ -301,7 +305,7 @@ func (c *deploymentStatusController) checkGlobalnetDaemonSet(degradedConditionRe
 	globalnet, err := c.daemonSetLister.DaemonSets(c.namespace).Get(names.GlobalnetComponent)
 
 	switch {
-	case errors.IsNotFound(err):
+	case apierrors.IsNotFound(err):
 		*degradedConditionReasons = append(*degradedConditionReasons, "NoGlobalnetDaemonSet")
 		*degradedConditionMessages = append(*degradedConditionMessages, "The globalnet daemon set does not exist")
 	case err == nil:
