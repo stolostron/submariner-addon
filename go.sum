@@ -453,8 +453,6 @@ github.com/openshift/client-go v0.0.0-20231218140158-47f6d749b9d9 h1:kjgW3luAkf9
 github.com/openshift/client-go v0.0.0-20231218140158-47f6d749b9d9/go.mod h1:kKmxYRXTMutfF7XzGppFdbLhNGX1brXkRsZx5ID8c7U=
 github.com/openshift/library-go v0.0.0-20240124134907-4dfbf6bc7b11 h1:9alPFotg+mC+HjDM1CgF7jmfpOr4lBgUQK+/5WKYKME=
 github.com/openshift/library-go v0.0.0-20240124134907-4dfbf6bc7b11/go.mod h1:dccfc6I7w8HDcCYFgAzyL8xHyzcDra+n8tuSizvsySQ=
-github.com/operator-framework/api v0.22.0 h1:UZSn+iaQih4rCReezOnWTTJkMyawwV5iLnIItaOzytY=
-github.com/operator-framework/api v0.22.0/go.mod h1:p/7YDbr+n4fmESfZ47yLAV1SvkfE6NU2aX8KhcfI0GA=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pelletier/go-toml v1.7.0/go.mod h1:vwGMzjaWMwyfHwgIBhI2YUM4fB6nL6lVAvS1LBMMhTE=
