@@ -45,6 +45,9 @@ updates:
       # These are included with submariner-operator
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner
+      # Operator Framework before 0.17.7 for k8s.io 0.26.x
+      - dependency-name: github.com/operator-framework/api
+        versions: ">= 0.17.7"
       # 2.8 tracks Submariner 0.15
       - dependency-name: github.com/submariner-io/submariner-operator
         versions: ">= 0.16.0-m0"
@@ -72,6 +75,9 @@ updates:
       # These are included with submariner-operator
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner
+      # Operator Framework before 0.21.0 for k8s.io 0.27.x
+      - dependency-name: github.com/operator-framework/api
+        versions: ">= 0.21.0"
       # 2.9 tracks Submariner 0.16
       - dependency-name: github.com/submariner-io/submariner-operator
         versions: ">= 0.17.0-m0"
@@ -99,6 +105,9 @@ updates:
       # These are included with submariner-operator
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner
+      # Operator Framework before 0.24.0 for k8s.io 0.29.x
+      - dependency-name: github.com/operator-framework/api
+        versions: ">= 0.24.0"
       # 2.10 tracks Submariner 0.17
       - dependency-name: github.com/submariner-io/submariner-operator
         versions: ">= 0.18.0-m0"
@@ -126,6 +135,9 @@ updates:
       # These are included with submariner-operator
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner
+      # Operator Framework before 0.27.0 for k8s.io 0.30.x
+      - dependency-name: github.com/operator-framework/api
+        versions: ">= 0.27.0"
       # 2.11 tracks Submariner 0.18
       - dependency-name: github.com/submariner-io/submariner-operator
         versions: ">= 0.19.0-m0"
@@ -151,6 +163,9 @@ updates:
       # These are included with submariner-operator
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner
+      # Operator Framework before 0.29.0 for k8s.io 0.31.x
+      - dependency-name: github.com/operator-framework/api
+        versions: ">= 0.29.0"
       # 2.12 tracks Submariner 0.19
       - dependency-name: github.com/submariner-io/submariner-operator
         versions: ">= 0.20.0-m0"
@@ -181,4 +196,29 @@ updates:
         versions: ">= 0.21.0-m0"
       - dependency-name: github.com/submariner-io/cloud-prepare
         versions: ">= 0.21.0-m0"
+  - package-ecosystem: gomod
+    target-branch: "release-2.14"
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+    ignore:
+      # Handled through github.com/submariner-io
+      - dependency-name: k8s.io/*
+      - dependency-name: sigs.k8s.io/*
+      # Addon framework, this shouldn't be upgraded on release branches
+      - dependency-name: open-cluster-management.io/addon-framework
+      - dependency-name: open-cluster-management.io/api
+      # These are included with submariner-operator
+      - dependency-name: github.com/submariner-io/admiral
+      - dependency-name: github.com/submariner-io/submariner
+      # 2.14 tracks Submariner 0.21
+      - dependency-name: github.com/submariner-io/submariner-operator
+        versions: ">= 0.22.0-m0"
+      - dependency-name: github.com/submariner-io/cloud-prepare
+        versions: ">= 0.22.0-m0"
 
