@@ -96,7 +96,7 @@ SubmarinerConfig can support OCP on AWS, GCP or VMware vSphere at the current st
         ...
     ```
 
-5. As a user, I want to change the default defination of submariner-operator subscription
+5. As a user, I want to change the default definition of submariner-operator subscription
 
    ```yaml
     apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
@@ -105,7 +105,7 @@ SubmarinerConfig can support OCP on AWS, GCP or VMware vSphere at the current st
         name: <config-name>
         namespace: <managed-cluster-namespace>
     spec:
-        gatewayConfig:
+        subscriptionConfig:
           source: <submariner-operator-source>
           sourceNamespace: <submariner-operator-source-namespace>
           channel: <submariner-operator-channel>
@@ -113,7 +113,7 @@ SubmarinerConfig can support OCP on AWS, GCP or VMware vSphere at the current st
         ...
     ```
 
-6. As a user, I want to change the default defination of submariner-operator subscription
+6. As a user, I want to override the image pull specs
 
    ```yaml
     apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
