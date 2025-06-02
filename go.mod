@@ -21,7 +21,7 @@ require (
 	github.com/submariner-io/submariner-operator v0.21.0-m2
 	go.uber.org/mock v0.5.2
 	golang.org/x/oauth2 v0.30.0
-	google.golang.org/api v0.234.0
+	google.golang.org/api v0.235.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.32.3
 	k8s.io/apiextensions-apiserver v0.32.3
