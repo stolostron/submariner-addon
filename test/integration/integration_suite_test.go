@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -148,8 +147,8 @@ var _ = AfterSuite(func() {
 })
 
 func deployManagedClusterSet() (string, string) {
-	managedClusterSetName := fmt.Sprintf("set-%s", rand.String(6))
-	brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
+	managedClusterSetName := "set-" + rand.String(6)
+	brokerNamespace := managedClusterSetName + "-broker"
 
 	By("Create a ManagedClusterSet")
 

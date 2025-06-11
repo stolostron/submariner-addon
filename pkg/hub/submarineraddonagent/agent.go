@@ -138,7 +138,7 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 		NodeSelector          map[string]string
 		Tolerations           []corev1.Toleration
 	}{
-		KubeConfigSecret:      fmt.Sprintf("%s-hub-kubeconfig", a.GetAgentAddonOptions().AddonName),
+		KubeConfigSecret:      a.GetAgentAddonOptions().AddonName + "-hub-kubeconfig",
 		AddonInstallNamespace: installNamespace,
 		ClusterName:           cluster.Name,
 		Image:                 a.agentImage,
@@ -290,7 +290,7 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, _ *addo
 func (a *addOnAgent) setHubHostIfEmpty() error {
 	if a.hubHost == "" {
 		localClusters, err := a.clusterClient.ClusterV1().ManagedClusters().List(context.TODO(), metav1.ListOptions{
-			LabelSelector: fmt.Sprintf("%s=true", selfManagedClusterLabelKey),
+			LabelSelector: selfManagedClusterLabelKey + "=true",
 		})
 		if err != nil {
 			return err

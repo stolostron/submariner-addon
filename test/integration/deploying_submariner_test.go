@@ -29,7 +29,7 @@ var _ = Describe("Submariner Deployment", func() {
 	)
 
 	BeforeEach(func() {
-		managedClusterName = fmt.Sprintf("cluster-%s", rand.String(6))
+		managedClusterName = "cluster-" + rand.String(6)
 
 		DeferCleanup(startControllerManager())
 

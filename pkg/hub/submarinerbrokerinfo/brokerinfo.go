@@ -289,7 +289,7 @@ func getBrokerAPIServer(ctx context.Context, dynamicClient dynamic.Interface) (s
 func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
 ) ([]byte, error) {
-	kubeAPIServerURL, err := url.Parse(fmt.Sprintf("https://%s", kubeAPIServer))
+	kubeAPIServerURL, err := url.Parse("https://" + kubeAPIServer)
 	if err != nil {
 		return nil, err
 	}
