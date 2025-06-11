@@ -147,9 +147,9 @@ var _ = AfterSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 })
 
-func deployManagedClusterSet() (managedClusterSetName, brokerNamespace string) {
-	managedClusterSetName = fmt.Sprintf("set-%s", rand.String(6))
-	brokerNamespace = fmt.Sprintf("%s-broker", managedClusterSetName)
+func deployManagedClusterSet() (string, string) {
+	managedClusterSetName := fmt.Sprintf("set-%s", rand.String(6))
+	brokerNamespace := fmt.Sprintf("%s-broker", managedClusterSetName)
 
 	By("Create a ManagedClusterSet")
 
@@ -163,7 +163,7 @@ func deployManagedClusterSet() (managedClusterSetName, brokerNamespace string) {
 		return util.CheckBrokerResources(kubeClient, brokerNamespace, true)
 	}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 
-	return
+	return managedClusterSetName, brokerNamespace
 }
 
 func deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, brokerNamespace string) {
