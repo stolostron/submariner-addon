@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	"github.com/stolostron/submariner-addon/pkg/constants"
@@ -40,7 +41,7 @@ type gcpProvider struct {
 
 func NewProvider(info *provider.Info) (*gcpProvider, error) {
 	if info.InfraID == "" {
-		return nil, fmt.Errorf("cluster infraID is empty")
+		return nil, errors.New("cluster infraID is empty")
 	}
 
 	instanceType := info.GatewayConfig.GCP.InstanceType
@@ -49,7 +50,7 @@ func NewProvider(info *provider.Info) (*gcpProvider, error) {
 	}
 
 	if info.Gateways < 1 {
-		return nil, fmt.Errorf("the count of gateways is less than 1")
+		return nil, errors.New("the count of gateways is less than 1")
 	}
 
 	projectID, gcpClient, err := newClient(info.CredentialsSecret)

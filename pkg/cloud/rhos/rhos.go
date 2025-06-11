@@ -3,7 +3,6 @@ package rhos
 import (
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -44,7 +43,7 @@ type rhosProvider struct {
 
 func NewProvider(info *provider.Info) (*rhosProvider, error) {
 	if info.InfraID == "" {
-		return nil, fmt.Errorf("cluster infraID is empty")
+		return nil, errors.New("cluster infraID is empty")
 	}
 
 	instanceType := info.GatewayConfig.RHOS.InstanceType
@@ -53,7 +52,7 @@ func NewProvider(info *provider.Info) (*rhosProvider, error) {
 	}
 
 	if info.Gateways < 1 {
-		return nil, fmt.Errorf("the count of gateways is less than 1")
+		return nil, errors.New("the count of gateways is less than 1")
 	}
 
 	projectID, cloudEntry, providerClient, err := newClient(info.CredentialsSecret)

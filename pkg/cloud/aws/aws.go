@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -36,15 +37,15 @@ type awsProvider struct {
 
 func NewProvider(info *provider.Info) (*awsProvider, error) {
 	if info.Region == "" {
-		return nil, fmt.Errorf("cluster region is empty")
+		return nil, errors.New("cluster region is empty")
 	}
 
 	if info.InfraID == "" {
-		return nil, fmt.Errorf("cluster infraID is empty")
+		return nil, errors.New("cluster infraID is empty")
 	}
 
 	if info.Gateways < 1 {
-		return nil, fmt.Errorf("the count of gateways is less than 1")
+		return nil, errors.New("the count of gateways is less than 1")
 	}
 
 	instanceType := info.GatewayConfig.AWS.InstanceType
