@@ -339,7 +339,7 @@ func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient ku
 
 func getBrokerTokenAndCA(ctx context.Context, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
 	brokerNS, clusterName, kubeAPIServer string,
-) (token, ca string, err error) {
+) (string, string, error) {
 	sa, err := kubeClient.CoreV1().ServiceAccounts(brokerNS).Get(ctx, clusterName, metav1.GetOptions{})
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get agent ServiceAccount %v/%v: %w", brokerNS, clusterName, err)
@@ -391,7 +391,7 @@ func getTokenSecretForSA(ctx context.Context, client kubernetes.Interface, sa *c
 
 func getTokenAndCAFromSecret(ctx context.Context, tokenSecret *corev1.Secret, kubeAPIServer string,
 	kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
-) (token, ca string, err error) {
+) (string, string, error) {
 	if len(tokenSecret.Data) == 0 || tokenSecret.Data["token"] == nil {
 		return "", "", fmt.Errorf("token data not yet generated for secret %s/%s", tokenSecret.Namespace, tokenSecret.Name)
 	}

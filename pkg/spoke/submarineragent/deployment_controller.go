@@ -202,8 +202,7 @@ func (c *deploymentStatusController) checkDeployments(degradedConditionReasons, 
 	return nil
 }
 
-func (c *deploymentStatusController) checkOptionals(degradedConditionReasons, degradedConditionMessages *[]string,
-) (err error) {
+func (c *deploymentStatusController) checkOptionals(degradedConditionReasons, degradedConditionMessages *[]string) error {
 	submariner, err := c.getSubmariner()
 	if err != nil {
 		return err

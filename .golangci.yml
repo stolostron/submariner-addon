@@ -74,6 +74,7 @@ linters:
     # - nlreturn # This is reasonable with a block-size of 2 but setting it above isn't honored
     # - noctx # We don't send HTTP requests
     - nolintlint
+    - nonamedreturns
     - nosprintfhostport
     # - paralleltest # Not relevant for Ginkgo UTs
     - prealloc
