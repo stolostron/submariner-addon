@@ -26,7 +26,7 @@ var _ = Describe("Submariner addon agent", func() {
 	var managedClusterName string
 
 	BeforeEach(func() {
-		managedClusterName = fmt.Sprintf("cluster-%s", rand.String(6))
+		managedClusterName = "cluster-" + rand.String(6)
 	})
 
 	When("the submariner addon agent is deployed", func() {
