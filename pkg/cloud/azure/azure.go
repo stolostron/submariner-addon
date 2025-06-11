@@ -153,10 +153,10 @@ func initializeFromAuthFile(credentialsSecret *corev1.Secret) (string, error) {
 	servicePrincipalJSON, ok := credentialsSecret.Data[servicePrincipalJSON]
 
 	var authInfo struct {
-		ClientId       string
-		ClientSecret   string
-		SubscriptionId string
-		TenantId       string
+		ClientId       string `json:"clientId"`
+		ClientSecret   string `json:"clientSecret"`
+		SubscriptionId string `json:"subscriptionId"`
+		TenantId       string `json:"tenantId"`
 	}
 
 	if !ok {
