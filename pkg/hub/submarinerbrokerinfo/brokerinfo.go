@@ -363,7 +363,7 @@ func getTokenSecretForSA(ctx context.Context, client kubernetes.Interface, sa *c
 		return nil, errors.Wrapf(err, "failed to get secrets of type service-account-token in %v", sa.Namespace)
 	}
 
-	for i := 0; i < len(saSecrets.Items); i++ {
+	for i := range saSecrets.Items {
 		if saSecrets.Items[i].Annotations[corev1.ServiceAccountNameKey] == sa.Name {
 			secret = &saSecrets.Items[i]
 		}
