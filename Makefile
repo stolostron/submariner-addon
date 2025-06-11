@@ -140,7 +140,7 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
-GOLANGCI_LINT_VERSION=v1.63.4
+GOLANGCI_LINT_VERSION=v2.1.6
 GOLANGCI_LINT?=$(PERMANENT_TMP_GOPATH)/bin/golangci-lint
 
 $(GOLANGCI_LINT):
