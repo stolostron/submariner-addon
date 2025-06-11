@@ -79,6 +79,7 @@ linters:
     - nonamedreturns
     - nosprintfhostport
     # - paralleltest # Not relevant for Ginkgo UTs
+    - perfsprint
     - prealloc
     - predeclared
     - promlinter

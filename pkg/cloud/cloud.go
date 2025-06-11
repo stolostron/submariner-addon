@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/pkg/errors"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/cloud/aws"
 	"github.com/stolostron/submariner-addon/pkg/cloud/azure"
@@ -118,7 +119,7 @@ func (f *providerFactory) Get(config *configv1alpha1.SubmarinerConfig, eventsRec
 	}
 
 	if info.SubmarinerConfigSpec.CredentialsSecret == nil {
-		return nil, true, fmt.Errorf("no CredentialsSecret reference provided")
+		return nil, true, errors.New("no CredentialsSecret reference provided")
 	}
 
 	var err error

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
@@ -68,7 +69,7 @@ func (o *AddOnOptions) Complete(ctx context.Context, kubeClient kubernetes.Inter
 	namespace := resource.GetCurrentNamespace(defaultNamespace)
 	podName := os.Getenv("POD_NAME")
 	if podName == "" {
-		return fmt.Errorf("the pod environment POD_NAME is required")
+		return errors.New("the pod environment POD_NAME is required")
 	}
 
 	pod, err := kubeClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
