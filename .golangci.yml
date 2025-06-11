@@ -66,6 +66,7 @@ linters:
     - mirror
     - misspell
     # - mnd # (v1 - gomnd) It doesn't seem useful in general to enforce constants for all numeric values
+    - musttag
     - nakedret
     # - nestif # This calculates cognitive complexity but we're doing that elsewhere
     - nilerr
