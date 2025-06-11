@@ -34,7 +34,6 @@ type awsProvider struct {
 	gatewayDeployer   cpapi.GatewayDeployer
 }
 
-//nolint:revive // Ignore unexported-return - we can't reference the Provider interface here.
 func NewProvider(info *provider.Info) (*awsProvider, error) {
 	if info.Region == "" {
 		return nil, fmt.Errorf("cluster region is empty")

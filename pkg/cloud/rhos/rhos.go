@@ -42,7 +42,6 @@ type rhosProvider struct {
 	nattDiscoveryPort int64
 }
 
-//nolint:revive // Ignore unexported-return - we can't reference the Provider interface here.
 func NewProvider(info *provider.Info) (*rhosProvider, error) {
 	if info.InfraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")

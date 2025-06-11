@@ -37,7 +37,6 @@ type azureProvider struct {
 	airGapped         bool
 }
 
-//nolint:revive // Ignore unexported-return - we can't reference the Provider interface here.
 func NewProvider(info *provider.Info) (*azureProvider, error) {
 	if info.InfraID == "" {
 		return nil, fmt.Errorf("cluster infraID is empty")
@@ -153,7 +152,6 @@ func (r *azureProvider) CleanUpSubmarinerClusterEnv() error {
 func initializeFromAuthFile(credentialsSecret *corev1.Secret) (string, error) {
 	servicePrincipalJSON, ok := credentialsSecret.Data[servicePrincipalJSON]
 
-	//nolint:revive,stylecheck // Ignore var-naming: struct field ClientId should be ClientID et al.
 	var authInfo struct {
 		ClientId       string
 		ClientSecret   string
