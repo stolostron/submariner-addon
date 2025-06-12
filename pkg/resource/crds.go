@@ -2,11 +2,12 @@ package resource
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsClient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,5 +50,5 @@ func ApplyCRDs(ctx context.Context, client apiextensionsClient.Interface, record
 		}
 	}
 
-	return operatorhelpers.NewMultiLineAggregate(errs)
+	return errors.Wrap(goerrors.Join(errs...), "error apply CRDs")
 }

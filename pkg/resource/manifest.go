@@ -3,13 +3,14 @@ package resource
 import (
 	"context"
 	"embed"
+	goerrors "errors"
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
-	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/redact"
 	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/resource"
@@ -17,7 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -56,7 +57,7 @@ func ApplyManifests(ctx context.Context, kubeClient kubernetes.Interface, record
 		}
 	}
 
-	return operatorhelpers.NewMultiLineAggregate(errs)
+	return errors.Wrap(goerrors.Join(errs...), "error applying manifests")
 }
 
 func DeleteFromManifests(ctx context.Context, kubeClient kubernetes.Interface, recorder events.Recorder, assetFunc resourceapply.AssetFunc,
@@ -92,7 +93,7 @@ func DeleteFromManifests(ctx context.Context, kubeClient kubernetes.Interface, r
 			err = fmt.Errorf("unhandled type %T", object)
 		}
 
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			continue
 		}
 
@@ -108,14 +109,14 @@ func DeleteFromManifests(ctx context.Context, kubeClient kubernetes.Interface, r
 		logger.Infof("Deleted %s %q", gvk.Kind, resource.MustToMeta(object).GetName())
 	}
 
-	return operatorhelpers.NewMultiLineAggregate(errs)
+	return errors.Wrap(goerrors.Join(errs...), "error deleting manifests")
 }
 
 func AssetFromFile(manifestFiles embed.FS, config interface{}) resourceapply.AssetFunc {
 	return func(name string) ([]byte, error) {
 		template, err := manifestFiles.ReadFile(name)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "error reading manifest file %q", name)
 		}
 
 		return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil

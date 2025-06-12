@@ -2,13 +2,13 @@ package rhos
 
 import (
 	"crypto/tls"
-	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/utils/openstack/clientconfig"
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	"github.com/stolostron/submariner-addon/pkg/constants"
@@ -103,14 +103,14 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 		},
 		Gateways: r.gateways,
 	}, r.reporter); err != nil {
-		return err
+		return errors.Wrap(err, "error deploying gateway")
 	}
 
 	if !strings.EqualFold(r.cniType, cni.OVNKubernetes) {
 		if err := r.cloudPrepare.OpenPorts([]api.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
 		}, r.reporter); err != nil {
-			return err
+			return errors.Wrap(err, "error opening ports")
 		}
 	}
 
@@ -125,12 +125,12 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 func (r *rhosProvider) CleanUpSubmarinerClusterEnv() error {
 	err := r.gwDeployer.Cleanup(r.reporter)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error cleaning up gateway")
 	}
 
 	err = r.cloudPrepare.ClosePorts(r.reporter)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error closing ports")
 	}
 
 	r.reporter.Success("The Submariner cluster environment has been cleaned up on RHOS")
@@ -151,7 +151,7 @@ func newClient(credentialsSecret *corev1.Secret) (string, string, *gophercloud.P
 
 	var cloudsAll clientconfig.Clouds
 	if err := yaml.Unmarshal(cloudsYAML, &cloudsAll); err != nil {
-		return "", "", nil, err
+		return "", "", nil, errors.Wrapf(err, "error unmarshalling YAML: %s", cloudsYAML)
 	}
 
 	cloudNameStr := string(cloudName)
@@ -173,7 +173,7 @@ func newClient(credentialsSecret *corev1.Secret) (string, string, *gophercloud.P
 
 	providerClient, err := openstack.AuthenticatedClient(opts)
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, errors.Wrap(err, "error authenticating client")
 	}
 
 	if !ptr.Deref(cloud.Verify, true) {

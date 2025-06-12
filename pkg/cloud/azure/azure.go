@@ -113,14 +113,14 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 		Gateways:  r.gateways,
 		AirGapped: r.airGapped,
 	}, r.reporter); err != nil {
-		return err
+		return errors.Wrap(err, "error deploying gateway")
 	}
 
 	if !strings.EqualFold(r.cniType, cni.OVNKubernetes) {
 		if err := r.cloudPrepare.OpenPorts([]api.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
 		}, r.reporter); err != nil {
-			return err
+			return errors.Wrap(err, "error opening ports")
 		}
 	}
 
@@ -135,12 +135,12 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 func (r *azureProvider) CleanUpSubmarinerClusterEnv() error {
 	err := r.gwDeployer.Cleanup(r.reporter)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error cleaning up gateway")
 	}
 
 	err = r.cloudPrepare.ClosePorts(r.reporter)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error closing ports")
 	}
 
 	r.reporter.Success("The Submariner cluster environment has been cleaned up on Azure")
@@ -168,15 +168,15 @@ func initializeFromAuthFile(credentialsSecret *corev1.Secret) (string, error) {
 	}
 
 	if err := os.Setenv("AZURE_CLIENT_ID", authInfo.ClientId); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "error setting env AZURE_CLIENT_ID")
 	}
 
 	if err := os.Setenv("AZURE_CLIENT_SECRET", authInfo.ClientSecret); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "error setting env AZURE_CLIENT_SECRET")
 	}
 
 	if err := os.Setenv("AZURE_TENANT_ID", authInfo.TenantId); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "error setting env AZURE_TENANT_ID")
 	}
 
 	return authInfo.SubscriptionId, nil

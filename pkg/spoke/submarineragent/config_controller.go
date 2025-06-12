@@ -2,6 +2,7 @@ package submarineragent
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
@@ -167,7 +169,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error retrieving ManagedClusterAddOn %q", constants.SubmarinerAddOnName)
 	}
 
 	config, err := c.configLister.SubmarinerConfigs(c.clusterName).Get(constants.SubmarinerConfigName)
@@ -177,7 +179,7 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error retrieving SubmarinerConfig %q", constants.SubmarinerConfigName)
 	}
 
 	if config.Status.ManagedClusterInfo.Platform == "" {
@@ -288,7 +290,7 @@ func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, c
 	}
 
 	if len(errs) > 0 {
-		return operatorhelpers.NewMultiLineAggregate(errs)
+		return goerrors.Join(errs...)
 	}
 
 	if providerFound {
@@ -346,7 +348,7 @@ func (c *submarinerConfigController) updateSubmarinerConfigStatus(ctx context.Co
 		}
 	}
 
-	return err
+	return err //nolint:wrapcheck // No need to wrap here
 }
 
 func (c *submarinerConfigController) ensureGateways(ctx context.Context,
@@ -429,13 +431,13 @@ func (c *submarinerConfigController) getLabeledNodes(nodeLabelSelectors ...nodeL
 	for _, selector := range nodeLabelSelectors {
 		requirement, err := labels.NewRequirement(selector.label, selector.op, []string{})
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "error creating Requirement")
 		}
 
 		requirements = append(requirements, *requirement)
 	}
 
-	return c.nodeLister.List(labels.Everything().Add(requirements...))
+	return c.nodeLister.List(labels.Everything().Add(requirements...)) //nolint:wrapcheck // No need to wrap here
 }
 
 func (c *submarinerConfigController) labelNode(ctx context.Context, config *configv1alpha1.SubmarinerConfig, node *corev1.Node) error {
@@ -466,13 +468,14 @@ func (c *submarinerConfigController) updateNode(ctx context.Context, node *corev
 				node, err = c.kubeClient.CoreV1().Nodes().Get(ctx, name, options)
 			}
 
-			return node, err
+			return node, errors.Wrapf(err, "error retrieving Node %q", name)
 		},
 		UpdateFunc: c.kubeClient.CoreV1().Nodes().Update,
 	}
 
 	node = node.DeepCopy()
 
+	//nolint:wrapcheck // No need to wrap here
 	return util.Update(ctx, client, node, func(existing *corev1.Node) (*corev1.Node, error) {
 		mutate(existing)
 
@@ -523,7 +526,7 @@ func (c *submarinerConfigController) addGateways(ctx context.Context, config *co
 		names = append(names, gateway.Name)
 	}
 
-	return names, operatorhelpers.NewMultiLineAggregate(errs)
+	return names, goerrors.Join(errs...)
 }
 
 func (c *submarinerConfigController) removeGateways(ctx context.Context, gateways []*corev1.Node, removedGateways int) ([]string, error) {
@@ -539,7 +542,7 @@ func (c *submarinerConfigController) removeGateways(ctx context.Context, gateway
 		errs = append(errs, c.unlabelNode(ctx, gateways[i]))
 	}
 
-	return removed, operatorhelpers.NewMultiLineAggregate(errs)
+	return removed, goerrors.Join(errs...)
 }
 
 func (c *submarinerConfigController) removeAllGateways(ctx context.Context) error {
@@ -652,13 +655,11 @@ func (c *submarinerConfigController) setNetworkTypeIfAbsent(ctx context.Context,
 
 	networks, err := c.dynamicClient.Resource(networksGVR).Get(ctx, networksConfigName, metav1.GetOptions{})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error retrieving network %q", networksConfigName)
 	}
 
 	networkType, _, err := unstructured.NestedString(networks.Object, "spec", "networkType")
-	if err != nil {
-		return err
-	}
+	utilruntime.Must(err)
 
 	config.Status.ManagedClusterInfo.NetworkType = networkType
 
@@ -671,7 +672,7 @@ func (c *submarinerConfigController) setNetworkTypeIfAbsent(ctx context.Context,
 		recorder.Event("SubmarinerConfigNetworkTypeSet", msg)
 	}
 
-	return updatedErr
+	return updatedErr //nolint:wrapcheck // No need to wrap here
 }
 
 func (c *submarinerConfigController) validateOCPVersion(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
@@ -731,7 +732,7 @@ func (c *submarinerConfigController) validateOCPVersion(ctx context.Context, con
 func (c *submarinerConfigController) isSubmarinerCRPresent() (bool, error) {
 	list, err := c.submarinerLister.ByNamespace(c.namespace).List(labels.Everything())
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "error listing Submariners")
 	}
 
 	return len(list) > 0, nil

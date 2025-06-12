@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/addon"
 	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/resource"
@@ -66,7 +67,7 @@ func NewGatewaysStatusController(
 func (c *gatewaysStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	nodes, err := c.nodeLister.List(labels.SelectorFromSet(labels.Set{submarinerGatewayLabel: "true"}))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error listing nodes")
 	}
 
 	gatewayNodeCondtion := metav1.Condition{
@@ -93,7 +94,7 @@ func (c *gatewaysStatusController) sync(ctx context.Context, syncCtx factory.Syn
 	// check submariner agent status and update submariner-addon status on the hub cluster
 	updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(&gatewayNodeCondtion))
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck // No need to wrap here
 	}
 
 	if updated {

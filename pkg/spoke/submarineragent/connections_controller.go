@@ -7,12 +7,13 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/addon"
 	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/resource"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,13 +66,13 @@ func NewConnectionsStatusController(clusterName string, addOnClient addonclient.
 func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	namespace, name, _ := cache.SplitMetaNamespaceKey(syncCtx.QueueKey())
 	runtimeSubmariner, err := c.submarinerLister.ByNamespace(namespace).Get(name)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		// submariner cr is not found, could be deleted, ignore it.
 		return nil
 	}
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error retrieving Submariner %q", name)
 	}
 
 	submariner := convert(runtimeSubmariner, &submarinerv1alpha1.Submariner{})
@@ -81,7 +82,7 @@ func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.
 
 	routeAgents, err := c.routeAgentLister.ByNamespace(namespace).List(labels.Everything())
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error listing RouteAgents")
 	}
 
 	var allUnhealthyMessages []string
@@ -107,7 +108,7 @@ func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.
 	updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(gatewaycondition),
 		addon.UpdateConditionFn(routeAgentCondition))
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck // No need to wrap here
 	}
 
 	if updated {
