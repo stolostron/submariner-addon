@@ -1,10 +1,10 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
 	"github.com/stolostron/submariner-addon/pkg/constants"
@@ -67,7 +67,7 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 
 	awsClient, err := cpclient.New(string(accessKeyID), string(secretAccessKey), info.Region)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error creating AWS client")
 	}
 
 	var cloudOptions []cpaws.CloudOption
@@ -102,7 +102,7 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 	machineSetDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
 	gwDeployer, err := cpaws.NewOcpGatewayDeployer(cloudPrepare, machineSetDeployer, instanceType)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error creating GW deployer")
 	}
 
 	return &awsProvider{
@@ -131,14 +131,14 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 		},
 		Gateways: a.gateways,
 	}, a.reporter); err != nil {
-		return err
+		return errors.Wrap(err, "error deploying gateway")
 	}
 
 	if !strings.EqualFold(a.cniType, cni.OVNKubernetes) {
 		if err := a.cloudPrepare.OpenPorts([]cpapi.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
 		}, a.reporter); err != nil {
-			return err
+			return errors.Wrap(err, "error opening ports")
 		}
 	}
 
@@ -150,11 +150,11 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on AWS after the SubmarinerConfig was deleted.
 func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
 	if err := a.gatewayDeployer.Cleanup(a.reporter); err != nil {
-		return err
+		return errors.Wrap(err, "error cleaning up gateway")
 	}
 
 	if err := a.cloudPrepare.ClosePorts(a.reporter); err != nil {
-		return err
+		return errors.Wrap(err, "error closing ports")
 	}
 
 	a.reporter.Success("The Submariner cluster environment has been cleaned up on AWS")

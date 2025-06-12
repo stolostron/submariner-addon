@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/redact"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/submariner-io/admiral/pkg/log"
@@ -36,7 +37,7 @@ func Apply(ctx context.Context, client workclient.Interface, toApply *workv1.Man
 		logger.Infof("Updated ManifestWork \"%s/%s\"", toApply.Namespace, toApply.Name)
 	}
 
-	return err
+	return errors.Wrapf(err, "error applying ManifestWork %q", toApply.Name)
 }
 
 func manifestsToString(manifests []workv1.Manifest) string {

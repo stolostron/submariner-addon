@@ -93,7 +93,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error retrieving Subscription %q", subscriptionName)
 	}
 
 	unstructuredSub := resource.MustToUnstructured(runtimeSub)
@@ -148,7 +148,7 @@ func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.S
 	// check submariner agent status and update submariner-addon status on the hub cluster
 	updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(&submarinerAgentCondition))
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck // No need to wrap here
 	}
 
 	if updated {
@@ -177,7 +177,7 @@ func (c *deploymentStatusController) checkDeployment(name, reasonName string, de
 			*degradedConditionMessages = append(*degradedConditionMessages, fmt.Sprintf("There are no %s replica available", msgName))
 		}
 	case err != nil:
-		return err
+		return errors.Wrapf(err, "error retrieving Deployment %q", name)
 	}
 
 	return nil
@@ -241,7 +241,7 @@ func (c *deploymentStatusController) checkGatewayDaemonSet(degradedConditionReas
 				fmt.Sprintf("There are %d unavailable gateways", gateways.Status.NumberUnavailable))
 		}
 	case err != nil:
-		return err
+		return errors.Wrapf(err, "error retrieving DaemonSet %q", names.GatewayComponent)
 	}
 
 	return nil
@@ -261,7 +261,7 @@ func (c *deploymentStatusController) checkRouteAgentDaemonSet(degradedConditionR
 				fmt.Sprintf("There are %d unavailable route agents", routeAgent.Status.NumberUnavailable))
 		}
 	case err != nil:
-		return err
+		return errors.Wrapf(err, "error retrieving DaemonSet %q", names.RouteAgentComponent)
 	}
 
 	return nil
@@ -286,7 +286,7 @@ func (c *deploymentStatusController) checkMetricsProxyDaemonSet(degradedConditio
 				fmt.Sprintf("There are %d unavailable metrics proxy pods", metricProxy.Status.NumberUnavailable))
 		}
 	case err != nil:
-		return err
+		return errors.Wrapf(err, "error retrieving DaemonSet %q", names.MetricsProxyComponent)
 	}
 
 	return nil
@@ -311,7 +311,7 @@ func (c *deploymentStatusController) checkGlobalnetDaemonSet(degradedConditionRe
 				fmt.Sprintf("There are %d unavailable globalnet pods", globalnet.Status.NumberUnavailable))
 		}
 	case err != nil:
-		return err
+		return errors.Wrapf(err, "error retrieving DaemonSet %q", names.GlobalnetComponent)
 	}
 
 	return nil
@@ -339,7 +339,7 @@ func (c *deploymentStatusController) checkDaemonSets(degradedConditionReasons, d
 func (c *deploymentStatusController) getSubmariner() (*submarinerv1alpha1.Submariner, error) {
 	list, err := c.submarinerLister.ByNamespace(c.namespace).List(labels.Everything())
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error listing Submariners")
 	}
 
 	if len(list) == 0 {
@@ -347,14 +347,11 @@ func (c *deploymentStatusController) getSubmariner() (*submarinerv1alpha1.Submar
 	}
 
 	unstructuredSubmariner, err := runtime.DefaultUnstructuredConverter.ToUnstructured(list[0])
-	if err != nil {
-		return nil, err
-	}
+	utilruntime.Must(err)
 
 	submariner := &submarinerv1alpha1.Submariner{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredSubmariner, &submariner); err != nil {
-		return nil, err
-	}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredSubmariner, &submariner)
+	utilruntime.Must(err)
 
 	return submariner, nil
 }

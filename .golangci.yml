@@ -107,7 +107,7 @@ linters:
     # - varnamelen # It doesn't seem necessary to enforce a minimum variable name length
     - wastedassign
     - whitespace
-    # - wrapcheck # Fix and enable
+    - wrapcheck
     - wsl
   settings:
     gocritic:

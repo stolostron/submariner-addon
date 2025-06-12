@@ -3,9 +3,10 @@ package addon
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
@@ -24,12 +25,12 @@ func UpdateStatus(ctx context.Context, client addonclient.Interface, addOnNamesp
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		addOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).Get(ctx, constants.SubmarinerAddOnName,
 			metav1.GetOptions{})
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 
 		if err != nil {
-			return err
+			return errors.Wrap(err, "error retrieving submariner ManagedClusterAddOn")
 		}
 
 		oldStatus := &addOn.Status
@@ -51,16 +52,16 @@ func UpdateStatus(ctx context.Context, client addonclient.Interface, addOnNamesp
 		addOn.Status = *newStatus
 		updatedAddOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).UpdateStatus(ctx, addOn, metav1.UpdateOptions{})
 		if err != nil {
-			return err
+			return errors.Wrap(err, "error updating status for submariner ManagedClusterAddOn")
 		}
 
 		updatedAddOnStatus = &updatedAddOn.Status
-		updated = err == nil
+		updated = true
 
-		return err
+		return nil
 	})
 
-	return updatedAddOnStatus, updated, err
+	return updatedAddOnStatus, updated, err //nolint:wrapcheck // No need to wrap here
 }
 
 func UpdateConditionFn(cond *metav1.Condition) UpdateStatusFunc {

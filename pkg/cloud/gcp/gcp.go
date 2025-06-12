@@ -115,14 +115,14 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 		},
 		Gateways: g.gateways,
 	}, g.reporter); err != nil {
-		return err
+		return errors.Wrap(err, "error deploying gateway")
 	}
 
 	if !strings.EqualFold(g.cniType, cni.OVNKubernetes) {
 		if err := g.cloudPrepare.OpenPorts([]api.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
 		}, g.reporter); err != nil {
-			return err
+			return errors.Wrap(err, "error opening ports")
 		}
 	}
 
@@ -136,12 +136,12 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
 	err := g.gwDeployer.Cleanup(g.reporter)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error cleaning up gateway")
 	}
 
 	err = g.cloudPrepare.ClosePorts(g.reporter)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error closing ports")
 	}
 
 	g.reporter.Success("The Submariner cluster environment has been cleaned up on GCP")
@@ -161,13 +161,13 @@ func newClient(credentialsSecret *corev1.Secret) (string, gcpclient.Interface, e
 	// since we're using a single creds var, we should specify all the required scopes when initializing
 	creds, err := google.CredentialsFromJSON(ctx, authJSON, dns.CloudPlatformScope)
 	if err != nil {
-		return "", nil, err
+		return "", nil, errors.Wrap(err, "error retrieving credentials")
 	}
 
 	// Create a GCP client with the credentials.
 	computeClient, err := gcpclient.NewClient(creds.ProjectID, []option.ClientOption{option.WithCredentials(creds)})
 	if err != nil {
-		return "", nil, err
+		return "", nil, errors.Wrap(err, "error creating GCP client")
 	}
 
 	return creds.ProjectID, computeClient, nil

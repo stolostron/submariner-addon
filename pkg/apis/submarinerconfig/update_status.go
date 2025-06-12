@@ -3,6 +3,7 @@ package submarinerconfig
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -27,7 +28,7 @@ func UpdateStatus(ctx context.Context, client configclient.SubmarinerConfigInter
 		}
 
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "error retrieving SubmarinerConfig %q", name)
 		}
 
 		oldStatus := &config.Status
@@ -47,16 +48,16 @@ func UpdateStatus(ctx context.Context, client configclient.SubmarinerConfigInter
 		config.Status = *newStatus
 		updatedConfig, err := client.UpdateStatus(ctx, config, metav1.UpdateOptions{})
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "error updating status SubmarinerConfig %q", name)
 		}
 
 		updatedStatus = &updatedConfig.Status
-		updated = err == nil
+		updated = true
 
-		return err
+		return nil
 	})
 
-	return updatedStatus, updated, err
+	return updatedStatus, updated, err //nolint:wrapcheck // No need to wrap here
 }
 
 func UpdateConditionFn(cond *metav1.Condition) UpdateStatusFunc {

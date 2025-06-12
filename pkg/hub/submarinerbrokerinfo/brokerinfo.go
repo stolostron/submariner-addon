@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	controllerclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -173,7 +174,7 @@ func applyGlobalnetConfig(ctx context.Context, controllerClient controllerclient
 
 	if apierrors.IsNotFound(err) {
 		logger.Warningf("globalnetConfigMap is missing in the broker namespace %q", brokerNamespace)
-		return err
+		return err //nolint:wrapcheck // No need to wrap here
 	}
 
 	if gnInfo != nil && gnInfo.Enabled {
@@ -189,8 +190,7 @@ func applyGlobalnetConfig(ctx context.Context, controllerClient controllerclient
 		status := reporter.Silent()
 		err = globalnet.AllocateAndUpdateGlobalCIDRConfigMap(ctx, controllerClient, brokerNamespace, &netconfig, status)
 		if err != nil {
-			logger.Errorf(err, "Unable to allocate globalCIDR to cluster %q", clusterName)
-			return err
+			return errors.Wrapf(err, "unable to allocate globalCIDR to cluster %q", clusterName)
 		}
 
 		logger.V(log.DEBUG).Infof("Allocated globalCIDR %q for Cluster %q", netconfig.GlobalCIDR, clusterName)
@@ -291,7 +291,7 @@ func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient ku
 ) ([]byte, error) {
 	kubeAPIServerURL, err := url.Parse("https://" + kubeAPIServer)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error parsing API server URL")
 	}
 
 	unstructuredAPIServer, err := dynamicClient.Resource(apiServerGVR).Get(ctx, ocpAPIServerName, metav1.GetOptions{})
@@ -300,14 +300,12 @@ func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient ku
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error retrieving apiserver %q", ocpAPIServerName)
 	}
 
 	apiServer := &apiconfigv1.APIServer{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
-		unstructuredAPIServer.UnstructuredContent(), &apiServer); err != nil {
-		return nil, err
-	}
+	utilruntime.Must(runtime.DefaultUnstructuredConverter.FromUnstructured(
+		unstructuredAPIServer.UnstructuredContent(), &apiServer))
 
 	for _, namedCert := range apiServer.Spec.ServingCerts.NamedCertificates {
 		for _, name := range namedCert.Names {
@@ -318,7 +316,7 @@ func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient ku
 			secretName := namedCert.ServingCertificate.Name
 			secret, err := kubeClient.CoreV1().Secrets(ocpConfigNamespace).Get(ctx, secretName, metav1.GetOptions{})
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrapf(err, "error retrieving Secret %q", secretName)
 			}
 
 			if secret.Type != corev1.SecretTypeTLS {

@@ -5,12 +5,13 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/submariner-io/submariner-operator/pkg/embeddedyamls"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -64,12 +65,12 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 	}
 
 	configCRD, err := c.crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, crdName, v1.GetOptions{})
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		return nil
 	}
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error retrieving CRD %q", crdName)
 	}
 
 	ownerRef := &v1.OwnerReference{
@@ -81,6 +82,7 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 		BlockOwnerDeletion: ptr.To(true),
 	}
 
+	//nolint:wrapcheck // No need to wrap here
 	return resource.ApplyCRDs(ctx, c.crdClient, syncCtx.Recorder(), ownerRef, func(yaml string) ([]byte, error) {
 		return []byte(yaml), nil
 	}, staticCRDFiles...)

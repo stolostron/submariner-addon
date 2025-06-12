@@ -74,7 +74,7 @@ func (o *AddOnOptions) Complete(ctx context.Context, kubeClient kubernetes.Inter
 
 	pod, err := kubeClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error retrieving Pod %q", podName)
 	}
 
 	for i := range pod.Spec.Containers {
@@ -97,7 +97,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 
 	kubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating kube client")
 	}
 
 	if err := o.Complete(ctx, kubeClient); err != nil {
@@ -106,37 +106,37 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 
 	dynamicClient, err := dynamic.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating dynamic client")
 	}
 
 	clusterClient, err := clusterclient.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating controller client")
 	}
 
 	workClient, err := workclient.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating work client")
 	}
 
 	configClient, err := configclient.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating config client")
 	}
 
 	apiExtensionClient, err := apiextensionsclientset.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating apiExtension client")
 	}
 
 	addOnClient, err := addonclient.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating addon client")
 	}
 
 	controllerClient, err := controllerclient.New(controllerContext.KubeConfig, controllerclient.Options{})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating controller client")
 	}
 
 	// Informer transform to trim ManagedFields for memory efficiency.
@@ -211,18 +211,18 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 
 	mgr, err := addonmanager.New(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating addon manager")
 	}
 
 	err = mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, clusterClient, addOnClient,
 		controllerContext.EventRecorder, o.AgentImage))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error adding agent")
 	}
 
 	err = mgr.Start(ctx)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error starting addon manager")
 	}
 
 	<-ctx.Done()
@@ -235,7 +235,7 @@ func createClusterRoleToAllowBrokerCRD(ctx context.Context, kubeClient *kubernet
 
 	_, err := kubeClient.RbacV1().ClusterRoles().Get(ctx, accessToBrokerCRDClusterRole, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		return err
+		return errors.Wrap(err, "error retrieving ClusterRoles")
 	}
 
 	if apierrors.IsNotFound(err) {
@@ -255,7 +255,7 @@ func createClusterRoleToAllowBrokerCRD(ctx context.Context, kubeClient *kubernet
 		}
 		_, err := kubeClient.RbacV1().ClusterRoles().Create(ctx, brokerClusterRole, metav1.CreateOptions{})
 		if err != nil {
-			return err
+			return errors.Wrap(err, "error creating broker ClusterRole")
 		}
 	}
 

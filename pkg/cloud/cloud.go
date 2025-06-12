@@ -127,7 +127,7 @@ func (f *providerFactory) Get(config *configv1alpha1.SubmarinerConfig, eventsRec
 	info.CredentialsSecret, err = f.hubKubeClient.CoreV1().Secrets(info.ClusterName).Get(context.TODO(),
 		info.SubmarinerConfigSpec.CredentialsSecret.Name, metav1.GetOptions{})
 	if err != nil {
-		return nil, true, err
+		return nil, true, errors.Wrapf(err, "error retrieving Secret %q", info.ClusterName)
 	}
 
 	info.SubmarinerConfigAnnotations = config.Annotations

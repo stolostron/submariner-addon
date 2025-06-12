@@ -245,7 +245,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 
 	config, err := c.configLister.SubmarinerConfigs(clusterName).Get(constants.SubmarinerConfigName)
 	if err != nil && !apierrors.IsNotFound(err) {
-		return err
+		return errors.Wrapf(err, "error retrieving SubmarinerConfig %q", clusterName)
 	}
 
 	return c.syncManagedCluster(ctx, clusterName, config, syncCtx)
@@ -254,7 +254,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 func (c *submarinerAgentController) onManagedClusterSetChange(syncCtx factory.SyncContext) error {
 	managedClusters, err := c.clusterLister.List(labels.Everything())
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error listing ManagedClusters")
 	}
 	for _, managedCluster := range managedClusters {
 		// enqueue the managed cluster to reconcile
@@ -279,7 +279,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 		// No ManagedClusterAddOn, do nothing.
 		return nil
 	case err != nil:
-		return err
+		return errors.Wrapf(err, "error retrieving ManagedClusterAddon %q", clusterName)
 	}
 
 	var clusterSetName string
@@ -291,7 +291,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 	case apierrors.IsNotFound(err):
 		managedCluster = nil
 	case err != nil:
-		return err
+		return errors.Wrapf(err, "error retrieving ManagedCluster %q", clusterName)
 	default:
 		clusterSetName = managedCluster.Labels[clusterv1beta2.ClusterSetLabel]
 	}
@@ -328,7 +328,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 
 		return c.cleanUpSubmarinerAgent(ctx, clusterName, "", syncCtx)
 	case err != nil:
-		return err
+		return errors.Wrapf(err, "error retrieving ManagedClusterSet %q", clusterSetName)
 	}
 
 	// Add the finalizer to the ManagedClusterAddOn.
@@ -339,7 +339,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 			logger.Infof("Added finalizer to ManagedClusterAddOn %q in cluster %q", addOn.Name, clusterName)
 		}
 
-		return err
+		return errors.Wrapf(err, "error adding finalizer to ManagedClusterAddon %q", clusterName)
 	}
 
 	return c.deploySubmarinerAgent(ctx, clusterSetName, managedCluster, addOn, config)
@@ -389,6 +389,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 
 	addOn, err := c.addOnLister.ManagedClusterAddOns(managedClusterName).Get(constants.SubmarinerAddOnName)
 	if err == nil {
+		//nolint:wrapcheck // No need to wrap here
 		return finalizer.Remove(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName)),
 			addOn, constants.SubmarinerAddOnFinalizer)
 	}
@@ -477,7 +478,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	}
 
 	if err := manifestwork.Apply(ctx, c.manifestWorkClient, operatorManifestWork, c.eventRecorder); err != nil {
-		return err
+		return err //nolint:wrapcheck // No need to wrap here
 	}
 
 	// Apply submariner resource manifest work
@@ -486,7 +487,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		return err
 	}
 
-	return manifestwork.Apply(ctx, c.manifestWorkClient, submarinerManifestWork, c.eventRecorder)
+	return manifestwork.Apply(ctx, c.manifestWorkClient, submarinerManifestWork, c.eventRecorder) //nolint:wrapcheck // No need to wrap here
 }
 
 func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Context, submarinerConfig *configv1alpha1.SubmarinerConfig,
@@ -515,7 +516,7 @@ func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Con
 			submarinerConfig.Name, managedCluster.Name)
 	}
 
-	return err
+	return err //nolint:wrapcheck // No need to wrap here
 }
 
 func (c *submarinerAgentController) updateManagedClusterAddOnStatus(ctx context.Context,
@@ -543,14 +544,14 @@ func (c *submarinerAgentController) updateManagedClusterAddOnStatus(ctx context.
 	_, updated, err := addon.UpdateStatus(ctx, c.addOnClient, managedClusterAddon.Namespace,
 		addon.UpdateConditionFn(&condition))
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck // No need to wrap here
 	}
 
 	if updated {
 		c.eventRecorder.Eventf(reason, message)
 	}
 
-	return err
+	return err //nolint:wrapcheck // No need to wrap here
 }
 
 func (c *submarinerAgentController) deleteManifestWork(ctx context.Context, name, clusterName string) error {
@@ -576,6 +577,7 @@ func (c *submarinerAgentController) applyClusterRBACFiles(ctx context.Context, b
 		SubmarinerBrokerNamespace: brokerNamespace,
 	}
 
+	//nolint:wrapcheck // No need to wrap here
 	return resource.ApplyManifests(ctx, c.kubeClient, c.eventRecorder, c.resourceCache, resource.AssetFromFile(manifestFiles, config),
 		clusterRBACFiles...)
 }
@@ -585,7 +587,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 		LabelSelector: fmt.Sprintf("%s=%s", serviceAccountLabel, managedClusterName),
 	})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error listing ServiceAccounts")
 	}
 
 	// no serviceaccounts are found, do nothing
@@ -603,7 +605,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 	err = c.kubeClient.CoreV1().Secrets(brokerNamespace).Delete(ctx, secretName, metav1.DeleteOptions{})
 
 	if err != nil && !apierrors.IsNotFound(err) {
-		return err
+		return errors.Wrapf(err, "error retrieving Secret %q", secretName)
 	}
 
 	config := &clusterRBACConfig{
@@ -611,6 +613,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 		SubmarinerBrokerNamespace: serviceAccounts.Items[0].Namespace,
 	}
 
+	//nolint:wrapcheck // No need to wrap here
 	return resource.DeleteFromManifests(ctx, c.kubeClient, c.eventRecorder, resource.AssetFromFile(manifestFiles, config),
 		clusterRBACFiles...)
 }
@@ -643,13 +646,13 @@ func newManifestWork(name, namespace string, config interface{}, files ...string
 	for _, file := range files {
 		template, err := manifestFiles.ReadFile(file)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "error reading manifest file %q", file)
 		}
 
 		yamlData := assets.MustCreateAssetFromTemplate(file, template, config).Data
 		jsonData, err := yaml.YAMLToJSON(yamlData)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "error converting YAML to JSON: %s", yamlData)
 		}
 
 		manifest := workv1.Manifest{RawExtension: runtime.RawExtension{Raw: jsonData}}
@@ -834,7 +837,7 @@ func (c *submarinerAgentController) deleteGlobalBrokerResourcesIfNecessary(ctx c
 
 	clusters, err := c.clusterLister.List(labels.SelectorFromSet(labels.Set{clusterv1beta2.ClusterSetLabel: clusterSetName}))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error listing ManagedClusters")
 	}
 
 	for _, cluster := range clusters {
@@ -844,7 +847,7 @@ func (c *submarinerAgentController) deleteGlobalBrokerResourcesIfNecessary(ctx c
 		}
 
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "error retrieving ManagedClusterAddon %q", cluster.Name)
 		}
 
 		if addOn.DeletionTimestamp.IsZero() {
@@ -859,7 +862,7 @@ func (c *submarinerAgentController) deleteGlobalBrokerResourcesIfNecessary(ctx c
 
 	err = globalnet.DeleteConfigMap(ctx, c.controllerClient, brokerNamespace)
 	if err != nil && !apierrors.IsNotFound(err) {
-		return err
+		return errors.Wrap(err, "error deleting globalnet ConfigMap")
 	}
 
 	err = c.controllerClient.Delete(ctx, &submarinerv1a1.Broker{ObjectMeta: metav1.ObjectMeta{

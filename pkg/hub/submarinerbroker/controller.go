@@ -128,7 +128,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error retrieving ClusterManagementAddOn %q", constants.SubmarinerAddOnName)
 	}
 
 	if !clusterAddOn.DeletionTimestamp.IsZero() {
@@ -150,7 +150,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error retrieving ManagedClusterSe %q", clusterSetName)
 	}
 
 	clusterSet = clusterSet.DeepCopy()
@@ -207,7 +207,7 @@ func (c *submarinerBrokerController) reconcileManagedClusterSet(ctx context.Cont
 	// Apply static files
 	err := resource.ApplyManifests(ctx, c.kubeClient, recorder, c.resourceCache, assetFunc(brokerNS), staticResourceFiles...)
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck // No need to wrap here
 	}
 
 	return c.createIPSecPSKSecret(ctx, brokerNS)
@@ -218,7 +218,7 @@ func (c *submarinerBrokerController) createIPSecPSKSecret(ctx context.Context, b
 	if apierrors.IsNotFound(err) {
 		psk := make([]byte, ipSecPSKSecretLength)
 		if _, err := rand.Read(psk); err != nil {
-			return err
+			return errors.Wrap(err, "error generating PSK secret")
 		}
 
 		pskSecret := &corev1.Secret{
@@ -237,7 +237,7 @@ func (c *submarinerBrokerController) createIPSecPSKSecret(ctx context.Context, b
 		}
 	}
 
-	return err
+	return errors.Wrapf(err, "error creating IPSec PSK Secret %q", constants.IPSecPSKSecretName)
 }
 
 func (c *submarinerBrokerController) doClusterSetCleanup(ctx context.Context, clusterSet *clusterv1beta2.ManagedClusterSet,
@@ -249,9 +249,10 @@ func (c *submarinerBrokerController) doClusterSetCleanup(ctx context.Context, cl
 	}
 
 	if err := resource.DeleteFromManifests(ctx, c.kubeClient, recorder, assetFunc(brokerNS), staticResourceFiles...); err != nil {
-		return err
+		return err //nolint:wrapcheck // No need to wrap here
 	}
 
+	//nolint:wrapcheck // No need to wrap here
 	return finalizer.Remove(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
 }
 
@@ -271,7 +272,7 @@ func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context,
 
 			err = c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(addOn.Namespace).Delete(ctx, addOn.Name, metav1.DeleteOptions{})
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "error deleting ManagedClusterAddOn %q", addOn.Name)
 			}
 
 			addOnsExist = true
@@ -296,6 +297,7 @@ func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context,
 		}
 	}
 
+	//nolint:wrapcheck // No need to wrap here
 	return finalizer.Remove(ctx, resource.ForClusterAddon(c.addOnClient.AddonV1alpha1().ClusterManagementAddOns()), clusterAddOn,
 		constants.SubmarinerAddOnFinalizer)
 }

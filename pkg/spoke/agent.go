@@ -2,11 +2,11 @@ package spoke
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
@@ -93,38 +93,38 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	if hubRestConfig == nil {
 		hubRestConfig, err = clientcmd.BuildConfigFromFlags("" /* leave masterurl as empty */, o.HubKubeconfigFile)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "error creating hub REST config")
 		}
 	}
 
 	addOnHubKubeClient, err := addonclient.NewForConfig(hubRestConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating addon client")
 	}
 
 	configHubKubeClient, err := configclient.NewForConfig(hubRestConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating hub kube client")
 	}
 
 	spokeKubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating spoke kube client")
 	}
 
 	spokeDynamicClient, err := dynamic.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating spoke dynamic client")
 	}
 
 	hubClient, err := kubernetes.NewForConfig(hubRestConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating hub client")
 	}
 
 	restMapper, err := buildRestMapper(controllerContext.KubeConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating REST mapper")
 	}
 
 	// Informer transform to trim ManagedFields for memory efficiency.

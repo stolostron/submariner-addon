@@ -5,13 +5,13 @@ import (
 	"crypto/x509"
 	"embed"
 	"encoding/pem"
+	goerrors "errors"
 	"fmt"
 	"os"
 
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -166,13 +166,13 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 	for _, file := range deploymentFiles {
 		template, err := manifestFiles.ReadFile(file)
 		if err != nil {
-			return objects, err
+			return objects, errors.Wrapf(err, "error reading manifest file %q", file)
 		}
 
 		raw := assets.MustCreateAssetFromTemplate(file, template, &manifestConfig).Data
 		object, _, err := genericCodec.Decode(raw, nil, nil)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "error decoding manifest file %q", file)
 		}
 
 		objects = append(objects, object)
@@ -263,7 +263,7 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, _ *addo
 		func(name string) ([]byte, error) {
 			template, err := manifestFiles.ReadFile(name)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrapf(err, "error reading manifest file %q", name)
 			}
 
 			return assets.MustCreateAssetFromTemplate(name, template, config).Data, nil
@@ -279,7 +279,7 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, _ *addo
 		}
 	}
 
-	return operatorhelpers.NewMultiLineAggregate(errs)
+	return goerrors.Join(errs...)
 }
 
 // This will set a.hubHost, if empty, to Hub's API url by getting it form local-cluster.
@@ -293,7 +293,7 @@ func (a *addOnAgent) setHubHostIfEmpty() error {
 			LabelSelector: selfManagedClusterLabelKey + "=true",
 		})
 		if err != nil {
-			return err
+			return errors.Wrap(err, "error listing ManagedClusters")
 		}
 
 		if len(localClusters.Items) == 0 {
