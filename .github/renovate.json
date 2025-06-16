@@ -5,6 +5,9 @@
     "group:kubernetes"
   ],
   "enabledManagers": ["gomod", "tekton"],
+  "digest": {
+    "enabled": false
+  },
   "packageRules": [
     {
       "description": "Disable all Go module updates by default",
