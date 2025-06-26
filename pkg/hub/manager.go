@@ -93,7 +93,7 @@ func (o *AddOnOptions) Complete(ctx context.Context, kubeClient kubernetes.Inter
 func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
 	utilruntime.Must(submarinerv1alpha1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(submarinerv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(mcsv1a1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(mcsv1a1.Install(scheme.Scheme))
 
 	kubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
