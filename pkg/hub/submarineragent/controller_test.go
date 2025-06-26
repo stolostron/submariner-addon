@@ -74,7 +74,7 @@ const (
 
 func init() {
 	utilruntime.Must(submarinerv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(mcsv1a1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(mcsv1a1.Install(scheme.Scheme))
 }
 
 var _ = Describe("Controller", func() {
