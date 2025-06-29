@@ -10,8 +10,8 @@ require (
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
-	github.com/openshift/api v0.0.0-20250124212313-a770960d61e0
-	github.com/openshift/library-go v0.0.0-20250129210218-fe56c2cf5d70
+	github.com/openshift/api v0.0.0-20250320170726-75d64d71980b
+	github.com/openshift/library-go v0.0.0-20250623173617-60108c9616bf
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
