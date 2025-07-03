@@ -1,24 +1,5 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:base",
-    "group:kubernetes"
-  ],
-  "enabledManagers": ["gomod", "tekton"],
-  "digest": {
-    "enabled": false
-  },
-  "packageRules": [
-    {
-      "description": "Disable all Go module updates by default",
-      "matchManagers": ["gomod"],
-      "enabled": false
-    },
-    {
-      "description": "Re-enable Kubernetes Go module updates",
-      "matchManagers": ["gomod"],
-      "groupSlug": "kubernetes-go",
-      "enabled": true
-    }
-  ]
+  "extends": ["config:base"],
+  "enabledManagers": ["tekton"]
 }
