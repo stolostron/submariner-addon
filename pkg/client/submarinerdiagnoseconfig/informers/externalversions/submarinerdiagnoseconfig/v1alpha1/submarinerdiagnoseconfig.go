@@ -46,13 +46,25 @@ func NewFilteredSubmarinerDiagnoseConfigInformer(client versioned.Interface, nam
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SubmarineraddonV1alpha1().SubmarinerDiagnoseConfigs(namespace).List(context.TODO(), options)
+				return client.SubmarineraddonV1alpha1().SubmarinerDiagnoseConfigs(namespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SubmarineraddonV1alpha1().SubmarinerDiagnoseConfigs(namespace).Watch(context.TODO(), options)
+				return client.SubmarineraddonV1alpha1().SubmarinerDiagnoseConfigs(namespace).Watch(context.Background(), options)
+			},
+			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.SubmarineraddonV1alpha1().SubmarinerDiagnoseConfigs(namespace).List(ctx, options)
+			},
+			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.SubmarineraddonV1alpha1().SubmarinerDiagnoseConfigs(namespace).Watch(ctx, options)
 			},
 		},
 		&apissubmarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfig{},
