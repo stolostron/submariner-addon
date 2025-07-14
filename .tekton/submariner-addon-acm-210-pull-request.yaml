@@ -184,7 +184,7 @@ spec:
         - name: name
           value: prefetch-dependencies
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-prefetch-dependencies:0.2@sha256:33e1c02bd6a5961c2f228082b29703f8c5013dcf5bd726f5a7750cb29bf83350
+          value: quay.io/redhat-appstudio-tekton-catalog/task-prefetch-dependencies:0.2@sha256:c5e7c270abceeab6764e0d15380fbf83311536606fb12b3542fbb1965d8b1df7
         - name: kind
           value: task
         resolver: bundles
@@ -234,7 +234,9 @@ spec:
     - name: build-source-image
       params:
       - name: BINARY_IMAGE
-        value: $(params.output-image)
+        value: "$(tasks.build-container.results.IMAGE_URL)"
+      - name: BINARY_IMAGE_DIGEST
+        value: "$(tasks.build-container.results.IMAGE_DIGEST)"
       runAfter:
       - build-container
       taskRef:
@@ -242,7 +244,7 @@ spec:
         - name: name
           value: source-build
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-source-build:0.2@sha256:104c05c9e00bd980352cfeae2ebb1551ae36502614c9b843b005291681b9d5a4
+          value: quay.io/redhat-appstudio-tekton-catalog/task-source-build:0.3@sha256:fb93b64cbd13cf9c946e5326b68394f3350893176bd8b5e8a1fafc6ae1e36dfa
         - name: kind
           value: task
         resolver: bundles
