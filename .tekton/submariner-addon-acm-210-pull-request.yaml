@@ -234,7 +234,9 @@ spec:
     - name: build-source-image
       params:
       - name: BINARY_IMAGE
-        value: $(params.output-image)
+        value: "$(tasks.build-container.results.IMAGE_URL)"
+      - name: BINARY_IMAGE_DIGEST
+        value: "$(tasks.build-container.results.IMAGE_DIGEST)"
       runAfter:
       - build-container
       taskRef:
