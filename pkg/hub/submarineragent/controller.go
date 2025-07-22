@@ -624,7 +624,8 @@ func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config in
 	files := []string{operatorNamespaceFile, agentRBACFile}
 	clusterProduct := getClusterProduct(managedCluster)
 	if clusterProduct == constants.ProductOCP || clusterProduct == constants.ProductROSA ||
-		clusterProduct == constants.ProductARO || clusterProduct == constants.ProductROKS {
+		clusterProduct == constants.ProductARO || clusterProduct == constants.ProductROKS ||
+		clusterProduct == constants.ProductOSD {
 		files = append(files, sccFiles...)
 	}
 
