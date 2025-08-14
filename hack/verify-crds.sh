@@ -33,3 +33,4 @@ if ! git diff --exit-code deploy/config/crds pkg/apis; then
     echo "Commit the CRD updates along with the changes that cause them."
     exit 1
 fi
+exit 1
