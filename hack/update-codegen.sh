@@ -29,6 +29,6 @@ for group in submarinerconfig submarinerdiagnoseconfig; do
 done
 
 if [ "${VERIFY:-}" = "--verify-only" ]; then
-  diff -urN "${outprefix}/pkg/client" pkg/client >& /dev/null
+  diff -urN "${outprefix}/pkg/client" pkg/client
   exit $?
 fi
