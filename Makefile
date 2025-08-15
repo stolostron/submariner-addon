@@ -93,9 +93,9 @@ update-scripts:
 .PHONY: update-scripts
 
 update-crds: ensure-controller-gen
-	$(CONTROLLER_GEN) crd paths=./pkg/apis/submarinerconfig/v1alpha1 output:crd:artifacts:config=deploy/config/crds
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) paths=./pkg/apis/submarinerconfig/v1alpha1 output:crd:artifacts:config=deploy/config/crds
 	cp deploy/config/crds/submarineraddon.open-cluster-management.io_submarinerconfigs.yaml pkg/apis/submarinerconfig/v1alpha1/0000_00_submarineraddon.open-cluster-management.io_submarinerconfigs.crd.yaml
-	$(CONTROLLER_GEN) crd paths=./pkg/apis/submarinerdiagnoseconfig/v1alpha1 output:crd:artifacts:config=deploy/config/crds
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) paths=./pkg/apis/submarinerdiagnoseconfig/v1alpha1 output:crd:artifacts:config=deploy/config/crds
 	#cp deploy/config/crds/submarineraddon.open-cluster-management.io_submarinerconfigs.yaml pkg/apis/submarinerconfig/v1alpha1/0000_00_submarineraddon.open-cluster-management.io_submarinerconfigs.crd.yaml
 
 verify-scripts:
@@ -124,21 +124,15 @@ endif
 
 include ./test/integration-test.mk
 
+CONTROLLER_GEN := $(CURDIR)/bin/controller-gen
+CRD_OPTIONS ?= "crd:crdVersions=v1"
+
 # Ensure controller-gen
-ensure-controller-gen:
-ifeq (, $(shell which controller-gen))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
-endif
+$(CONTROLLER_GEN):
+	mkdir -p $(@D)
+	GOBIN=$(@D) $(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0
+
+ensure-controller-gen: $(CONTROLLER_GEN)
 
 GOLANGCI_LINT_VERSION=v2.1.6
 GOLANGCI_LINT?=$(PERMANENT_TMP_GOPATH)/bin/golangci-lint
