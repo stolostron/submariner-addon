@@ -29,6 +29,9 @@ for group in submarinerconfig submarinerdiagnoseconfig; do
 done
 
 if [ "${VERIFY:-}" = "--verify-only" ]; then
-  diff -urN "${outprefix}/pkg/client" pkg/client >& /dev/null
-  exit $?
+  if ! diff -urN "${outprefix}/pkg/client" pkg/client; then
+      echo "Regenerating the client code resulted in changes."
+      echo "Commit the updates along with the changes that cause them."
+      exit 1
+  fi
 fi
