@@ -14,42 +14,26 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/constants"
+	appsv1 "k8s.io/api/apps/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
+	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/agent"
+	"open-cluster-management.io/addon-framework/pkg/utils"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
-var (
-	genericScheme = runtime.NewScheme()
-	genericCodecs = serializer.NewCodecFactory(genericScheme)
-	genericCodec  = genericCodecs.UniversalDeserializer()
-)
-
-func init() {
-	err := scheme.AddToScheme(genericScheme)
-	if err != nil {
-		panic(err)
-	}
-}
-
 const (
-	agentName                     = "submariner-addon-agent"
-	defaultInstallationNamespace  = "open-cluster-management-agent-addon"
-	addonDeploymentConfigResource = "addondeploymentconfigs"
-	addonDeploymentConfigGroup    = "addon.open-cluster-management.io"
-	selfManagedClusterLabelKey    = "local-cluster"
+	agentName                  = "submariner-addon-agent"
+	selfManagedClusterLabelKey = "local-cluster"
 )
 
 const (
@@ -59,20 +43,9 @@ const (
 	authenticatedGroup = "system:authenticated"
 )
 
-const agentInstallationNamespaceFile = "manifests/namespace.yaml"
-
-var agentDeploymentFiles = []string{
-	"manifests/serviceaccount.yaml",
-	"manifests/clusterrole.yaml",
-	"manifests/clusterrolebinding.yaml",
-	"manifests/role.yaml",
-	"manifests/rolebinding.yaml",
-	"manifests/deployment.yaml",
-}
-
 var agentHubPermissionFiles = []string{
-	"manifests/hub_role.yaml",
-	"manifests/hub_rolebinding.yaml",
+	"manifests/hub/role.yaml",
+	"manifests/hub/rolebinding.yaml",
 }
 
 //go:embed manifests
@@ -80,9 +53,9 @@ var manifestFiles embed.FS
 
 // addOnAgent monitors the Submariner agent status and configure Submariner cluster environment on the managed cluster.
 type addOnAgent struct {
+	agent.AgentAddon
 	kubeClient    kubernetes.Interface
 	clusterClient clusterclient.Interface
-	addOnClient   addonclient.Interface
 	recorder      events.Recorder
 	agentImage    string
 	hubHost       string
@@ -91,120 +64,103 @@ type addOnAgent struct {
 
 // NewAddOnAgent returns an instance of addOnAgent.
 func NewAddOnAgent(kubeClient kubernetes.Interface, clusterClient clusterclient.Interface,
-	addOnclient addonclient.Interface, recorder events.Recorder, agentImage string,
-) agent.AgentAddon {
-	return &addOnAgent{
+	addonClient addonclient.Interface, recorder events.Recorder, agentImage string,
+) (agent.AgentAddon, error) {
+	a := &addOnAgent{
 		kubeClient:    kubeClient,
 		clusterClient: clusterClient,
-		addOnClient:   addOnclient,
 		recorder:      recorder,
 		agentImage:    agentImage,
 		resourceCache: resourceapply.NewResourceCache(),
 	}
+
+	registrationOption := &agent.RegistrationOption{
+		CSRConfigurations: agent.KubeClientSignerConfigurations(constants.SubmarinerAddOnName, agentName),
+		CSRApproveCheck:   csrApproveCheck,
+		PermissionConfig:  a.permissionConfig,
+	}
+
+	var err error
+
+	a.AgentAddon, err = addonfactory.NewAgentAddonFactory(constants.SubmarinerAddOnName, manifestFiles, "manifests/spoke").
+		WithConfigGVRs(utils.AddOnDeploymentConfigGVR).
+		WithGetValuesFuncs(
+			a.getValues,
+			addonfactory.GetAddOnDeploymentConfigValues(
+				utils.NewAddOnDeploymentConfigGetter(addonClient),
+				addonfactory.ToAddOnDeploymentConfigValues,
+			),
+		).
+		WithAgentRegistrationOption(registrationOption).
+		WithAgentInstallNamespace(
+			utils.AgentInstallNamespaceFromDeploymentConfigFunc(
+				utils.NewAddOnDeploymentConfigGetter(addonClient),
+			),
+		).
+		BuildTemplateAgentAddon()
+
+	return a, errors.Wrap(err, "error building AgentAddon")
 }
 
-// Manifests generates manifestworks to deploy the submariner-addon agent on the managed cluster.
 func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) ([]runtime.Object, error) {
-	objects := []runtime.Object{}
-
-	// if the installation namespace is not set, to keep consistent with addon-framework,
-	// using open-cluster-management-agent-addon namespace as default namespace.
-	installNamespace := addon.Spec.InstallNamespace
-	if installNamespace == "" {
-		installNamespace = defaultInstallationNamespace
-	}
-
-	deploymentFiles := append([]string{}, agentDeploymentFiles...)
-	// if the installation namespace is default namespace (open-cluster-management-agent-addon),
-	// we will not maintain (create/delete) it, because other ACM addons will be installed this namespace.
-	if installNamespace != defaultInstallationNamespace {
-		deploymentFiles = append(deploymentFiles, agentInstallationNamespaceFile)
-	}
-
-	err := a.setHubHostIfEmpty()
+	objs, err := a.AgentAddon.Manifests(cluster, addon)
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck // No need to wrap
 	}
 
-	manifestConfig := struct {
-		KubeConfigSecret      string
-		ClusterName           string
-		AddonInstallNamespace string
-		Image                 string
-		HubHost               string
-		OpenShiftProfile      string
-		OpenShiftProfileHost  string
-		OpenShiftProfilePort  string
-		NodeSelector          map[string]string
-		Tolerations           []corev1.Toleration
-	}{
-		KubeConfigSecret:      a.GetAgentAddonOptions().AddonName + "-hub-kubeconfig",
-		AddonInstallNamespace: installNamespace,
-		ClusterName:           cluster.Name,
-		Image:                 a.agentImage,
-		HubHost:               a.hubHost,
-		OpenShiftProfile:      os.Getenv("OPENSHIFT_PROFILE"),
-		OpenShiftProfileHost:  os.Getenv("OPENSHIFT_PROFILE_HOST"),
-		OpenShiftProfilePort:  os.Getenv("OPENSHIFT_PROFILE_PORT"),
-		NodeSelector:          make(map[string]string),
-		Tolerations:           make([]corev1.Toleration, 0),
-	}
-
-	nodePlacements, err := a.getNodePlacements(addon)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, nodePlacement := range nodePlacements {
-		for k, v := range nodePlacement.NodeSelector {
-			manifestConfig.NodeSelector[k] = v
+	// Find the add-on agent deployment and check its installation namespace. If it's the default add-on namespace then
+	// we will not maintain (create/delete) it, because other ACM add-ons will be installed in this namespace. Otherwise,
+	// specifically add a Namespace object to the returned resources that has the "deletion-orphan" annotation set so the
+	// ManifestWorks doesn't delete the Namespace on uninstall to avoid a race condition where the Submariner operator
+	// pod is deleted before it is able to run cleanup and remove its finalizer from the Submariner resource.
+	for _, o := range objs {
+		deployment, ok := o.(*appsv1.Deployment)
+		if !ok {
+			continue
 		}
 
-		manifestConfig.Tolerations = append(manifestConfig.Tolerations, nodePlacement.Tolerations...)
-	}
-
-	for _, file := range deploymentFiles {
-		template, err := manifestFiles.ReadFile(file)
-		if err != nil {
-			return objects, errors.Wrapf(err, "error reading manifest file %q", file)
+		if deployment.Namespace != addonfactory.AddonDefaultInstallNamespace {
+			objs = append(objs, &corev1.Namespace{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Namespace",
+					APIVersion: corev1.SchemeGroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        deployment.Namespace,
+					Annotations: map[string]string{addonapiv1alpha1.DeletionOrphanAnnotationKey: "true"},
+				},
+			})
 		}
 
-		raw := assets.MustCreateAssetFromTemplate(file, template, &manifestConfig).Data
-		object, _, err := genericCodec.Decode(raw, nil, nil)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error decoding manifest file %q", file)
-		}
-
-		objects = append(objects, object)
+		break
 	}
 
-	return objects, nil
+	return objs, nil
 }
 
-// GetAgentAddonOptions returns the options of submariner-addon agent.
-func (a *addOnAgent) GetAgentAddonOptions() agent.AgentAddonOptions {
-	return agent.AgentAddonOptions{
-		AddonName: constants.SubmarinerAddOnName,
-		Registration: &agent.RegistrationOption{
-			CSRConfigurations: agent.KubeClientSignerConfigurations(constants.SubmarinerAddOnName, agentName),
-			CSRApproveCheck:   a.csrApproveCheck,
-			PermissionConfig:  a.permissionConfig,
-		},
-		SupportedConfigGVRs: []schema.GroupVersionResource{
-			{
-				Group:    "addon.open-cluster-management.io",
-				Version:  "v1alpha1",
-				Resource: "addondeploymentconfigs",
-			},
-		},
+func (a *addOnAgent) getValues(cluster *clusterv1.ManagedCluster, _ *addonapiv1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
+	manifestConfig := struct {
+		Image                string
+		HubHost              string
+		OpenShiftProfile     string
+		OpenShiftProfileHost string
+		OpenShiftProfilePort string
+	}{
+		Image:                a.agentImage,
+		HubHost:              a.getHubHost(),
+		OpenShiftProfile:     os.Getenv("OPENSHIFT_PROFILE"),
+		OpenShiftProfileHost: os.Getenv("OPENSHIFT_PROFILE_HOST"),
+		OpenShiftProfilePort: os.Getenv("OPENSHIFT_PROFILE_PORT"),
 	}
+
+	return addonfactory.StructToValues(manifestConfig), nil
 }
 
 // To check the addon agent csr, we check
 // 1. if the signer name in csr request is valid.
 // 2. if organization field and commonName field in csr request is valid.
 // 3. if user name in csr is the same as commonName field in csr request.
-func (a *addOnAgent) csrApproveCheck(cluster *clusterv1.ManagedCluster, _ *addonapiv1alpha1.ManagedClusterAddOn,
+func csrApproveCheck(cluster *clusterv1.ManagedCluster, _ *addonapiv1alpha1.ManagedClusterAddOn,
 	csr *certificatesv1.CertificateSigningRequest,
 ) bool {
 	if csr.Spec.SignerName != certificatesv1.KubeAPIServerClientSignerName {
@@ -282,64 +238,28 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, _ *addo
 	return goerrors.Join(errs...)
 }
 
-// This will set a.hubHost, if empty, to Hub's API url by getting it form local-cluster.
+// This retrieves the Hub's API url by getting it from the local-cluster. The
 // local-cluster will be missing in kind deployments. In ACM deployments there is a race
 // condition between local-cluster and submariner-addon pod creation. So we check for it right
 // before we use it for manifests. This code gets called repeatedly from syncer, so even if
 // local-cluster was missing at startup, by the time we hit this code it should be available.
-func (a *addOnAgent) setHubHostIfEmpty() error {
+func (a *addOnAgent) getHubHost() string {
 	if a.hubHost == "" {
 		localClusters, err := a.clusterClient.ClusterV1().ManagedClusters().List(context.TODO(), metav1.ListOptions{
 			LabelSelector: selfManagedClusterLabelKey + "=true",
 		})
 		if err != nil {
-			return errors.Wrap(err, "error listing ManagedClusters")
+			klog.Errorf("Unable to determine hub host - error listing ManagedClusters: %v", err)
+			return ""
 		}
 
 		if len(localClusters.Items) == 0 {
-			klog.Info("local cluster not found")
-			return nil
+			klog.Info("Local cluster not found")
+			return ""
 		}
 
 		a.hubHost = localClusters.Items[0].Spec.ManagedClusterClientConfigs[0].URL
 	}
 
-	return nil
-}
-
-func (a *addOnAgent) getNodePlacements(addon *addonapiv1alpha1.ManagedClusterAddOn) ([]*addonapiv1alpha1.NodePlacement, error) {
-	var nodePlacements []*addonapiv1alpha1.NodePlacement
-
-	for _, config := range addon.Spec.Configs {
-		if config.Resource == addonDeploymentConfigResource && config.Group == addonDeploymentConfigGroup {
-			deploymentConfig, err := a.addOnClient.AddonV1alpha1().AddOnDeploymentConfigs(config.Namespace).Get(
-				context.TODO(), config.Name, metav1.GetOptions{})
-			if err != nil {
-				return nil, errors.Wrapf(err, "error getting AddonDeploymentConfig %q:%q for cluster %q",
-					config.Namespace, config.Name, addon.Namespace)
-			}
-
-			nodePlacements = append(nodePlacements, deploymentConfig.Spec.NodePlacement)
-		}
-	}
-
-	if len(nodePlacements) > 0 {
-		return nodePlacements, nil
-	}
-
-	// Check if default deployment config available in status
-	for _, config := range addon.Status.ConfigReferences {
-		if config.Resource == addonDeploymentConfigResource && config.Group == addonDeploymentConfigGroup {
-			deploymentConfig, err := a.addOnClient.AddonV1alpha1().AddOnDeploymentConfigs(config.Namespace).Get(
-				context.TODO(), config.Name, metav1.GetOptions{})
-			if err != nil {
-				return nil, errors.Wrapf(err, "error getting AddonDeploymentConfig %q:%q for cluster %q",
-					config.Namespace, config.Name, addon.Namespace)
-			}
-
-			nodePlacements = append(nodePlacements, deploymentConfig.Spec.NodePlacement)
-		}
-	}
-
-	return nodePlacements, nil
+	return a.hubHost
 }
