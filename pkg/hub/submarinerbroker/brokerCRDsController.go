@@ -7,7 +7,8 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/resource"
-	"github.com/submariner-io/submariner-operator/pkg/embeddedyamls"
+	submopcrds "github.com/submariner-io/submariner-operator/deploy/crds"
+	submcrds "github.com/submariner-io/submariner/deploy/crds"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
@@ -17,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
+	mcscrd "sigs.k8s.io/mcs-api/config/crd"
 )
 
 const (
@@ -24,11 +26,11 @@ const (
 )
 
 var staticCRDFiles = []string{
-	embeddedyamls.Deploy_submariner_crds_submariner_io_clusters_yaml,
-	embeddedyamls.Deploy_crds_submariner_io_brokers_yaml,
-	embeddedyamls.Deploy_submariner_crds_submariner_io_endpoints_yaml,
-	embeddedyamls.Deploy_submariner_crds_submariner_io_gateways_yaml,
-	embeddedyamls.Deploy_mcsapi_crds_multicluster_x_k8s_io_serviceimports_yaml,
+	string(submcrds.ClustersCRD),
+	string(submopcrds.BrokerCRD),
+	string(submcrds.EndpointsCRD),
+	string(submcrds.GatewaysCRD),
+	string(mcscrd.ServiceImportCRD),
 }
 
 type submarinerBrokerCRDsController struct {
