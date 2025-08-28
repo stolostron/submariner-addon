@@ -29,7 +29,7 @@ DOCKERFILE ?= ./Dockerfile
 CSV_VERSION?=0.4.0
 
 OPERATOR_SDK?=$(PERMANENT_TMP_GOPATH)/bin/operator-sdk
-OPERATOR_SDK_VERSION?=v1.1.0
+OPERATOR_SDK_VERSION?=$(shell $(GO) -C tools/operator-sdk list -m -f {{.Version}} github.com/operator-framework/operator-sdk/cmd/operator-sdk)
 OPERATOR_SDK_ARCHOS:=x86_64-linux-gnu
 ifeq ($(GOHOSTOS),darwin)
 	ifeq ($(GOHOSTARCH),amd64)
@@ -44,26 +44,16 @@ GO_TEST_PACKAGES :=./pkg/...
 IMAGE_BUILD_DEFAULT_FLAGS ?=--allow-pull
 IMAGE_BUILD_EXTRA_FLAGS ?=
 
-IMAGEBUILDER_VERSION ?=1.2.3
+# Go 1.24 tool handling, from the cache; the double invocation will be fixed in 1.25
+# See https://github.com/golang/go/issues/72824
+gotool = $(shell $(GO) -C $(1) tool -n $(2) > /dev/null && $(GO) -C $(1) tool -n $(2))
 
-IMAGEBUILDER ?= $(shell which imagebuilder 2>/dev/null)
-ifneq "" "$(IMAGEBUILDER)"
-_imagebuilder_installed_version = $(shell $(IMAGEBUILDER) --version)
-endif
+IMAGEBUILDER ?= $(call gotool,tools,imagebuilder)
 
-images: ensure-imagebuilder
-	$(strip imagebuilder $(IMAGE_BUILD_DEFAULT_FLAGS) $(IMAGE_BUILD_EXTRA_FLAGS) \
+images:
+	$(strip $(IMAGEBUILDER) $(IMAGE_BUILD_DEFAULT_FLAGS) $(IMAGE_BUILD_EXTRA_FLAGS) \
 		-t $(IMAGE_REGISTRY)/$(IMAGE) -f $(DOCKERFILE) . \
 	)
-
-ensure-imagebuilder:
-ifeq "" "$(IMAGEBUILDER)"
-	$(error imagebuilder not found! Get it with: `go get github.com/openshift/imagebuilder/cmd/imagebuilder@v$(IMAGEBUILDER_VERSION)`)
-else
-	$(info Using existing imagebuilder from $(IMAGEBUILDER))
-	@[[ "$(_imagebuilder_installed_version)" == $(IMAGEBUILDER_VERSION) ]] || \
-	echo "Warning: Installed imagebuilder version $(_imagebuilder_installed_version) does not match expected version $(IMAGEBUILDER_VERSION)."
-endif
 
 # $1 - target name
 # $2 - apis
@@ -92,7 +82,7 @@ update-scripts:
 	hack/update-codegen.sh
 .PHONY: update-scripts
 
-update-crds: ensure-controller-gen
+update-crds:
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) paths=./pkg/apis/submarinerconfig/v1alpha1 output:crd:artifacts:config=deploy/config/crds
 	cp deploy/config/crds/submarineraddon.open-cluster-management.io_submarinerconfigs.yaml pkg/apis/submarinerconfig/v1alpha1/0000_00_submarineraddon.open-cluster-management.io_submarinerconfigs.crd.yaml
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) paths=./pkg/apis/submarinerdiagnoseconfig/v1alpha1 output:crd:artifacts:config=deploy/config/crds
@@ -124,21 +114,11 @@ endif
 
 include ./test/integration-test.mk
 
-CONTROLLER_GEN := $(CURDIR)/bin/controller-gen
+# Ensure controller-gen
+CONTROLLER_GEN=$(call gotool,tools,controller-gen)
 CRD_OPTIONS ?= "crd:crdVersions=v1"
 
-# Ensure controller-gen
-$(CONTROLLER_GEN):
-	mkdir -p $(@D)
-	GOBIN=$(@D) $(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0
-
-ensure-controller-gen: $(CONTROLLER_GEN)
-
-GOLANGCI_LINT_VERSION=v2.1.6
-GOLANGCI_LINT?=$(PERMANENT_TMP_GOPATH)/bin/golangci-lint
-
-$(GOLANGCI_LINT):
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PERMANENT_TMP_GOPATH)/bin $(GOLANGCI_LINT_VERSION)
+GOLANGCI_LINT?=$(call gotool,tools,golangci-lint)
 
 # [golangci-lint] validates Go code in the project
 golangci-lint: vendor | $(GOLANGCI_LINT)

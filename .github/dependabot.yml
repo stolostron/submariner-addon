@@ -26,6 +26,15 @@ updates:
       - dependency-name: github.com/submariner-io/admiral
       - dependency-name: github.com/submariner-io/submariner 
   - package-ecosystem: gomod
+    directory: "/tools"
+    schedule:
+      interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+  - package-ecosystem: gomod
     target-branch: "release-2.9"
     directory: "/"
     schedule:
