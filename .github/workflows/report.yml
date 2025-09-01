@@ -28,6 +28,6 @@ jobs:
       - name: Show Anchore scan SARIF report
         run: cat ${{ steps.scan.outputs.sarif }}
       - name: Upload Anchore scan SARIF report
-        uses: github/codeql-action/upload-sarif@76621b61decf072c1cee8dd1ce2d2a82d33c17ed
+        uses: github/codeql-action/upload-sarif@3c3833e0f8c1c83d449a7478aa59c036a9165498
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}
