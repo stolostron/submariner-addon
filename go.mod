@@ -8,8 +8,8 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/gophercloud/utils v0.0.0-20231010081019-80377eca5d56
-	github.com/onsi/ginkgo/v2 v2.25.1
-	github.com/onsi/gomega v1.38.1
+	github.com/onsi/ginkgo/v2 v2.25.2
+	github.com/onsi/gomega v1.38.2
 	github.com/openshift/api v0.0.0-20250124212313-a770960d61e0
 	github.com/openshift/library-go v0.0.0-20250129210218-fe56c2cf5d70
 	github.com/pkg/errors v0.9.1
