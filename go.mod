@@ -8,13 +8,13 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
-	github.com/onsi/ginkgo/v2 v2.25.2
+	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
 	github.com/openshift/api v0.0.0-20250710004639-926605d3338b
 	github.com/openshift/library-go v0.0.0-20250710113040-3dc9410ead2d
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.7
+	github.com/spf13/cobra v1.10.1
+	github.com/spf13/pflag v1.0.9
 	github.com/submariner-io/admiral v0.21.0
 	github.com/submariner-io/cloud-prepare v0.21.0
 	github.com/submariner-io/submariner v0.21.0
