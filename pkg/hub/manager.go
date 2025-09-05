@@ -90,6 +90,8 @@ func (o *AddOnOptions) Complete(ctx context.Context, kubeClient kubernetes.Inter
 }
 
 // RunControllerManager starts the controllers on hub to manage submariner deployment.
+//
+//nolint:gocyclo // This function has a lot of error checking which isn't complex.
 func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
 	utilruntime.Must(submarinerv1alpha1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(submarinerv1.AddToScheme(scheme.Scheme))
@@ -214,8 +216,13 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return errors.Wrap(err, "error creating addon manager")
 	}
 
-	err = mgr.AddAgent(submarineraddonagent.NewAddOnAgent(kubeClient, clusterClient, addOnClient,
-		controllerContext.EventRecorder, o.AgentImage))
+	agent, err := submarineraddonagent.NewAddOnAgent(kubeClient, clusterClient, addOnClient,
+		controllerContext.EventRecorder, o.AgentImage)
+	if err != nil {
+		return errors.Wrap(err, "error creating addon agent")
+	}
+
+	err = mgr.AddAgent(agent)
 	if err != nil {
 		return errors.Wrap(err, "error adding agent")
 	}
