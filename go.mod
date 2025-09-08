@@ -20,7 +20,7 @@ require (
 	github.com/submariner-io/submariner v0.22.0-m1
 	github.com/submariner-io/submariner-operator v0.22.0-m1
 	go.uber.org/mock v0.6.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.31.0
 	google.golang.org/api v0.248.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.33.4
