@@ -365,7 +365,7 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context,
 		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},
 	)
 	if err != nil {
-		return failedCondition("Error retrieving nodes: %v", err), err
+		return failedConditionf("Error retrieving nodes: %v", err), err
 	}
 
 	currentGatewayNames := []string{}
@@ -406,7 +406,7 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context,
 	}
 
 	if err != nil {
-		return failedCondition("Unable to label the gateway nodes: %v", err), err
+		return failedConditionf("Unable to label the gateway nodes: %v", err), err
 	}
 
 	if len(updatedGatewayNames) == 0 {
@@ -665,7 +665,7 @@ func (c *submarinerConfigController) setNetworkTypeIfAbsent(ctx context.Context,
 
 	if updated {
 		msg := fmt.Sprintf("SubmarinerConfig network type was set to %q for managed cluster %q", networkType, config.Namespace)
-		c.logger.Infof(msg)
+		c.logger.Info(msg)
 		recorder.Eventf("SubmarinerConfigNetworkTypeSet", msg)
 	}
 
@@ -735,12 +735,16 @@ func (c *submarinerConfigController) isSubmarinerCRPresent() (bool, error) {
 	return len(list) > 0, nil
 }
 
-func failedCondition(formatMsg string, args ...interface{}) metav1.Condition {
+func failedConditionf(formatMsg string, args ...interface{}) metav1.Condition {
+	return failedCondition(fmt.Sprintf(formatMsg, args...))
+}
+
+func failedCondition(msg string) metav1.Condition {
 	return metav1.Condition{
 		Type:    submarinerGatewayCondition,
 		Status:  metav1.ConditionFalse,
 		Reason:  "Failure",
-		Message: fmt.Sprintf(formatMsg, args...),
+		Message: msg,
 	}
 }
 
