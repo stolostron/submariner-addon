@@ -1,4 +1,4 @@
-FROM registry.ci.openshift.org/stolostron/builder:go1.24-linux AS builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.24.3-202506060640.ge53d574.el9 AS builder
 WORKDIR /go/src/github.com/stolostron/submariner-addon
 COPY . .
 ENV GO_PACKAGE github.com/stolostron/submariner-addon
