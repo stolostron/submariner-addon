@@ -12,7 +12,8 @@ LABEL com.redhat.component="rhacm-submariner-addon" \
       io.k8s.description="Provides Submariner (cross-cluster L3 networking) capabilities as an addon managed by Red Hat Advanced Cluster Management." \
       io.k8s.display-name="Red Hat ACM Submariner Addon" \
       io.openshift.tags="acm,submariner,networking,multicluster,redhat" \
-      name="submariner-addon-acm" \
+      name="rhacm2/submariner-addon-rhel9" \
+      cpe="cpe:/a:redhat:acm:2.14::el9" \
       summary="Submariner addon for Red Hat Advanced Cluster Management enabling cross-cluster network connectivity."
 
 COPY LICENSE /licenses/LICENSE
