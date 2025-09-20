@@ -8,6 +8,7 @@ RUN make GO_BUILD_FLAGS=-mod=mod build --warn-undefined-variables
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 LABEL com.redhat.component="rhacm-submariner-addon" \
+      url="https://github.com/stolostron/submariner-addon" \
       description="This image provides the Submariner addon, which integrates with Red Hat Advanced Cluster Management (ACM) to establish secure and direct Layer 3 network connectivity between Kubernetes clusters." \
       io.k8s.description="Provides Submariner (cross-cluster L3 networking) capabilities as an addon managed by Red Hat Advanced Cluster Management." \
       io.k8s.display-name="Red Hat ACM Submariner Addon" \
