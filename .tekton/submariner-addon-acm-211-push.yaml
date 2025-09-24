@@ -7,13 +7,13 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "release-2.13"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "release-2.11"
   creationTimestamp:
   labels:
-    appstudio.openshift.io/application: release-acm-213
-    appstudio.openshift.io/component: submariner-addon-acm-213
+    appstudio.openshift.io/application: release-acm-211
+    appstudio.openshift.io/component: submariner-addon-acm-211
     pipelines.appstudio.openshift.io/type: build
-  name: submariner-addon-acm-213-on-push
+  name: submariner-addon-acm-211-on-push
   namespace: crt-redhat-acm-tenant
 spec:
   params:
@@ -22,7 +22,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/crt-redhat-acm-tenant/submariner-addon-acm-213:{{revision}}
+    value: quay.io/redhat-user-workloads/crt-redhat-acm-tenant/release-acm-211/submariner-addon-acm-211:{{revision}}
   - name: build-platforms
     value:
     - linux/x86_64
@@ -617,7 +617,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-submariner-addon-acm-213
+    serviceAccountName: build-pipeline-submariner-addon-acm-211
   workspaces:
   - name: git-auth
     secret:
