@@ -14,7 +14,7 @@ LABEL com.redhat.component="rhacm-submariner-addon" \
       io.openshift.tags="acm,submariner,networking,multicluster,redhat" \
       name="submariner-addon-acm" \
       summary="Submariner addon for Red Hat Advanced Cluster Management enabling cross-cluster network connectivity." \
-      cpe="cpe:/a:redhat:acm:2.13::el9" \
+      cpe="cpe:/a:redhat:acm:2.11::el9" \
       org.opencontainers.image.created="${SOURCE_DATE_EPOCH}"
 
 COPY LICENSE /licenses/LICENSE
