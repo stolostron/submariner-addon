@@ -12,6 +12,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	brokerinfo "github.com/stolostron/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	"github.com/stolostron/submariner-addon/pkg/resource"
+	"github.com/submariner-io/admiral/pkg/certificate"
 	"github.com/submariner-io/admiral/pkg/finalizer"
 	"github.com/submariner-io/admiral/pkg/log"
 	coreresource "github.com/submariner-io/admiral/pkg/resource"
@@ -23,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
@@ -59,6 +61,8 @@ type submarinerBrokerController struct {
 	addOnLister        addonlisterv1alpha1.ManagedClusterAddOnLister
 	eventRecorder      events.Recorder
 	resourceCache      resourceapply.ResourceCache
+	restConfig         *rest.Config
+	signer             certificate.Signer
 }
 
 type brokerConfig struct {
@@ -70,6 +74,7 @@ func NewController(kubeClient kubernetes.Interface,
 	clusterSetInformer clusterinformerv1beta2.ManagedClusterSetInformer,
 	addOnClient addonclient.Interface,
 	addOnInformer addoninformerv1alpha1.Interface,
+	restConfig *rest.Config,
 	recorder events.Recorder,
 ) factory.Controller {
 	c := &submarinerBrokerController{
@@ -81,6 +86,7 @@ func NewController(kubeClient kubernetes.Interface,
 		addOnLister:        addOnInformer.ManagedClusterAddOns().Lister(),
 		eventRecorder:      recorder.WithComponentSuffix("submariner-broker-controller"),
 		resourceCache:      resourceapply.NewResourceCache(),
+		restConfig:         restConfig,
 	}
 
 	return factory.New().
@@ -210,7 +216,11 @@ func (c *submarinerBrokerController) reconcileManagedClusterSet(ctx context.Cont
 		return err //nolint:wrapcheck // No need to wrap here
 	}
 
-	return c.createIPSecPSKSecret(ctx, brokerNS)
+	if err := c.createIPSecPSKSecret(ctx, brokerNS); err != nil {
+		return err
+	}
+
+	return c.setupCertificateManagement(ctx, brokerNS)
 }
 
 func (c *submarinerBrokerController) createIPSecPSKSecret(ctx context.Context, brokerNamespace string) error {
@@ -246,6 +256,10 @@ func (c *submarinerBrokerController) doClusterSetCleanup(ctx context.Context, cl
 	brokerNS := clusterSet.GetAnnotations()[SubmBrokerNamespaceKey]
 	if brokerNS == "" {
 		return nil
+	}
+
+	if c.signer != nil {
+		c.signer.Stop(brokerNS)
 	}
 
 	if err := resource.DeleteFromManifests(ctx, c.kubeClient, recorder, assetFunc(brokerNS), staticResourceFiles...); err != nil {
@@ -300,6 +314,25 @@ func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context,
 	//nolint:wrapcheck // No need to wrap here
 	return finalizer.Remove(ctx, resource.ForClusterAddon(c.addOnClient.AddonV1alpha1().ClusterManagementAddOns()), clusterAddOn,
 		constants.SubmarinerAddOnFinalizer)
+}
+
+func (c *submarinerBrokerController) setupCertificateManagement(ctx context.Context, namespace string) error {
+	if c.signer == nil {
+		var err error
+
+		c.signer, err = certificate.NewSigner(certificate.SignerConfig{
+			RestConfig: c.restConfig,
+		})
+		if err != nil {
+			return errors.Wrap(err, "error creating certificate signer")
+		}
+	}
+
+	if err := c.signer.Start(ctx, namespace); err != nil {
+		return errors.Wrap(err, "error starting certificate signer")
+	}
+
+	return nil
 }
 
 func assetFunc(brokerNS string) resourceapply.AssetFunc {
