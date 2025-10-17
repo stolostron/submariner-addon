@@ -48,7 +48,7 @@ rules:
 # Allow submariner-addon hub controller to deploy submariner agent
 - apiGroups: [""]
   resources: ["secrets"]
-  verbs: ["create", "get", "list", "watch", "delete"]
+  verbs: ["create", "get", "list", "watch", "update","delete"]
 - apiGroups: ["cluster.open-cluster-management.io"]
   resources: ["managedclusters", "managedclustersets"]
   verbs: ["get", "list", "watch", "update", "patch"]

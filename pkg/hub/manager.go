@@ -180,6 +180,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
 		addOnClient,
 		addOnInformers.Addon().V1alpha1(),
+		controllerContext.KubeConfig,
 		controllerContext.EventRecorder)
 
 	submarinerAgentController := submarineragent.NewSubmarinerAgentController(
