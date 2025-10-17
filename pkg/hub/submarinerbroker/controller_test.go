@@ -10,15 +10,24 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbroker"
 	"github.com/stolostron/submariner-addon/pkg/resource"
+	"github.com/submariner-io/admiral/pkg/certificate"
 	fakereactor "github.com/submariner-io/admiral/pkg/fake"
 	"github.com/submariner-io/admiral/pkg/finalizer"
+	admiralresource "github.com/submariner-io/admiral/pkg/resource"
+	syncertest "github.com/submariner-io/admiral/pkg/syncer/test"
 	"github.com/submariner-io/admiral/pkg/test"
+	"github.com/submariner-io/admiral/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubeFake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/clock"
 	"k8s.io/utils/ptr"
@@ -65,6 +74,10 @@ func testManagedClusterSet() {
 
 		It("should create the IPsec PSK Secret resource", func() {
 			t.awaitSecret()
+		})
+
+		It("should create the CA certificate secret", func() {
+			t.awaitCASecret()
 		})
 
 		It("should annotate the ManagedClusterSet with the broker namespace", func() {
@@ -288,6 +301,7 @@ type brokerControllerTestDriver struct {
 	clusterSet       *clusterv1beta2.ManagedClusterSet
 	addOnClient      *addonfake.Clientset
 	clusterMgmtAddon *addonv1alpha1.ClusterManagementAddOn
+	fakeDynClient    *dynamicfake.FakeDynamicClient
 	stop             context.CancelFunc
 }
 
@@ -295,6 +309,16 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 	t := &brokerControllerTestDriver{}
 
 	BeforeEach(func() {
+		t.fakeDynClient = dynamicfake.NewSimpleDynamicClient(scheme.Scheme)
+
+		admiralresource.NewDynamicClient = func(_ *rest.Config) (dynamic.Interface, error) {
+			return t.fakeDynClient, nil
+		}
+
+		util.BuildRestMapper = func(_ *rest.Config) (meta.RESTMapper, error) {
+			return syncertest.GetRESTMapperFor(&corev1.Secret{}), nil
+		}
+
 		t.clusterSet = &clusterv1beta2.ManagedClusterSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "east",
@@ -344,6 +368,9 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 			clusterInformerFactory.Cluster().V1beta2().ManagedClusterSets(),
 			t.addOnClient,
 			addOnInformerFactory.Addon().V1alpha1(),
+			&rest.Config{
+				Host: "https://test-cluster",
+			},
 			events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
 		var ctx context.Context
@@ -374,6 +401,20 @@ func (t *brokerControllerTestDriver) awaitSecret() {
 
 		return err
 	}).Should(Succeed(), "IPsec PSK Secret not found")
+}
+
+func (t *brokerControllerTestDriver) awaitCASecret() {
+	caSecretClient := t.fakeDynClient.Resource(corev1.SchemeGroupVersion.WithResource("secrets")).Namespace(brokerNS)
+
+	Eventually(func(g Gomega) {
+		caSecretObj, err := caSecretClient.Get(context.TODO(), certificate.CASecretName, metav1.GetOptions{})
+		g.Expect(err).NotTo(HaveOccurred())
+
+		caSecret := admiralresource.MustFromUnstructured(caSecretObj, &corev1.Secret{})
+
+		g.Expect(caSecret.Data).To(HaveKey(certificate.CACertFileName))
+		g.Expect(caSecret.Data).To(HaveKey(certificate.CAKeyFileName))
+	}).Should(Succeed(), "CA Secret not found or invalid")
 }
 
 func (t *brokerControllerTestDriver) awaitNamespace() {
