@@ -15,6 +15,7 @@ spec:
   ceIPSecForceUDPEncaps: {{ .ForceUDPEncaps }}
   ceIPSecNATTPort: {{ .IPSecNATTPort }}
   ceIPSecPSK: {{ .IPSecPSK }}
+  ceIPSecUseOVNCertAuthMode: {{ .CeIPSecUseOVNCertAuthMode }}
   clusterCIDR: ""
   globalCIDR: "{{ .GlobalCIDR }}"
   airGappedDeployment: {{ .AirGappedDeployment }}

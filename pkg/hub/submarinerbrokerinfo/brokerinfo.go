@@ -71,6 +71,7 @@ type SubmarinerBrokerInfo struct {
 	Debug                     bool
 	HaltOnCertificateError    bool
 	ForceUDPEncaps            bool
+	CeIPSecUseOVNCertAuthMode bool
 	HostedCluster             bool
 	IPSecNATTPort             int
 	InstallationNamespace     string
@@ -212,6 +213,7 @@ func applySubmarinerConfig(brokerInfo *SubmarinerBrokerInfo, submarinerConfig *c
 	brokerInfo.Debug = submarinerConfig.Spec.Debug
 	brokerInfo.IPSecDebug = submarinerConfig.Spec.IPSecDebug
 	brokerInfo.ForceUDPEncaps = submarinerConfig.Spec.ForceUDPEncaps
+	brokerInfo.CeIPSecUseOVNCertAuthMode = submarinerConfig.Spec.IPSecCertAuthMode
 	brokerInfo.HaltOnCertificateError = submarinerConfig.Spec.HaltOnCertificateError
 	brokerInfo.HostedCluster = submarinerConfig.Spec.HostedCluster
 

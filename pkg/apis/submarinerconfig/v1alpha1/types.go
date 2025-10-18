@@ -96,6 +96,11 @@ type SubmarinerConfigSpec struct {
 	// +kubebuilder:default=false
 	ForceUDPEncaps bool `json:"forceUDPEncaps,omitempty"`
 
+	// IPSecCertAuthMode enables certificate-based authentication mode for IPSec instead of PSK.
+	// +optional
+	// +kubebuilder:default=false
+	IPSecCertAuthMode bool `json:"IPSecCertAuthMode,omitempty"`
+
 	// Debug enables Submariner debugging (in the logs).
 	// +optional
 	// +kubebuilder:default=false

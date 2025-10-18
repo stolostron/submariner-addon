@@ -104,6 +104,7 @@ var map_SubmarinerConfigSpec = map[string]string{
 	"hostedCluster":            "HostedCluster enabled if the cluster is a hosted cluster.",
 	"IPSecDebug":               "IPSecDebug enables IPSec debugging.",
 	"forceUDPEncaps":           "ForceUDPEncaps forces UDP Encapsulation for IPSec.",
+	"IPSecCertAuthMode":        "IPSecCertAuthMode enables certificate-based authentication mode for IPSec instead of PSK.",
 	"Debug":                    "Debug enables Submariner debugging (in the logs).",
 	"credentialsSecret":        "CredentialsSecret is a reference to the secret with a certain cloud platform credentials, the supported platform includes AWS, GCP, Azure, ROKS and OSD. The submariner-addon will use these credentials to prepare Submariner cluster environment. If the submariner cluster environment requires submariner-addon preparation, this field should be specified.",
 	"subscriptionConfig":       "SubscriptionConfig represents a Submariner subscription. SubscriptionConfig can be used to customize the Submariner subscription.",
