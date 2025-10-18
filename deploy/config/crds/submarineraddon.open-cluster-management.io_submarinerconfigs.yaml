@@ -45,6 +45,11 @@ spec:
                 default: false
                 description: Debug enables Submariner debugging (in the logs).
                 type: boolean
+              IPSecCertAuthMode:
+                default: false
+                description: IPSecCertAuthMode enables certificate-based authentication
+                  mode for IPSec instead of PSK.
+                type: boolean
               IPSecDebug:
                 default: false
                 description: IPSecDebug enables IPSec debugging.
