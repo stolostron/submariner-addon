@@ -442,7 +442,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		managedCluster.Name,
 		brokerNamespace,
 		submarinerConfig,
-		managedClusterAddOn.Spec.InstallNamespace,
+		managedClusterAddOn.Spec.InstallNamespace, //nolint:staticcheck // Deprecated but requires some migration work
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create submariner brokerInfo of cluster %v : %w", managedCluster.Name, err)
