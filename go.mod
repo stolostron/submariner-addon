@@ -3,7 +3,7 @@ module github.com/stolostron/submariner-addon
 go 1.24.0
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.0
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
 	github.com/coreos/go-semver v0.3.1
 	github.com/ghodss/yaml v1.0.1-0.20220118164431-d8423dcdf344
 	github.com/gophercloud/gophercloud v1.14.1
@@ -41,11 +41,11 @@ require (
 	cloud.google.com/go/auth v0.9.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v6 v6.4.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v6 v6.2.0 // indirect
-	github.com/AzureAD/microsoft-authentication-library-for-go v1.5.0 // indirect
+	github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230305170008-8188dc5388df // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
