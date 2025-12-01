@@ -15,10 +15,10 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.9
-	github.com/submariner-io/admiral v0.22.0-rc0
-	github.com/submariner-io/cloud-prepare v0.22.0-rc0
-	github.com/submariner-io/submariner v0.22.0-rc0
-	github.com/submariner-io/submariner-operator v0.22.0-rc0
+	github.com/submariner-io/admiral v0.22.0-rc1
+	github.com/submariner-io/cloud-prepare v0.22.0-rc1
+	github.com/submariner-io/submariner v0.22.0-rc1
+	github.com/submariner-io/submariner-operator v0.22.0-rc1
 	go.uber.org/mock v0.6.0
 	golang.org/x/oauth2 v0.33.0
 	google.golang.org/api v0.256.0
@@ -31,7 +31,7 @@ require (
 	k8s.io/component-base v0.34.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
-	open-cluster-management.io/addon-framework v1.1.1
+	open-cluster-management.io/addon-framework v1.1.2
 	open-cluster-management.io/api v1.1.0
 	sigs.k8s.io/controller-runtime v0.22.3
 	sigs.k8s.io/mcs-api v0.3.0
@@ -160,16 +160,16 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.43.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
-	golang.org/x/mod v0.28.0 // indirect
-	golang.org/x/net v0.46.0 // indirect
+	golang.org/x/mod v0.29.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/term v0.36.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/term v0.37.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	golang.org/x/tools v0.37.0 // indirect
+	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250804133106-a7a43d27e69b // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251103181224-f26f9409b101 // indirect
 	google.golang.org/grpc v1.76.0 // indirect
