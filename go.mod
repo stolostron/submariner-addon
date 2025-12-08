@@ -13,7 +13,7 @@ require (
 	github.com/openshift/api v0.0.0-20250124212313-a770960d61e0
 	github.com/openshift/library-go v0.0.0-20250129210218-fe56c2cf5d70
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.9
 	github.com/submariner-io/admiral v0.20.2
 	github.com/submariner-io/cloud-prepare v0.20.2
