@@ -188,4 +188,53 @@ updates:
         versions: ">= 0.22.0-m0"
       - dependency-name: github.com/submariner-io/cloud-prepare
         versions: ">= 0.22.0-m0"
-
+  - package-ecosystem: gomod
+    target-branch: "release-2.15"
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+    ignore:
+      # Handled through github.com/submariner-io
+      - dependency-name: k8s.io/*
+      - dependency-name: sigs.k8s.io/*
+      # Addon framework, this shouldn't be upgraded on release branches
+      - dependency-name: open-cluster-management.io/addon-framework
+      - dependency-name: open-cluster-management.io/api
+      # These are included with submariner-operator
+      - dependency-name: github.com/submariner-io/admiral
+      - dependency-name: github.com/submariner-io/submariner
+      # 2.15 tracks Submariner 0.22
+      - dependency-name: github.com/submariner-io/submariner-operator
+        versions: ">= 0.23.0-m0"
+      - dependency-name: github.com/submariner-io/cloud-prepare
+        versions: ">= 0.23.0-m0"
+  - package-ecosystem: gomod
+    target-branch: "release-2.16"
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      gomod:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+    ignore:
+      # Handled through github.com/submariner-io
+      - dependency-name: k8s.io/*
+      - dependency-name: sigs.k8s.io/*
+      # Addon framework, this shouldn't be upgraded on release branches
+      - dependency-name: open-cluster-management.io/addon-framework
+      - dependency-name: open-cluster-management.io/api
+      # These are included with submariner-operator
+      - dependency-name: github.com/submariner-io/admiral
+      - dependency-name: github.com/submariner-io/submariner
+      # 2.16 tracks Submariner 0.23
+      - dependency-name: github.com/submariner-io/submariner-operator
+        versions: ">= 0.24.0-m0"
+      - dependency-name: github.com/submariner-io/cloud-prepare
+        versions: ">= 0.24.0-m0"
