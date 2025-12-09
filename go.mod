@@ -8,8 +8,8 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/gophercloud/utils v0.0.0-20210909165623-d7085207ff6d
-	github.com/onsi/ginkgo/v2 v2.27.2
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/ginkgo/v2 v2.27.3
+	github.com/onsi/gomega v1.38.3
 	github.com/openshift/api v0.0.0-20250710004639-926605d3338b
 	github.com/openshift/library-go v0.0.0-20250710113040-3dc9410ead2d
 	github.com/pkg/errors v0.9.1
@@ -20,7 +20,7 @@ require (
 	github.com/submariner-io/submariner v0.21.2
 	github.com/submariner-io/submariner-operator v0.21.2
 	go.uber.org/mock v0.6.0
-	golang.org/x/oauth2 v0.33.0
+	golang.org/x/oauth2 v0.34.0
 	google.golang.org/api v0.257.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.33.5
