@@ -167,7 +167,7 @@ var _ = Describe("Function Get", func() {
 		When("no SubmarinerConfig is provided", func() {
 			It("should return the defaults", func() {
 				Expect(brokerInfo.CableDriver).To(Equal("libreswan"))
-				Expect(brokerInfo.CatalogChannel).To(Equal("stable-0.21"))
+				Expect(brokerInfo.CatalogChannel).To(Equal("stable-0.22"))
 				Expect(brokerInfo.CatalogName).To(Equal("submariner"))
 				Expect(brokerInfo.CatalogSource).To(Equal("redhat-operators"))
 				Expect(brokerInfo.CatalogSourceNamespace).To(Equal("openshift-marketplace"))
