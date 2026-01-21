@@ -2,6 +2,7 @@ package submarineragent_test
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -35,6 +36,8 @@ var _ = BeforeSuite(func() {
 
 	Expect(submarinerv1alpha1.AddToScheme(k8sScheme.Scheme)).To(Succeed())
 	Expect(submv1.AddToScheme(k8sScheme.Scheme)).To(Succeed())
+
+	os.Setenv("KUBE_FEATURE_WatchListClient", "false")
 })
 
 func TestSubmarinerAgent(t *testing.T) {
