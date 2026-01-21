@@ -2,6 +2,7 @@ package submarinerbroker_test
 
 import (
 	"flag"
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -15,6 +16,8 @@ var _ = BeforeSuite(func() {
 	kzerolog.AddFlags(flags)
 	_ = flags.Parse([]string{"-v=2"})
 	kzerolog.InitK8sLogging()
+
+	os.Setenv("KUBE_FEATURE_WatchListClient", "false")
 })
 
 func TestSubmarinerbroker(t *testing.T) {

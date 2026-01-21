@@ -20,6 +20,8 @@ var _ = BeforeSuite(func() {
 	}
 
 	utilruntime.Must(submarinerv1alpha1.AddToScheme(scheme.Scheme))
+
+	os.Setenv("KUBE_FEATURE_WatchListClient", "false")
 })
 
 var _ = AfterSuite(func() {
