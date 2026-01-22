@@ -121,7 +121,12 @@ CRD_OPTIONS ?= "crd:crdVersions=v1"
 GOLANGCI_LINT?=$(call gotool,tools,golangci-lint)
 
 # [golangci-lint] validates Go code in the project
-golangci-lint: vendor | $(GOLANGCI_LINT)
+golangci-lint:
+	$(strip $(IMAGEBUILDER) $(IMAGE_BUILD_DEFAULT_FLAGS) $(IMAGE_BUILD_EXTRA_FLAGS) \
+		-f Dockerfile.golangci-lint . \
+	)
+
+golangci-lint-run: vendor | $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) version
 	$(GOLANGCI_LINT) linters
 	$(GOLANGCI_LINT) run --timeout 10m
