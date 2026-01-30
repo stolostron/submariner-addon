@@ -5,10 +5,12 @@
 //
 //	mockgen -source=./cloud.go -destination=./fake/cloud.go -package=fake
 //
+
 // Package fake is a generated GoMock package.
 package fake
 
 import (
+	context "context"
 	reflect "reflect"
 
 	events "github.com/openshift/library-go/pkg/operator/events"
@@ -21,6 +23,7 @@ import (
 type MockProvider struct {
 	ctrl     *gomock.Controller
 	recorder *MockProviderMockRecorder
+	isgomock struct{}
 }
 
 // MockProviderMockRecorder is the mock recorder for MockProvider.
@@ -41,37 +44,38 @@ func (m *MockProvider) EXPECT() *MockProviderMockRecorder {
 }
 
 // CleanUpSubmarinerClusterEnv mocks base method.
-func (m *MockProvider) CleanUpSubmarinerClusterEnv() error {
+func (m *MockProvider) CleanUpSubmarinerClusterEnv(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CleanUpSubmarinerClusterEnv")
+	ret := m.ctrl.Call(m, "CleanUpSubmarinerClusterEnv", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CleanUpSubmarinerClusterEnv indicates an expected call of CleanUpSubmarinerClusterEnv.
-func (mr *MockProviderMockRecorder) CleanUpSubmarinerClusterEnv() *gomock.Call {
+func (mr *MockProviderMockRecorder) CleanUpSubmarinerClusterEnv(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanUpSubmarinerClusterEnv", reflect.TypeOf((*MockProvider)(nil).CleanUpSubmarinerClusterEnv))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanUpSubmarinerClusterEnv", reflect.TypeOf((*MockProvider)(nil).CleanUpSubmarinerClusterEnv), ctx)
 }
 
 // PrepareSubmarinerClusterEnv mocks base method.
-func (m *MockProvider) PrepareSubmarinerClusterEnv() error {
+func (m *MockProvider) PrepareSubmarinerClusterEnv(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PrepareSubmarinerClusterEnv")
+	ret := m.ctrl.Call(m, "PrepareSubmarinerClusterEnv", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PrepareSubmarinerClusterEnv indicates an expected call of PrepareSubmarinerClusterEnv.
-func (mr *MockProviderMockRecorder) PrepareSubmarinerClusterEnv() *gomock.Call {
+func (mr *MockProviderMockRecorder) PrepareSubmarinerClusterEnv(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareSubmarinerClusterEnv", reflect.TypeOf((*MockProvider)(nil).PrepareSubmarinerClusterEnv))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareSubmarinerClusterEnv", reflect.TypeOf((*MockProvider)(nil).PrepareSubmarinerClusterEnv), ctx)
 }
 
 // MockProviderFactory is a mock of ProviderFactory interface.
 type MockProviderFactory struct {
 	ctrl     *gomock.Controller
 	recorder *MockProviderFactoryMockRecorder
+	isgomock struct{}
 }
 
 // MockProviderFactoryMockRecorder is the mock recorder for MockProviderFactory.

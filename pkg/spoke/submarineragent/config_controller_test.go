@@ -283,7 +283,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 	When("the SubmarinerConfig's Platform field is set to AWS", func() {
 		BeforeEach(func() {
 			t.config.Status.ManagedClusterInfo.Platform = aws
-			t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(nil).MinTimes(1)
+			t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv(gomock.Any()).Return(nil).MinTimes(1)
 		})
 
 		It("should invoke the cloud provider and update the SubmarinerConfig status condition", func() {
@@ -298,7 +298,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 		Context("", func() {
 			BeforeEach(func() {
-				t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(nil).MinTimes(1)
+				t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv(gomock.Any()).Return(nil).MinTimes(1)
 			})
 
 			It("should invoke the cloud provider and update the SubmarinerConfig status condition", func() {
@@ -333,8 +333,8 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 				waitCh = make(chan struct{})
 
 				gomock.InOrder(
-					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(errors.New("fake error")).Times(1),
-					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().DoAndReturn(func() error {
+					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv(gomock.Any()).Return(errors.New("fake error")).Times(1),
+					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv(gomock.Any()).DoAndReturn(func() error {
 						<-waitCh
 
 						return nil
@@ -484,8 +484,8 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 		Context("the SubmarinerConfig's Platform field is set to AWS", func() {
 			BeforeEach(func() {
 				t.config.Status.ManagedClusterInfo.Platform = aws
-				t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(nil).AnyTimes()
-				t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(nil).MinTimes(1)
+				t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv(gomock.Any()).Return(nil).AnyTimes()
+				t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv(gomock.Any()).Return(nil).MinTimes(1)
 			})
 
 			It("should invoke the cloud provider to clean up", func() {
@@ -503,13 +503,13 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 		Context("the SubmarinerConfig's Platform field is set to GCP", func() {
 			BeforeEach(func() {
-				t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv().Return(nil).AnyTimes()
+				t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv(gomock.Any()).Return(nil).AnyTimes()
 				t.config.Status.ManagedClusterInfo.Platform = gcp
 			})
 
 			Context("", func() {
 				BeforeEach(func() {
-					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(nil).MinTimes(1)
+					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv(gomock.Any()).Return(nil).MinTimes(1)
 				})
 
 				It("should invoke the cloud provider to clean up", func() {
@@ -523,7 +523,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 			Context("", func() {
 				BeforeEach(func() {
-					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(nil).AnyTimes()
+					t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv(gomock.Any()).Return(nil).AnyTimes()
 				})
 
 				It("should not unlabel the gateway nodes", func() {
@@ -538,8 +538,8 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 					waitCh = make(chan struct{})
 
 					gomock.InOrder(
-						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().Return(errors.New("fake error")).Times(1),
-						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv().DoAndReturn(func() error {
+						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv(gomock.Any()).Return(errors.New("fake error")).Times(1),
+						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv(gomock.Any()).DoAndReturn(func() error {
 							<-waitCh
 
 							return nil

@@ -25,9 +25,9 @@ import (
 
 type Provider interface {
 	// PrepareSubmarinerClusterEnv prepares submariner cluster environment
-	PrepareSubmarinerClusterEnv() error
+	PrepareSubmarinerClusterEnv(ctx context.Context) error
 	// CleanUpSubmarinerClusterEnv clean up the prepared submariner cluster environment
-	CleanUpSubmarinerClusterEnv() error
+	CleanUpSubmarinerClusterEnv(ctx context.Context) error
 }
 
 type ProviderFactory interface {
@@ -47,15 +47,15 @@ var providers = map[string]ProviderFn{}
 
 func init() {
 	RegisterProvider("AWS", func(info *provider.Info) (Provider, error) {
-		return aws.NewProvider(info)
+		return aws.NewProvider(context.TODO(), info)
 	})
 
 	RegisterProvider("GCP", func(info *provider.Info) (Provider, error) {
-		return gcp.NewProvider(info)
+		return gcp.NewProvider(context.TODO(), info)
 	})
 
 	RegisterProvider("OpenStack", func(info *provider.Info) (Provider, error) {
-		return rhos.NewProvider(info)
+		return rhos.NewProvider(context.TODO(), info)
 	})
 
 	RegisterProvider("Azure", func(info *provider.Info) (Provider, error) {

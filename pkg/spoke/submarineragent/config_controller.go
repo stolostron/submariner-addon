@@ -259,7 +259,7 @@ func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, c
 	errs := []error{}
 
 	if providerFound && preparedErr == nil {
-		preparedErr = cloudProvider.PrepareSubmarinerClusterEnv()
+		preparedErr = cloudProvider.PrepareSubmarinerClusterEnv(ctx)
 	}
 
 	condition := metav1.Condition{
@@ -324,7 +324,7 @@ func (c *submarinerConfigController) cleanupClusterEnvironment(ctx context.Conte
 	if err == nil {
 		c.logger.Infof("Cleaning up the submariner cluster environment")
 
-		err = cloudProvider.CleanUpSubmarinerClusterEnv()
+		err = cloudProvider.CleanUpSubmarinerClusterEnv(ctx)
 	}
 
 	return errors.WithMessagef(err, "failed to clean up the submariner cluster environment")
