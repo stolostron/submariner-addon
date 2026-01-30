@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -35,7 +36,7 @@ type awsProvider struct {
 	gatewayDeployer   cpapi.GatewayDeployer
 }
 
-func NewProvider(info *provider.Info) (*awsProvider, error) {
+func NewProvider(ctx context.Context, info *provider.Info) (*awsProvider, error) {
 	if info.Region == "" {
 		return nil, errors.New("cluster region is empty")
 	}
@@ -65,7 +66,7 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 			info.CredentialsSecret.Name)
 	}
 
-	awsClient, err := cpclient.New(string(accessKeyID), string(secretAccessKey), info.Region)
+	awsClient, err := cpclient.New(ctx, string(accessKeyID), string(secretAccessKey), info.Region)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating AWS client")
 	}
@@ -118,10 +119,10 @@ func NewProvider(info *provider.Info) (*awsProvider, error) {
 }
 
 // PrepareSubmarinerClusterEnv prepares submariner cluster environment on AWS.
-func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
+func (a *awsProvider) PrepareSubmarinerClusterEnv(ctx context.Context) error {
 	// See AWS() in https://github.com/submariner-io/subctl/blob/devel/pkg/cloud/prepare/aws.go
 	// For now we only support at least one gateway (no load-balancer)
-	if err := a.gatewayDeployer.Deploy(cpapi.GatewayDeployInput{
+	if err := a.gatewayDeployer.Deploy(ctx, cpapi.GatewayDeployInput{
 		PublicPorts: []cpapi.PortSpec{
 			{Port: uint16(a.nattPort), Protocol: "udp"},
 			{Port: uint16(a.nattDiscoveryPort), Protocol: "udp"},
@@ -135,7 +136,7 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 	}
 
 	if !strings.EqualFold(a.cniType, cni.OVNKubernetes) {
-		if err := a.cloudPrepare.OpenPorts([]cpapi.PortSpec{
+		if err := a.cloudPrepare.OpenPorts(ctx, []cpapi.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
 		}, a.reporter); err != nil {
 			return errors.Wrap(err, "error opening ports")
@@ -148,12 +149,12 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv() error {
 }
 
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on AWS after the SubmarinerConfig was deleted.
-func (a *awsProvider) CleanUpSubmarinerClusterEnv() error {
-	if err := a.gatewayDeployer.Cleanup(a.reporter); err != nil {
+func (a *awsProvider) CleanUpSubmarinerClusterEnv(ctx context.Context) error {
+	if err := a.gatewayDeployer.Cleanup(ctx, a.reporter); err != nil {
 		return errors.Wrap(err, "error cleaning up gateway")
 	}
 
-	if err := a.cloudPrepare.ClosePorts(a.reporter); err != nil {
+	if err := a.cloudPrepare.ClosePorts(ctx, a.reporter); err != nil {
 		return errors.Wrap(err, "error closing ports")
 	}
 

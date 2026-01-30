@@ -1,6 +1,7 @@
 package azure
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"strings"
@@ -101,9 +102,9 @@ func NewProvider(info *provider.Info) (*azureProvider, error) {
 //   - NAT traversal port (by default 4500/UDP)
 //   - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
 //   - ESP & AH protocols for private-ip to private-ip gateway communications
-func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
+func (r *azureProvider) PrepareSubmarinerClusterEnv(ctx context.Context) error {
 	// TODO For ovn the port 4800 need not be opened.
-	if err := r.gwDeployer.Deploy(api.GatewayDeployInput{
+	if err := r.gwDeployer.Deploy(ctx, api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
 			{Port: r.nattPort, Protocol: "udp"},
 			{Port: uint16(r.nattDiscoveryPort), Protocol: "udp"},
@@ -117,7 +118,7 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 	}
 
 	if !strings.EqualFold(r.cniType, cni.OVNKubernetes) {
-		if err := r.cloudPrepare.OpenPorts([]api.PortSpec{
+		if err := r.cloudPrepare.OpenPorts(ctx, []api.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
 		}, r.reporter); err != nil {
 			return errors.Wrap(err, "error opening ports")
@@ -132,13 +133,13 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv() error {
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on Azure after the SubmarinerConfig was deleted
 // 1. delete any dedicated gateways that were previously deployed.
 // 2. delete the inbound and outbound firewall rules to close submariner ports.
-func (r *azureProvider) CleanUpSubmarinerClusterEnv() error {
-	err := r.gwDeployer.Cleanup(r.reporter)
+func (r *azureProvider) CleanUpSubmarinerClusterEnv(ctx context.Context) error {
+	err := r.gwDeployer.Cleanup(ctx, r.reporter)
 	if err != nil {
 		return errors.Wrap(err, "error cleaning up gateway")
 	}
 
-	err = r.cloudPrepare.ClosePorts(r.reporter)
+	err = r.cloudPrepare.ClosePorts(ctx, r.reporter)
 	if err != nil {
 		return errors.Wrap(err, "error closing ports")
 	}

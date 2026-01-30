@@ -39,7 +39,7 @@ type gcpProvider struct {
 	nattDiscoveryPort int64
 }
 
-func NewProvider(info *provider.Info) (*gcpProvider, error) {
+func NewProvider(ctx context.Context, info *provider.Info) (*gcpProvider, error) {
 	if info.InfraID == "" {
 		return nil, errors.New("cluster infraID is empty")
 	}
@@ -53,7 +53,7 @@ func NewProvider(info *provider.Info) (*gcpProvider, error) {
 		return nil, errors.New("the count of gateways is less than 1")
 	}
 
-	projectID, gcpClient, err := newClient(info.CredentialsSecret)
+	projectID, gcpClient, err := newClient(ctx, info.CredentialsSecret)
 	if err != nil {
 		klog.Errorf("Unable to retrieve the gcpclient :%v", err)
 		return nil, err
@@ -104,8 +104,8 @@ func NewProvider(info *provider.Info) (*gcpProvider, error) {
 //   - IPsec IKE port (by default 500/UDP)
 //   - NAT traversal port (by default 4500/UDP)
 //   - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
-func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
-	if err := g.gwDeployer.Deploy(api.GatewayDeployInput{
+func (g *gcpProvider) PrepareSubmarinerClusterEnv(ctx context.Context) error {
+	if err := g.gwDeployer.Deploy(ctx, api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
 			{Port: g.nattPort, Protocol: "udp"},
 			{Port: uint16(g.nattDiscoveryPort), Protocol: "udp"},
@@ -119,7 +119,7 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 	}
 
 	if !strings.EqualFold(g.cniType, cni.OVNKubernetes) {
-		if err := g.cloudPrepare.OpenPorts([]api.PortSpec{
+		if err := g.cloudPrepare.OpenPorts(ctx, []api.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
 		}, g.reporter); err != nil {
 			return errors.Wrap(err, "error opening ports")
@@ -133,13 +133,13 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv() error {
 
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on GCP after the SubmarinerConfig was deleted
 // 1. delete the inbound and outbound firewall rules to close submariner ports.
-func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
-	err := g.gwDeployer.Cleanup(g.reporter)
+func (g *gcpProvider) CleanUpSubmarinerClusterEnv(ctx context.Context) error {
+	err := g.gwDeployer.Cleanup(ctx, g.reporter)
 	if err != nil {
 		return errors.Wrap(err, "error cleaning up gateway")
 	}
 
-	err = g.cloudPrepare.ClosePorts(g.reporter)
+	err = g.cloudPrepare.ClosePorts(ctx, g.reporter)
 	if err != nil {
 		return errors.Wrap(err, "error closing ports")
 	}
@@ -149,14 +149,12 @@ func (g *gcpProvider) CleanUpSubmarinerClusterEnv() error {
 	return nil
 }
 
-func newClient(credentialsSecret *corev1.Secret) (string, gcpclient.Interface, error) {
+func newClient(ctx context.Context, credentialsSecret *corev1.Secret) (string, gcpclient.Interface, error) {
 	authJSON, ok := credentialsSecret.Data[gcpCredentialsName]
 	if !ok {
 		return "", nil, fmt.Errorf("the gcp credentials %s is not in secret %s/%s", gcpCredentialsName,
 			credentialsSecret.Namespace, credentialsSecret.Name)
 	}
-
-	ctx := context.TODO()
 
 	// since we're using a single creds var, we should specify all the required scopes when initializing
 	creds, err := google.CredentialsFromJSON(ctx, authJSON, dns.CloudPlatformScope)
@@ -165,7 +163,7 @@ func newClient(credentialsSecret *corev1.Secret) (string, gcpclient.Interface, e
 	}
 
 	// Create a GCP client with the credentials.
-	computeClient, err := gcpclient.NewClient(creds.ProjectID, []option.ClientOption{option.WithCredentials(creds)})
+	computeClient, err := gcpclient.NewClient(ctx, creds.ProjectID, []option.ClientOption{option.WithCredentials(creds)})
 	if err != nil {
 		return "", nil, errors.Wrap(err, "error creating GCP client")
 	}

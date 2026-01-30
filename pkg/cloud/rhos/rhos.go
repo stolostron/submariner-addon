@@ -1,13 +1,14 @@
 package rhos
 
 import (
+	"context"
 	"crypto/tls"
 	"net/http"
 	"strings"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack"
-	"github.com/gophercloud/utils/openstack/clientconfig"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack"
+	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
@@ -41,7 +42,7 @@ type rhosProvider struct {
 	nattDiscoveryPort int64
 }
 
-func NewProvider(info *provider.Info) (*rhosProvider, error) {
+func NewProvider(ctx context.Context, info *provider.Info) (*rhosProvider, error) {
 	if info.InfraID == "" {
 		return nil, errors.New("cluster infraID is empty")
 	}
@@ -55,7 +56,7 @@ func NewProvider(info *provider.Info) (*rhosProvider, error) {
 		return nil, errors.New("the count of gateways is less than 1")
 	}
 
-	projectID, cloudEntry, providerClient, err := newClient(info.CredentialsSecret)
+	projectID, cloudEntry, providerClient, err := newClient(ctx, info.CredentialsSecret)
 	if err != nil {
 		klog.Errorf("Unable to retrieve the rhosclient :%v", err)
 		return nil, err
@@ -106,8 +107,8 @@ func NewProvider(info *provider.Info) (*rhosProvider, error) {
 //   - NAT traversal port (by default 4500/UDP)
 //   - 4800/UDP port to encapsulate Pod traffic from worker and master nodes to the Submariner Gateway nodes
 //   - ESP & AH protocols for private-ip to private-ip gateway communications
-func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
-	if err := r.gwDeployer.Deploy(api.GatewayDeployInput{
+func (r *rhosProvider) PrepareSubmarinerClusterEnv(ctx context.Context) error {
+	if err := r.gwDeployer.Deploy(ctx, api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
 			{Port: r.nattPort, Protocol: "udp"},
 			{Port: uint16(r.nattDiscoveryPort), Protocol: "udp"},
@@ -120,7 +121,7 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 	}
 
 	if !strings.EqualFold(r.cniType, cni.OVNKubernetes) {
-		if err := r.cloudPrepare.OpenPorts([]api.PortSpec{
+		if err := r.cloudPrepare.OpenPorts(ctx, []api.PortSpec{
 			{Port: constants.SubmarinerRoutePort, Protocol: "udp"},
 		}, r.reporter); err != nil {
 			return errors.Wrap(err, "error opening ports")
@@ -135,13 +136,13 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 // CleanUpSubmarinerClusterEnv clean up submariner cluster environment on RHOS after the SubmarinerConfig was deleted
 // 1. delete any dedicated gateways that were previously deployed.
 // 2. delete the inbound and outbound firewall rules to close submariner ports.
-func (r *rhosProvider) CleanUpSubmarinerClusterEnv() error {
-	err := r.gwDeployer.Cleanup(r.reporter)
+func (r *rhosProvider) CleanUpSubmarinerClusterEnv(ctx context.Context) error {
+	err := r.gwDeployer.Cleanup(ctx, r.reporter)
 	if err != nil {
 		return errors.Wrap(err, "error cleaning up gateway")
 	}
 
-	err = r.cloudPrepare.ClosePorts(r.reporter)
+	err = r.cloudPrepare.ClosePorts(ctx, r.reporter)
 	if err != nil {
 		return errors.Wrap(err, "error closing ports")
 	}
@@ -151,7 +152,7 @@ func (r *rhosProvider) CleanUpSubmarinerClusterEnv() error {
 	return nil
 }
 
-func newClient(credentialsSecret *corev1.Secret) (string, string, *gophercloud.ProviderClient, error) {
+func newClient(ctx context.Context, credentialsSecret *corev1.Secret) (string, string, *gophercloud.ProviderClient, error) {
 	cloudsYAML, ok := credentialsSecret.Data[cloudsYAMLName]
 	if !ok {
 		return "", "", nil, errors.New("cloud yaml is not found in the credentials")
@@ -184,7 +185,7 @@ func newClient(credentialsSecret *corev1.Secret) (string, string, *gophercloud.P
 
 	projectID := cloud.AuthInfo.ProjectID
 
-	providerClient, err := openstack.AuthenticatedClient(opts)
+	providerClient, err := openstack.AuthenticatedClient(ctx, opts)
 	if err != nil {
 		return "", "", nil, errors.Wrap(err, "error authenticating client")
 	}
