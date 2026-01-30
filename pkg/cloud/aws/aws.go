@@ -66,7 +66,7 @@ func NewProvider(ctx context.Context, info *provider.Info) (*awsProvider, error)
 			info.CredentialsSecret.Name)
 	}
 
-	awsClient, err := cpclient.New(ctx, string(accessKeyID), string(secretAccessKey), info.Region)
+	awsClient, err := cpclient.New(ctx, info.Region, cpclient.WithCredentials(string(accessKeyID), string(secretAccessKey)))
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating AWS client")
 	}
