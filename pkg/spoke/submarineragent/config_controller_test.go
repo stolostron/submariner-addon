@@ -334,7 +334,7 @@ func testSubmarinerConfig(t *configControllerTestDriver) {
 
 				gomock.InOrder(
 					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv(gomock.Any()).Return(errors.New("fake error")).Times(1),
-					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv(gomock.Any()).DoAndReturn(func() error {
+					t.cloudProvider.EXPECT().PrepareSubmarinerClusterEnv(gomock.Any()).DoAndReturn(func(context.Context) error {
 						<-waitCh
 
 						return nil
@@ -539,7 +539,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 
 					gomock.InOrder(
 						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv(gomock.Any()).Return(errors.New("fake error")).Times(1),
-						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv(gomock.Any()).DoAndReturn(func() error {
+						t.cloudProvider.EXPECT().CleanUpSubmarinerClusterEnv(gomock.Any()).DoAndReturn(func(context.Context) error {
 							<-waitCh
 
 							return nil
