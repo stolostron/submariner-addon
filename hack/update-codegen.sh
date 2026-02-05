@@ -24,6 +24,7 @@ for group in submarinerconfig submarinerdiagnoseconfig; do
      --output-pkg "github.com/stolostron/submariner-addon/pkg/client/${group}" \
      --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.txt" \
      --with-watch \
+     --with-applyconfig \
      --one-input-api "${group}" \
      "pkg/apis"
 done
