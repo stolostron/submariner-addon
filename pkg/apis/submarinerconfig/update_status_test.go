@@ -192,6 +192,7 @@ func newUpdateStatusTestDriver() *updateStatusTestDriver {
 	t := &updateStatusTestDriver{}
 
 	JustBeforeEach(func() {
+		//nolint:staticcheck // NewClientset fails with a schema error
 		t.client = fakeconfigclient.NewSimpleClientset(&configv1alpha1.SubmarinerConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configName,

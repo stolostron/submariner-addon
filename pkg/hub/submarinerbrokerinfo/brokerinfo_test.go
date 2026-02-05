@@ -112,7 +112,7 @@ var _ = Describe("Function Get", func() {
 
 		brokerInfo, err = submarinerbrokerinfo.Get(
 			context.TODO(),
-			kubefake.NewSimpleClientset(kubeObjs...),
+			kubefake.NewClientset(kubeObjs...),
 			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), dynamicObjs...),
 			fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(brokerObjs...).Build(),
 			clusterName,
