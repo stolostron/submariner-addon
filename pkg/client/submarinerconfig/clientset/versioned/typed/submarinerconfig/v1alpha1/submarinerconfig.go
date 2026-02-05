@@ -6,6 +6,7 @@ import (
 	context "context"
 
 	submarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
+	applyconfigurationsubmarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/applyconfiguration/submarinerconfig/v1alpha1"
 	scheme "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -31,18 +32,21 @@ type SubmarinerConfigInterface interface {
 	List(ctx context.Context, opts v1.ListOptions) (*submarinerconfigv1alpha1.SubmarinerConfigList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *submarinerconfigv1alpha1.SubmarinerConfig, err error)
+	Apply(ctx context.Context, submarinerConfig *applyconfigurationsubmarinerconfigv1alpha1.SubmarinerConfigApplyConfiguration, opts v1.ApplyOptions) (result *submarinerconfigv1alpha1.SubmarinerConfig, err error)
+	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+	ApplyStatus(ctx context.Context, submarinerConfig *applyconfigurationsubmarinerconfigv1alpha1.SubmarinerConfigApplyConfiguration, opts v1.ApplyOptions) (result *submarinerconfigv1alpha1.SubmarinerConfig, err error)
 	SubmarinerConfigExpansion
 }
 
 // submarinerConfigs implements SubmarinerConfigInterface
 type submarinerConfigs struct {
-	*gentype.ClientWithList[*submarinerconfigv1alpha1.SubmarinerConfig, *submarinerconfigv1alpha1.SubmarinerConfigList]
+	*gentype.ClientWithListAndApply[*submarinerconfigv1alpha1.SubmarinerConfig, *submarinerconfigv1alpha1.SubmarinerConfigList, *applyconfigurationsubmarinerconfigv1alpha1.SubmarinerConfigApplyConfiguration]
 }
 
 // newSubmarinerConfigs returns a SubmarinerConfigs
 func newSubmarinerConfigs(c *SubmarineraddonV1alpha1Client, namespace string) *submarinerConfigs {
 	return &submarinerConfigs{
-		gentype.NewClientWithList[*submarinerconfigv1alpha1.SubmarinerConfig, *submarinerconfigv1alpha1.SubmarinerConfigList](
+		gentype.NewClientWithListAndApply[*submarinerconfigv1alpha1.SubmarinerConfig, *submarinerconfigv1alpha1.SubmarinerConfigList, *applyconfigurationsubmarinerconfigv1alpha1.SubmarinerConfigApplyConfiguration](
 			"submarinerconfigs",
 			c.RESTClient(),
 			scheme.ParameterCodec,

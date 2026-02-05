@@ -4,19 +4,20 @@ package fake
 
 import (
 	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
-	submarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
+	submarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/applyconfiguration/submarinerconfig/v1alpha1"
+	typedsubmarinerconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
 	gentype "k8s.io/client-go/gentype"
 )
 
 // fakeSubmarinerConfigs implements SubmarinerConfigInterface
 type fakeSubmarinerConfigs struct {
-	*gentype.FakeClientWithList[*v1alpha1.SubmarinerConfig, *v1alpha1.SubmarinerConfigList]
+	*gentype.FakeClientWithListAndApply[*v1alpha1.SubmarinerConfig, *v1alpha1.SubmarinerConfigList, *submarinerconfigv1alpha1.SubmarinerConfigApplyConfiguration]
 	Fake *FakeSubmarineraddonV1alpha1
 }
 
-func newFakeSubmarinerConfigs(fake *FakeSubmarineraddonV1alpha1, namespace string) submarinerconfigv1alpha1.SubmarinerConfigInterface {
+func newFakeSubmarinerConfigs(fake *FakeSubmarineraddonV1alpha1, namespace string) typedsubmarinerconfigv1alpha1.SubmarinerConfigInterface {
 	return &fakeSubmarinerConfigs{
-		gentype.NewFakeClientWithList[*v1alpha1.SubmarinerConfig, *v1alpha1.SubmarinerConfigList](
+		gentype.NewFakeClientWithListAndApply[*v1alpha1.SubmarinerConfig, *v1alpha1.SubmarinerConfigList, *submarinerconfigv1alpha1.SubmarinerConfigApplyConfiguration](
 			fake.Fake,
 			namespace,
 			v1alpha1.SchemeGroupVersion.WithResource("submarinerconfigs"),

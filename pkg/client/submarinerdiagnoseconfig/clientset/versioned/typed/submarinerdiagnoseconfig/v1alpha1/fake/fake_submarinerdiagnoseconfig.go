@@ -4,19 +4,20 @@ package fake
 
 import (
 	v1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerdiagnoseconfig/v1alpha1"
-	submarinerdiagnoseconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/clientset/versioned/typed/submarinerdiagnoseconfig/v1alpha1"
+	submarinerdiagnoseconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/applyconfiguration/submarinerdiagnoseconfig/v1alpha1"
+	typedsubmarinerdiagnoseconfigv1alpha1 "github.com/stolostron/submariner-addon/pkg/client/submarinerdiagnoseconfig/clientset/versioned/typed/submarinerdiagnoseconfig/v1alpha1"
 	gentype "k8s.io/client-go/gentype"
 )
 
 // fakeSubmarinerDiagnoseConfigs implements SubmarinerDiagnoseConfigInterface
 type fakeSubmarinerDiagnoseConfigs struct {
-	*gentype.FakeClientWithList[*v1alpha1.SubmarinerDiagnoseConfig, *v1alpha1.SubmarinerDiagnoseConfigList]
+	*gentype.FakeClientWithListAndApply[*v1alpha1.SubmarinerDiagnoseConfig, *v1alpha1.SubmarinerDiagnoseConfigList, *submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigApplyConfiguration]
 	Fake *FakeSubmarineraddonV1alpha1
 }
 
-func newFakeSubmarinerDiagnoseConfigs(fake *FakeSubmarineraddonV1alpha1, namespace string) submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigInterface {
+func newFakeSubmarinerDiagnoseConfigs(fake *FakeSubmarineraddonV1alpha1, namespace string) typedsubmarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigInterface {
 	return &fakeSubmarinerDiagnoseConfigs{
-		gentype.NewFakeClientWithList[*v1alpha1.SubmarinerDiagnoseConfig, *v1alpha1.SubmarinerDiagnoseConfigList](
+		gentype.NewFakeClientWithListAndApply[*v1alpha1.SubmarinerDiagnoseConfig, *v1alpha1.SubmarinerDiagnoseConfigList, *submarinerdiagnoseconfigv1alpha1.SubmarinerDiagnoseConfigApplyConfiguration](
 			fake.Fake,
 			namespace,
 			v1alpha1.SchemeGroupVersion.WithResource("submarinerdiagnoseconfigs"),
