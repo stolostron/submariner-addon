@@ -77,7 +77,7 @@ func NewProvider(info *provider.Info) (*rhosProvider, error) {
 
 	return &rhosProvider{
 		infraID:           info.InfraID,
-		nattPort:          uint16(info.IPSecNATTPort), //nolint:gosec // Valid port numbers fit in 16 bits
+		nattPort:          uint16(info.IPSecNATTPort),
 		cniType:           info.NetworkType,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
@@ -97,7 +97,7 @@ func (r *rhosProvider) PrepareSubmarinerClusterEnv() error {
 	if err := r.gwDeployer.Deploy(api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
 			{Port: r.nattPort, Protocol: "udp"},
-			{Port: uint16(r.nattDiscoveryPort), Protocol: "udp"}, //nolint:gosec // Valid port numbers fit in 16 bits
+			{Port: uint16(r.nattDiscoveryPort), Protocol: "udp"},
 			{Port: 0, Protocol: "esp"},
 			{Port: 0, Protocol: "ah"},
 		},
