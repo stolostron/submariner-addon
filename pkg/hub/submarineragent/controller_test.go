@@ -620,7 +620,7 @@ func newTestDriver() *testDriver {
 		t.clusterADConfig = nil
 		t.mockCtrl = gomock.NewController(GinkgoT())
 		t.clusterClient = fakeclusterclient.NewSimpleClientset()
-		t.configClient = fakeconfigclient.NewSimpleClientset()
+		t.configClient = fakeconfigclient.NewSimpleClientset() //nolint:staticcheck // NewClientset fails with a schema error
 		t.cloudProvider = cloudFake.NewMockProvider(t.mockCtrl)
 		t.controllerClient = fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 
@@ -634,7 +634,7 @@ func newTestDriver() *testDriver {
 		fakereactor.AddBasicReactors(&addOnClient.Fake)
 		t.addOnClient = addOnClient
 
-		t.kubeClient = kubefake.NewSimpleClientset(
+		t.kubeClient = kubefake.NewClientset(
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "submariner-ipsec-psk",
