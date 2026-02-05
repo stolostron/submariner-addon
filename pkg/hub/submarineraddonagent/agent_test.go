@@ -294,7 +294,7 @@ var _ = Describe("GetAgentAddonOptions", func() {
 		It("should register addondeploymentconfig GVR", func() {
 			Expect(t.addOnAgent.GetAgentAddonOptions().SupportedConfigGVRs).To(Equal(
 				[]schema.GroupVersionResource{
-					addonapiv1alpha1.GroupVersion.WithResource("addondeploymentconfigs"),
+					addonapiv1alpha1.SchemeGroupVersion.WithResource("addondeploymentconfigs"),
 				}))
 		})
 	})

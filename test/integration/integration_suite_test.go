@@ -192,7 +192,7 @@ func deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, br
 
 	addOn := util.NewManagedClusterAddOn(managedClusterName)
 	addOn.OwnerReferences = []metav1.OwnerReference{
-		*metav1.NewControllerRef(cma, addonv1alpha1.GroupVersion.WithKind("ClusterManagementAddOn")),
+		*metav1.NewControllerRef(cma, addonv1alpha1.SchemeGroupVersion.WithKind("ClusterManagementAddOn")),
 	}
 
 	_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addOn, metav1.CreateOptions{})

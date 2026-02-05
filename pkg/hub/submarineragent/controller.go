@@ -952,6 +952,7 @@ func (c *submarinerAgentController) getAddonDeploymentConfigs(managedClusterAddo
 		return nil, errors.Wrapf(err, "error getting ClusterManagementAddon %q", constants.SubmarinerAddOnName)
 	}
 
+	//nolint:staticcheck // SupportedConfigs is deprecated but migrating away requires v1beta1
 	for _, config := range clusterAddOn.Spec.SupportedConfigs {
 		if config.Resource == addonDeploymentConfigResource && config.Group == addonDeploymentConfigGroup &&
 			config.DefaultConfig != nil {
