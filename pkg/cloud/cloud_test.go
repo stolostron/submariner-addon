@@ -31,9 +31,9 @@ var _ = Describe("ProviderFactory Get", func() {
 	)
 
 	BeforeEach(func() {
-		hubKubeClient = kubeFake.NewSimpleClientset()
+		hubKubeClient = kubeFake.NewClientset()
 
-		providerFactory = cloud.NewProviderFactory(nil, kubeFake.NewSimpleClientset(),
+		providerFactory = cloud.NewProviderFactory(nil, hubKubeClient,
 			dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()), hubKubeClient)
 
 		submarinerConfig = &configv1alpha1.SubmarinerConfig{
@@ -96,6 +96,8 @@ var _ = Describe("ProviderFactory Get", func() {
 			cloud.RegisterProvider(submarinerConfig.Status.ManagedClusterInfo.Platform, func(info *provider.Info) (cloud.Provider, error) {
 				Expect(info.IPSecNATTPort).To(Equal(constants.SubmarinerNatTPort))
 				Expect(info.NATTDiscoveryPort).To(Equal(constants.SubmarinerNatTDiscoveryPort))
+				// Copy the TypeMeta before comparing
+				credentialsSecret.TypeMeta = info.CredentialsSecret.TypeMeta
 				Expect(info.CredentialsSecret).To(Equal(credentialsSecret))
 
 				return mockProvider, nil

@@ -118,7 +118,7 @@ func newGatewaysControllerTestDriver() *gatewaysControllerTestDriver {
 	t := &gatewaysControllerTestDriver{}
 
 	BeforeEach(func() {
-		t.kubeClient = kubeFake.NewSimpleClientset()
+		t.kubeClient = kubeFake.NewClientset()
 		t.managedClusterAddOnTestBase.init()
 	})
 

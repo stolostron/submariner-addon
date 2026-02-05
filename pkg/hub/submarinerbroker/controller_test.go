@@ -349,7 +349,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 	})
 
 	JustBeforeEach(func() {
-		t.kubeClient = kubeFake.NewSimpleClientset(t.kubeObjs...)
+		t.kubeClient = kubeFake.NewClientset(t.kubeObjs...)
 
 		_, err := t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), t.clusterSet,
 			metav1.CreateOptions{})
