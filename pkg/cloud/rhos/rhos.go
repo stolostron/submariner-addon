@@ -70,6 +70,19 @@ func NewProvider(info *provider.Info) (*rhosProvider, error) {
 		Client:    providerClient,
 	}
 
+	if info.SubmarinerConfigAnnotations != nil {
+		annotations := info.SubmarinerConfigAnnotations
+
+		if subnetNameList, exists := annotations["submariner.io/subnet-names"]; exists {
+			subnetNames := strings.Split(subnetNameList, ",")
+			for i := range subnetNames {
+				subnetNames[i] = strings.TrimSpace(subnetNames[i])
+			}
+
+			cloudInfo.SubnetNames = subnetNames
+		}
+	}
+
 	cloudPrepare := cloudpreparerhos.NewCloud(cloudInfo)
 	msDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
 
