@@ -18,6 +18,7 @@ import (
 	admutil "github.com/submariner-io/admiral/pkg/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/dynamic"
@@ -197,7 +198,11 @@ func deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, br
 
 	addOn := util.NewManagedClusterAddOn(managedClusterName)
 	addOn.OwnerReferences = []metav1.OwnerReference{
-		*metav1.NewControllerRef(cma, addonv1alpha1.GroupVersion.WithKind("ClusterManagementAddOn")),
+		*metav1.NewControllerRef(cma, schema.GroupVersionKind{
+			Group:   addonv1alpha1.GroupVersion.Group,
+			Version: addonv1alpha1.GroupVersion.Version,
+			Kind:    "ClusterManagementAddOn",
+		}),
 	}
 
 	_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addOn, metav1.CreateOptions{})
