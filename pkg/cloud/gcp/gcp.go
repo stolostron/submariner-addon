@@ -157,7 +157,8 @@ func newClient(ctx context.Context, credentialsSecret *corev1.Secret) (string, g
 	}
 
 	// since we're using a single creds var, we should specify all the required scopes when initializing
-	creds, err := google.CredentialsFromJSON(ctx, authJSON, dns.CloudPlatformScope)
+	// Use CredentialsFromJSONWithType to explicitly validate that we're loading a service account credential
+	creds, err := google.CredentialsFromJSONWithType(ctx, authJSON, google.ServiceAccount, dns.CloudPlatformScope)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "error retrieving credentials")
 	}
