@@ -952,10 +952,10 @@ func (c *submarinerAgentController) getAddonDeploymentConfigs(managedClusterAddo
 		return nil, errors.Wrapf(err, "error getting ClusterManagementAddon %q", constants.SubmarinerAddOnName)
 	}
 
-	for _, config := range clusterAddOn.Spec.SupportedConfigs {
+	for _, config := range clusterAddOn.Status.DefaultConfigReferences {
 		if config.Resource == addonDeploymentConfigResource && config.Group == addonDeploymentConfigGroup &&
-			config.DefaultConfig != nil {
-			name, namespace := config.DefaultConfig.Name, config.DefaultConfig.Namespace
+			config.DesiredConfig != nil {
+			name, namespace := config.DesiredConfig.Name, config.DesiredConfig.Namespace
 			deploymentConfig, err := c.deploymentConfigLister.AddOnDeploymentConfigs(namespace).Get(name)
 			if err != nil {
 				return nil, errors.Wrapf(err, "error getting AddonDeploymentConfig %q:%q", namespace, name)

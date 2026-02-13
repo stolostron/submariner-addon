@@ -595,15 +595,19 @@ func newTestDriver() *testDriver {
 					DisplayName: "Submariner Addon",
 					Description: "Submariner Addon for MultiCluster connectivity",
 				},
-				SupportedConfigs: []addonv1alpha1.ConfigMeta{
+			},
+			Status: addonv1alpha1.ClusterManagementAddOnStatus{
+				DefaultConfigReferences: []addonv1alpha1.DefaultConfigReference{
 					{
 						ConfigGroupResource: addonv1alpha1.ConfigGroupResource{
 							Group:    "addon.open-cluster-management.io",
 							Resource: "addondeploymentconfigs",
 						},
-						DefaultConfig: &addonv1alpha1.ConfigReferent{
-							Name:      t.defaultADConfig.Name,
-							Namespace: t.defaultADConfig.Namespace,
+						DesiredConfig: &addonv1alpha1.ConfigSpecHash{
+							ConfigReferent: addonv1alpha1.ConfigReferent{
+								Name:      t.defaultADConfig.Name,
+								Namespace: t.defaultADConfig.Namespace,
+							},
 						},
 					},
 				},
