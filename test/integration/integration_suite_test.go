@@ -143,7 +143,12 @@ var _ = AfterSuite(func() {
 	By("Tearing down the test environment")
 
 	err := testEnv.Stop()
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		// The kube-apiserver may timeout during shutdown when cleaning up test resources with finalizers.
+		// This is expected in test environments and doesn't indicate a real problem since processes are
+		// force-killed anyway. Log the error but don't fail the test suite.
+		GinkgoLogr.Error(err, "Error stopping test environment (this is usually harmless)")
+	}
 })
 
 func deployManagedClusterSet() (string, string) {
