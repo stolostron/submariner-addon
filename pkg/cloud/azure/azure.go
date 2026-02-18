@@ -74,12 +74,7 @@ func NewProvider(info *provider.Info) (*azureProvider, error) {
 		K8sClient:       k8sClient,
 	}
 
-	azureCloud := azure.NewCloud(&cloudInfo)
-
-	gwDeployer, err := azure.NewOcpGatewayDeployer(&cloudInfo, azureCloud, msDeployer, instanceType)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to initialise a GatewayDeployer config")
-	}
+	gwDeployer := azure.NewOcpGatewayDeployer(&cloudInfo, msDeployer, instanceType)
 
 	cloudPrepare := azure.NewCloud(&cloudInfo)
 
