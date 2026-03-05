@@ -12,7 +12,7 @@ package v1alpha1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_AWS = map[string]string{
-	"instanceType": "InstanceType represents the Amazon Web Services EC2 instance type of the gateway node that will be created on the managed cluster. The default value is `m5n.large`.",
+	"instanceType": "InstanceType represents the Amazon Web Services EC2 instance type of the gateway node that will be created on the managed cluster. The default value is `m5.xlarge`.",
 }
 
 func (AWS) SwaggerDoc() map[string]string {
