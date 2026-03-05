@@ -115,11 +115,11 @@ spec:
                       If the platform of managed cluster is not Amazon Web Services, this field will be ignored.
                     properties:
                       instanceType:
-                        default: m5n.large
+                        default: m5.xlarge
                         description: |-
                           InstanceType represents the Amazon Web Services EC2 instance type of the gateway node that will be
                           created on the managed cluster.
-                          The default value is `m5n.large`.
+                          The default value is `m5.xlarge`.
                         type: string
                     type: object
                   azure:

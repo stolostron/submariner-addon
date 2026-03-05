@@ -223,9 +223,9 @@ type GatewayConfig struct {
 type AWS struct {
 	// InstanceType represents the Amazon Web Services EC2 instance type of the gateway node that will be
 	// created on the managed cluster.
-	// The default value is `m5n.large`.
+	// The default value is `m5.xlarge`.
 	// +optional
-	// +kubebuilder:default=m5n.large
+	// +kubebuilder:default=m5.xlarge
 	InstanceType string `json:"instanceType,omitempty"`
 }
 
