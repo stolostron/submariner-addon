@@ -7,7 +7,7 @@ package v1alpha1
 type AWSApplyConfiguration struct {
 	// InstanceType represents the Amazon Web Services EC2 instance type of the gateway node that will be
 	// created on the managed cluster.
-	// The default value is `m5n.large`.
+	// The default value is `m5.xlarge`.
 	InstanceType *string `json:"instanceType,omitempty"`
 }
 
