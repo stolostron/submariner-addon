@@ -1,6 +1,6 @@
 module github.com/stolostron/submariner-addon
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
@@ -20,7 +20,7 @@ require (
 	github.com/submariner-io/submariner v0.17.6
 	github.com/submariner-io/submariner-operator v0.17.6
 	go.uber.org/mock v0.4.0
-	golang.org/x/oauth2 v0.35.0
+	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.195.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.29.15
