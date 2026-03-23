@@ -596,7 +596,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 		}
 
 		t.kubeClient = kubeFake.NewClientset()
-		t.configClient = configFake.NewSimpleClientset() //nolint:staticcheck // NewClientset fails with a schema error
+		t.configClient = configFake.NewSimpleClientset()
 		t.dynamicClient = dynamicfake.NewSimpleDynamicClient(k8sScheme.Scheme)
 
 		t.managedClusterAddOnTestBase.init()
