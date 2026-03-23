@@ -624,7 +624,7 @@ func newTestDriver() *testDriver {
 		t.clusterADConfig = nil
 		t.mockCtrl = gomock.NewController(GinkgoT())
 		t.clusterClient = fakeclusterclient.NewSimpleClientset()
-		t.configClient = fakeconfigclient.NewSimpleClientset() //nolint:staticcheck // NewClientset fails with a schema error
+		t.configClient = fakeconfigclient.NewSimpleClientset()
 		t.cloudProvider = cloudFake.NewMockProvider(t.mockCtrl)
 		t.controllerClient = fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 

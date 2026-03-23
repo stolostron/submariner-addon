@@ -55,7 +55,7 @@ func newBrokerCRDsControllerTestDriver() *brokerCRDsControllerTestDriver {
 	})
 
 	JustBeforeEach(func() {
-		t.crdClient = fake.NewSimpleClientset(t.crd) //nolint:staticcheck // NewClientset fails with a schema error
+		t.crdClient = fake.NewSimpleClientset(t.crd)
 
 		informerFactory := apiextensionsInformers.NewSharedInformerFactory(t.crdClient, 0)
 
