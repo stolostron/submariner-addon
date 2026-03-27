@@ -80,7 +80,7 @@ func NewProvider(info *provider.Info) (*azureProvider, error) {
 
 	return &azureProvider{
 		infraID:           info.InfraID,
-		nattPort:          uint16(info.IPSecNATTPort),
+		nattPort:          uint16(info.IPSecNATTPort), //nolint:gosec // Usable port numbers fit
 		cniType:           info.NetworkType,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
@@ -102,7 +102,7 @@ func (r *azureProvider) PrepareSubmarinerClusterEnv(ctx context.Context) error {
 	if err := r.gwDeployer.Deploy(ctx, api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
 			{Port: r.nattPort, Protocol: "udp"},
-			{Port: uint16(r.nattDiscoveryPort), Protocol: "udp"},
+			{Port: uint16(r.nattDiscoveryPort), Protocol: "udp"}, //nolint:gosec // Usable port numbers fit
 			{Port: 0, Protocol: "esp"},
 			{Port: 0, Protocol: "ah"},
 		},

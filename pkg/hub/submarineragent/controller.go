@@ -766,7 +766,6 @@ func (c *submarinerAgentController) deleteClusterBrokerResources(ctx context.Con
 
 	brokerNamespace := brokerinfo.GenerateBrokerName(clusterSetName)
 
-	//nolint:prealloc // No need to pre-allocate since normally there won't be any errors.
 	var errs []error
 
 	deleteCollection := func(gvr schema.GroupVersionResource) {

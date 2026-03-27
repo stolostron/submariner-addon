@@ -124,8 +124,8 @@ func (a *awsProvider) PrepareSubmarinerClusterEnv(ctx context.Context) error {
 	// For now we only support at least one gateway (no load-balancer)
 	if err := a.gatewayDeployer.Deploy(ctx, cpapi.GatewayDeployInput{
 		PublicPorts: []cpapi.PortSpec{
-			{Port: uint16(a.nattPort), Protocol: "udp"},
-			{Port: uint16(a.nattDiscoveryPort), Protocol: "udp"},
+			{Port: uint16(a.nattPort), Protocol: "udp"},          //nolint:gosec // Usable port numbers fit
+			{Port: uint16(a.nattDiscoveryPort), Protocol: "udp"}, //nolint:gosec // Usable port numbers fit
 			// ESP & AH protocols are used for private-ip to private-ip gateway communications
 			{Port: 0, Protocol: "50"},
 			{Port: 0, Protocol: "51"},
