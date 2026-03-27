@@ -20,6 +20,7 @@ func UpdateStatus(ctx context.Context, client addonclient.Interface, addOnNamesp
 	updateFuncs ...UpdateStatusFunc,
 ) (*addonv1alpha1.ManagedClusterAddOnStatus, bool, error) {
 	updated := false
+
 	var updatedAddOnStatus *addonv1alpha1.ManagedClusterAddOnStatus
 
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
@@ -50,6 +51,7 @@ func UpdateStatus(ctx context.Context, client addonclient.Interface, addOnNamesp
 		}
 
 		addOn.Status = *newStatus
+
 		updatedAddOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).UpdateStatus(ctx, addOn, metav1.UpdateOptions{})
 		if err != nil {
 			return errors.Wrap(err, "error updating status for submariner ManagedClusterAddOn")

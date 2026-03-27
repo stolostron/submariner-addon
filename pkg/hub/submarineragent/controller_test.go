@@ -897,6 +897,7 @@ func (t *testDriver) assertSCCManifestObjs(objs []*unstructured.Unstructured) {
 func (t *testDriver) awaitBackupLabelOnBroker() {
 	Eventually(func() bool {
 		broker := &submarinerv1alpha1.Broker{}
+
 		err := t.controllerClient.Get(context.Background(), types.NamespacedName{
 			Namespace: brokerNamespace,
 			Name:      submarineragent.BrokerObjectName,

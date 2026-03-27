@@ -85,6 +85,7 @@ func testManagedClusterSet() {
 				cs, err := t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Get(context.Background(), t.clusterSet.Name,
 					metav1.GetOptions{})
 				Expect(err).To(Succeed())
+
 				return cs.Annotations[submarinerbroker.SubmBrokerNamespaceKey]
 			}, 3).Should(Equal(brokerNS))
 		})

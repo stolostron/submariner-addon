@@ -241,7 +241,6 @@ func (c *submarinerBrokerController) createIPSecPSKSecret(ctx context.Context, b
 		}
 
 		_, err = c.kubeClient.CoreV1().Secrets(brokerNamespace).Create(ctx, pskSecret, metav1.CreateOptions{})
-
 		if err == nil {
 			logger.Infof("Created IPSec PSK Secret %q in namespace %q", constants.IPSecPSKSecretName, brokerNamespace)
 		}

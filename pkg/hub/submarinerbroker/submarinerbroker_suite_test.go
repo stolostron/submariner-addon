@@ -15,6 +15,7 @@ var _ = BeforeSuite(func() {
 	flags := flag.NewFlagSet("kzerolog", flag.ExitOnError)
 	kzerolog.AddFlags(flags)
 	_ = flags.Parse([]string{"-v=2"})
+
 	kzerolog.InitK8sLogging()
 
 	os.Setenv("KUBE_FEATURE_WatchListClient", "false")

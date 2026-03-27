@@ -109,7 +109,7 @@ linters:
     - wastedassign
     - whitespace
     - wrapcheck
-    - wsl
+    - wsl_v5
   settings:
     gocritic:
       disabled-checks:
@@ -151,9 +151,14 @@ linters:
         - -QF1003
         # Allow unnecessary embedded field selectors
         - -QF1008
-    wsl:
+    wsl_v5:
       # Separating explicit var declarations by blank lines seems excessive.
       allow-cuddle-declarations: true
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
+      disable:
+        - decl
   exclusions:
     generated: lax
     presets:

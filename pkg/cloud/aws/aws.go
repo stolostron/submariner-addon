@@ -101,6 +101,7 @@ func NewProvider(ctx context.Context, info *provider.Info) (*awsProvider, error)
 	cloudPrepare := cpaws.NewCloud(awsClient, info.InfraID, info.Region, cloudOptions...)
 
 	machineSetDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
+
 	gwDeployer, err := cpaws.NewOcpGatewayDeployer(cloudPrepare, machineSetDeployer, instanceType)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating GW deployer")
