@@ -1,6 +1,9 @@
 package redact
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 var fieldsToRedact = []string{
 	"brokerK8sApiServer",
@@ -12,12 +15,19 @@ var fieldsToRedact = []string{
 var regex *regexp.Regexp
 
 func init() {
-	s := "(\"(" + fieldsToRedact[0]
+	var sb strings.Builder
+
+	sb.WriteString("(\"(")
+	sb.WriteString(fieldsToRedact[0])
+
 	for i := 1; i < len(fieldsToRedact); i++ {
-		s += "|" + fieldsToRedact[i]
+		sb.WriteString("|")
+		sb.WriteString(fieldsToRedact[i])
 	}
 
-	regex = regexp.MustCompile(s + ")\"\\s*:\\s*)\".*\"")
+	sb.WriteString(")\"\\s*:\\s*)\".*\"")
+
+	regex = regexp.MustCompile(sb.String())
 }
 
 func JSON(s string) string {
