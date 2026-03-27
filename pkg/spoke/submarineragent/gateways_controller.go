@@ -51,7 +51,7 @@ func NewGatewaysStatusController(
 	}
 
 	return factory.New().
-		WithFilteredEventsInformers(func(obj interface{}) bool {
+		WithFilteredEventsInformers(func(obj any) bool {
 			metaObj := obj.(metav1.Object)
 			// only handle the changes of worker nodes
 			if _, has := metaObj.GetLabels()[workerNodeLabel]; has {

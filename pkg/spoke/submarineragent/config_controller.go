@@ -128,17 +128,17 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 	}
 
 	return factory.New().
-		WithFilteredEventsInformers(func(obj interface{}) bool {
+		WithFilteredEventsInformers(func(obj any) bool {
 			metaObj := obj.(metav1.Object)
 
 			return metaObj.GetName() == constants.SubmarinerAddOnName
 		}, input.AddOnInformer.Informer()).
-		WithFilteredEventsInformers(func(obj interface{}) bool {
+		WithFilteredEventsInformers(func(obj any) bool {
 			metaObj := obj.(metav1.Object)
 
 			return metaObj.GetName() == constants.SubmarinerConfigName
 		}, input.ConfigInformer.Informer()).
-		WithFilteredEventsInformers(func(obj interface{}) bool {
+		WithFilteredEventsInformers(func(obj any) bool {
 			metaObj := obj.(metav1.Object)
 			// only handle the changes of worker nodes
 			if _, has := metaObj.GetLabels()[workerNodeLabel]; has {
@@ -741,7 +741,7 @@ func (c *submarinerConfigController) isSubmarinerCRPresent() (bool, error) {
 	return len(list) > 0, nil
 }
 
-func failedConditionf(formatMsg string, args ...interface{}) metav1.Condition {
+func failedConditionf(formatMsg string, args ...any) metav1.Condition {
 	return failedCondition(fmt.Sprintf(formatMsg, args...))
 }
 

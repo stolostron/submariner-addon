@@ -144,7 +144,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 
 	// Informer transform to trim ManagedFields for memory efficiency.
 	// TODO: Apply trim to all informers when they support WithTransform.
-	trim := func(obj interface{}) (interface{}, error) {
+	trim := func(obj any) (any, error) {
 		if accessor, err := meta.Accessor(obj); err == nil {
 			accessor.SetManagedFields(nil)
 		}

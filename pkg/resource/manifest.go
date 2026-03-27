@@ -112,7 +112,7 @@ func DeleteFromManifests(ctx context.Context, kubeClient kubernetes.Interface, r
 	return errors.Wrap(goerrors.Join(errs...), "error deleting manifests")
 }
 
-func AssetFromFile(manifestFiles embed.FS, config interface{}) resourceapply.AssetFunc {
+func AssetFromFile(manifestFiles embed.FS, config any) resourceapply.AssetFunc {
 	return func(name string) ([]byte, error) {
 		template, err := manifestFiles.ReadFile(name)
 		if err != nil {
