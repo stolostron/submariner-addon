@@ -88,7 +88,7 @@ func NewProvider(ctx context.Context, info *provider.Info) (*gcpProvider, error)
 
 	return &gcpProvider{
 		infraID:           info.InfraID,
-		nattPort:          uint16(info.IPSecNATTPort),
+		nattPort:          uint16(info.IPSecNATTPort), //nolint:gosec // Usable port numbers fit
 		cniType:           info.NetworkType,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
@@ -108,7 +108,7 @@ func (g *gcpProvider) PrepareSubmarinerClusterEnv(ctx context.Context) error {
 	if err := g.gwDeployer.Deploy(ctx, api.GatewayDeployInput{
 		PublicPorts: []api.PortSpec{
 			{Port: g.nattPort, Protocol: "udp"},
-			{Port: uint16(g.nattDiscoveryPort), Protocol: "udp"},
+			{Port: uint16(g.nattDiscoveryPort), Protocol: "udp"}, //nolint:gosec // Usable port numbers fit
 			// ESP & AH protocols are used for private-ip to private-ip gateway communications
 			{Port: 0, Protocol: "esp"},
 			{Port: 0, Protocol: "ah"},
