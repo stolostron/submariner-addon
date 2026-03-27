@@ -56,13 +56,13 @@ var _ = Describe("Function Get", func() {
 		installationNamespace = ""
 
 		infrastructure = &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "config.openshift.io/v1",
 				"kind":       "Infrastructure",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name": "cluster",
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"apiServerURL": "https://" + apiServerHostPort,
 				},
 			},
@@ -331,7 +331,7 @@ var _ = Describe("Function Get", func() {
 
 	When("the Infrastructure resource is missing the apiServerURL field", func() {
 		BeforeEach(func() {
-			Expect(unstructured.SetNestedMap(infrastructure.Object, map[string]interface{}{}, "status")).To(Succeed())
+			Expect(unstructured.SetNestedMap(infrastructure.Object, map[string]any{}, "status")).To(Succeed())
 		})
 
 		It("should return an error", func() {

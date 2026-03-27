@@ -128,7 +128,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	}
 
 	// Informer transform to trim ManagedFields for memory efficiency.
-	trim := func(obj interface{}) (interface{}, error) {
+	trim := func(obj any) (any, error) {
 		if accessor, err := meta.Accessor(obj); err == nil {
 			accessor.SetManagedFields(nil)
 		}

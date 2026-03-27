@@ -850,7 +850,7 @@ type submarinerConfigMatcher struct {
 	expected *configv1alpha1.SubmarinerConfig
 }
 
-func (m submarinerConfigMatcher) Matches(x interface{}) bool {
+func (m submarinerConfigMatcher) Matches(x any) bool {
 	if x == nil {
 		return false
 	}

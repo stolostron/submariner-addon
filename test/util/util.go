@@ -196,13 +196,13 @@ func NewManagedClusterAddOn(namespace string) *addonv1alpha1.ManagedClusterAddOn
 
 func NewSubmariner(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "submariner.io/v1alpha1",
 			"kind":       "Submariner",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name": name,
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"broker":                   "k8s",
 				"brokerK8sApiServer":       "api:6443",
 				"brokerK8sApiServerToken":  "token",
@@ -223,21 +223,21 @@ func NewSubmariner(name string) *unstructured.Unstructured {
 }
 
 func SetSubmarinerDeployedStatus(submariner *unstructured.Unstructured) {
-	submariner.Object["status"] = map[string]interface{}{
+	submariner.Object["status"] = map[string]any{
 		"clusterID":  "test",
 		"natEnabled": true,
-		"gatewayDaemonSetStatus": map[string]interface{}{
+		"gatewayDaemonSetStatus": map[string]any{
 			"mismatchedContainerImages": false,
-			"status": map[string]interface{}{
+			"status": map[string]any{
 				"currentNumberScheduled": int64(1),
 				"desiredNumberScheduled": int64(1),
 				"numberMisscheduled":     int64(0),
 				"numberReady":            int64(1),
 			},
 		},
-		"routeAgentDaemonSetStatus": map[string]interface{}{
+		"routeAgentDaemonSetStatus": map[string]any{
 			"mismatchedContainerImages": false,
-			"status": map[string]interface{}{
+			"status": map[string]any{
 				"currentNumberScheduled": int64(6),
 				"desiredNumberScheduled": int64(6),
 				"numberMisscheduled":     int64(0),
@@ -275,7 +275,7 @@ func (r *IntegrationTestEventRecorder) Event(reason, message string) {
 	fmt.Fprintf(GinkgoWriter, "Event: [%s] %v: %v \n", r.component, reason, message)
 }
 
-func (r *IntegrationTestEventRecorder) Eventf(reason, messageFmt string, args ...interface{}) {
+func (r *IntegrationTestEventRecorder) Eventf(reason, messageFmt string, args ...any) {
 	r.Event(reason, fmt.Sprintf(messageFmt, args...))
 }
 
@@ -283,7 +283,7 @@ func (r *IntegrationTestEventRecorder) Warning(reason, message string) {
 	fmt.Fprintf(GinkgoWriter, "Warning: [%s] %v: %v \n", r.component, reason, message)
 }
 
-func (r *IntegrationTestEventRecorder) Warningf(reason, messageFmt string, args ...interface{}) {
+func (r *IntegrationTestEventRecorder) Warningf(reason, messageFmt string, args ...any) {
 	r.Warning(reason, fmt.Sprintf(messageFmt, args...))
 }
 

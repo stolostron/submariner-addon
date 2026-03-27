@@ -619,11 +619,11 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 		clusterRBACFiles...)
 }
 
-func newSubmarinerManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
+func newSubmarinerManifestWork(managedCluster *clusterv1.ManagedCluster, config any) (*workv1.ManifestWork, error) {
 	return newManifestWork(SubmarinerCRManifestWorkName, managedCluster.Name, config, submarinerCRFile)
 }
 
-func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}, skipOperatorGroup bool,
+func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config any, skipOperatorGroup bool,
 ) (*workv1.ManifestWork, error) {
 	files := []string{operatorNamespaceFile, agentRBACFile}
 
@@ -643,7 +643,7 @@ func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config in
 	return newManifestWork(OperatorManifestWorkName, managedCluster.Name, config, files...)
 }
 
-func newManifestWork(name, namespace string, config interface{}, files ...string) (*workv1.ManifestWork, error) {
+func newManifestWork(name, namespace string, config any, files ...string) (*workv1.ManifestWork, error) {
 	manifests := []workv1.Manifest{}
 
 	for _, file := range files {
@@ -706,7 +706,7 @@ func getManagedClusterInfo(managedCluster *clusterv1.ManagedCluster) *configv1al
 		}
 
 		if claim.Name == "infrastructure.openshift.io" {
-			var infraInfo map[string]interface{}
+			var infraInfo map[string]any
 			if err := json.Unmarshal([]byte(claim.Value), &infraInfo); err == nil {
 				clusterInfo.InfraID = fmt.Sprintf("%v", infraInfo["infraName"])
 			}
