@@ -16,6 +16,7 @@ type SubmarinerImagePullSpecsApplyConfiguration struct {
 	// SubmarinerGlobalnetImagePullSpec represents the desired image of the submariner globalnet.
 	SubmarinerGlobalnetImagePullSpec *string `json:"submarinerGlobalnetImagePullSpec,omitempty"`
 	// SubmarinerNetworkPluginSyncerImagePullSpec represents the desired image of the submariner networkplugin syncer.
+	//
 	// Deprecated: The networkplugin syncer was removed in v0.16.0.
 	SubmarinerNetworkPluginSyncerImagePullSpec *string `json:"submarinerNetworkPluginSyncerImagePullSpec,omitempty"`
 	// MetricsProxyImagePullSpec represents the desired image of the metrics proxy.
