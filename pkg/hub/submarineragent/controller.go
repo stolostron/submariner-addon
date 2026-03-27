@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
 	"time"
 
@@ -455,9 +456,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	}
 
 	for _, nodePlacement := range nodePlacements {
-		for k, v := range nodePlacement.NodeSelector {
-			brokerInfo.NodeSelector[k] = v
-		}
+		maps.Copy(brokerInfo.NodeSelector, nodePlacement.NodeSelector)
 
 		brokerInfo.Tolerations = append(brokerInfo.Tolerations, nodePlacement.Tolerations...)
 	}
