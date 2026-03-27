@@ -534,8 +534,8 @@ func (c *submarinerConfigController) removeGateways(ctx context.Context, gateway
 		removedGateways = len(gateways)
 	}
 
-	errs := []error{}
-	removed := []string{}
+	errs := make([]error, 0, removedGateways)
+	removed := make([]string, 0, removedGateways)
 
 	for i := range removedGateways {
 		removed = append(removed, gateways[i].Name)
