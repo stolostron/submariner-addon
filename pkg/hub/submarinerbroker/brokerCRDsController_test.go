@@ -90,6 +90,7 @@ func (t *brokerCRDsControllerTestDriver) awaitCRD(name string) {
 
 	Eventually(func() error {
 		var err error
+
 		crd, err = t.crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), name, metav1.GetOptions{})
 
 		return err

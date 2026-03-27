@@ -188,8 +188,11 @@ var _ = Describe("GetAgentAddonOptions", func() {
 	})
 
 	Context("CSRApproveCheck", func() {
-		var csr csrHolder
-		var result bool
+		var (
+			csr    csrHolder
+			result bool
+		)
+
 		const invalid string = "invalid"
 
 		BeforeEach(func() {

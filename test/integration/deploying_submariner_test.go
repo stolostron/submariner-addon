@@ -88,6 +88,7 @@ var _ = Describe("Submariner Deployment", func() {
 				Eventually(func() bool {
 					_, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(context.Background(),
 						constants.SubmarinerAddOnName, metav1.GetOptions{})
+
 					return apierrors.IsNotFound(err)
 				}, eventuallyTimeout, eventuallyInterval).Should(BeTrue(), "ManagedClusterAddon was not deleted")
 			})
@@ -122,6 +123,7 @@ var _ = Describe("Submariner Deployment", func() {
 			Eventually(func() bool {
 				_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Get(context.Background(), managedClusterSetName,
 					metav1.GetOptions{})
+
 				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue(), "ManagedClusterSet %q was not deleted", managedClusterSetName)
 		})
@@ -138,6 +140,7 @@ var _ = Describe("Submariner Deployment", func() {
 			Eventually(func() error {
 				clusterAddOn, err = addOnClient.AddonV1alpha1().ClusterManagementAddOns().Get(context.Background(),
 					constants.SubmarinerAddOnName, metav1.GetOptions{})
+
 				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
@@ -171,6 +174,7 @@ var _ = Describe("Submariner Deployment", func() {
 			Eventually(func() bool {
 				_, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Get(context.Background(),
 					constants.SubmarinerAddOnName, metav1.GetOptions{})
+
 				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 

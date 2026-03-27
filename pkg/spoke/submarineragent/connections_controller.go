@@ -65,6 +65,7 @@ func NewConnectionsStatusController(clusterName string, addOnClient addonclient.
 
 func (c *connectionsStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	namespace, name, _ := cache.SplitMetaNamespaceKey(syncCtx.QueueKey())
+
 	runtimeSubmariner, err := c.submarinerLister.ByNamespace(namespace).Get(name)
 	if apierrors.IsNotFound(err) {
 		// submariner cr is not found, could be deleted, ignore it.
@@ -132,6 +133,7 @@ func (c *connectionsStatusController) checkSubmarinerConnections(submariner *sub
 
 	connectedMessages := []string{}
 	unconnectedMessages := []string{}
+
 	for i := range gateways {
 		gateway := &gateways[i]
 		if gateway.HAStatus != submarinermv1.HAStatusActive {

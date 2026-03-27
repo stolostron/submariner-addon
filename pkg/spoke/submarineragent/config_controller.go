@@ -279,7 +279,6 @@ func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, c
 	_, updated, updatedErr := submarinerconfig.UpdateStatus(ctx,
 		c.configClient.SubmarineraddonV1alpha1().SubmarinerConfigs(config.Namespace), config.Name,
 		submarinerconfig.UpdateConditionFn(&condition))
-
 	if updatedErr != nil {
 		errs = append(errs, updatedErr)
 	}
@@ -443,6 +442,7 @@ func (c *submarinerConfigController) getLabeledNodes(nodeLabelSelectors ...nodeL
 func (c *submarinerConfigController) labelNode(ctx context.Context, config *configv1alpha1.SubmarinerConfig, node *corev1.Node) error {
 	_, hasGatewayLabel := node.Labels[submarinerGatewayLabel]
 	labeledPort, hasPortLabel := node.Labels[submarinerUDPPortLabel]
+
 	nattPort := strconv.Itoa(config.Spec.IPSecNATTPort)
 	if hasGatewayLabel && (hasPortLabel && labeledPort == nattPort) {
 		// the node has been labeled, do nothing
@@ -487,6 +487,7 @@ func (c *submarinerConfigController) updateNode(ctx context.Context, node *corev
 
 func (c *submarinerConfigController) unlabelNode(ctx context.Context, node *corev1.Node) error {
 	_, hasGatewayLabel := node.Labels[submarinerGatewayLabel]
+
 	_, hasPortLabel := node.Labels[submarinerUDPPortLabel]
 	if !hasGatewayLabel && !hasPortLabel {
 		// the node dose not have gateway and port labels, do nothing
@@ -520,6 +521,7 @@ func (c *submarinerConfigController) addGateways(ctx context.Context, config *co
 	}
 
 	names := []string{}
+
 	errs := []error{}
 	for _, gateway := range gateways {
 		errs = append(errs, c.labelNode(ctx, config, gateway))
@@ -713,6 +715,7 @@ func (c *submarinerConfigController) validateOCPVersion(ctx context.Context, con
 			Reason:  "UnsupportedOCPVersion",
 			Message: fmt.Sprintf("OCP version is %s, submariner OVN requires %s+", ocpVersion, constants.OCPVersionForOVNK),
 		}
+
 		updatedStatus, updated, err := addon.UpdateStatus(ctx, c.addOnClient, c.clusterName, addon.UpdateConditionFn(&ovnCondition))
 		if updated {
 			recorder.Eventf("ManagedClusterAddOnStatusUpdated", "Updated status conditions:  %#v",

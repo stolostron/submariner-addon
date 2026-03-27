@@ -19,6 +19,7 @@ func UpdateStatus(ctx context.Context, client configclient.SubmarinerConfigInter
 	updateFuncs ...UpdateStatusFunc,
 ) (*configv1alpha1.SubmarinerConfigStatus, bool, error) {
 	updated := false
+
 	var updatedStatus *configv1alpha1.SubmarinerConfigStatus
 
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
@@ -46,6 +47,7 @@ func UpdateStatus(ctx context.Context, client configclient.SubmarinerConfigInter
 		}
 
 		config.Status = *newStatus
+
 		updatedConfig, err := client.UpdateStatus(ctx, config, metav1.UpdateOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "error updating status SubmarinerConfig %q", name)

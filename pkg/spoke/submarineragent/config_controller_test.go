@@ -231,6 +231,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 				update, ok := a.(clientTesting.UpdateActionImpl)
 				if ok {
 					config, _ := update.Object.(*configv1alpha1.SubmarinerConfig)
+
 					c := meta.FindStatusCondition(config.Status.Conditions, gatewayConditionType)
 					if c != nil {
 						Expect(c.Status).To(Equal(metav1.ConditionTrue))
@@ -804,6 +805,7 @@ func (t *configControllerTestDriver) finalizeAddOn() {
 	Eventually(func() bool {
 		_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(t.addOn.Namespace).Get(context.TODO(),
 			t.addOn.Name, metav1.GetOptions{})
+
 		return apierrors.IsNotFound(err)
 	}).Should(BeTrue())
 }

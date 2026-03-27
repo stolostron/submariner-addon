@@ -285,6 +285,7 @@ var _ = Describe("Function Get", func() {
 				}
 
 				Expect(apiconfigv1.Install(scheme.Scheme)).To(Succeed())
+
 				obj := &unstructured.Unstructured{}
 				Expect(scheme.Scheme.Convert(apiServer, obj, nil)).To(Succeed())
 

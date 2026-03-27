@@ -67,6 +67,7 @@ func (o *AddOnOptions) Complete(ctx context.Context, kubeClient kubernetes.Inter
 	}
 
 	namespace := resource.GetCurrentNamespace(defaultNamespace)
+
 	podName := os.Getenv("POD_NAME")
 	if podName == "" {
 		return errors.New("the pod environment POD_NAME is required")
@@ -261,6 +262,7 @@ func createClusterRoleToAllowBrokerCRD(ctx context.Context, kubeClient *kubernet
 				},
 			},
 		}
+
 		_, err := kubeClient.RbacV1().ClusterRoles().Create(ctx, brokerClusterRole, metav1.CreateOptions{})
 		if err != nil {
 			return errors.Wrap(err, "error creating broker ClusterRole")

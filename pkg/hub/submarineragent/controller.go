@@ -256,6 +256,7 @@ func (c *submarinerAgentController) onManagedClusterSetChange(syncCtx factory.Sy
 	if err != nil {
 		return errors.Wrap(err, "error listing ManagedClusters")
 	}
+
 	for _, managedCluster := range managedClusters {
 		// enqueue the managed cluster to reconcile
 		syncCtx.Queue().Add(managedCluster.Name)
@@ -452,6 +453,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	if err != nil {
 		return err
 	}
+
 	for _, nodePlacement := range nodePlacements {
 		for k, v := range nodePlacement.NodeSelector {
 			brokerInfo.NodeSelector[k] = v
@@ -625,6 +627,7 @@ func newSubmarinerManifestWork(managedCluster *clusterv1.ManagedCluster, config 
 func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}, skipOperatorGroup bool,
 ) (*workv1.ManifestWork, error) {
 	files := []string{operatorNamespaceFile, agentRBACFile}
+
 	clusterProduct := getClusterProduct(managedCluster)
 	if clusterProduct == constants.ProductOCP || clusterProduct == constants.ProductROSA ||
 		clusterProduct == constants.ProductARO || clusterProduct == constants.ProductROKS ||
@@ -651,6 +654,7 @@ func newManifestWork(name, namespace string, config interface{}, files ...string
 		}
 
 		yamlData := assets.MustCreateAssetFromTemplate(file, template, config).Data
+
 		jsonData, err := yaml.YAMLToJSON(yamlData)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error converting YAML to JSON: %s", yamlData)
@@ -955,6 +959,7 @@ func (c *submarinerAgentController) getAddonDeploymentConfigs(managedClusterAddo
 		if config.Resource == addonDeploymentConfigResource && config.Group == addonDeploymentConfigGroup &&
 			config.DesiredConfig != nil {
 			name, namespace := config.DesiredConfig.Name, config.DesiredConfig.Namespace
+
 			deploymentConfig, err := c.deploymentConfigLister.AddOnDeploymentConfigs(namespace).Get(name)
 			if err != nil {
 				return nil, errors.Wrapf(err, "error getting AddonDeploymentConfig %q:%q", namespace, name)

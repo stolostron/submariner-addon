@@ -134,6 +134,7 @@ var _ = BeforeSuite(func() {
 			URL: "https://dummy:443",
 		},
 	}
+
 	_, err = clusterClient.ClusterV1().ManagedClusters().Create(context.Background(), localCluster, metav1.CreateOptions{})
 	if !apierrors.IsAlreadyExists(err) {
 		Expect(err).NotTo(HaveOccurred())

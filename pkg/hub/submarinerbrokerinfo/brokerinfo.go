@@ -189,6 +189,7 @@ func applyGlobalnetConfig(ctx context.Context, controllerClient controllerclient
 		}
 
 		status := reporter.Silent()
+
 		err = globalnet.AllocateAndUpdateGlobalCIDRConfigMap(ctx, controllerClient, brokerNamespace, &netconfig, status)
 		if err != nil {
 			return errors.Wrapf(err, "unable to allocate globalCIDR to cluster %q", clusterName)
@@ -316,6 +317,7 @@ func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient ku
 			}
 
 			secretName := namedCert.ServingCertificate.Name
+
 			secret, err := kubeClient.CoreV1().Secrets(ocpConfigNamespace).Get(ctx, secretName, metav1.GetOptions{})
 			if err != nil {
 				return nil, errors.Wrapf(err, "error retrieving Secret %q", secretName)
@@ -356,6 +358,7 @@ func getBrokerTokenAndCA(ctx context.Context, kubeClient kubernetes.Interface, d
 func getTokenSecretForSA(ctx context.Context, client kubernetes.Interface, sa *corev1.ServiceAccount,
 ) (*corev1.Secret, error) {
 	var secret *corev1.Secret
+
 	saSecrets, err := client.CoreV1().Secrets(sa.Namespace).List(ctx, metav1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector("type", string(corev1.SecretTypeServiceAccountToken)).String(),
 	})
