@@ -542,7 +542,6 @@ type testDriver struct {
 	manifestWorkClient *fakeworkclient.Clientset
 	configClient       configclient.Interface
 	addOnClient        addonclient.Interface
-	stop               context.CancelFunc
 	mockCtrl           *gomock.Controller
 	cloudProvider      *cloudFake.MockProvider
 }
@@ -685,9 +684,9 @@ func newTestDriver() *testDriver {
 			addOnInformerFactory.Addon().V1alpha1().AddOnDeploymentConfigs(),
 			events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
-		var ctx context.Context
+		ctx, stop := context.WithCancel(context.TODO())
 
-		ctx, t.stop = context.WithCancel(context.TODO())
+		DeferCleanup(func() { stop() })
 
 		clusterInformerFactory.Start(ctx.Done())
 		workInformerFactory.Start(ctx.Done())
@@ -707,7 +706,6 @@ func newTestDriver() *testDriver {
 	})
 
 	AfterEach(func() {
-		t.stop()
 		t.mockCtrl.Finish()
 	})
 

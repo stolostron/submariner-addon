@@ -165,7 +165,6 @@ type connStatusControllerTestDriver struct {
 	submariner       *submarinerv1alpha1.Submariner
 	routeAgents      []*submv1.RouteAgent
 	submarinerClient dynamic.ResourceInterface
-	stop             context.CancelFunc
 }
 
 func newConnStatusControllerTestDriver() *connStatusControllerTestDriver {
@@ -271,9 +270,9 @@ func newConnStatusControllerTestDriver() *connStatusControllerTestDriver {
 		controller := submarineragent.NewConnectionsStatusController(clusterName, t.addOnClient, submarinerInformer,
 			routeAgentInformer, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
-		var ctx context.Context
+		ctx, stop := context.WithCancel(context.TODO())
 
-		ctx, t.stop = context.WithCancel(context.TODO())
+		DeferCleanup(func() { stop() })
 
 		submarinerInformerFactory.Start(ctx.Done())
 		routeAgentInformerFactory.Start(ctx.Done())
@@ -281,10 +280,6 @@ func newConnStatusControllerTestDriver() *connStatusControllerTestDriver {
 		cache.WaitForCacheSync(ctx.Done(), submarinerInformer.Informer().HasSynced, routeAgentInformer.Informer().HasSynced)
 
 		go controller.Run(ctx, 1)
-	})
-
-	AfterEach(func() {
-		t.stop()
 	})
 
 	return t
