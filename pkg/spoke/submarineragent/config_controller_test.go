@@ -569,7 +569,6 @@ type configControllerTestDriver struct {
 	controller      factory.Controller
 	config          *configv1alpha1.SubmarinerConfig
 	nodes           []*corev1.Node
-	stop            context.CancelFunc
 	kubeClient      *kubeFake.Clientset
 	configClient    *configFake.Clientset
 	dynamicClient   *dynamicfake.FakeDynamicClient
@@ -650,9 +649,9 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 			OnSyncDefer:          GinkgoRecover,
 		})
 
-		var ctx context.Context
+		ctx, stop := context.WithCancel(context.TODO())
 
-		ctx, t.stop = context.WithCancel(context.TODO())
+		DeferCleanup(func() { stop() })
 
 		kubeInformerFactory.Start(ctx.Done())
 		configInformerFactory.Start(ctx.Done())
@@ -667,7 +666,6 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 	})
 
 	AfterEach(func() {
-		t.stop()
 		t.mockCtrl.Finish()
 	})
 

@@ -43,7 +43,6 @@ type brokerCRDsControllerTestDriver struct {
 	crdClient     *fake.Clientset
 	crd           *apiextensionsv1.CustomResourceDefinition
 	justBeforeRun func()
-	stop          context.CancelFunc
 }
 
 func newBrokerCRDsControllerTestDriver() *brokerCRDsControllerTestDriver {
@@ -64,19 +63,15 @@ func newBrokerCRDsControllerTestDriver() *brokerCRDsControllerTestDriver {
 		controller := submarinerbroker.NewCRDsController(t.crdClient,
 			informerFactory.Apiextensions().V1().CustomResourceDefinitions(), events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
-		var ctx context.Context
+		ctx, stop := context.WithCancel(context.TODO())
 
-		ctx, t.stop = context.WithCancel(context.TODO())
+		DeferCleanup(func() { stop() })
 
 		informerFactory.Start(ctx.Done())
 
 		cache.WaitForCacheSync(ctx.Done(), informerFactory.Apiextensions().V1().CustomResourceDefinitions().Informer().HasSynced)
 
 		go controller.Run(ctx, 1)
-	})
-
-	AfterEach(func() {
-		t.stop()
 	})
 
 	return t

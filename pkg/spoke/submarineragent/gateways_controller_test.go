@@ -111,7 +111,6 @@ type gatewaysControllerTestDriver struct {
 	managedClusterAddOnTestBase
 	kubeClient *kubeFake.Clientset
 	nodes      []*corev1.Node
-	stop       context.CancelFunc
 }
 
 func newGatewaysControllerTestDriver() *gatewaysControllerTestDriver {
@@ -135,19 +134,15 @@ func newGatewaysControllerTestDriver() *gatewaysControllerTestDriver {
 		controller := submarineragent.NewGatewaysStatusController(clusterName, t.addOnClient,
 			kubeInformerFactory.Core().V1().Nodes(), events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
-		var ctx context.Context
+		ctx, stop := context.WithCancel(context.TODO())
 
-		ctx, t.stop = context.WithCancel(context.TODO())
+		DeferCleanup(func() { stop() })
 
 		kubeInformerFactory.Start(ctx.Done())
 
 		cache.WaitForCacheSync(ctx.Done(), kubeInformerFactory.Core().V1().Nodes().Informer().HasSynced)
 
 		go controller.Run(ctx, 1)
-	})
-
-	AfterEach(func() {
-		t.stop()
 	})
 
 	return t

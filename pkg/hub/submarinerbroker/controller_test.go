@@ -302,7 +302,6 @@ type brokerControllerTestDriver struct {
 	addOnClient      *addonfake.Clientset
 	clusterMgmtAddon *addonv1alpha1.ClusterManagementAddOn
 	fakeDynClient    *dynamicfake.FakeDynamicClient
-	stop             context.CancelFunc
 }
 
 func newBrokerControllerTestDriver() *brokerControllerTestDriver {
@@ -373,9 +372,9 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 			},
 			events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
-		var ctx context.Context
+		ctx, stop := context.WithCancel(context.TODO())
 
-		ctx, t.stop = context.WithCancel(context.TODO())
+		DeferCleanup(func() { stop() })
 
 		clusterInformerFactory.Start(ctx.Done())
 		addOnInformerFactory.Start(ctx.Done())
@@ -386,10 +385,6 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().HasSynced)
 
 		go controller.Run(ctx, 1)
-	})
-
-	AfterEach(func() {
-		t.stop()
 	})
 
 	return t

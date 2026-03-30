@@ -355,7 +355,6 @@ type deploymentControllerTestDriver struct {
 	lighthouseAgentDeployment   *appsv1.Deployment
 	lighthouseCoreDNSDeployment *appsv1.Deployment
 	globalnetDaemonSet          *appsv1.DaemonSet
-	stop                        context.CancelFunc
 }
 
 func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
@@ -427,9 +426,9 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 			kubeInformerFactory.Apps().V1().DaemonSets(), kubeInformerFactory.Apps().V1().Deployments(),
 			subscriptionInformer, submarinerInformer, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
-		var ctx context.Context
+		ctx, stop := context.WithCancel(context.TODO())
 
-		ctx, t.stop = context.WithCancel(context.TODO())
+		DeferCleanup(func() { stop() })
 
 		kubeInformerFactory.Start(ctx.Done())
 		subscriptionInformerFactory.Start(ctx.Done())
@@ -439,10 +438,6 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 			kubeInformerFactory.Apps().V1().Deployments().Informer().HasSynced)
 
 		go controller.Run(ctx, 1)
-	})
-
-	AfterEach(func() {
-		t.stop()
 	})
 
 	return t
