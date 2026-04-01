@@ -776,7 +776,7 @@ func (c *submarinerAgentController) deleteClusterBrokerResources(ctx context.Con
 				LabelSelector: labels.Set(map[string]string{federate.ClusterIDLabelKey: clusterName}).String(),
 			})
 		if !apierrors.IsNotFound(err) {
-			errs = append(errs, err)
+			errs = append(errs, errors.Wrapf(err, "failed to delete %s", gvr.Resource))
 		}
 	}
 
@@ -792,7 +792,7 @@ func (c *submarinerAgentController) deleteClusterBrokerResources(ctx context.Con
 
 	listServiceImports := func() []unstructured.Unstructured {
 		siList, err := serviceImportClient.List(ctx, metav1.ListOptions{})
-		errs = append(errs, err)
+		errs = append(errs, errors.Wrap(err, "failed to list ServiceImports"))
 
 		if err != nil {
 			return nil
@@ -803,6 +803,7 @@ func (c *submarinerAgentController) deleteClusterBrokerResources(ctx context.Con
 
 	siList := listServiceImports()
 	for i := range siList {
+		siName := siList[i].GetName()
 		err := util.Update(ctx, coreresource.ForDynamic(serviceImportClient), &siList[i],
 			func(obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 				existing := coreresource.MustFromUnstructured(obj, &mcsv1a1.ServiceImport{})
@@ -826,7 +827,7 @@ func (c *submarinerAgentController) deleteClusterBrokerResources(ctx context.Con
 
 				return coreresource.MustToUnstructured(existing), nil
 			})
-		errs = append(errs, err)
+		errs = append(errs, errors.Wrapf(err, "failed to update ServiceImport %q", siName))
 	}
 
 	return errors.Wrapf(k8serrors.NewAggregate(errs), "error deleting broker resources for cluster %q", clusterName)
