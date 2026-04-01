@@ -597,7 +597,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 	}
 
 	if len(serviceAccounts.Items) > 1 {
-		return fmt.Errorf("one more than service accounts are found for %q", managedClusterName)
+		return fmt.Errorf("more than one service account found for %q", managedClusterName)
 	}
 
 	// Delete created secret if present
