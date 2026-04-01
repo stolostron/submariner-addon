@@ -418,7 +418,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	}
 
 	if apierrors.IsNotFound(err) {
-		_ = c.updateManagedClusterAddOnStatus(ctx, managedClusterAddOn, brokerNamespace, true)
+		c.updateManagedClusterAddOnStatus(ctx, managedClusterAddOn, brokerNamespace, true)
 		return fmt.Errorf("brokers.submariner.io object named %q missing in namespace %q", BrokerObjectName, brokerNamespace)
 	}
 
@@ -433,7 +433,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		return err
 	}
 
-	_ = c.updateManagedClusterAddOnStatus(ctx, managedClusterAddOn, brokerNamespace, false)
+	c.updateManagedClusterAddOnStatus(ctx, managedClusterAddOn, brokerNamespace, false)
 
 	// create submariner broker info with submariner config
 	brokerInfo, err := brokerinfo.Get(
@@ -522,7 +522,7 @@ func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Con
 
 func (c *submarinerAgentController) updateManagedClusterAddOnStatus(ctx context.Context,
 	managedClusterAddon *addonv1alpha1.ManagedClusterAddOn, brokerNamespace string, missing bool,
-) error {
+) {
 	condition := metav1.Condition{
 		Type: BrokerCfgApplied,
 	}
@@ -545,14 +545,13 @@ func (c *submarinerAgentController) updateManagedClusterAddOnStatus(ctx context.
 	_, updated, err := addon.UpdateStatus(ctx, c.addOnClient, managedClusterAddon.Namespace,
 		addon.UpdateConditionFn(&condition))
 	if err != nil {
-		return err //nolint:wrapcheck // No need to wrap here
+		logger.Errorf(err, "Error updating ManagedClusterAddOn status for cluster %q", managedClusterAddon.Namespace)
+		return
 	}
 
 	if updated {
 		c.eventRecorder.Eventf(reason, message)
 	}
-
-	return err //nolint:wrapcheck // No need to wrap here
 }
 
 func (c *submarinerAgentController) deleteManifestWork(ctx context.Context, name, clusterName string) error {
