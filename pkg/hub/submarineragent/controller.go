@@ -363,17 +363,17 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 	case submarinerManifestWork.DeletionTimestamp.IsZero():
 		return c.deleteManifestWork(ctx, SubmarinerCRManifestWorkName, managedClusterName)
 	default:
-		elapsed := time.Now().UTC().UnixMilli() - submarinerManifestWork.DeletionTimestamp.UTC().UnixMilli()
-		if elapsed < ManifestWorkDeletionTimeout.Milliseconds() {
+		elapsed := time.Since(submarinerManifestWork.DeletionTimestamp.Time)
+		if elapsed < ManifestWorkDeletionTimeout {
 			logger.Infof("ManifestWork %q for cluster %q is still deleting after %v - re-queueing",
-				SubmarinerCRManifestWorkName, managedClusterName, time.Millisecond*time.Duration(elapsed))
+				SubmarinerCRManifestWorkName, managedClusterName, elapsed)
 			syncCtx.Queue().AddAfter(managedClusterName, ManifestWorkDeletionRetryInterval)
 
 			return nil
 		}
 
 		logger.Infof("ManifestWork %q for cluster %q did not complete deletion after %v - finishing clean up",
-			SubmarinerCRManifestWorkName, managedClusterName, time.Millisecond*time.Duration(elapsed))
+			SubmarinerCRManifestWorkName, managedClusterName, elapsed)
 	}
 
 	if err := c.deleteClusterBrokerResources(ctx, managedClusterName, clusterSetName); err != nil {
