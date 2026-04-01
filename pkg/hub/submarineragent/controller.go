@@ -565,7 +565,7 @@ func (c *submarinerAgentController) deleteManifestWork(ctx context.Context, name
 		logger.Infof("Deleted manifestwork \"%s/%s\"", clusterName, name)
 		c.eventRecorder.Eventf("SubmarinerManifestWorksDeleted", "Deleted manifestwork %q",
 			fmt.Sprintf("%s/%s", clusterName, name))
-	case err != nil:
+	default:
 		return errors.Wrapf(err, "error deleting manifestwork %q from managed cluster %q", name, clusterName)
 	}
 
