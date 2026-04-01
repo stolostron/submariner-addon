@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	goerrors "errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -42,7 +43,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	k8serrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
@@ -830,7 +830,7 @@ func (c *submarinerAgentController) deleteClusterBrokerResources(ctx context.Con
 		errs = append(errs, errors.Wrapf(err, "failed to update ServiceImport %q", siName))
 	}
 
-	return errors.Wrapf(k8serrors.NewAggregate(errs), "error deleting broker resources for cluster %q", clusterName)
+	return errors.Wrapf(goerrors.Join(errs...), "error deleting broker resources for cluster %q", clusterName)
 }
 
 func (c *submarinerAgentController) deleteGlobalBrokerResourcesIfNecessary(ctx context.Context, clusterSetName string) error {
