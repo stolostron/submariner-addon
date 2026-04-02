@@ -2,8 +2,6 @@ package rhos
 
 import (
 	"context"
-	"crypto/tls"
-	"net/http"
 	"strings"
 
 	"github.com/gophercloud/gophercloud/v2"
@@ -11,7 +9,8 @@ import (
 	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
-	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
+	cloudreporter "github.com/stolostron/submariner-addon/pkg/cloud/reporter"
+	"github.com/stolostron/submariner-addon/pkg/cloud/tls"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
@@ -21,7 +20,7 @@ import (
 	"github.com/submariner-io/submariner/pkg/cni"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/utils/ptr"
 )
 
@@ -56,10 +55,11 @@ func NewProvider(ctx context.Context, info *provider.Info) (*rhosProvider, error
 		return nil, errors.New("the count of gateways is less than 1")
 	}
 
-	projectID, cloudEntry, providerClient, err := newClient(ctx, info.CredentialsSecret)
+	rep := cloudreporter.NewEventRecorderWrapper("RHOSCloudProvider", info.EventRecorder)
+
+	projectID, cloudEntry, providerClient, err := newClient(ctx, info.DynamicClient, rep, info.CredentialsSecret)
 	if err != nil {
-		klog.Errorf("Unable to retrieve the rhosclient :%v", err)
-		return nil, err
+		return nil, errors.Wrap(err, "unable to create the RHOS client")
 	}
 
 	k8sClient := k8s.NewInterface(info.KubeClient)
@@ -95,7 +95,7 @@ func NewProvider(ctx context.Context, info *provider.Info) (*rhosProvider, error
 		cniType:           info.NetworkType,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
-		reporter:          reporter.NewEventRecorderWrapper("RHOSCloudProvider", info.EventRecorder),
+		reporter:          rep,
 		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
 		gateways:          info.Gateways,
 	}, nil
@@ -152,7 +152,8 @@ func (r *rhosProvider) CleanUpSubmarinerClusterEnv(ctx context.Context) error {
 	return nil
 }
 
-func newClient(ctx context.Context, credentialsSecret *corev1.Secret) (string, string, *gophercloud.ProviderClient, error) {
+func newClient(ctx context.Context, dynamicClient dynamic.Interface, reporter submreporter.Interface, credentialsSecret *corev1.Secret,
+) (string, string, *gophercloud.ProviderClient, error) {
 	cloudsYAML, ok := credentialsSecret.Data[cloudsYAMLName]
 	if !ok {
 		return "", "", nil, errors.New("cloud yaml is not found in the credentials")
@@ -185,16 +186,24 @@ func newClient(ctx context.Context, credentialsSecret *corev1.Secret) (string, s
 
 	projectID := cloud.AuthInfo.ProjectID
 
-	providerClient, err := openstack.AuthenticatedClient(ctx, opts)
+	// Create unauthenticated client first
+	providerClient, err := openstack.NewClient(opts.IdentityEndpoint)
 	if err != nil {
-		return "", "", nil, errors.Wrap(err, "error authenticating client")
+		return "", "", nil, errors.Wrap(err, "error creating OpenStack client")
 	}
 
-	if !ptr.Deref(cloud.Verify, true) {
-		config := &tls.Config{InsecureSkipVerify: true} //nolint:gosec // Disabling certificate validation is explicitly requested
-		transport := http.DefaultTransport.(*http.Transport).Clone()
-		transport.TLSClientConfig = config
-		providerClient.HTTPClient = http.Client{Transport: transport}
+	// Configure HTTP client with TLS profile BEFORE authentication
+	httpClient, err := tls.GetConfiguredHTTPClient(ctx, dynamicClient, reporter, !ptr.Deref(cloud.Verify, true))
+	if err != nil {
+		return "", "", nil, errors.Wrap(err, "unable to create HTTP client")
+	}
+
+	providerClient.HTTPClient = *httpClient
+
+	// Now authenticate with the configured HTTP client
+	err = openstack.Authenticate(ctx, providerClient, opts)
+	if err != nil {
+		return "", "", nil, errors.Wrap(err, "error authenticating client")
 	}
 
 	return projectID, cloudNameStr, providerClient, nil
