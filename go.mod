@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
+	github.com/aws/aws-sdk-go-v2/config v1.32.10
 	github.com/coreos/go-semver v0.3.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gophercloud/gophercloud/v2 v2.12.0
@@ -57,7 +58,6 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.2 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.32.10 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.10 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.18 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.18 // indirect
