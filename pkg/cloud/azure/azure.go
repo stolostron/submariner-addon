@@ -6,10 +6,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
+	"github.com/stolostron/submariner-addon/pkg/cloud/tls"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
@@ -37,7 +40,7 @@ type azureProvider struct {
 	airGapped         bool
 }
 
-func NewProvider(info *provider.Info) (*azureProvider, error) {
+func NewProvider(ctx context.Context, info *provider.Info) (*azureProvider, error) {
 	if info.InfraID == "" {
 		return nil, errors.New("cluster infraID is empty")
 	}
@@ -56,7 +59,22 @@ func NewProvider(info *provider.Info) (*azureProvider, error) {
 		return nil, errors.Wrap(err, "unable to initialize from auth file")
 	}
 
-	credentials, err := azidentity.NewEnvironmentCredential(nil)
+	rep := reporter.NewEventRecorderWrapper("AzureCloudProvider", info.EventRecorder)
+
+	// Create HTTP client with TLS configuration BEFORE creating credentials
+	// This ensures the credential's token acquisition uses the cluster TLS profile
+	httpClient, err := tls.GetConfiguredHTTPClient(ctx, info.DynamicClient, rep, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create HTTP client")
+	}
+
+	// Create credentials with the TLS-configured HTTP client
+	// This ensures token requests respect the cluster TLS profile
+	credentials, err := azidentity.NewEnvironmentCredential(&azidentity.EnvironmentCredentialOptions{
+		ClientOptions: policy.ClientOptions{
+			Transport: httpClient,
+		},
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create the Azure credentials")
 	}
@@ -72,6 +90,11 @@ func NewProvider(info *provider.Info) (*azureProvider, error) {
 		BaseGroupName:   info.InfraID + "-rg",
 		TokenCredential: credentials,
 		K8sClient:       k8sClient,
+		ClientOptions: &arm.ClientOptions{
+			ClientOptions: policy.ClientOptions{
+				Transport: httpClient,
+			},
+		},
 	}
 
 	gwDeployer := azure.NewOcpGatewayDeployer(&cloudInfo, msDeployer, instanceType)
@@ -84,7 +107,7 @@ func NewProvider(info *provider.Info) (*azureProvider, error) {
 		cniType:           info.NetworkType,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
-		reporter:          reporter.NewEventRecorderWrapper("AzureCloudProvider", info.EventRecorder),
+		reporter:          rep,
 		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
 		gateways:          info.Gateways,
 		airGapped:         info.SubmarinerConfigSpec.AirGappedDeployment,
