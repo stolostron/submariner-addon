@@ -11,6 +11,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/openshift/api v0.0.0-20260317165824-54a3998d81eb
+	github.com/openshift/controller-runtime-common v0.0.0-20260318085703-1812aed6dbd2
 	github.com/openshift/library-go v0.0.0-20260318142011-72bf34f474bc
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.2
@@ -30,12 +31,12 @@ require (
 	k8s.io/code-generator v0.35.3
 	k8s.io/component-base v0.35.3
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
+	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	open-cluster-management.io/addon-framework v1.2.0
 	open-cluster-management.io/api v1.2.0
-	sigs.k8s.io/controller-runtime v0.23.0
+	sigs.k8s.io/controller-runtime v0.23.3
 	sigs.k8s.io/mcs-api v0.3.0
-	sigs.k8s.io/structured-merge-diff/v6 v6.3.1
+	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482
 )
 
 require (
@@ -175,6 +176,7 @@ require (
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
+	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260401024825-9d38bb4040a9 // indirect
 	google.golang.org/grpc v1.80.0 // indirect
