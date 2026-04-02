@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
+	"github.com/stolostron/submariner-addon/pkg/cloud/tls"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	cpapi "github.com/submariner-io/cloud-prepare/pkg/api"
@@ -66,7 +68,16 @@ func NewProvider(ctx context.Context, info *provider.Info) (*awsProvider, error)
 			info.CredentialsSecret.Name)
 	}
 
-	awsClient, err := cpclient.New(ctx, info.Region, cpclient.WithCredentials(string(accessKeyID), string(secretAccessKey)))
+	rep := reporter.NewEventRecorderWrapper("AWSCloudProvider", info.EventRecorder)
+
+	httpClient, err := tls.GetConfiguredHTTPClient(ctx, info.DynamicClient, rep, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create HTTP client")
+	}
+
+	awsClient, err := cpclient.New(ctx, info.Region,
+		cpclient.WithCredentials(string(accessKeyID), string(secretAccessKey)),
+		config.WithHTTPClient(httpClient))
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating AWS client")
 	}
@@ -108,7 +119,7 @@ func NewProvider(ctx context.Context, info *provider.Info) (*awsProvider, error)
 	}
 
 	return &awsProvider{
-		reporter:          reporter.NewEventRecorderWrapper("AWSCloudProvider", info.EventRecorder),
+		reporter:          rep,
 		nattPort:          int64(info.IPSecNATTPort),
 		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
 		cniType:           info.NetworkType,
