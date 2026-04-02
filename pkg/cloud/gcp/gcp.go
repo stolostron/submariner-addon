@@ -3,11 +3,13 @@ package gcp
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
+	"github.com/stolostron/submariner-addon/pkg/cloud/tls"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/cloud-prepare/pkg/api"
@@ -16,10 +18,12 @@ import (
 	"github.com/submariner-io/cloud-prepare/pkg/k8s"
 	"github.com/submariner-io/cloud-prepare/pkg/ocp"
 	"github.com/submariner-io/submariner/pkg/cni"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/option"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/klog/v2"
 )
 
@@ -53,7 +57,9 @@ func NewProvider(ctx context.Context, info *provider.Info) (*gcpProvider, error)
 		return nil, errors.New("the count of gateways is less than 1")
 	}
 
-	projectID, gcpClient, err := newClient(ctx, info.CredentialsSecret)
+	rep := reporter.NewEventRecorderWrapper("GCPCloudProvider", info.EventRecorder)
+
+	projectID, gcpClient, err := newClient(ctx, info.DynamicClient, rep, info.CredentialsSecret)
 	if err != nil {
 		klog.Errorf("Unable to retrieve the gcpclient :%v", err)
 		return nil, err
@@ -92,7 +98,7 @@ func NewProvider(ctx context.Context, info *provider.Info) (*gcpProvider, error)
 		cniType:           info.NetworkType,
 		cloudPrepare:      cloudPrepare,
 		gwDeployer:        gwDeployer,
-		reporter:          reporter.NewEventRecorderWrapper("GCPCloudProvider", info.EventRecorder),
+		reporter:          rep,
 		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
 		gateways:          info.Gateways,
 	}, nil
@@ -149,11 +155,19 @@ func (g *gcpProvider) CleanUpSubmarinerClusterEnv(ctx context.Context) error {
 	return nil
 }
 
-func newClient(ctx context.Context, credentialsSecret *corev1.Secret) (string, gcpclient.Interface, error) {
+func newClient(ctx context.Context, dynamicClient dynamic.Interface, rep submreporter.Interface, credentialsSecret *corev1.Secret,
+) (string, gcpclient.Interface, error) {
 	authJSON, ok := credentialsSecret.Data[gcpCredentialsName]
 	if !ok {
 		return "", nil, fmt.Errorf("the gcp credentials %s is not in secret %s/%s", gcpCredentialsName,
 			credentialsSecret.Namespace, credentialsSecret.Name)
+	}
+
+	// Create HTTP client with TLS configuration BEFORE setting up credentials
+	// This ensures the OAuth2 token acquisition also uses the cluster TLS profile
+	baseHTTPClient, err := tls.GetConfiguredHTTPClient(ctx, dynamicClient, rep, false)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "unable to create HTTP client")
 	}
 
 	// since we're using a single creds var, we should specify all the required scopes when initializing
@@ -163,8 +177,19 @@ func newClient(ctx context.Context, credentialsSecret *corev1.Secret) (string, g
 		return "", nil, errors.Wrap(err, "error retrieving credentials")
 	}
 
-	// Create a GCP client with the credentials.
-	computeClient, err := gcpclient.NewClient(ctx, creds.ProjectID, []option.ClientOption{option.WithCredentials(creds)})
+	// Wrap the TLS-configured transport with OAuth2 transport to apply service account authentication
+	// while preserving the cluster TLS profile settings
+	httpClient := &http.Client{
+		Transport: &oauth2.Transport{
+			Base:   baseHTTPClient.Transport,
+			Source: creds.TokenSource,
+		},
+	}
+
+	// Create a GCP client with the custom HTTP client (which includes both TLS config and auth)
+	computeClient, err := gcpclient.NewClient(ctx, creds.ProjectID, []option.ClientOption{
+		option.WithHTTPClient(httpClient),
+	})
 	if err != nil {
 		return "", nil, errors.Wrap(err, "error creating GCP client")
 	}
