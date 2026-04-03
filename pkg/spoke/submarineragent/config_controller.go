@@ -86,7 +86,7 @@ type submarinerConfigController struct {
 	namespace            string
 	cloudProviderFactory cloud.ProviderFactory
 	onSyncDefer          func()
-	knownConfigs         map[string]*configv1alpha1.SubmarinerConfig
+	lastKnownConfig      *configv1alpha1.SubmarinerConfig
 	logger               log.Logger
 }
 
@@ -123,7 +123,6 @@ func NewSubmarinerConfigController(input *SubmarinerConfigControllerInput) facto
 		namespace:            input.Namespace,
 		cloudProviderFactory: input.CloudProviderFactory,
 		onSyncDefer:          input.OnSyncDefer,
-		knownConfigs:         make(map[string]*configv1alpha1.SubmarinerConfig),
 		logger:               log.Logger{Logger: logf.Log.WithName(name)},
 	}
 
@@ -248,8 +247,7 @@ func (c *submarinerConfigController) syncConfig(ctx context.Context, recorder ev
 
 // skipSyncingUnchangedConfig if last submariner config is known and is equal to the given config.
 func (c *submarinerConfigController) skipSyncingUnchangedConfig(config *configv1alpha1.SubmarinerConfig) bool {
-	lastConfig, known := c.knownConfigs[config.Namespace]
-	return known && reflect.DeepEqual(lastConfig.Spec, config.Spec)
+	return c.lastKnownConfig != nil && reflect.DeepEqual(c.lastKnownConfig.Spec, config.Spec)
 }
 
 func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
@@ -343,7 +341,7 @@ func (c *submarinerConfigController) updateSubmarinerConfigStatus(ctx context.Co
 
 		// When all is well, the status is eventually updated with a "true" condition, allowing us to cache latest good known config
 		if condition.Status == metav1.ConditionTrue {
-			c.knownConfigs[config.Namespace] = config
+			c.lastKnownConfig = config
 		}
 	}
 
