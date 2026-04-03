@@ -367,19 +367,19 @@ func (c *submarinerConfigController) ensureGateways(ctx context.Context,
 		return failedConditionf("Error retrieving nodes: %v", err), err
 	}
 
-	currentGatewayNames := []string{}
+	currentGatewayNames := make([]string, 0, len(currentGateways))
 	for _, gateway := range currentGateways {
 		currentGatewayNames = append(currentGatewayNames, gateway.Name)
 	}
 
-	updatedGatewayNames := []string{}
+	updatedGatewayNames := make([]string, 0, config.Spec.Gateways)
 
 	requiredGateways := config.Spec.Gateways - len(currentGateways)
 
 	switch {
 	case requiredGateways == 0:
 		// number of gateways unchanged, ensure that the gateways are fully labeled
-		errs := []error{}
+		errs := make([]error, 0, len(currentGateways))
 		for _, gateway := range currentGateways {
 			errs = append(errs, c.labelNode(ctx, config, gateway))
 		}
@@ -518,9 +518,9 @@ func (c *submarinerConfigController) addGateways(ctx context.Context, config *co
 		return []string{}, err
 	}
 
-	names := []string{}
+	names := make([]string, 0, len(gateways))
 
-	errs := []error{}
+	errs := make([]error, 0, len(gateways))
 	for _, gateway := range gateways {
 		errs = append(errs, c.labelNode(ctx, config, gateway))
 		names = append(names, gateway.Name)
@@ -624,7 +624,7 @@ func (c *submarinerConfigController) updateGatewayStatus(ctx context.Context, re
 		return err
 	}
 
-	gatewayNames := []string{}
+	gatewayNames := make([]string, 0, len(gateways))
 	for _, gateway := range gateways {
 		gatewayNames = append(gatewayNames, gateway.Name)
 	}

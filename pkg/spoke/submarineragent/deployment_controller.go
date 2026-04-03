@@ -83,8 +83,8 @@ func getNestedString(obj *unstructured.Unstructured, fields ...string) string {
 }
 
 func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
-	degradedConditionReasons := []string{}
-	degradedConditionMessages := []string{}
+	degradedConditionReasons := make([]string, 0, 10)
+	degradedConditionMessages := make([]string, 0, 10)
 
 	runtimeSub, err := c.subscriptionLister.ByNamespace(c.namespace).Get(subscriptionName)
 	if apierrors.IsNotFound(err) {
