@@ -45,7 +45,7 @@ func NewProvider(ctx context.Context, info *provider.Info) (*gcpProvider, error)
 	}
 
 	instanceType := info.GatewayConfig.GCP.InstanceType
-	if instanceType != "" {
+	if instanceType == "" {
 		instanceType = gwInstanceType
 	}
 
