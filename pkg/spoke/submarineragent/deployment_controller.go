@@ -174,7 +174,8 @@ func (c *deploymentStatusController) checkDeployment(name, reasonName string, de
 	case err == nil:
 		if deployment.Status.AvailableReplicas == 0 {
 			*degradedConditionReasons = append(*degradedConditionReasons, fmt.Sprintf("No%sAvailable", reasonName))
-			*degradedConditionMessages = append(*degradedConditionMessages, fmt.Sprintf("There are no %s replica available", msgName))
+			*degradedConditionMessages = append(*degradedConditionMessages,
+				fmt.Sprintf("Deployment %s/%s has no replicas available", c.namespace, name))
 		}
 	case err != nil:
 		return errors.Wrapf(err, "error retrieving Deployment %q", name)
