@@ -55,9 +55,9 @@ func (t *managedClusterAddOnTestBase) init() {
 	t.addOnClient = addonFake.NewSimpleClientset()
 }
 
-func (t *managedClusterAddOnTestBase) run() {
+func (t *managedClusterAddOnTestBase) run(ctx context.Context) {
 	if t.addOn != nil {
-		_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(t.addOn.Namespace).Create(context.TODO(), t.addOn,
+		_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(t.addOn.Namespace).Create(ctx, t.addOn,
 			metav1.CreateOptions{})
 		Expect(err).To(Succeed())
 	}
@@ -65,9 +65,9 @@ func (t *managedClusterAddOnTestBase) run() {
 	t.addOnClient.ClearActions()
 }
 
-func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(expCond *metav1.Condition) {
+func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(ctx context.Context, expCond *metav1.Condition) {
 	test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
-		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.TODO(),
+		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(ctx,
 			constants.SubmarinerAddOnName, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
@@ -77,9 +77,9 @@ func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(ex
 	})
 }
 
-func (t *managedClusterAddOnTestBase) awaitNoManagedClusterAddOnStatusCondition(condType string) {
+func (t *managedClusterAddOnTestBase) awaitNoManagedClusterAddOnStatusCondition(ctx context.Context, condType string) {
 	Consistently(func() *metav1.Condition {
-		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.TODO(),
+		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(ctx,
 			constants.SubmarinerConfigName, metav1.GetOptions{})
 		Expect(err).To(Succeed())
 

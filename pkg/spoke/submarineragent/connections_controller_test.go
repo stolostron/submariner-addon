@@ -27,8 +27,8 @@ var _ = Describe("Connections Status Controller", func() {
 	t := newConnStatusControllerTestDriver()
 
 	When("all active gateway connections are established", func() {
-		It("should update the ManagedClusterAddOn status condition to connections established", func() {
-			t.awaitConnectionsEstablishedStatusCondition()
+		It("should update the ManagedClusterAddOn status condition to connections established", func(ctx context.Context) {
+			t.awaitConnectionsEstablishedStatusCondition(ctx)
 		})
 
 		Context("after initially not established", func() {
@@ -39,14 +39,14 @@ var _ = Describe("Connections Status Controller", func() {
 				t.submariner.Status.Gateways = nil
 			})
 
-			It("should transition the ManagedClusterAddOn status condition to connections established", func() {
-				t.awaitConnectionsNotEstablishedStatusCondition()
+			It("should transition the ManagedClusterAddOn status condition to connections established", func(ctx context.Context) {
+				t.awaitConnectionsNotEstablishedStatusCondition(ctx)
 
 				t.submariner.Status.Gateways = origGateways
-				_, err := t.submarinerClient.Update(context.TODO(), resource.MustToUnstructured(t.submariner), metav1.UpdateOptions{})
+				_, err := t.submarinerClient.Update(ctx, resource.MustToUnstructured(t.submariner), metav1.UpdateOptions{})
 				Expect(err).To(Succeed())
 
-				t.awaitConnectionsEstablishedStatusCondition()
+				t.awaitConnectionsEstablishedStatusCondition(ctx)
 			})
 		})
 	})
@@ -56,8 +56,8 @@ var _ = Describe("Connections Status Controller", func() {
 			(*t.submariner.Status.Gateways)[0].Connections[0].Status = submv1.Connecting
 		})
 
-		It("should update the ManagedClusterAddOn status condition to degraded", func() {
-			t.awaitConnectionsDegradedStatusCondition()
+		It("should update the ManagedClusterAddOn status condition to degraded", func(ctx context.Context) {
+			t.awaitConnectionsDegradedStatusCondition(ctx)
 		})
 	})
 
@@ -66,8 +66,8 @@ var _ = Describe("Connections Status Controller", func() {
 			(*t.submariner.Status.Gateways)[0].Connections[0].Status = submv1.ConnectionError
 		})
 
-		It("should update the ManagedClusterAddOn status condition as degraded", func() {
-			t.awaitConnectionsDegradedStatusCondition()
+		It("should update the ManagedClusterAddOn status condition as degraded", func(ctx context.Context) {
+			t.awaitConnectionsDegradedStatusCondition(ctx)
 		})
 	})
 
@@ -76,8 +76,8 @@ var _ = Describe("Connections Status Controller", func() {
 			t.submariner.Status.Gateways = nil
 		})
 
-		It("should update the ManagedClusterAddOn status condition to no connections present", func() {
-			t.awaitConnectionsNotEstablishedStatusCondition()
+		It("should update the ManagedClusterAddOn status condition to no connections present", func(ctx context.Context) {
+			t.awaitConnectionsNotEstablishedStatusCondition(ctx)
 		})
 	})
 
@@ -86,8 +86,8 @@ var _ = Describe("Connections Status Controller", func() {
 			t.submariner.Status.Gateways = &[]submv1.GatewayStatus{}
 		})
 
-		It("should update the ManagedClusterAddOn status condition to no connections present", func() {
-			t.awaitConnectionsNotEstablishedStatusCondition()
+		It("should update the ManagedClusterAddOn status condition to no connections present", func(ctx context.Context) {
+			t.awaitConnectionsNotEstablishedStatusCondition(ctx)
 		})
 	})
 
@@ -96,8 +96,8 @@ var _ = Describe("Connections Status Controller", func() {
 			(*t.submariner.Status.Gateways)[0].Connections = nil
 		})
 
-		It("should update the ManagedClusterAddOn status condition to no connections present", func() {
-			t.awaitConnectionsNotEstablishedStatusCondition()
+		It("should update the ManagedClusterAddOn status condition to no connections present", func(ctx context.Context) {
+			t.awaitConnectionsNotEstablishedStatusCondition(ctx)
 		})
 	})
 
@@ -107,8 +107,8 @@ var _ = Describe("Connections Status Controller", func() {
 				fakereactor.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
 			})
 
-			It("should eventually update it", func() {
-				t.awaitConnectionsEstablishedStatusCondition()
+			It("should eventually update it", func(ctx context.Context) {
+				t.awaitConnectionsEstablishedStatusCondition(ctx)
 			})
 		})
 
@@ -117,15 +117,15 @@ var _ = Describe("Connections Status Controller", func() {
 				fakereactor.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
 			})
 
-			It("should eventually update it", func() {
-				t.awaitConnectionsEstablishedStatusCondition()
+			It("should eventually update it", func(ctx context.Context) {
+				t.awaitConnectionsEstablishedStatusCondition(ctx)
 			})
 		})
 	})
 
 	When("when all RouteAgents have healthy connections", func() {
-		It("should update the ManagedClusterAddOn status condition to connections established", func() {
-			t.awaitRouteAgentsEstablishedStatusCondition()
+		It("should update the ManagedClusterAddOn status condition to connections established", func(ctx context.Context) {
+			t.awaitRouteAgentsEstablishedStatusCondition(ctx)
 		})
 	})
 
@@ -134,8 +134,8 @@ var _ = Describe("Connections Status Controller", func() {
 			t.routeAgents[0].Status.RemoteEndpoints[0].Status = submv1.Connecting
 		})
 
-		It("should update the ManagedClusterAddOn status condition to degraded", func() {
-			t.awaitRouteAgentsDegradedStatusCondition()
+		It("should update the ManagedClusterAddOn status condition to degraded", func(ctx context.Context) {
+			t.awaitRouteAgentsDegradedStatusCondition(ctx)
 		})
 	})
 
@@ -144,8 +144,8 @@ var _ = Describe("Connections Status Controller", func() {
 			t.routeAgents[0].Status.RemoteEndpoints[0].Status = submv1.ConnectionNone
 		})
 
-		It("should update the ManagedClusterAddOn status condition to connections established", func() {
-			t.awaitRouteAgentsEstablishedStatusCondition()
+		It("should update the ManagedClusterAddOn status condition to connections established", func(ctx context.Context) {
+			t.awaitRouteAgentsEstablishedStatusCondition(ctx)
 		})
 	})
 
@@ -154,8 +154,8 @@ var _ = Describe("Connections Status Controller", func() {
 			t.routeAgents[0].Status.RemoteEndpoints[0].Status = submv1.ConnectionError
 		})
 
-		It("should update the ManagedClusterAddOn status condition to degraded", func() {
-			t.awaitRouteAgentsDegradedStatusCondition()
+		It("should update the ManagedClusterAddOn status condition to degraded", func(ctx context.Context) {
+			t.awaitRouteAgentsDegradedStatusCondition(ctx)
 		})
 	})
 })
@@ -251,70 +251,71 @@ func newConnStatusControllerTestDriver() *connStatusControllerTestDriver {
 		t.managedClusterAddOnTestBase.init()
 	})
 
-	JustBeforeEach(func() {
+	JustBeforeEach(func(ctx context.Context) {
 		submarinerClient, submarinerInformerFactory, submarinerInformer := newDynamicClientWithInformer(submarinerNS)
 		t.submarinerClient = submarinerClient
 
 		routeAgentClient, routeAgentInformerFactory, routeAgentInformer := newDynamicClientWithInformer(submarinerNS)
 
-		_, err := t.submarinerClient.Create(context.TODO(), resource.MustToUnstructured(t.submariner), metav1.CreateOptions{})
+		_, err := t.submarinerClient.Create(ctx, resource.MustToUnstructured(t.submariner), metav1.CreateOptions{})
 		Expect(err).To(Succeed())
 
 		for i := range t.routeAgents {
-			_, err := routeAgentClient.Create(context.TODO(), resource.MustToUnstructured(t.routeAgents[i]), metav1.CreateOptions{})
+			_, err := routeAgentClient.Create(ctx, resource.MustToUnstructured(t.routeAgents[i]), metav1.CreateOptions{})
 			Expect(err).To(Succeed())
 		}
 
-		t.managedClusterAddOnTestBase.run()
+		t.managedClusterAddOnTestBase.run(ctx)
 
 		controller := submarineragent.NewConnectionsStatusController(clusterName, t.addOnClient, submarinerInformer,
 			routeAgentInformer, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
-		ctx, stop := context.WithCancel(context.TODO())
+		controllerCtx, stop := context.WithCancel(context.TODO())
 
 		DeferCleanup(func() { stop() })
 
-		submarinerInformerFactory.Start(ctx.Done())
-		routeAgentInformerFactory.Start(ctx.Done())
+		submarinerInformerFactory.Start(controllerCtx.Done())
+		routeAgentInformerFactory.Start(controllerCtx.Done())
 
-		cache.WaitForCacheSync(ctx.Done(), submarinerInformer.Informer().HasSynced, routeAgentInformer.Informer().HasSynced)
+		cache.WaitForCacheSync(controllerCtx.Done(), submarinerInformer.Informer().HasSynced, routeAgentInformer.Informer().HasSynced)
 
-		go controller.Run(ctx, 1)
+		//nolint:contextcheck // Need context.TODO() for long-running controller; passed ctx is request-scoped
+		go controller.Run(controllerCtx, 1)
 	})
 
 	return t
 }
 
-func (t *connStatusControllerTestDriver) awaitStatusCondition(status metav1.ConditionStatus, reason string) {
-	t.awaitManagedClusterAddOnStatusCondition(&metav1.Condition{
+func (t *connStatusControllerTestDriver) awaitStatusCondition(ctx context.Context, status metav1.ConditionStatus, reason string) {
+	t.awaitManagedClusterAddOnStatusCondition(ctx, &metav1.Condition{
 		Type:   connectionDegradedType,
 		Status: status,
 		Reason: reason,
 	})
 }
 
-func (t *connStatusControllerTestDriver) awaitConnectionsEstablishedStatusCondition() {
-	t.awaitStatusCondition(metav1.ConditionFalse, "ConnectionsEstablished")
+func (t *connStatusControllerTestDriver) awaitConnectionsEstablishedStatusCondition(ctx context.Context) {
+	t.awaitStatusCondition(ctx, metav1.ConditionFalse, "ConnectionsEstablished")
 }
 
-func (t *connStatusControllerTestDriver) awaitConnectionsNotEstablishedStatusCondition() {
-	t.awaitStatusCondition(metav1.ConditionTrue, "ConnectionsNotEstablished")
+func (t *connStatusControllerTestDriver) awaitConnectionsNotEstablishedStatusCondition(ctx context.Context) {
+	t.awaitStatusCondition(ctx, metav1.ConditionTrue, "ConnectionsNotEstablished")
 }
 
-func (t *connStatusControllerTestDriver) awaitConnectionsDegradedStatusCondition() {
-	t.awaitStatusCondition(metav1.ConditionTrue, "ConnectionsDegraded")
+func (t *connStatusControllerTestDriver) awaitConnectionsDegradedStatusCondition(ctx context.Context) {
+	t.awaitStatusCondition(ctx, metav1.ConditionTrue, "ConnectionsDegraded")
 }
 
-func (t *connStatusControllerTestDriver) awaitRouteAgentsDegradedStatusCondition() {
-	t.awaitRouteAgentStatusCondition(metav1.ConditionTrue, "ConnectionsDegraded")
+func (t *connStatusControllerTestDriver) awaitRouteAgentsDegradedStatusCondition(ctx context.Context) {
+	t.awaitRouteAgentStatusCondition(ctx, metav1.ConditionTrue, "ConnectionsDegraded")
 }
 
-func (t *connStatusControllerTestDriver) awaitRouteAgentsEstablishedStatusCondition() {
-	t.awaitRouteAgentStatusCondition(metav1.ConditionFalse, "ConnectionsEstablished")
+func (t *connStatusControllerTestDriver) awaitRouteAgentsEstablishedStatusCondition(ctx context.Context) {
+	t.awaitRouteAgentStatusCondition(ctx, metav1.ConditionFalse, "ConnectionsEstablished")
 }
 
-func (t *connStatusControllerTestDriver) awaitRouteAgentStatusCondition(status metav1.ConditionStatus, reason string) {
-	t.awaitManagedClusterAddOnStatusCondition(&metav1.Condition{
+func (t *connStatusControllerTestDriver) awaitRouteAgentStatusCondition(ctx context.Context, status metav1.ConditionStatus, reason string) {
+	t.awaitManagedClusterAddOnStatusCondition(ctx, &metav1.Condition{
 		Type:   routeAgentConnectionDegraded,
 		Status: status,
 		Reason: reason,

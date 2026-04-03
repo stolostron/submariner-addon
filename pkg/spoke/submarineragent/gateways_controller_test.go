@@ -34,34 +34,34 @@ var _ = Describe("Gateways Status Controller", func() {
 			}
 		})
 
-		It("should add the ManagedClusterAddOn condition with status True", func() {
-			t.awaitGatwaysLabeledCondition()
+		It("should add the ManagedClusterAddOn condition with status True", func(ctx context.Context) {
+			t.awaitGatwaysLabeledCondition(ctx)
 		})
 
 		Context("and is subsequently unlabeled", func() {
-			JustBeforeEach(func() {
-				t.awaitGatwaysLabeledCondition()
+			JustBeforeEach(func(ctx context.Context) {
+				t.awaitGatwaysLabeledCondition(ctx)
 			})
 
 			Context("by setting to false", func() {
-				It("should update the ManagedClusterAddOn condition with status False", func() {
+				It("should update the ManagedClusterAddOn condition with status False", func(ctx context.Context) {
 					labelGateway(t.nodes[1], false)
-					_, err := t.kubeClient.CoreV1().Nodes().Update(context.TODO(), t.nodes[1], metav1.UpdateOptions{})
+					_, err := t.kubeClient.CoreV1().Nodes().Update(ctx, t.nodes[1], metav1.UpdateOptions{})
 					Expect(err).To(Succeed())
 
-					t.awaitGatwaysNotLabeledCondition()
+					t.awaitGatwaysNotLabeledCondition(ctx)
 				})
 			})
 
 			Context("by removing it", func() {
-				It("should update the ManagedClusterAddOn condition with status False", func() {
-					t.awaitGatwaysLabeledCondition()
+				It("should update the ManagedClusterAddOn condition with status False", func(ctx context.Context) {
+					t.awaitGatwaysLabeledCondition(ctx)
 
 					delete(t.nodes[1].Labels, "submariner.io/gateway")
-					_, err := t.kubeClient.CoreV1().Nodes().Update(context.TODO(), t.nodes[1], metav1.UpdateOptions{})
+					_, err := t.kubeClient.CoreV1().Nodes().Update(ctx, t.nodes[1], metav1.UpdateOptions{})
 					Expect(err).To(Succeed())
 
-					t.awaitGatwaysNotLabeledCondition()
+					t.awaitGatwaysNotLabeledCondition(ctx)
 				})
 			})
 		})
@@ -74,13 +74,13 @@ var _ = Describe("Gateways Status Controller", func() {
 			}
 		})
 
-		It("should update the ManagedClusterAddOn condition with status True", func() {
-			t.awaitGatwaysNotLabeledCondition()
+		It("should update the ManagedClusterAddOn condition with status True", func(ctx context.Context) {
+			t.awaitGatwaysNotLabeledCondition(ctx)
 			labelGateway(t.nodes[0], true)
-			_, err := t.kubeClient.CoreV1().Nodes().Update(context.TODO(), t.nodes[0], metav1.UpdateOptions{})
+			_, err := t.kubeClient.CoreV1().Nodes().Update(ctx, t.nodes[0], metav1.UpdateOptions{})
 			Expect(err).To(Succeed())
 
-			t.awaitGatwaysLabeledCondition()
+			t.awaitGatwaysLabeledCondition(ctx)
 		})
 	})
 
@@ -90,8 +90,8 @@ var _ = Describe("Gateways Status Controller", func() {
 				fakereactor.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
 			})
 
-			It("should eventually update it", func() {
-				t.awaitGatwaysLabeledCondition()
+			It("should eventually update it", func(ctx context.Context) {
+				t.awaitGatwaysLabeledCondition(ctx)
 			})
 		})
 
@@ -100,8 +100,8 @@ var _ = Describe("Gateways Status Controller", func() {
 				fakereactor.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
 			})
 
-			It("should eventually update it", func() {
-				t.awaitGatwaysLabeledCondition()
+			It("should eventually update it", func(ctx context.Context) {
+				t.awaitGatwaysLabeledCondition(ctx)
 			})
 		})
 	})
@@ -121,47 +121,48 @@ func newGatewaysControllerTestDriver() *gatewaysControllerTestDriver {
 		t.managedClusterAddOnTestBase.init()
 	})
 
-	JustBeforeEach(func() {
+	JustBeforeEach(func(ctx context.Context) {
 		for _, node := range t.nodes {
-			_, err := t.kubeClient.CoreV1().Nodes().Create(context.TODO(), node, metav1.CreateOptions{})
+			_, err := t.kubeClient.CoreV1().Nodes().Create(ctx, node, metav1.CreateOptions{})
 			Expect(err).To(Succeed())
 		}
 
 		kubeInformerFactory := kubeInformers.NewSharedInformerFactory(t.kubeClient, 0)
 
-		t.managedClusterAddOnTestBase.run()
+		t.managedClusterAddOnTestBase.run(ctx)
 
 		controller := submarineragent.NewGatewaysStatusController(clusterName, t.addOnClient,
 			kubeInformerFactory.Core().V1().Nodes(), events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
-		ctx, stop := context.WithCancel(context.TODO())
+		controllerCtx, stop := context.WithCancel(context.TODO())
 
 		DeferCleanup(func() { stop() })
 
-		kubeInformerFactory.Start(ctx.Done())
+		kubeInformerFactory.Start(controllerCtx.Done())
 
-		cache.WaitForCacheSync(ctx.Done(), kubeInformerFactory.Core().V1().Nodes().Informer().HasSynced)
+		cache.WaitForCacheSync(controllerCtx.Done(), kubeInformerFactory.Core().V1().Nodes().Informer().HasSynced)
 
-		go controller.Run(ctx, 1)
+		//nolint:contextcheck // Need context.TODO() for long-running controller; passed ctx is request-scoped
+		go controller.Run(controllerCtx, 1)
 	})
 
 	return t
 }
 
-func (t *gatewaysControllerTestDriver) awaitStatusCondition(status metav1.ConditionStatus, reason string) {
-	t.awaitManagedClusterAddOnStatusCondition(&metav1.Condition{
+func (t *gatewaysControllerTestDriver) awaitStatusCondition(ctx context.Context, status metav1.ConditionStatus, reason string) {
+	t.awaitManagedClusterAddOnStatusCondition(ctx, &metav1.Condition{
 		Type:   gatewayNodesLabeledType,
 		Status: status,
 		Reason: reason,
 	})
 }
 
-func (t *gatewaysControllerTestDriver) awaitGatwaysNotLabeledCondition() {
-	t.awaitStatusCondition(metav1.ConditionFalse, "SubmarinerGatewayNodesUnlabeled")
+func (t *gatewaysControllerTestDriver) awaitGatwaysNotLabeledCondition(ctx context.Context) {
+	t.awaitStatusCondition(ctx, metav1.ConditionFalse, "SubmarinerGatewayNodesUnlabeled")
 }
 
-func (t *gatewaysControllerTestDriver) awaitGatwaysLabeledCondition() {
-	t.awaitStatusCondition(metav1.ConditionTrue, "SubmarinerGatewayNodesLabeled")
+func (t *gatewaysControllerTestDriver) awaitGatwaysLabeledCondition(ctx context.Context) {
+	t.awaitStatusCondition(ctx, metav1.ConditionTrue, "SubmarinerGatewayNodesLabeled")
 }
 
 func newGatewayNode(name string) *corev1.Node {
