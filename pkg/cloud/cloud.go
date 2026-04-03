@@ -59,7 +59,7 @@ func init() {
 	})
 
 	RegisterProvider("Azure", func(info *provider.Info) (Provider, error) {
-		return azure.NewProvider(info)
+		return azure.NewProvider(context.TODO(), info)
 	})
 }
 

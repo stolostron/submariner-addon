@@ -3,7 +3,9 @@ module github.com/stolostron/submariner-addon
 go 1.25.0
 
 require (
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
+	github.com/aws/aws-sdk-go-v2/config v1.32.10
 	github.com/coreos/go-semver v0.3.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gophercloud/gophercloud/v2 v2.11.1
@@ -11,6 +13,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/openshift/api v0.0.0-20260317165824-54a3998d81eb
+	github.com/openshift/controller-runtime-common v0.0.0-20260318085703-1812aed6dbd2
 	github.com/openshift/library-go v0.0.0-20260318142011-72bf34f474bc
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.2
@@ -30,12 +33,12 @@ require (
 	k8s.io/code-generator v0.35.3
 	k8s.io/component-base v0.35.3
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
+	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	open-cluster-management.io/addon-framework v1.2.0
 	open-cluster-management.io/api v1.2.0
-	sigs.k8s.io/controller-runtime v0.23.0
+	sigs.k8s.io/controller-runtime v0.23.3
 	sigs.k8s.io/mcs-api v0.3.0
-	sigs.k8s.io/structured-merge-diff/v6 v6.3.1
+	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482
 )
 
 require (
@@ -44,7 +47,6 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	dario.cat/mergo v1.0.1 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v7 v7.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v8 v8.0.0 // indirect
@@ -56,7 +58,6 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.2 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.32.10 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.10 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.18 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.18 // indirect
@@ -175,6 +176,7 @@ require (
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
+	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260316180232-0b37fe3546d5 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/grpc v1.79.3 // indirect

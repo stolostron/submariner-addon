@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/cloud/provider"
 	"github.com/stolostron/submariner-addon/pkg/cloud/reporter"
+	"github.com/stolostron/submariner-addon/pkg/cloud/tls"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	submreporter "github.com/submariner-io/admiral/pkg/reporter"
 	cpapi "github.com/submariner-io/cloud-prepare/pkg/api"
@@ -66,39 +68,21 @@ func NewProvider(ctx context.Context, info *provider.Info) (*awsProvider, error)
 			info.CredentialsSecret.Name)
 	}
 
-	awsClient, err := cpclient.New(ctx, info.Region, cpclient.WithCredentials(string(accessKeyID), string(secretAccessKey)))
+	rep := reporter.NewEventRecorderWrapper("AWSCloudProvider", info.EventRecorder)
+
+	httpClient, err := tls.GetConfiguredHTTPClient(ctx, info.DynamicClient, rep, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create HTTP client")
+	}
+
+	awsClient, err := cpclient.New(ctx, info.Region,
+		cpclient.WithCredentials(string(accessKeyID), string(secretAccessKey)),
+		config.WithHTTPClient(httpClient))
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating AWS client")
 	}
 
-	var cloudOptions []cpaws.CloudOption
-
-	if info.SubmarinerConfigAnnotations != nil {
-		annotations := info.SubmarinerConfigAnnotations
-
-		if vpcID, exists := annotations["submariner.io/vpc-id"]; exists {
-			cloudOptions = append(cloudOptions, cpaws.WithVPCName(vpcID))
-		}
-
-		if subnetIDList, exists := annotations["submariner.io/subnet-id-list"]; exists {
-			subnetIDs := strings.Split(subnetIDList, ",")
-			for i := range subnetIDs {
-				subnetIDs[i] = strings.TrimSpace(subnetIDs[i])
-			}
-
-			cloudOptions = append(cloudOptions, cpaws.WithPublicSubnetList(subnetIDs))
-		}
-
-		if controlPlaneSGID, exists := annotations["submariner.io/control-plane-sg-id"]; exists {
-			cloudOptions = append(cloudOptions, cpaws.WithControlPlaneSecurityGroup(controlPlaneSGID))
-		}
-
-		if workerSGID, exists := annotations["submariner.io/worker-sg-id"]; exists {
-			cloudOptions = append(cloudOptions, cpaws.WithWorkerSecurityGroup(workerSGID))
-		}
-	}
-
-	cloudPrepare := cpaws.NewCloud(awsClient, info.InfraID, info.Region, cloudOptions...)
+	cloudPrepare := cpaws.NewCloud(awsClient, info.InfraID, info.Region, getCloudOptions(info)...)
 
 	machineSetDeployer := ocp.NewK8sMachinesetDeployer(info.RestMapper, info.DynamicClient)
 
@@ -108,7 +92,7 @@ func NewProvider(ctx context.Context, info *provider.Info) (*awsProvider, error)
 	}
 
 	return &awsProvider{
-		reporter:          reporter.NewEventRecorderWrapper("AWSCloudProvider", info.EventRecorder),
+		reporter:          rep,
 		nattPort:          int64(info.IPSecNATTPort),
 		nattDiscoveryPort: int64(info.NATTDiscoveryPort),
 		cniType:           info.NetworkType,
@@ -162,4 +146,35 @@ func (a *awsProvider) CleanUpSubmarinerClusterEnv(ctx context.Context) error {
 	a.reporter.Success("The Submariner cluster environment has been cleaned up on AWS")
 
 	return nil
+}
+
+func getCloudOptions(info *provider.Info) []cpaws.CloudOption {
+	var cloudOptions []cpaws.CloudOption
+
+	if info.SubmarinerConfigAnnotations != nil {
+		annotations := info.SubmarinerConfigAnnotations
+
+		if vpcID, exists := annotations["submariner.io/vpc-id"]; exists {
+			cloudOptions = append(cloudOptions, cpaws.WithVPCName(vpcID))
+		}
+
+		if subnetIDList, exists := annotations["submariner.io/subnet-id-list"]; exists {
+			subnetIDs := strings.Split(subnetIDList, ",")
+			for i := range subnetIDs {
+				subnetIDs[i] = strings.TrimSpace(subnetIDs[i])
+			}
+
+			cloudOptions = append(cloudOptions, cpaws.WithPublicSubnetList(subnetIDs))
+		}
+
+		if controlPlaneSGID, exists := annotations["submariner.io/control-plane-sg-id"]; exists {
+			cloudOptions = append(cloudOptions, cpaws.WithControlPlaneSecurityGroup(controlPlaneSGID))
+		}
+
+		if workerSGID, exists := annotations["submariner.io/worker-sg-id"]; exists {
+			cloudOptions = append(cloudOptions, cpaws.WithWorkerSecurityGroup(workerSGID))
+		}
+	}
+
+	return cloudOptions
 }
