@@ -16,7 +16,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/submariner-io/admiral v0.22.1
-	github.com/submariner-io/cloud-prepare v0.22.1
+	github.com/submariner-io/cloud-prepare v0.22.2-0.20260401061352-c862180499f9
 	github.com/submariner-io/submariner v0.22.1
 	github.com/submariner-io/submariner-operator v0.22.1
 	go.uber.org/mock v0.6.0
