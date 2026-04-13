@@ -33,7 +33,7 @@ const (
 	catalogName                   = "submariner"
 	defaultCatalogSource          = "redhat-operators"
 	defaultCatalogSourceNamespace = "openshift-marketplace"
-	defaultCatalogChannel         = "stable-0.22"
+	defaultCatalogChannel         = "stable-0.23"
 	defaultCableDriver            = "libreswan"
 	defaultInstallationNamespace  = "open-cluster-management-agent-addon"
 	brokerAPIServer               = "BROKER_API_SERVER"
