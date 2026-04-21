@@ -30,8 +30,8 @@ var _ = Describe("Deployment Status Controller", func() {
 	t := newDeploymentControllerTestDriver()
 
 	When("all components are deployed", func() {
-		It("should update the ManagedClusterAddOn status condition to deployed", func() {
-			t.awaitStatusConditionDeployed()
+		It("should update the ManagedClusterAddOn status condition to deployed", func(ctx context.Context) {
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -40,8 +40,8 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.subscription = nil
 		})
 
-		It("should not update the ManagedClusterAddOn status condition", func() {
-			t.awaitNoManagedClusterAddOnStatusCondition(deploymentDegradedType)
+		It("should not update the ManagedClusterAddOn status condition", func(ctx context.Context) {
+			t.awaitNoManagedClusterAddOnStatusCondition(ctx, deploymentDegradedType)
 		})
 	})
 
@@ -50,13 +50,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			util.SetNestedField(t.subscription.Object, "", util.StatusField, "installedCSV")
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "CSVNotInstalled")
+		It("should eventually update the ManagedClusterAddOn status condition to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "CSVNotInstalled")
 
 			util.SetNestedField(t.subscription.Object, "submariner-csv", util.StatusField, "installedCSV")
-			t.updateSubscription()
+			t.updateSubscription(ctx)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -65,13 +65,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.operatorDeployment = nil
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoOperatorDeployment")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoOperatorDeployment")
 
 			t.operatorDeployment = newOperatorDeployment()
-			t.createOperatorDeployment()
+			t.createOperatorDeployment(ctx)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -80,13 +80,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.operatorDeployment.Status.AvailableReplicas = 0
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoOperatorAvailable")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoOperatorAvailable")
 
 			t.operatorDeployment.Status.AvailableReplicas = 1
-			t.updateDeployment(t.operatorDeployment)
+			t.updateDeployment(ctx, t.operatorDeployment)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -95,13 +95,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.gatewayDaemonSet = nil
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoGatewayDaemonSet")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoGatewayDaemonSet")
 
 			t.gatewayDaemonSet = newGatewayDaemonSet()
-			t.createDaemonSet(t.gatewayDaemonSet)
+			t.createDaemonSet(ctx, t.gatewayDaemonSet)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -110,13 +110,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.gatewayDaemonSet.Status.NumberUnavailable = 1
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "GatewaysUnavailable")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "GatewaysUnavailable")
 
 			t.gatewayDaemonSet.Status.NumberUnavailable = 0
-			t.updateDaemonSet(t.gatewayDaemonSet)
+			t.updateDaemonSet(ctx, t.gatewayDaemonSet)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -125,13 +125,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.gatewayDaemonSet.Status.DesiredNumberScheduled = 0
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoScheduledGateways")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoScheduledGateways")
 
 			t.gatewayDaemonSet.Status.DesiredNumberScheduled = 1
-			t.updateDaemonSet(t.gatewayDaemonSet)
+			t.updateDaemonSet(ctx, t.gatewayDaemonSet)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -140,13 +140,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.routeAgentDaemonSet = nil
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoRouteAgentDaemonSet")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoRouteAgentDaemonSet")
 
 			t.routeAgentDaemonSet = newRouteAgentDaemonSet()
-			t.createDaemonSet(t.routeAgentDaemonSet)
+			t.createDaemonSet(ctx, t.routeAgentDaemonSet)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -155,13 +155,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.routeAgentDaemonSet.Status.NumberUnavailable = 1
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "RouteAgentsUnavailable")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "RouteAgentsUnavailable")
 
 			t.routeAgentDaemonSet.Status.NumberUnavailable = 0
-			t.updateDaemonSet(t.routeAgentDaemonSet)
+			t.updateDaemonSet(ctx, t.routeAgentDaemonSet)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -170,13 +170,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.metricsProxyDaemonSet = nil
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoMetricsProxyDaemonSet")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoMetricsProxyDaemonSet")
 
 			t.metricsProxyDaemonSet = newMetricsProxyDaemonSet()
-			t.createDaemonSet(t.metricsProxyDaemonSet)
+			t.createDaemonSet(ctx, t.metricsProxyDaemonSet)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -185,13 +185,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.metricsProxyDaemonSet.Status.NumberUnavailable = 1
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "MetricsProxyUnavailable")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "MetricsProxyUnavailable")
 
 			t.metricsProxyDaemonSet.Status.NumberUnavailable = 0
-			t.updateDaemonSet(t.metricsProxyDaemonSet)
+			t.updateDaemonSet(ctx, t.metricsProxyDaemonSet)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -200,13 +200,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.metricsProxyDaemonSet.Status.DesiredNumberScheduled = 0
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoScheduledMetricsProxy")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoScheduledMetricsProxy")
 
 			t.metricsProxyDaemonSet.Status.DesiredNumberScheduled = 1
-			t.updateDaemonSet(t.metricsProxyDaemonSet)
+			t.updateDaemonSet(ctx, t.metricsProxyDaemonSet)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -215,13 +215,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.lighthouseAgentDeployment = nil
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoLighthouseAgentDeployment")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoLighthouseAgentDeployment")
 
 			t.lighthouseAgentDeployment = newLighthouseAgentDeployment()
-			t.createLighthouseAgentDeployment()
+			t.createLighthouseAgentDeployment(ctx)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -230,13 +230,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.lighthouseAgentDeployment.Status.AvailableReplicas = 0
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoLighthouseAgentAvailable")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoLighthouseAgentAvailable")
 
 			t.lighthouseAgentDeployment.Status.AvailableReplicas = 1
-			t.updateDeployment(t.lighthouseAgentDeployment)
+			t.updateDeployment(ctx, t.lighthouseAgentDeployment)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -245,13 +245,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.lighthouseCoreDNSDeployment = nil
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoLighthouseCoreDNSDeployment")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoLighthouseCoreDNSDeployment")
 
 			t.lighthouseCoreDNSDeployment = newLighthouseCoreDNSDeployment()
-			t.createLighthouseCoreDNSDeployment()
+			t.createLighthouseCoreDNSDeployment(ctx)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -260,13 +260,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.lighthouseCoreDNSDeployment.Status.AvailableReplicas = 0
 		})
 
-		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-			t.awaitStatusCondition(metav1.ConditionTrue, "NoLighthouseCoreDNSAvailable")
+		It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+			t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoLighthouseCoreDNSAvailable")
 
 			t.lighthouseCoreDNSDeployment.Status.AvailableReplicas = 1
-			t.updateDeployment(t.lighthouseCoreDNSDeployment)
+			t.updateDeployment(ctx, t.lighthouseCoreDNSDeployment)
 
-			t.awaitStatusConditionDeployed()
+			t.awaitStatusConditionDeployed(ctx)
 		})
 	})
 
@@ -275,13 +275,13 @@ var _ = Describe("Deployment Status Controller", func() {
 			t.submariner.Spec.GlobalCIDR = "242.0.0.0/16"
 		})
 		When("the globalnet daemon set doesn't initially exist", func() {
-			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-				t.awaitStatusCondition(metav1.ConditionTrue, "NoGlobalnetDaemonSet")
+			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+				t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoGlobalnetDaemonSet")
 
 				t.globalnetDaemonSet = newGlobalnetDaemonSet()
-				t.createDaemonSet(t.globalnetDaemonSet)
+				t.createDaemonSet(ctx, t.globalnetDaemonSet)
 
-				t.awaitStatusConditionDeployed()
+				t.awaitStatusConditionDeployed(ctx)
 			})
 		})
 
@@ -291,13 +291,13 @@ var _ = Describe("Deployment Status Controller", func() {
 				t.globalnetDaemonSet.Status.NumberUnavailable = 1
 			})
 
-			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-				t.awaitStatusCondition(metav1.ConditionTrue, "GlobalnetUnavailable")
+			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+				t.awaitStatusCondition(ctx, metav1.ConditionTrue, "GlobalnetUnavailable")
 
 				t.globalnetDaemonSet.Status.NumberUnavailable = 0
-				t.updateDaemonSet(t.globalnetDaemonSet)
+				t.updateDaemonSet(ctx, t.globalnetDaemonSet)
 
-				t.awaitStatusConditionDeployed()
+				t.awaitStatusConditionDeployed(ctx)
 			})
 		})
 
@@ -307,13 +307,13 @@ var _ = Describe("Deployment Status Controller", func() {
 				t.globalnetDaemonSet.Status.DesiredNumberScheduled = 0
 			})
 
-			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func() {
-				t.awaitStatusCondition(metav1.ConditionTrue, "NoScheduledGlobalnet")
+			It("should eventually update the ManagedClusterAddOn status condition from degraded to deployed", func(ctx context.Context) {
+				t.awaitStatusCondition(ctx, metav1.ConditionTrue, "NoScheduledGlobalnet")
 
 				t.globalnetDaemonSet.Status.DesiredNumberScheduled = 1
-				t.updateDaemonSet(t.globalnetDaemonSet)
+				t.updateDaemonSet(ctx, t.globalnetDaemonSet)
 
-				t.awaitStatusConditionDeployed()
+				t.awaitStatusConditionDeployed(ctx)
 			})
 		})
 	})
@@ -324,8 +324,8 @@ var _ = Describe("Deployment Status Controller", func() {
 				fakereactor.FailOnAction(&t.addOnClient.Fake, "managedclusteraddons", "update", nil, true)
 			})
 
-			It("should eventually update it", func() {
-				t.awaitStatusConditionDeployed()
+			It("should eventually update it", func(ctx context.Context) {
+				t.awaitStatusConditionDeployed(ctx)
 			})
 		})
 
@@ -334,8 +334,8 @@ var _ = Describe("Deployment Status Controller", func() {
 				fakereactor.ConflictOnUpdateReactor(&t.addOnClient.Fake, "managedclusteraddons")
 			})
 
-			It("should eventually update it", func() {
-				t.awaitStatusConditionDeployed()
+			It("should eventually update it", func(ctx context.Context) {
+				t.awaitStatusConditionDeployed(ctx)
 			})
 		})
 	})
@@ -375,7 +375,7 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 		t.globalnetDaemonSet = nil
 	})
 
-	JustBeforeEach(func() {
+	JustBeforeEach(func(ctx context.Context) {
 		subscriptionClient, subscriptionInformerFactory, subscriptionInformer := newDynamicClientWithInformer(submarinerNS)
 		t.subscriptionClient = subscriptionClient
 
@@ -383,121 +383,122 @@ func newDeploymentControllerTestDriver() *deploymentControllerTestDriver {
 		t.submarinerClient = submarinerClient
 
 		if t.subscription != nil {
-			t.createSubscription()
+			t.createSubscription(ctx)
 		}
 
 		if t.submariner != nil {
-			t.createSubmariner()
+			t.createSubmariner(ctx)
 		}
 
 		if t.operatorDeployment != nil {
-			t.createOperatorDeployment()
+			t.createOperatorDeployment(ctx)
 		}
 
 		if t.gatewayDaemonSet != nil {
-			t.createDaemonSet(t.gatewayDaemonSet)
+			t.createDaemonSet(ctx, t.gatewayDaemonSet)
 		}
 
 		if t.routeAgentDaemonSet != nil {
-			t.createDaemonSet(t.routeAgentDaemonSet)
+			t.createDaemonSet(ctx, t.routeAgentDaemonSet)
 		}
 
 		if t.metricsProxyDaemonSet != nil {
-			t.createDaemonSet(t.metricsProxyDaemonSet)
+			t.createDaemonSet(ctx, t.metricsProxyDaemonSet)
 		}
 
 		if t.lighthouseAgentDeployment != nil {
-			t.createLighthouseAgentDeployment()
+			t.createLighthouseAgentDeployment(ctx)
 		}
 
 		if t.lighthouseCoreDNSDeployment != nil {
-			t.createLighthouseCoreDNSDeployment()
+			t.createLighthouseCoreDNSDeployment(ctx)
 		}
 
 		if t.globalnetDaemonSet != nil {
-			t.createDaemonSet(t.globalnetDaemonSet)
+			t.createDaemonSet(ctx, t.globalnetDaemonSet)
 		}
 
 		kubeInformerFactory := kubeInformers.NewSharedInformerFactory(t.kubeClient, 0)
 
-		t.managedClusterAddOnTestBase.run()
+		t.managedClusterAddOnTestBase.run(ctx)
 
 		controller := submarineragent.NewDeploymentStatusController(clusterName, submarinerNS, t.addOnClient,
 			kubeInformerFactory.Apps().V1().DaemonSets(), kubeInformerFactory.Apps().V1().Deployments(),
 			subscriptionInformer, submarinerInformer, events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
-		ctx, stop := context.WithCancel(context.TODO())
+		controllerCtx, stop := context.WithCancel(context.TODO())
 
 		DeferCleanup(func() { stop() })
 
-		kubeInformerFactory.Start(ctx.Done())
-		subscriptionInformerFactory.Start(ctx.Done())
-		submarinerInformerFactory.Start(ctx.Done())
+		kubeInformerFactory.Start(controllerCtx.Done())
+		subscriptionInformerFactory.Start(controllerCtx.Done())
+		submarinerInformerFactory.Start(controllerCtx.Done())
 
-		cache.WaitForCacheSync(ctx.Done(), kubeInformerFactory.Apps().V1().DaemonSets().Informer().HasSynced,
+		cache.WaitForCacheSync(controllerCtx.Done(), kubeInformerFactory.Apps().V1().DaemonSets().Informer().HasSynced,
 			kubeInformerFactory.Apps().V1().Deployments().Informer().HasSynced)
 
-		go controller.Run(ctx, 1)
+		//nolint:contextcheck // Need context.TODO() for long-running controller; passed ctx is request-scoped
+		go controller.Run(controllerCtx, 1)
 	})
 
 	return t
 }
 
-func (t *deploymentControllerTestDriver) createSubscription() {
-	_, err := t.subscriptionClient.Create(context.TODO(), t.subscription.DeepCopy(), metav1.CreateOptions{})
+func (t *deploymentControllerTestDriver) createSubscription(ctx context.Context) {
+	_, err := t.subscriptionClient.Create(ctx, t.subscription.DeepCopy(), metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *deploymentControllerTestDriver) createSubmariner() {
-	_, err := t.submarinerClient.Create(context.TODO(), resource.MustToUnstructured(t.submariner), metav1.CreateOptions{})
+func (t *deploymentControllerTestDriver) createSubmariner(ctx context.Context) {
+	_, err := t.submarinerClient.Create(ctx, resource.MustToUnstructured(t.submariner), metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *deploymentControllerTestDriver) updateSubscription() {
-	_, err := t.subscriptionClient.Update(context.TODO(), t.subscription.DeepCopy(), metav1.UpdateOptions{})
+func (t *deploymentControllerTestDriver) updateSubscription(ctx context.Context) {
+	_, err := t.subscriptionClient.Update(ctx, t.subscription.DeepCopy(), metav1.UpdateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *deploymentControllerTestDriver) createOperatorDeployment() {
-	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(context.TODO(), t.operatorDeployment, metav1.CreateOptions{})
+func (t *deploymentControllerTestDriver) createOperatorDeployment(ctx context.Context) {
+	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(ctx, t.operatorDeployment, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *deploymentControllerTestDriver) createLighthouseAgentDeployment() {
-	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(context.TODO(), t.lighthouseAgentDeployment, metav1.CreateOptions{})
+func (t *deploymentControllerTestDriver) createLighthouseAgentDeployment(ctx context.Context) {
+	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(ctx, t.lighthouseAgentDeployment, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *deploymentControllerTestDriver) createLighthouseCoreDNSDeployment() {
-	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(context.TODO(), t.lighthouseCoreDNSDeployment, metav1.CreateOptions{})
+func (t *deploymentControllerTestDriver) createLighthouseCoreDNSDeployment(ctx context.Context) {
+	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Create(ctx, t.lighthouseCoreDNSDeployment, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *deploymentControllerTestDriver) updateDeployment(deployment *appsv1.Deployment) {
-	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Update(context.TODO(), deployment, metav1.UpdateOptions{})
+func (t *deploymentControllerTestDriver) updateDeployment(ctx context.Context, deployment *appsv1.Deployment) {
+	_, err := t.kubeClient.AppsV1().Deployments(submarinerNS).Update(ctx, deployment, metav1.UpdateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *deploymentControllerTestDriver) createDaemonSet(d *appsv1.DaemonSet) {
-	_, err := t.kubeClient.AppsV1().DaemonSets(submarinerNS).Create(context.TODO(), d, metav1.CreateOptions{})
+func (t *deploymentControllerTestDriver) createDaemonSet(ctx context.Context, d *appsv1.DaemonSet) {
+	_, err := t.kubeClient.AppsV1().DaemonSets(submarinerNS).Create(ctx, d, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *deploymentControllerTestDriver) updateDaemonSet(d *appsv1.DaemonSet) {
-	_, err := t.kubeClient.AppsV1().DaemonSets(submarinerNS).Update(context.TODO(), d, metav1.UpdateOptions{})
+func (t *deploymentControllerTestDriver) updateDaemonSet(ctx context.Context, d *appsv1.DaemonSet) {
+	_, err := t.kubeClient.AppsV1().DaemonSets(submarinerNS).Update(ctx, d, metav1.UpdateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *deploymentControllerTestDriver) awaitStatusCondition(status metav1.ConditionStatus, reason string) {
-	t.awaitManagedClusterAddOnStatusCondition(&metav1.Condition{
+func (t *deploymentControllerTestDriver) awaitStatusCondition(ctx context.Context, status metav1.ConditionStatus, reason string) {
+	t.awaitManagedClusterAddOnStatusCondition(ctx, &metav1.Condition{
 		Type:   deploymentDegradedType,
 		Status: status,
 		Reason: reason,
 	})
 }
 
-func (t *deploymentControllerTestDriver) awaitStatusConditionDeployed() {
-	t.awaitStatusCondition(metav1.ConditionFalse, "SubmarinerAgentDeployed")
+func (t *deploymentControllerTestDriver) awaitStatusConditionDeployed(ctx context.Context) {
+	t.awaitStatusCondition(ctx, metav1.ConditionFalse, "SubmarinerAgentDeployed")
 }
 
 func newSubscription() *unstructured.Unstructured {

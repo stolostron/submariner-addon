@@ -83,8 +83,8 @@ func getNestedString(obj *unstructured.Unstructured, fields ...string) string {
 }
 
 func (c *deploymentStatusController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
-	degradedConditionReasons := []string{}
-	degradedConditionMessages := []string{}
+	degradedConditionReasons := make([]string, 0, 10)
+	degradedConditionMessages := make([]string, 0, 10)
 
 	runtimeSub, err := c.subscriptionLister.ByNamespace(c.namespace).Get(subscriptionName)
 	if apierrors.IsNotFound(err) {
@@ -174,9 +174,10 @@ func (c *deploymentStatusController) checkDeployment(name, reasonName string, de
 	case err == nil:
 		if deployment.Status.AvailableReplicas == 0 {
 			*degradedConditionReasons = append(*degradedConditionReasons, fmt.Sprintf("No%sAvailable", reasonName))
-			*degradedConditionMessages = append(*degradedConditionMessages, fmt.Sprintf("There are no %s replica available", msgName))
+			*degradedConditionMessages = append(*degradedConditionMessages,
+				fmt.Sprintf("Deployment %s/%s has no replicas available", c.namespace, name))
 		}
-	case err != nil:
+	default:
 		return errors.Wrapf(err, "error retrieving Deployment %q", name)
 	}
 
@@ -240,7 +241,7 @@ func (c *deploymentStatusController) checkGatewayDaemonSet(degradedConditionReas
 			*degradedConditionMessages = append(*degradedConditionMessages,
 				fmt.Sprintf("There are %d unavailable gateways", gateways.Status.NumberUnavailable))
 		}
-	case err != nil:
+	default:
 		return errors.Wrapf(err, "error retrieving DaemonSet %q", names.GatewayComponent)
 	}
 
@@ -260,7 +261,7 @@ func (c *deploymentStatusController) checkRouteAgentDaemonSet(degradedConditionR
 			*degradedConditionMessages = append(*degradedConditionMessages,
 				fmt.Sprintf("There are %d unavailable route agents", routeAgent.Status.NumberUnavailable))
 		}
-	case err != nil:
+	default:
 		return errors.Wrapf(err, "error retrieving DaemonSet %q", names.RouteAgentComponent)
 	}
 
@@ -285,7 +286,7 @@ func (c *deploymentStatusController) checkMetricsProxyDaemonSet(degradedConditio
 			*degradedConditionMessages = append(*degradedConditionMessages,
 				fmt.Sprintf("There are %d unavailable metrics proxy pods", metricProxy.Status.NumberUnavailable))
 		}
-	case err != nil:
+	default:
 		return errors.Wrapf(err, "error retrieving DaemonSet %q", names.MetricsProxyComponent)
 	}
 
@@ -310,7 +311,7 @@ func (c *deploymentStatusController) checkGlobalnetDaemonSet(degradedConditionRe
 			*degradedConditionMessages = append(*degradedConditionMessages,
 				fmt.Sprintf("There are %d unavailable globalnet pods", globalnet.Status.NumberUnavailable))
 		}
-	case err != nil:
+	default:
 		return errors.Wrapf(err, "error retrieving DaemonSet %q", names.GlobalnetComponent)
 	}
 
