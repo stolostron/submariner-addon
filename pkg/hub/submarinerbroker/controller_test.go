@@ -375,7 +375,12 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 
 		ctx, stop := context.WithCancel(context.TODO())
 
-		DeferCleanup(func() { stop() })
+		done := make(chan struct{})
+
+		DeferCleanup(func() {
+			stop()
+			Eventually(done).Within(3 * time.Second).Should(BeClosed())
+		})
 
 		clusterInformerFactory.Start(ctx.Done())
 		addOnInformerFactory.Start(ctx.Done())
@@ -385,7 +390,10 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 			addOnInformerFactory.Addon().V1alpha1().ClusterManagementAddOns().Informer().HasSynced,
 			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().HasSynced)
 
-		go controller.Run(ctx, 1)
+		go func() {
+			controller.Run(ctx, 1)
+			close(done)
+		}()
 	})
 
 	return t
