@@ -3,7 +3,7 @@ FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.25 AS builder
 WORKDIR /go/src/github.com/stolostron/submariner-addon
 COPY . .
 ENV GO_PACKAGE github.com/stolostron/submariner-addon
-RUN make GO_BUILD_FLAGS=-mod=mod build --warn-undefined-variables
+RUN CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime make GO_BUILD_FLAGS=-mod=mod build --warn-undefined-variables
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
