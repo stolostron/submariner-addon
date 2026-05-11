@@ -47,7 +47,7 @@ var _ = Describe("Apply", func() {
 	})
 
 	JustBeforeEach(func() {
-		workClient = fake.NewSimpleClientset(existingWorks...)
+		workClient = fake.NewSimpleClientset(existingWorks...) //nolint:staticcheck // The non-deprecated function is not available
 	})
 
 	doApply := func() error {

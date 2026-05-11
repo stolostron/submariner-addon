@@ -321,6 +321,7 @@ func newTestDriver() *testDriver {
 
 	BeforeEach(func() {
 		t.kubeClient = kubefake.NewClientset()
+		//nolint:staticcheck // The non-deprecated function is not available
 		t.clusterClient = fakeclusterclient.NewSimpleClientset(&clusterv1.ManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "",
@@ -336,7 +337,7 @@ func newTestDriver() *testDriver {
 				},
 			},
 		})
-		t.addOnClient = addonfake.NewSimpleClientset()
+		t.addOnClient = addonfake.NewSimpleClientset() //nolint:staticcheck // The non-deprecated function is not available
 
 		var err error
 

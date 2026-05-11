@@ -622,18 +622,18 @@ func newTestDriver() *testDriver {
 		t.broker = nil
 		t.clusterADConfig = nil
 		t.mockCtrl = gomock.NewController(GinkgoT())
-		t.clusterClient = fakeclusterclient.NewSimpleClientset()
+		t.clusterClient = fakeclusterclient.NewSimpleClientset() //nolint:staticcheck // The non-deprecated function is not available
 		t.configClient = fakeconfigclient.NewSimpleClientset()
 		t.cloudProvider = cloudFake.NewMockProvider(t.mockCtrl)
 		t.controllerClient = fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 
-		t.manifestWorkClient = fakeworkclient.NewSimpleClientset()
+		t.manifestWorkClient = fakeworkclient.NewSimpleClientset() //nolint:staticcheck // The non-deprecated function is not available
 		fakereactor.AddBasicReactors(&t.manifestWorkClient.Fake)
 
 		t.dynamicClient = dynamicfake.NewSimpleDynamicClient(scheme.Scheme)
 		fakereactor.AddBasicReactors(&t.dynamicClient.Fake)
 
-		addOnClient := addonfake.NewSimpleClientset()
+		addOnClient := addonfake.NewSimpleClientset() //nolint:staticcheck // The non-deprecated function is not available
 		fakereactor.AddBasicReactors(&addOnClient.Fake)
 		t.addOnClient = addOnClient
 

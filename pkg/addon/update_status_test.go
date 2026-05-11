@@ -162,6 +162,7 @@ func newUpdateStatusTestDriver() *updateStatusTestDriver {
 	t := &updateStatusTestDriver{}
 
 	JustBeforeEach(func() {
+		//nolint:staticcheck // The non-deprecated function is not available
 		t.client = addonfake.NewSimpleClientset(&addonv1beta1.ManagedClusterAddOn{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      constants.SubmarinerAddOnName,

@@ -52,7 +52,7 @@ type managedClusterAddOnTestBase struct {
 
 func (t *managedClusterAddOnTestBase) init() {
 	t.addOn = newAddOn()
-	t.addOnClient = addonFake.NewSimpleClientset()
+	t.addOnClient = addonFake.NewSimpleClientset() //nolint:staticcheck // The non-deprecated function is not available
 }
 
 func (t *managedClusterAddOnTestBase) run(ctx context.Context) {
