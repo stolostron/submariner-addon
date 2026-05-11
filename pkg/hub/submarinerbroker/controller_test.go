@@ -31,7 +31,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/clock"
 	"k8s.io/utils/ptr"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
 	clusterSetFake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
@@ -177,8 +177,8 @@ func testClusterManagementAddOn() {
 		t.initBrokerSetup()
 
 		// Create a non-submariner ManagedClusterAddOn - should be ignored during cleanup.
-		_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns("cluster1").Create(context.Background(),
-			&addonv1alpha1.ManagedClusterAddOn{
+		_, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns("cluster1").Create(context.Background(),
+			&addonv1beta1.ManagedClusterAddOn{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "other",
 				},
@@ -203,19 +203,19 @@ func testClusterManagementAddOn() {
 
 			By("Deleting ClusterManagementAddOn")
 
-			Expect(t.addOnClient.AddonV1alpha1().ClusterManagementAddOns().Delete(context.Background(), t.clusterMgmtAddon.Name,
+			Expect(t.addOnClient.AddonV1beta1().ClusterManagementAddOns().Delete(context.Background(), t.clusterMgmtAddon.Name,
 				metav1.DeleteOptions{})).To(Succeed())
 		})
 
 		Context("with owned ManagedClusterAddOns", func() {
 			var (
-				addOn1 *addonv1alpha1.ManagedClusterAddOn
-				addOn2 *addonv1alpha1.ManagedClusterAddOn
+				addOn1 *addonv1beta1.ManagedClusterAddOn
+				addOn2 *addonv1beta1.ManagedClusterAddOn
 			)
 
 			BeforeEach(func() {
 				ownerRef := metav1.OwnerReference{
-					APIVersion:         addonv1alpha1.GroupVersion.String(),
+					APIVersion:         addonv1beta1.GroupVersion.String(),
 					Kind:               "ClusterManagementAddOn",
 					Name:               t.clusterMgmtAddon.Name,
 					UID:                t.clusterMgmtAddon.UID,
@@ -223,7 +223,7 @@ func testClusterManagementAddOn() {
 					Controller:         ptr.To(true),
 				}
 
-				addOn1 = &addonv1alpha1.ManagedClusterAddOn{
+				addOn1 = &addonv1beta1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:            constants.SubmarinerAddOnName,
 						Namespace:       "cluster1",
@@ -232,11 +232,11 @@ func testClusterManagementAddOn() {
 					},
 				}
 
-				_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(addOn1.Namespace).Create(context.Background(), addOn1,
+				_, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(addOn1.Namespace).Create(context.Background(), addOn1,
 					metav1.CreateOptions{})
 				Expect(err).To(Succeed())
 
-				addOn2 = &addonv1alpha1.ManagedClusterAddOn{
+				addOn2 = &addonv1beta1.ManagedClusterAddOn{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:            constants.SubmarinerAddOnName,
 						Namespace:       "cluster2",
@@ -244,7 +244,7 @@ func testClusterManagementAddOn() {
 					},
 				}
 
-				_, err = t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(addOn2.Namespace).Create(context.Background(), addOn2,
+				_, err = t.addOnClient.AddonV1beta1().ManagedClusterAddOns(addOn2.Namespace).Create(context.Background(), addOn2,
 					metav1.CreateOptions{})
 				Expect(err).To(Succeed())
 			})
@@ -254,7 +254,7 @@ func testClusterManagementAddOn() {
 				t.ensureNamespace()
 
 				Eventually(func() error {
-					return finalizer.Remove(context.Background(), resource.ForAddon(t.addOnClient.AddonV1alpha1().
+					return finalizer.Remove(context.Background(), resource.ForAddon(t.addOnClient.AddonV1beta1().
 						ManagedClusterAddOns(addOn1.Namespace)), addOn1, constants.SubmarinerAddOnFinalizer)
 				}).Should(Succeed())
 
@@ -266,7 +266,7 @@ func testClusterManagementAddOn() {
 
 				// Ensure broker setup doesn't happen after the ClusterManagementAddOn is actually deleted.
 
-				test.AwaitNoResource(resource.ForClusterAddon(t.addOnClient.AddonV1alpha1().ClusterManagementAddOns()),
+				test.AwaitNoResource(resource.ForClusterAddon(t.addOnClient.AddonV1beta1().ClusterManagementAddOns()),
 					t.clusterMgmtAddon.Name)
 
 				Expect(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Delete(context.Background(), t.clusterSet.Name,
@@ -301,7 +301,7 @@ type brokerControllerTestDriver struct {
 	clusterSetClient *clusterSetFake.Clientset
 	clusterSet       *clusterv1beta2.ManagedClusterSet
 	addOnClient      *addonfake.Clientset
-	clusterMgmtAddon *addonv1alpha1.ClusterManagementAddOn
+	clusterMgmtAddon *addonv1beta1.ClusterManagementAddOn
 	fakeDynClient    *dynamicfake.FakeDynamicClient
 }
 
@@ -328,7 +328,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 		t.kubeObjs = []runtime.Object{}
 		t.justBeforeRun = nil
 
-		t.clusterMgmtAddon = &addonv1alpha1.ClusterManagementAddOn{
+		t.clusterMgmtAddon = &addonv1beta1.ClusterManagementAddOn{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       constants.SubmarinerAddOnName,
 				Finalizers: []string{constants.SubmarinerAddOnFinalizer},
@@ -340,7 +340,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 
 		var err error
 
-		t.clusterMgmtAddon, err = t.addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(context.Background(), t.clusterMgmtAddon,
+		t.clusterMgmtAddon, err = t.addOnClient.AddonV1beta1().ClusterManagementAddOns().Create(context.Background(), t.clusterMgmtAddon,
 			metav1.CreateOptions{})
 		Expect(err).To(Succeed())
 
@@ -367,7 +367,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 			t.clusterSetClient.ClusterV1beta2().ManagedClusterSets(),
 			clusterInformerFactory.Cluster().V1beta2().ManagedClusterSets(),
 			t.addOnClient,
-			addOnInformerFactory.Addon().V1alpha1(),
+			addOnInformerFactory.Addon().V1beta1(),
 			&rest.Config{
 				Host: "https://test-cluster",
 			},
@@ -387,8 +387,8 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 
 		cache.WaitForCacheSync(ctx.Done(),
 			clusterInformerFactory.Cluster().V1beta2().ManagedClusterSets().Informer().HasSynced,
-			addOnInformerFactory.Addon().V1alpha1().ClusterManagementAddOns().Informer().HasSynced,
-			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().HasSynced)
+			addOnInformerFactory.Addon().V1beta1().ClusterManagementAddOns().Informer().HasSynced,
+			addOnInformerFactory.Addon().V1beta1().ManagedClusterAddOns().Informer().HasSynced)
 
 		go func() {
 			controller.Run(ctx, 1)

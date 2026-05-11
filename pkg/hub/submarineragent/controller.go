@@ -46,10 +46,11 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	"open-cluster-management.io/addon-framework/pkg/addonfactory"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
-	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
+	addoninformerv1beta1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1beta1"
+	addonlisterv1beta1 "open-cluster-management.io/api/client/addon/listers/addon/v1beta1"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterinformerv1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1"
 	clusterinformerv1beta2 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta2"
@@ -134,9 +135,9 @@ type submarinerAgentController struct {
 	clusterSetLister       clusterlisterv1beta2.ManagedClusterSetLister
 	manifestWorkLister     worklister.ManifestWorkLister
 	configLister           configlister.SubmarinerConfigLister
-	clusterAddOnLister     addonlisterv1alpha1.ClusterManagementAddOnLister
-	addOnLister            addonlisterv1alpha1.ManagedClusterAddOnLister
-	deploymentConfigLister addonlisterv1alpha1.AddOnDeploymentConfigLister
+	clusterAddOnLister     addonlisterv1beta1.ClusterManagementAddOnLister
+	addOnLister            addonlisterv1beta1.ManagedClusterAddOnLister
+	deploymentConfigLister addonlisterv1beta1.AddOnDeploymentConfigLister
 	eventRecorder          events.Recorder
 	resourceCache          resourceapply.ResourceCache
 }
@@ -154,9 +155,9 @@ func NewSubmarinerAgentController(
 	clusterSetInformer clusterinformerv1beta2.ManagedClusterSetInformer,
 	manifestWorkInformer workinformer.ManifestWorkInformer,
 	configInformer configinformer.SubmarinerConfigInformer,
-	clusterAddOnInformer addoninformerv1alpha1.ClusterManagementAddOnInformer,
-	addOnInformer addoninformerv1alpha1.ManagedClusterAddOnInformer,
-	deploymentConfigInformer addoninformerv1alpha1.AddOnDeploymentConfigInformer,
+	clusterAddOnInformer addoninformerv1beta1.ClusterManagementAddOnInformer,
+	addOnInformer addoninformerv1beta1.ManagedClusterAddOnInformer,
+	deploymentConfigInformer addoninformerv1beta1.AddOnDeploymentConfigInformer,
 	recorder events.Recorder,
 ) factory.Controller {
 	c := &submarinerAgentController{
@@ -334,7 +335,7 @@ func (c *submarinerAgentController) syncManagedCluster(
 	}
 
 	// Add the finalizer to the ManagedClusterAddOn.
-	added, err := finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
+	added, err := finalizer.Add(ctx, resource.ForAddon(c.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
 		addOn, constants.SubmarinerAddOnFinalizer)
 	if added || err != nil {
 		if added {
@@ -392,7 +393,7 @@ func (c *submarinerAgentController) cleanUpSubmarinerAgent(ctx context.Context, 
 	addOn, err := c.addOnLister.ManagedClusterAddOns(managedClusterName).Get(constants.SubmarinerAddOnName)
 	if err == nil {
 		//nolint:wrapcheck // No need to wrap here
-		return finalizer.Remove(ctx, resource.ForAddon(c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName)),
+		return finalizer.Remove(ctx, resource.ForAddon(c.addOnClient.AddonV1beta1().ManagedClusterAddOns(managedClusterName)),
 			addOn, constants.SubmarinerAddOnFinalizer)
 	}
 
@@ -403,7 +404,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 	ctx context.Context,
 	clusterSetName string,
 	managedCluster *clusterv1.ManagedCluster,
-	managedClusterAddOn *addonv1alpha1.ManagedClusterAddOn,
+	managedClusterAddOn *addonv1beta1.ManagedClusterAddOn,
 	submarinerConfig *configv1alpha1.SubmarinerConfig,
 ) error {
 	// generate service account and bind it to `submariner-k8s-broker-cluster` role
@@ -435,6 +436,11 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 
 	c.updateManagedClusterAddOnStatus(ctx, managedClusterAddOn, brokerNamespace, false)
 
+	addonNamespace, ok := managedClusterAddOn.Annotations[addonv1beta1.InstallNamespaceAnnotation]
+	if !ok {
+		addonNamespace = addonfactory.AddonDefaultInstallNamespace
+	}
+
 	// create submariner broker info with submariner config
 	brokerInfo, err := brokerinfo.Get(
 		ctx,
@@ -444,7 +450,7 @@ func (c *submarinerAgentController) deploySubmarinerAgent(
 		managedCluster.Name,
 		brokerNamespace,
 		submarinerConfig,
-		managedClusterAddOn.Spec.InstallNamespace, //nolint:staticcheck // Deprecated but requires some migration work
+		addonNamespace,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create submariner brokerInfo of cluster %v : %w", managedCluster.Name, err)
@@ -521,7 +527,7 @@ func (c *submarinerAgentController) updateSubmarinerConfigStatus(ctx context.Con
 }
 
 func (c *submarinerAgentController) updateManagedClusterAddOnStatus(ctx context.Context,
-	managedClusterAddon *addonv1alpha1.ManagedClusterAddOn, brokerNamespace string, missing bool,
+	managedClusterAddon *addonv1beta1.ManagedClusterAddOn, brokerNamespace string, missing bool,
 ) {
 	condition := metav1.Condition{
 		Type: BrokerCfgApplied,
@@ -917,10 +923,10 @@ func addBackupLabel[T client.Object](ctx context.Context, cl client.Client, to T
 		}), "error adding backup label to %T \"%s/%s\"", to, to.GetNamespace(), to.GetName())
 }
 
-func (c *submarinerAgentController) getAddonDeploymentConfigs(managedClusterAddon *addonv1alpha1.ManagedClusterAddOn) (
-	[]*addonv1alpha1.NodePlacement, error,
+func (c *submarinerAgentController) getAddonDeploymentConfigs(managedClusterAddon *addonv1beta1.ManagedClusterAddOn) (
+	[]*addonv1beta1.NodePlacement, error,
 ) {
-	var nodePlacements []*addonv1alpha1.NodePlacement
+	var nodePlacements []*addonv1beta1.NodePlacement
 
 	for _, config := range managedClusterAddon.Spec.Configs {
 		if config.Resource == addonDeploymentConfigResource && config.Group == addonDeploymentConfigGroup {

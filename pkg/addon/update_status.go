@@ -10,21 +10,21 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 )
 
-type UpdateStatusFunc func(status *addonv1alpha1.ManagedClusterAddOnStatus) error
+type UpdateStatusFunc func(status *addonv1beta1.ManagedClusterAddOnStatus) error
 
 func UpdateStatus(ctx context.Context, client addonclient.Interface, addOnNamespace string,
 	updateFuncs ...UpdateStatusFunc,
-) (*addonv1alpha1.ManagedClusterAddOnStatus, bool, error) {
+) (*addonv1beta1.ManagedClusterAddOnStatus, bool, error) {
 	updated := false
 
-	var updatedAddOnStatus *addonv1alpha1.ManagedClusterAddOnStatus
+	var updatedAddOnStatus *addonv1beta1.ManagedClusterAddOnStatus
 
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		addOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).Get(ctx, constants.SubmarinerAddOnName,
+		addOn, err := client.AddonV1beta1().ManagedClusterAddOns(addOnNamespace).Get(ctx, constants.SubmarinerAddOnName,
 			metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -52,7 +52,7 @@ func UpdateStatus(ctx context.Context, client addonclient.Interface, addOnNamesp
 
 		addOn.Status = *newStatus
 
-		updatedAddOn, err := client.AddonV1alpha1().ManagedClusterAddOns(addOnNamespace).UpdateStatus(ctx, addOn, metav1.UpdateOptions{})
+		updatedAddOn, err := client.AddonV1beta1().ManagedClusterAddOns(addOnNamespace).UpdateStatus(ctx, addOn, metav1.UpdateOptions{})
 		if err != nil {
 			return errors.Wrap(err, "error updating status for submariner ManagedClusterAddOn")
 		}
@@ -67,7 +67,7 @@ func UpdateStatus(ctx context.Context, client addonclient.Interface, addOnNamesp
 }
 
 func UpdateConditionFn(cond *metav1.Condition) UpdateStatusFunc {
-	return func(oldStatus *addonv1alpha1.ManagedClusterAddOnStatus) error {
+	return func(oldStatus *addonv1beta1.ManagedClusterAddOnStatus) error {
 		meta.SetStatusCondition(&oldStatus.Conditions, *cond)
 
 		return nil

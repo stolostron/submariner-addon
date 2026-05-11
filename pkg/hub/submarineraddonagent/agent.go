@@ -25,7 +25,7 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/utils"
-	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonapiv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -75,9 +75,9 @@ func NewAddOnAgent(kubeClient kubernetes.Interface, clusterClient clusterclient.
 	}
 
 	registrationOption := &agent.RegistrationOption{
-		CSRConfigurations: agent.KubeClientSignerConfigurations(constants.SubmarinerAddOnName, agentName),
-		CSRApproveCheck:   csrApproveCheck,
-		PermissionConfig:  a.permissionConfig,
+		Configurations:   agent.KubeClientSignerConfigurations(constants.SubmarinerAddOnName, agentName),
+		CSRApproveCheck:  csrApproveCheck,
+		PermissionConfig: a.permissionConfig,
 	}
 
 	var err error
@@ -102,8 +102,9 @@ func NewAddOnAgent(kubeClient kubernetes.Interface, clusterClient clusterclient.
 	return a, errors.Wrap(err, "error building AgentAddon")
 }
 
-func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) ([]runtime.Object, error) {
-	objs, err := a.AgentAddon.Manifests(cluster, addon)
+func (a *addOnAgent) Manifests(ctx context.Context, cluster *clusterv1.ManagedCluster, addon *addonapiv1beta1.ManagedClusterAddOn,
+) ([]runtime.Object, error) {
+	objs, err := a.AgentAddon.Manifests(ctx, cluster, addon)
 	if err != nil {
 		return nil, err //nolint:wrapcheck // No need to wrap
 	}
@@ -127,7 +128,7 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        deployment.Namespace,
-					Annotations: map[string]string{addonapiv1alpha1.DeletionOrphanAnnotationKey: "true"},
+					Annotations: map[string]string{addonapiv1beta1.DeletionOrphanAnnotationKey: "true"},
 				},
 			})
 		}
@@ -138,7 +139,7 @@ func (a *addOnAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonap
 	return objs, nil
 }
 
-func (a *addOnAgent) getValues(cluster *clusterv1.ManagedCluster, _ *addonapiv1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
+func (a *addOnAgent) getValues(cluster *clusterv1.ManagedCluster, _ *addonapiv1beta1.ManagedClusterAddOn) (addonfactory.Values, error) {
 	manifestConfig := struct {
 		Image                string
 		HubHost              string
@@ -160,7 +161,7 @@ func (a *addOnAgent) getValues(cluster *clusterv1.ManagedCluster, _ *addonapiv1a
 // 1. if the signer name in csr request is valid.
 // 2. if organization field and commonName field in csr request is valid.
 // 3. if user name in csr is the same as commonName field in csr request.
-func csrApproveCheck(cluster *clusterv1.ManagedCluster, _ *addonapiv1alpha1.ManagedClusterAddOn,
+func csrApproveCheck(ctx context.Context, cluster *clusterv1.ManagedCluster, _ *addonapiv1beta1.ManagedClusterAddOn,
 	csr *certificatesv1.CertificateSigningRequest,
 ) bool {
 	if csr.Spec.SignerName != certificatesv1.KubeAPIServerClientSignerName {
@@ -202,7 +203,8 @@ func csrApproveCheck(cluster *clusterv1.ManagedCluster, _ *addonapiv1alpha1.Mana
 }
 
 // Generates manifestworks to deploy the required roles of submariner-addon agent.
-func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, _ *addonapiv1alpha1.ManagedClusterAddOn) error {
+func (a *addOnAgent) permissionConfig(ctx context.Context, cluster *clusterv1.ManagedCluster, _ *addonapiv1beta1.ManagedClusterAddOn,
+) error {
 	config := struct {
 		ClusterName string
 		Group       string
@@ -212,7 +214,7 @@ func (a *addOnAgent) permissionConfig(cluster *clusterv1.ManagedCluster, _ *addo
 	}
 
 	results := resourceapply.ApplyDirectly(
-		context.TODO(),
+		ctx,
 		resourceapply.NewKubeClientHolder(a.kubeClient),
 		a.recorder,
 		a.resourceCache,

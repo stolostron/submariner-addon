@@ -37,7 +37,7 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/utils"
-	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonapiv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
@@ -51,7 +51,7 @@ func TestSubmarinerAddOnAgent(t *testing.T) {
 }
 
 func init() {
-	utilruntime.Must(addonapiv1alpha1.Install(scheme.Scheme))
+	utilruntime.Must(addonapiv1beta1.Install(scheme.Scheme))
 }
 
 const (
@@ -64,12 +64,12 @@ const (
 var _ = Describe("Manifests", func() {
 	t := newTestDriver()
 
-	It("should return the Deployment with the correct fields", func() {
-		objs, err := t.addOnAgent.Manifests(&clusterv1.ManagedCluster{
+	It("should return the Deployment with the correct fields", func(ctx context.Context) {
+		objs, err := t.addOnAgent.Manifests(ctx, &clusterv1.ManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: clusterName,
 			},
-		}, &addonapiv1alpha1.ManagedClusterAddOn{})
+		}, &addonapiv1beta1.ManagedClusterAddOn{})
 		Expect(err).To(Succeed())
 
 		deployment := getDeployment(objs)
@@ -85,8 +85,8 @@ var _ = Describe("Manifests", func() {
 	})
 
 	Context("using the default installation namespace", func() {
-		It("should return the correct resources", func() {
-			objs, err := t.addOnAgent.Manifests(&clusterv1.ManagedCluster{}, &addonapiv1alpha1.ManagedClusterAddOn{})
+		It("should return the correct resources", func(ctx context.Context) {
+			objs, err := t.addOnAgent.Manifests(ctx, &clusterv1.ManagedCluster{}, &addonapiv1beta1.ManagedClusterAddOn{})
 			Expect(err).To(Succeed())
 
 			verifyManifestObjs(objs, expectedManifestObjStrings(addonfactory.AddonDefaultInstallNamespace, false))
@@ -94,11 +94,13 @@ var _ = Describe("Manifests", func() {
 	})
 
 	Context("using a custom installation namespace", func() {
-		It("should return the correct resources", func() {
+		It("should return the correct resources", func(ctx context.Context) {
 			ns := "submariner-operator"
-			objs, err := t.addOnAgent.Manifests(&clusterv1.ManagedCluster{}, &addonapiv1alpha1.ManagedClusterAddOn{
-				Spec: addonapiv1alpha1.ManagedClusterAddOnSpec{
-					InstallNamespace: ns,
+			objs, err := t.addOnAgent.Manifests(ctx, &clusterv1.ManagedCluster{}, &addonapiv1beta1.ManagedClusterAddOn{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						addonapiv1beta1.InstallNamespaceAnnotation: ns,
+					},
 				},
 			})
 			Expect(err).To(Succeed())
@@ -108,16 +110,16 @@ var _ = Describe("Manifests", func() {
 	})
 
 	Context("using an AddonDeploymentConfig", func() {
-		var adConfig *addonapiv1alpha1.AddOnDeploymentConfig
+		var adConfig *addonapiv1beta1.AddOnDeploymentConfig
 
 		BeforeEach(func() {
-			adConfig = &addonapiv1alpha1.AddOnDeploymentConfig{
+			adConfig = &addonapiv1beta1.AddOnDeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "submariner-adconfig",
 					Namespace: "foo",
 				},
-				Spec: addonapiv1alpha1.AddOnDeploymentConfigSpec{
-					NodePlacement: &addonapiv1alpha1.NodePlacement{
+				Spec: addonapiv1beta1.AddOnDeploymentConfigSpec{
+					NodePlacement: &addonapiv1beta1.NodePlacement{
 						NodeSelector: map[string]string{"sel-key": "sel-value"},
 						Tolerations: []corev1.Toleration{
 							{
@@ -126,7 +128,7 @@ var _ = Describe("Manifests", func() {
 							},
 						},
 					},
-					ResourceRequirements: []addonapiv1alpha1.ContainerResourceRequirements{
+					ResourceRequirements: []addonapiv1beta1.ContainerResourceRequirements{
 						{
 							Resources: corev1.ResourceRequirements{
 								Limits: corev1.ResourceList{
@@ -149,8 +151,8 @@ var _ = Describe("Manifests", func() {
 				adConfig.Spec.ResourceRequirements[0].ContainerID = "deployments:*:*"
 			})
 
-			It("should return the Deployment with the correct fields", func() {
-				t.testManifestsWithADConfig(adConfig)
+			It("should return the Deployment with the correct fields", func(ctx context.Context) {
+				t.testManifestsWithADConfig(ctx, adConfig)
 			})
 		})
 
@@ -159,8 +161,8 @@ var _ = Describe("Manifests", func() {
 				adConfig.Spec.ResourceRequirements[0].ContainerID = "deployments:submariner-addon:submariner-addon"
 			})
 
-			It("should return the Deployment with the correct fields", func() {
-				t.testManifestsWithADConfig(adConfig)
+			It("should return the Deployment with the correct fields", func(ctx context.Context) {
+				t.testManifestsWithADConfig(ctx, adConfig)
 			})
 		})
 	})
@@ -170,18 +172,18 @@ var _ = Describe("GetAgentAddonOptions", func() {
 	t := newTestDriver()
 
 	Context("PermissionConfig", func() {
-		It("should create the hub permission resources", func() {
-			Expect(t.addOnAgent.GetAgentAddonOptions().Registration.PermissionConfig(&clusterv1.ManagedCluster{
+		It("should create the hub permission resources", func(ctx context.Context) {
+			Expect(t.addOnAgent.GetAgentAddonOptions().Registration.PermissionConfig(ctx, &clusterv1.ManagedCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: clusterName,
 				},
-			}, &addonapiv1alpha1.ManagedClusterAddOn{})).To(Succeed())
+			}, &addonapiv1beta1.ManagedClusterAddOn{})).To(Succeed())
 
-			_, err := t.kubeClient.RbacV1().Roles(clusterName).Get(context.TODO(),
+			_, err := t.kubeClient.RbacV1().Roles(clusterName).Get(ctx,
 				"open-cluster-management:submariner-addon:agent", metav1.GetOptions{})
 			Expect(err).To(Succeed())
 
-			_, err = t.kubeClient.RbacV1().RoleBindings(clusterName).Get(context.TODO(),
+			_, err = t.kubeClient.RbacV1().RoleBindings(clusterName).Get(ctx,
 				"open-cluster-management:submariner-addon:agent", metav1.GetOptions{})
 			Expect(err).To(Succeed())
 		})
@@ -208,12 +210,12 @@ var _ = Describe("GetAgentAddonOptions", func() {
 			}
 		})
 
-		JustBeforeEach(func() {
-			result = t.addOnAgent.GetAgentAddonOptions().Registration.CSRApproveCheck(&clusterv1.ManagedCluster{
+		JustBeforeEach(func(ctx context.Context) {
+			result = t.addOnAgent.GetAgentAddonOptions().Registration.CSRApproveCheck(ctx, &clusterv1.ManagedCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: clusterName,
 				},
-			}, &addonapiv1alpha1.ManagedClusterAddOn{}, newCSR(csr))
+			}, &addonapiv1beta1.ManagedClusterAddOn{}, newCSR(csr))
 		})
 
 		When("the CSR is valid", func() {
@@ -298,8 +300,8 @@ var _ = Describe("GetAgentAddonOptions", func() {
 			Expect(t.addOnAgent.GetAgentAddonOptions().SupportedConfigGVRs).To(Equal(
 				[]schema.GroupVersionResource{
 					{
-						Group:    addonapiv1alpha1.GroupVersion.Group,
-						Version:  addonapiv1alpha1.GroupVersion.Version,
+						Group:    addonapiv1beta1.GroupVersion.Group,
+						Version:  addonapiv1beta1.GroupVersion.Version,
 						Resource: "addondeploymentconfigs",
 					},
 				}))
@@ -346,29 +348,30 @@ func newTestDriver() *testDriver {
 	return t
 }
 
-func (t *testDriver) createAddonDeploymentConfig(config *addonapiv1alpha1.AddOnDeploymentConfig) {
-	_, err := t.addOnClient.AddonV1alpha1().AddOnDeploymentConfigs(config.Namespace).Create(context.TODO(), config,
+func (t *testDriver) createAddonDeploymentConfig(ctx context.Context, config *addonapiv1beta1.AddOnDeploymentConfig) {
+	_, err := t.addOnClient.AddonV1beta1().AddOnDeploymentConfigs(config.Namespace).Create(ctx, config,
 		metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *testDriver) newManagedClusterAddOn(adConfig *addonapiv1alpha1.AddOnDeploymentConfig) *addonapiv1alpha1.ManagedClusterAddOn {
-	t.createAddonDeploymentConfig(adConfig)
+func (t *testDriver) newManagedClusterAddOn(ctx context.Context, adConfig *addonapiv1beta1.AddOnDeploymentConfig,
+) *addonapiv1beta1.ManagedClusterAddOn {
+	t.createAddonDeploymentConfig(ctx, adConfig)
 
 	specHash, err := utils.GetSpecHash(resourceutil.MustToUnstructured(adConfig))
 	Expect(err).NotTo(HaveOccurred())
 
-	addon := &addonapiv1alpha1.ManagedClusterAddOn{
-		Spec: addonapiv1alpha1.ManagedClusterAddOnSpec{},
-		Status: addonapiv1alpha1.ManagedClusterAddOnStatus{
-			ConfigReferences: []addonapiv1alpha1.ConfigReference{
+	addon := &addonapiv1beta1.ManagedClusterAddOn{
+		Spec: addonapiv1beta1.ManagedClusterAddOnSpec{},
+		Status: addonapiv1beta1.ManagedClusterAddOnStatus{
+			ConfigReferences: []addonapiv1beta1.ConfigReference{
 				{
-					ConfigGroupResource: addonapiv1alpha1.ConfigGroupResource{
+					ConfigGroupResource: addonapiv1beta1.ConfigGroupResource{
 						Group:    "addon.open-cluster-management.io",
 						Resource: "addondeploymentconfigs",
 					},
-					DesiredConfig: &addonapiv1alpha1.ConfigSpecHash{
-						ConfigReferent: addonapiv1alpha1.ConfigReferent{
+					DesiredConfig: &addonapiv1beta1.ConfigSpecHash{
+						ConfigReferent: addonapiv1beta1.ConfigReferent{
 							Name:      adConfig.Name,
 							Namespace: adConfig.Namespace,
 						},
@@ -382,8 +385,8 @@ func (t *testDriver) newManagedClusterAddOn(adConfig *addonapiv1alpha1.AddOnDepl
 	return addon
 }
 
-func (t *testDriver) testManifestsWithADConfig(adConfig *addonapiv1alpha1.AddOnDeploymentConfig) {
-	objs, err := t.addOnAgent.Manifests(&clusterv1.ManagedCluster{}, t.newManagedClusterAddOn(adConfig))
+func (t *testDriver) testManifestsWithADConfig(ctx context.Context, adConfig *addonapiv1beta1.AddOnDeploymentConfig) {
+	objs, err := t.addOnAgent.Manifests(ctx, &clusterv1.ManagedCluster{}, t.newManagedClusterAddOn(ctx, adConfig))
 	Expect(err).To(Succeed())
 
 	deployment := getDeployment(objs)

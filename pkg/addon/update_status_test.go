@@ -12,7 +12,7 @@ import (
 	"github.com/submariner-io/admiral/pkg/test"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 )
 
@@ -54,7 +54,7 @@ var _ = Describe("Update Status", func() {
 	When("the Condition type already exists", func() {
 		Context("and the new Condition differs", func() {
 			BeforeEach(func() {
-				t.initialStatus = addonv1alpha1.ManagedClusterAddOnStatus{
+				t.initialStatus = addonv1beta1.ManagedClusterAddOnStatus{
 					Conditions: []metav1.Condition{
 						{
 							Type:               conditionType,
@@ -79,7 +79,7 @@ var _ = Describe("Update Status", func() {
 
 		Context("and the new Condition is the same", func() {
 			BeforeEach(func() {
-				t.initialStatus = addonv1alpha1.ManagedClusterAddOnStatus{
+				t.initialStatus = addonv1beta1.ManagedClusterAddOnStatus{
 					Conditions: []metav1.Condition{
 						{
 							Type:               conditionType,
@@ -108,8 +108,8 @@ var _ = Describe("Update Status", func() {
 	})
 
 	When("the ManagedClusterAddOn doesn't exist", func() {
-		JustBeforeEach(func() {
-			Expect(t.client.AddonV1alpha1().ManagedClusterAddOns(namespace).Delete(context.TODO(), constants.SubmarinerAddOnName,
+		JustBeforeEach(func(ctx context.Context) {
+			Expect(t.client.AddonV1beta1().ManagedClusterAddOns(namespace).Delete(ctx, constants.SubmarinerAddOnName,
 				metav1.DeleteOptions{})).To(Succeed())
 		})
 
@@ -154,7 +154,7 @@ var _ = Describe("Update Status", func() {
 })
 
 type updateStatusTestDriver struct {
-	initialStatus addonv1alpha1.ManagedClusterAddOnStatus
+	initialStatus addonv1beta1.ManagedClusterAddOnStatus
 	client        *addonfake.Clientset
 }
 
@@ -162,7 +162,7 @@ func newUpdateStatusTestDriver() *updateStatusTestDriver {
 	t := &updateStatusTestDriver{}
 
 	JustBeforeEach(func() {
-		t.client = addonfake.NewSimpleClientset(&addonv1alpha1.ManagedClusterAddOn{
+		t.client = addonfake.NewSimpleClientset(&addonv1beta1.ManagedClusterAddOn{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      constants.SubmarinerAddOnName,
 				Namespace: namespace,
@@ -175,11 +175,11 @@ func newUpdateStatusTestDriver() *updateStatusTestDriver {
 	return t
 }
 
-func (t *updateStatusTestDriver) doUpdateStatus(updateFn addon.UpdateStatusFunc) (*addonv1alpha1.ManagedClusterAddOnStatus, bool, error) {
+func (t *updateStatusTestDriver) doUpdateStatus(updateFn addon.UpdateStatusFunc) (*addonv1beta1.ManagedClusterAddOnStatus, bool, error) {
 	return addon.UpdateStatus(context.TODO(), t.client, namespace, updateFn)
 }
 
-func (t *updateStatusTestDriver) assertUpdateCondition(newCond *metav1.Condition) *addonv1alpha1.ManagedClusterAddOnStatus {
+func (t *updateStatusTestDriver) assertUpdateCondition(newCond *metav1.Condition) *addonv1beta1.ManagedClusterAddOnStatus {
 	updatedStatus, updated, err := t.doUpdateStatus(addon.UpdateConditionFn(newCond))
 	Expect(err).To(Succeed())
 	Expect(updated).To(BeTrue())
@@ -187,9 +187,9 @@ func (t *updateStatusTestDriver) assertUpdateCondition(newCond *metav1.Condition
 	return t.assertStatusConditionUpdated(updatedStatus, newCond)
 }
 
-func (t *updateStatusTestDriver) assertStatusConditionUpdated(updatedStatus *addonv1alpha1.ManagedClusterAddOnStatus,
+func (t *updateStatusTestDriver) assertStatusConditionUpdated(updatedStatus *addonv1beta1.ManagedClusterAddOnStatus,
 	expCond *metav1.Condition,
-) *addonv1alpha1.ManagedClusterAddOnStatus {
+) *addonv1beta1.ManagedClusterAddOnStatus {
 	newStatus := t.getStatus()
 	actual := meta.FindStatusCondition(newStatus.Conditions, expCond.Type)
 	Expect(actual).ToNot(BeNil())
@@ -208,8 +208,8 @@ func (t *updateStatusTestDriver) assertStatusConditionUpdated(updatedStatus *add
 	return updatedStatus
 }
 
-func (t *updateStatusTestDriver) getStatus() *addonv1alpha1.ManagedClusterAddOnStatus {
-	config, err := t.client.AddonV1alpha1().ManagedClusterAddOns(namespace).Get(context.TODO(), constants.SubmarinerAddOnName,
+func (t *updateStatusTestDriver) getStatus() *addonv1beta1.ManagedClusterAddOnStatus {
+	config, err := t.client.AddonV1beta1().ManagedClusterAddOns(namespace).Get(context.TODO(), constants.SubmarinerAddOnName,
 		metav1.GetOptions{})
 	Expect(err).To(Succeed())
 

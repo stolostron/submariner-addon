@@ -23,7 +23,7 @@ import (
 	dynamicFake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/informers"
 	k8sScheme "k8s.io/client-go/kubernetes/scheme"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonFake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 )
 
@@ -46,7 +46,7 @@ func TestSubmarinerAgent(t *testing.T) {
 }
 
 type managedClusterAddOnTestBase struct {
-	addOn       *addonv1alpha1.ManagedClusterAddOn
+	addOn       *addonv1beta1.ManagedClusterAddOn
 	addOnClient *addonFake.Clientset
 }
 
@@ -57,7 +57,7 @@ func (t *managedClusterAddOnTestBase) init() {
 
 func (t *managedClusterAddOnTestBase) run(ctx context.Context) {
 	if t.addOn != nil {
-		_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(t.addOn.Namespace).Create(ctx, t.addOn,
+		_, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(t.addOn.Namespace).Create(ctx, t.addOn,
 			metav1.CreateOptions{})
 		Expect(err).To(Succeed())
 	}
@@ -67,7 +67,7 @@ func (t *managedClusterAddOnTestBase) run(ctx context.Context) {
 
 func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(ctx context.Context, expCond *metav1.Condition) {
 	test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
-		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(ctx,
+		config, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName).Get(ctx,
 			constants.SubmarinerAddOnName, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
@@ -79,7 +79,7 @@ func (t *managedClusterAddOnTestBase) awaitManagedClusterAddOnStatusCondition(ct
 
 func (t *managedClusterAddOnTestBase) awaitNoManagedClusterAddOnStatusCondition(ctx context.Context, condType string) {
 	Consistently(func() *metav1.Condition {
-		config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(ctx,
+		config, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName).Get(ctx,
 			constants.SubmarinerConfigName, metav1.GetOptions{})
 		Expect(err).To(Succeed())
 
@@ -87,8 +87,8 @@ func (t *managedClusterAddOnTestBase) awaitNoManagedClusterAddOnStatusCondition(
 	}, 300*time.Millisecond).Should(BeNil())
 }
 
-func newAddOn() *addonv1alpha1.ManagedClusterAddOn {
-	return &addonv1alpha1.ManagedClusterAddOn{
+func newAddOn() *addonv1beta1.ManagedClusterAddOn {
+	return &addonv1beta1.ManagedClusterAddOn{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.SubmarinerAddOnName,
 			Namespace: clusterName,

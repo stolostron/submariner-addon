@@ -43,8 +43,8 @@ import (
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
-	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
+	addoninformerv1beta1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1beta1"
+	addonlisterv1beta1 "open-cluster-management.io/api/client/addon/listers/addon/v1beta1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -79,7 +79,7 @@ type submarinerConfigController struct {
 	addOnClient          addonclient.Interface
 	dynamicClient        dynamic.Interface
 	nodeLister           corev1lister.NodeLister
-	addOnLister          addonlisterv1alpha1.ManagedClusterAddOnLister
+	addOnLister          addonlisterv1beta1.ManagedClusterAddOnLister
 	configLister         configlister.SubmarinerConfigLister
 	submarinerLister     cache.GenericLister
 	clusterName          string
@@ -98,7 +98,7 @@ type SubmarinerConfigControllerInput struct {
 	AddOnClient          addonclient.Interface
 	DynamicClient        dynamic.Interface
 	NodeInformer         corev1informers.NodeInformer
-	AddOnInformer        addoninformerv1alpha1.ManagedClusterAddOnInformer
+	AddOnInformer        addoninformerv1beta1.ManagedClusterAddOnInformer
 	ConfigInformer       configinformer.SubmarinerConfigInformer
 	SubmarinerInformer   informers.GenericInformer
 	CloudProviderFactory cloud.ProviderFactory

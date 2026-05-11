@@ -25,10 +25,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"open-cluster-management.io/api/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
-	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
-	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
+	addoninformerv1beta1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1beta1"
+	addonlisterv1beta1 "open-cluster-management.io/api/client/addon/listers/addon/v1beta1"
 	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta2"
 	clusterinformerv1beta2 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta2"
 	clusterlisterv1beta2 "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta2"
@@ -57,8 +57,8 @@ type submarinerBrokerController struct {
 	clustersetClient   clientset.ManagedClusterSetInterface
 	clusterSetLister   clusterlisterv1beta2.ManagedClusterSetLister
 	addOnClient        addonclient.Interface
-	clusterAddOnLister addonlisterv1alpha1.ClusterManagementAddOnLister
-	addOnLister        addonlisterv1alpha1.ManagedClusterAddOnLister
+	clusterAddOnLister addonlisterv1beta1.ClusterManagementAddOnLister
+	addOnLister        addonlisterv1beta1.ManagedClusterAddOnLister
 	eventRecorder      events.Recorder
 	resourceCache      resourceapply.ResourceCache
 	restConfig         *rest.Config
@@ -73,7 +73,7 @@ func NewController(kubeClient kubernetes.Interface,
 	clustersetClient clientset.ManagedClusterSetInterface,
 	clusterSetInformer clusterinformerv1beta2.ManagedClusterSetInformer,
 	addOnClient addonclient.Interface,
-	addOnInformer addoninformerv1alpha1.Interface,
+	addOnInformer addoninformerv1beta1.Interface,
 	restConfig *rest.Config,
 	recorder events.Recorder,
 ) factory.Controller {
@@ -269,7 +269,7 @@ func (c *submarinerBrokerController) doClusterSetCleanup(ctx context.Context, cl
 	return finalizer.Remove(ctx, resource.ForManagedClusterSet(c.clustersetClient), clusterSet, brokerFinalizer)
 }
 
-func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context, clusterAddOn *v1alpha1.ClusterManagementAddOn,
+func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context, clusterAddOn *addonv1beta1.ClusterManagementAddOn,
 	recorder events.Recorder,
 ) error {
 	addOns, err := c.addOnLister.List(labels.Everything())
@@ -283,7 +283,7 @@ func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context,
 		if metav1.IsControlledBy(addOn, clusterAddOn) {
 			logger.Infof("ManagedClusterAddOn in cluster %q still exists - deleting", addOn.Namespace)
 
-			err = c.addOnClient.AddonV1alpha1().ManagedClusterAddOns(addOn.Namespace).Delete(ctx, addOn.Name, metav1.DeleteOptions{})
+			err = c.addOnClient.AddonV1beta1().ManagedClusterAddOns(addOn.Namespace).Delete(ctx, addOn.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return errors.Wrapf(err, "error deleting ManagedClusterAddOn %q", addOn.Name)
 			}
@@ -311,7 +311,7 @@ func (c *submarinerBrokerController) doAllClusterSetCleanup(ctx context.Context,
 	}
 
 	//nolint:wrapcheck // No need to wrap here
-	return finalizer.Remove(ctx, resource.ForClusterAddon(c.addOnClient.AddonV1alpha1().ClusterManagementAddOns()), clusterAddOn,
+	return finalizer.Remove(ctx, resource.ForClusterAddon(c.addOnClient.AddonV1beta1().ClusterManagementAddOns()), clusterAddOn,
 		constants.SubmarinerAddOnFinalizer)
 }
 
