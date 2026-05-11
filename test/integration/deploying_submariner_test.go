@@ -16,7 +16,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	"open-cluster-management.io/api/client/addon/clientset/versioned/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -66,7 +66,7 @@ var _ = Describe("Submariner Deployment", func() {
 
 				By("Delete the submariner ManagedClusterAddOn")
 
-				Expect(addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Delete(context.Background(),
+				Expect(addOnClient.AddonV1beta1().ManagedClusterAddOns(managedClusterName).Delete(context.Background(),
 					constants.SubmarinerAddOnName, metav1.DeleteOptions{})).NotTo(HaveOccurred())
 
 				ensureSubmarinerManifestWorks(managedClusterName)
@@ -86,7 +86,7 @@ var _ = Describe("Submariner Deployment", func() {
 				By("Await deletion of the submariner ManagedClusterAddOn")
 
 				Eventually(func() bool {
-					_, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(context.Background(),
+					_, err := addOnClient.AddonV1beta1().ManagedClusterAddOns(managedClusterName).Get(context.Background(),
 						constants.SubmarinerAddOnName, metav1.GetOptions{})
 
 					return apierrors.IsNotFound(err)
@@ -130,7 +130,7 @@ var _ = Describe("Submariner Deployment", func() {
 	})
 
 	When("the ClusterManagementAddOn is deleted", func() {
-		var clusterAddOn *addonv1alpha1.ClusterManagementAddOn
+		var clusterAddOn *addonv1beta1.ClusterManagementAddOn
 
 		BeforeEach(func() {
 			By("Retrieve the ClusterManagementAddOn")
@@ -138,7 +138,7 @@ var _ = Describe("Submariner Deployment", func() {
 			var err error
 
 			Eventually(func() error {
-				clusterAddOn, err = addOnClient.AddonV1alpha1().ClusterManagementAddOns().Get(context.Background(),
+				clusterAddOn, err = addOnClient.AddonV1beta1().ClusterManagementAddOns().Get(context.Background(),
 					constants.SubmarinerAddOnName, metav1.GetOptions{})
 
 				return err
@@ -155,7 +155,7 @@ var _ = Describe("Submariner Deployment", func() {
 			addOn := util.NewManagedClusterAddOn(managedClusterName)
 			Expect(controllerutil.SetControllerReference(clusterAddOn, addOn, scheme.Scheme)).NotTo(HaveOccurred())
 
-			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addOn,
+			_, err = addOnClient.AddonV1beta1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addOn,
 				metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -164,7 +164,7 @@ var _ = Describe("Submariner Deployment", func() {
 			By("Delete the ClusterManagementAddOn")
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*eventuallyTimeout)
-			err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Delete(ctx, constants.SubmarinerAddOnName, metav1.DeleteOptions{})
+			err := addOnClient.AddonV1beta1().ClusterManagementAddOns().Delete(ctx, constants.SubmarinerAddOnName, metav1.DeleteOptions{})
 
 			cancel()
 			Expect(err).NotTo(HaveOccurred())
@@ -172,7 +172,7 @@ var _ = Describe("Submariner Deployment", func() {
 			By("Ensure the ClusterManagementAddOn is deleted")
 
 			Eventually(func() bool {
-				_, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Get(context.Background(),
+				_, err := addOnClient.AddonV1beta1().ClusterManagementAddOns().Get(context.Background(),
 					constants.SubmarinerAddOnName, metav1.GetOptions{})
 
 				return apierrors.IsNotFound(err)

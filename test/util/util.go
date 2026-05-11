@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -182,14 +182,14 @@ func NewManagedClusterSet(name string) *clusterv1beta2.ManagedClusterSet {
 	}
 }
 
-func NewManagedClusterAddOn(namespace string) *addonv1alpha1.ManagedClusterAddOn {
-	return &addonv1alpha1.ManagedClusterAddOn{
+func NewManagedClusterAddOn(namespace string) *addonv1beta1.ManagedClusterAddOn {
+	return &addonv1beta1.ManagedClusterAddOn{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.SubmarinerAddOnName,
 			Namespace: namespace,
-		},
-		Spec: addonv1alpha1.ManagedClusterAddOnSpec{
-			InstallNamespace: InstallationNamespace,
+			Annotations: map[string]string{
+				addonv1beta1.InstallNamespaceAnnotation: InstallationNamespace,
+			},
 		},
 	}
 }

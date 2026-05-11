@@ -65,7 +65,7 @@ var _ = Describe("Submariner addon agent", func() {
 
 			By("Create a submariner ManagedClusterAddOn")
 
-			_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(),
+			_, err = addOnClient.AddonV1beta1().ManagedClusterAddOns(managedClusterName).Create(context.Background(),
 				util.NewManagedClusterAddOn(managedClusterName), metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -110,7 +110,7 @@ var _ = Describe("Submariner addon agent", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() bool {
-				addOn, err := addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(context.Background(),
+				addOn, err := addOnClient.AddonV1beta1().ManagedClusterAddOns(managedClusterName).Get(context.Background(),
 					constants.SubmarinerAddOnName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 

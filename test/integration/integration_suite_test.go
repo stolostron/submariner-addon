@@ -24,7 +24,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonclientset "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
@@ -81,7 +81,7 @@ var _ = BeforeSuite(func() {
 			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "cluster", "v1"),
 			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "cluster", "v1beta2", clustersetCRD),
 			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "work", "v1", workCRD),
-			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "addon", "v1alpha1"),
+			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "addon", "v1beta1"),
 			filepath.Join(".", "pkg", "apis", "submarinerconfig", "v1alpha1"),
 			filepath.Join(".", "test", "integration", "crds", "submariner"),
 		},
@@ -193,20 +193,20 @@ func deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, br
 
 	By("Create a submariner ManagedClusterAddOn")
 
-	cma, err := addOnClient.AddonV1alpha1().ClusterManagementAddOns().Get(context.Background(), constants.SubmarinerAddOnName,
+	cma, err := addOnClient.AddonV1beta1().ClusterManagementAddOns().Get(context.Background(), constants.SubmarinerAddOnName,
 		metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
 
 	addOn := util.NewManagedClusterAddOn(managedClusterName)
 	addOn.OwnerReferences = []metav1.OwnerReference{
 		*metav1.NewControllerRef(cma, schema.GroupVersionKind{
-			Group:   addonv1alpha1.GroupVersion.Group,
-			Version: addonv1alpha1.GroupVersion.Version,
+			Group:   addonv1beta1.GroupVersion.Group,
+			Version: addonv1beta1.GroupVersion.Version,
 			Kind:    "ClusterManagementAddOn",
 		}),
 	}
 
-	_, err = addOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addOn, metav1.CreateOptions{})
+	_, err = addOnClient.AddonV1beta1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addOn, metav1.CreateOptions{})
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Setup the service account")
@@ -234,12 +234,12 @@ func startControllerManager() func() {
 	return func() {
 		stop()
 
-		err := admutil.Update(context.Background(), resource.ForClusterAddon(addOnClient.AddonV1alpha1().ClusterManagementAddOns()),
-			&addonv1alpha1.ClusterManagementAddOn{
+		err := admutil.Update(context.Background(), resource.ForClusterAddon(addOnClient.AddonV1beta1().ClusterManagementAddOns()),
+			&addonv1beta1.ClusterManagementAddOn{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: constants.SubmarinerAddOnName,
 				},
-			}, func(existing *addonv1alpha1.ClusterManagementAddOn) (*addonv1alpha1.ClusterManagementAddOn, error) {
+			}, func(existing *addonv1beta1.ClusterManagementAddOn) (*addonv1beta1.ClusterManagementAddOn, error) {
 				existing.Finalizers = nil
 				return existing, nil
 			})
@@ -247,7 +247,7 @@ func startControllerManager() func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 
-		err = addOnClient.AddonV1alpha1().ClusterManagementAddOns().Delete(context.Background(), constants.SubmarinerAddOnName,
+		err = addOnClient.AddonV1beta1().ClusterManagementAddOns().Delete(context.Background(), constants.SubmarinerAddOnName,
 			metav1.DeleteOptions{})
 		if !apierrors.IsNotFound(err) {
 			Expect(err).NotTo(HaveOccurred())
@@ -259,17 +259,17 @@ func createClusterManagementAddOn(ctx context.Context) {
 	data, err := os.ReadFile(filepath.Join(".", "deploy", "olm-catalog", "manifests", "submarineraddon.cluster-management-addon.yaml"))
 	Expect(err).To(Succeed())
 
-	cma := &addonv1alpha1.ClusterManagementAddOn{}
+	cma := &addonv1beta1.ClusterManagementAddOn{}
 	err = yaml.Unmarshal(data, cma)
 
 	// Adding installStrategy for testing purposes.
-	cma.Spec.InstallStrategy = addonv1alpha1.InstallStrategy{
+	cma.Spec.InstallStrategy = addonv1beta1.InstallStrategy{
 		Type: "Manual",
 	}
 
 	Expect(err).To(Succeed())
 
-	_, err = addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(ctx, cma, metav1.CreateOptions{})
+	_, err = addOnClient.AddonV1beta1().ClusterManagementAddOns().Create(ctx, cma, metav1.CreateOptions{})
 	Expect(err).NotTo(HaveOccurred())
 }
 

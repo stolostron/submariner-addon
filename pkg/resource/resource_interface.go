@@ -8,8 +8,8 @@ import (
 	cfgv1a1clnt "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned/typed/submarinerconfig/v1alpha1"
 	"github.com/submariner-io/admiral/pkg/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	addonV1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	addonV1alpha1Client "open-cluster-management.io/api/client/addon/clientset/versioned/typed/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
+	addonv1beta1Client "open-cluster-management.io/api/client/addon/clientset/versioned/typed/addon/v1beta1"
 	clusterV1Client "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1"
 	clusterV1beta2Client "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta2"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned/typed/work/v1"
@@ -54,17 +54,17 @@ func ForManagedCluster(client clusterV1Client.ManagedClusterInterface) resource.
 	}
 }
 
-func ForAddon(client addonV1alpha1Client.ManagedClusterAddOnInterface) resource.Interface[*addonV1alpha1.ManagedClusterAddOn] {
-	return &resource.InterfaceFuncs[*addonV1alpha1.ManagedClusterAddOn]{
-		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (*addonV1alpha1.ManagedClusterAddOn, error) {
+func ForAddon(client addonv1beta1Client.ManagedClusterAddOnInterface) resource.Interface[*addonv1beta1.ManagedClusterAddOn] {
+	return &resource.InterfaceFuncs[*addonv1beta1.ManagedClusterAddOn]{
+		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (*addonv1beta1.ManagedClusterAddOn, error) {
 			return client.Get(ctx, name, options)
 		},
-		CreateFunc: func(ctx context.Context, obj *addonV1alpha1.ManagedClusterAddOn, options metav1.CreateOptions,
-		) (*addonV1alpha1.ManagedClusterAddOn, error) {
+		CreateFunc: func(ctx context.Context, obj *addonv1beta1.ManagedClusterAddOn, options metav1.CreateOptions,
+		) (*addonv1beta1.ManagedClusterAddOn, error) {
 			return client.Create(ctx, obj, options)
 		},
-		UpdateFunc: func(ctx context.Context, obj *addonV1alpha1.ManagedClusterAddOn, options metav1.UpdateOptions,
-		) (*addonV1alpha1.ManagedClusterAddOn, error) {
+		UpdateFunc: func(ctx context.Context, obj *addonv1beta1.ManagedClusterAddOn, options metav1.UpdateOptions,
+		) (*addonv1beta1.ManagedClusterAddOn, error) {
 			return client.Update(ctx, obj, options)
 		},
 		DeleteFunc: func(ctx context.Context, name string, options metav1.DeleteOptions) error {
@@ -73,17 +73,17 @@ func ForAddon(client addonV1alpha1Client.ManagedClusterAddOnInterface) resource.
 	}
 }
 
-func ForClusterAddon(client addonV1alpha1Client.ClusterManagementAddOnInterface) resource.Interface[*addonV1alpha1.ClusterManagementAddOn] {
-	return &resource.InterfaceFuncs[*addonV1alpha1.ClusterManagementAddOn]{
-		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (*addonV1alpha1.ClusterManagementAddOn, error) {
+func ForClusterAddon(client addonv1beta1Client.ClusterManagementAddOnInterface) resource.Interface[*addonv1beta1.ClusterManagementAddOn] {
+	return &resource.InterfaceFuncs[*addonv1beta1.ClusterManagementAddOn]{
+		GetFunc: func(ctx context.Context, name string, options metav1.GetOptions) (*addonv1beta1.ClusterManagementAddOn, error) {
 			return client.Get(ctx, name, options)
 		},
-		CreateFunc: func(ctx context.Context, obj *addonV1alpha1.ClusterManagementAddOn, options metav1.CreateOptions,
-		) (*addonV1alpha1.ClusterManagementAddOn, error) {
+		CreateFunc: func(ctx context.Context, obj *addonv1beta1.ClusterManagementAddOn, options metav1.CreateOptions,
+		) (*addonv1beta1.ClusterManagementAddOn, error) {
 			return client.Create(ctx, obj, options)
 		},
-		UpdateFunc: func(ctx context.Context, obj *addonV1alpha1.ClusterManagementAddOn, options metav1.UpdateOptions,
-		) (*addonV1alpha1.ClusterManagementAddOn, error) {
+		UpdateFunc: func(ctx context.Context, obj *addonv1beta1.ClusterManagementAddOn, options metav1.UpdateOptions,
+		) (*addonv1beta1.ClusterManagementAddOn, error) {
 			return client.Update(ctx, obj, options)
 		},
 		DeleteFunc: func(ctx context.Context, name string, options metav1.DeleteOptions) error {

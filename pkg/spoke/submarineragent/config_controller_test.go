@@ -392,7 +392,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 			t.ensureNoLabeledNodes(ctx)
 
 			t.addOn = newAddOn()
-			_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(t.addOn.Namespace).Create(ctx, t.addOn,
+			_, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(t.addOn.Namespace).Create(ctx, t.addOn,
 				metav1.CreateOptions{})
 			Expect(err).To(Succeed())
 
@@ -415,7 +415,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 		})
 
 		JustBeforeEach(func(ctx context.Context) {
-			err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(t.addOn.Namespace).Delete(ctx, t.addOn.Name,
+			err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(t.addOn.Namespace).Delete(ctx, t.addOn.Name,
 				metav1.DeleteOptions{})
 			Expect(err).To(Succeed())
 		})
@@ -642,7 +642,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 			DynamicClient:        t.dynamicClient,
 			AddOnClient:          t.addOnClient,
 			NodeInformer:         kubeInformerFactory.Core().V1().Nodes(),
-			AddOnInformer:        addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
+			AddOnInformer:        addOnInformerFactory.Addon().V1beta1().ManagedClusterAddOns(),
 			ConfigInformer:       configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 			SubmarinerInformer:   dynInformerFactory.ForResource(submarinerv1a1.GroupVersion.WithResource("submariners")),
 			CloudProviderFactory: t.providerFactory,
@@ -661,7 +661,7 @@ func newConfigControllerTestDriver() *configControllerTestDriver {
 
 		cache.WaitForCacheSync(controllerCtx.Done(), kubeInformerFactory.Core().V1().Nodes().Informer().HasSynced,
 			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer().HasSynced,
-			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().HasSynced)
+			addOnInformerFactory.Addon().V1beta1().ManagedClusterAddOns().Informer().HasSynced)
 
 		//nolint:contextcheck // Need context.TODO() for long-running controller; passed ctx is request-scoped
 		go t.controller.Run(controllerCtx, 1)
@@ -799,12 +799,12 @@ func (t *configControllerTestDriver) ensureLabeledNodes(ctx context.Context) {
 }
 
 func (t *configControllerTestDriver) finalizeAddOn(ctx context.Context) {
-	err := finalizer.Remove(ctx, resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(
+	err := finalizer.Remove(ctx, resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(
 		t.addOn.Namespace)), t.addOn, constants.SubmarinerAddOnFinalizer)
 	Expect(err).To(Succeed())
 
 	Eventually(func() bool {
-		_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(t.addOn.Namespace).Get(ctx,
+		_, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(t.addOn.Namespace).Get(ctx,
 			t.addOn.Name, metav1.GetOptions{})
 
 		return apierrors.IsNotFound(err)

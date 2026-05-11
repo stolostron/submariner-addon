@@ -45,7 +45,7 @@ import (
 	"k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/clock"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
@@ -185,7 +185,7 @@ var _ = Describe("Controller", func() {
 					t.deleteGlobalnetConfigMap()
 				})
 
-				It("should update the status of ManagedClusterAddOn about missing config", func() {
+				It("should update the status of ManagedClusterAddOn about missing config", func(ctx context.Context) {
 					expCond := &metav1.Condition{
 						Type:   submarineragent.BrokerCfgApplied,
 						Status: metav1.ConditionFalse,
@@ -193,7 +193,7 @@ var _ = Describe("Controller", func() {
 					}
 
 					test.AwaitStatusCondition(expCond, func() ([]metav1.Condition, error) {
-						config, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.TODO(),
+						config, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName).Get(ctx,
 							constants.SubmarinerAddOnName, metav1.GetOptions{})
 						if err != nil {
 							return nil, err
@@ -333,7 +333,7 @@ var _ = Describe("Controller", func() {
 				beforeAddonDelete()
 			}
 
-			Expect(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Delete(context.Background(), t.addOn.Name,
+			Expect(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName).Delete(context.Background(), t.addOn.Name,
 				metav1.DeleteOptions{})).To(Succeed())
 		})
 
@@ -346,13 +346,13 @@ var _ = Describe("Controller", func() {
 
 		Context("but it's not the last one in the cluster set", func() {
 			BeforeEach(func() {
-				_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(otherClusterName).Create(context.Background(),
-					&addonv1alpha1.ManagedClusterAddOn{
+				_, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(otherClusterName).Create(context.Background(),
+					&addonv1beta1.ManagedClusterAddOn{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: constants.SubmarinerAddOnName,
-						},
-						Spec: addonv1alpha1.ManagedClusterAddOnSpec{
-							InstallNamespace: installNamespace,
+							Annotations: map[string]string{
+								addonv1beta1.InstallNamespaceAnnotation: installNamespace,
+							},
 						},
 					}, metav1.CreateOptions{})
 				Expect(err).To(Succeed())
@@ -507,7 +507,7 @@ var _ = Describe("Controller", func() {
 			})
 
 			It("should eventually finish the clean up", func() {
-				test.AwaitNoResource(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
+				test.AwaitNoResource(resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
 					constants.SubmarinerAddOnName)
 			})
 		})
@@ -528,10 +528,10 @@ var _ = Describe("Controller", func() {
 
 type testDriver struct {
 	managedCluster     *clusterv1.ManagedCluster
-	addOn              *addonv1alpha1.ManagedClusterAddOn
-	clusterMgmtAddon   *addonv1alpha1.ClusterManagementAddOn
-	defaultADConfig    *addonv1alpha1.AddOnDeploymentConfig
-	clusterADConfig    *addonv1alpha1.AddOnDeploymentConfig
+	addOn              *addonv1beta1.ManagedClusterAddOn
+	clusterMgmtAddon   *addonv1beta1.ClusterManagementAddOn
+	defaultADConfig    *addonv1beta1.AddOnDeploymentConfig
+	clusterADConfig    *addonv1beta1.AddOnDeploymentConfig
 	submarinerConfig   *configv1alpha1.SubmarinerConfig
 	globalnetConfigMap *corev1.ConfigMap
 	broker             *submarinerv1alpha1.Broker
@@ -557,23 +557,23 @@ func newTestDriver() *testDriver {
 			},
 		}
 
-		t.addOn = &addonv1alpha1.ManagedClusterAddOn{
+		t.addOn = &addonv1beta1.ManagedClusterAddOn{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      constants.SubmarinerAddOnName,
 				Namespace: clusterName,
-			},
-			Spec: addonv1alpha1.ManagedClusterAddOnSpec{
-				InstallNamespace: installNamespace,
+				Annotations: map[string]string{
+					addonv1beta1.InstallNamespaceAnnotation: installNamespace,
+				},
 			},
 		}
 
-		t.defaultADConfig = &addonv1alpha1.AddOnDeploymentConfig{
+		t.defaultADConfig = &addonv1beta1.AddOnDeploymentConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "submariner-default",
 				Namespace: "foobar",
 			},
-			Spec: addonv1alpha1.AddOnDeploymentConfigSpec{
-				NodePlacement: &addonv1alpha1.NodePlacement{
+			Spec: addonv1beta1.AddOnDeploymentConfigSpec{
+				NodePlacement: &addonv1beta1.NodePlacement{
 					NodeSelector: map[string]string{"foo": "bar"},
 					Tolerations: []corev1.Toleration{
 						{
@@ -585,25 +585,25 @@ func newTestDriver() *testDriver {
 			},
 		}
 
-		t.clusterMgmtAddon = &addonv1alpha1.ClusterManagementAddOn{
+		t.clusterMgmtAddon = &addonv1beta1.ClusterManagementAddOn{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: constants.SubmarinerAddOnName,
 			},
-			Spec: addonv1alpha1.ClusterManagementAddOnSpec{
-				AddOnMeta: addonv1alpha1.AddOnMeta{
+			Spec: addonv1beta1.ClusterManagementAddOnSpec{
+				AddOnMeta: addonv1beta1.AddOnMeta{
 					DisplayName: "Submariner Addon",
 					Description: "Submariner Addon for MultiCluster connectivity",
 				},
 			},
-			Status: addonv1alpha1.ClusterManagementAddOnStatus{
-				DefaultConfigReferences: []addonv1alpha1.DefaultConfigReference{
+			Status: addonv1beta1.ClusterManagementAddOnStatus{
+				DefaultConfigReferences: []addonv1beta1.DefaultConfigReference{
 					{
-						ConfigGroupResource: addonv1alpha1.ConfigGroupResource{
+						ConfigGroupResource: addonv1beta1.ConfigGroupResource{
 							Group:    "addon.open-cluster-management.io",
 							Resource: "addondeploymentconfigs",
 						},
-						DesiredConfig: &addonv1alpha1.ConfigSpecHash{
-							ConfigReferent: addonv1alpha1.ConfigReferent{
+						DesiredConfig: &addonv1beta1.ConfigSpecHash{
+							ConfigReferent: addonv1beta1.ConfigReferent{
 								Name:      t.defaultADConfig.Name,
 								Namespace: t.defaultADConfig.Namespace,
 							},
@@ -679,9 +679,9 @@ func newTestDriver() *testDriver {
 			clusterInformerFactory.Cluster().V1beta2().ManagedClusterSets(),
 			workInformerFactory.Work().V1().ManifestWorks(),
 			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs(),
-			addOnInformerFactory.Addon().V1alpha1().ClusterManagementAddOns(),
-			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
-			addOnInformerFactory.Addon().V1alpha1().AddOnDeploymentConfigs(),
+			addOnInformerFactory.Addon().V1beta1().ClusterManagementAddOns(),
+			addOnInformerFactory.Addon().V1beta1().ManagedClusterAddOns(),
+			addOnInformerFactory.Addon().V1beta1().AddOnDeploymentConfigs(),
 			events.NewLoggingEventRecorder("test", clock.RealClock{}))
 
 		ctx, stop := context.WithCancel(context.TODO())
@@ -698,9 +698,9 @@ func newTestDriver() *testDriver {
 			clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().HasSynced,
 			workInformerFactory.Work().V1().ManifestWorks().Informer().HasSynced,
 			configInformerFactory.Submarineraddon().V1alpha1().SubmarinerConfigs().Informer().HasSynced,
-			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Informer().HasSynced,
-			addOnInformerFactory.Addon().V1alpha1().AddOnDeploymentConfigs().Informer().HasSynced,
-			addOnInformerFactory.Addon().V1alpha1().ClusterManagementAddOns().Informer().HasSynced)
+			addOnInformerFactory.Addon().V1beta1().ManagedClusterAddOns().Informer().HasSynced,
+			addOnInformerFactory.Addon().V1beta1().AddOnDeploymentConfigs().Informer().HasSynced,
+			addOnInformerFactory.Addon().V1beta1().ClusterManagementAddOns().Informer().HasSynced)
 
 		go controller.Run(ctx, 1)
 	})
@@ -725,7 +725,7 @@ func (t *testDriver) initManifestWorks() {
 
 func (t *testDriver) testFinalizers() {
 	It("should add finalizers to the ManagedClusterAddon and ManagedCluster", func() {
-		test.AwaitFinalizer(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
+		test.AwaitFinalizer(resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
 			t.addOn.Name, constants.SubmarinerAddOnFinalizer)
 	})
 }
@@ -737,12 +737,12 @@ func (t *testDriver) testAgentCleanup(expMCADeleted bool) {
 
 	if expMCADeleted {
 		Specify("the ManagedClusterAddOn should be deleted", func() {
-			test.AwaitNoResource(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
+			test.AwaitNoResource(resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
 				constants.SubmarinerAddOnName)
 		})
 	} else {
 		It("should remove the ManagedClusterAddOn finalizer", func() {
-			test.AwaitNoFinalizer(resource.ForAddon(t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName)),
+			test.AwaitNoFinalizer(resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
 				constants.SubmarinerAddOnName, constants.SubmarinerAddOnFinalizer)
 		})
 	}
@@ -957,19 +957,19 @@ func (t *testDriver) createManagedCluster() {
 	Expect(err).To(Succeed())
 }
 
-func (t *testDriver) createAddonDeploymentConfig(config *addonv1alpha1.AddOnDeploymentConfig) {
-	_, err := t.addOnClient.AddonV1alpha1().AddOnDeploymentConfigs(config.Namespace).Create(context.TODO(), config, metav1.CreateOptions{})
+func (t *testDriver) createAddonDeploymentConfig(config *addonv1beta1.AddOnDeploymentConfig) {
+	_, err := t.addOnClient.AddonV1beta1().AddOnDeploymentConfigs(config.Namespace).Create(context.TODO(), config, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
 func (t *testDriver) createAddonDeploymentConfigForCluster(cluster string) {
-	t.clusterADConfig = &addonv1alpha1.AddOnDeploymentConfig{
+	t.clusterADConfig = &addonv1beta1.AddOnDeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "submariner-adconfig",
 			Namespace: cluster,
 		},
-		Spec: addonv1alpha1.AddOnDeploymentConfigSpec{
-			NodePlacement: &addonv1alpha1.NodePlacement{
+		Spec: addonv1beta1.AddOnDeploymentConfigSpec{
+			NodePlacement: &addonv1beta1.NodePlacement{
 				NodeSelector: map[string]string{"foo": cluster},
 				Tolerations: []corev1.Toleration{
 					{
@@ -985,7 +985,7 @@ func (t *testDriver) createAddonDeploymentConfigForCluster(cluster string) {
 }
 
 func (t *testDriver) createClusterManagementAddon() {
-	_, err := t.addOnClient.AddonV1alpha1().ClusterManagementAddOns().Create(context.TODO(), t.clusterMgmtAddon, metav1.CreateOptions{})
+	_, err := t.addOnClient.AddonV1beta1().ClusterManagementAddOns().Create(context.TODO(), t.clusterMgmtAddon, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
@@ -1001,7 +1001,7 @@ func (t *testDriver) createManagedClusterSet() {
 }
 
 func (t *testDriver) createAddon() {
-	_, err := t.addOnClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Create(context.TODO(), t.addOn, metav1.CreateOptions{})
+	_, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName).Create(context.TODO(), t.addOn, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
@@ -1072,13 +1072,13 @@ func (t *testDriver) deleteGlobalnetConfigMap() {
 }
 
 func (t *testDriver) setClusterADConfig() {
-	t.addOn.Spec.Configs = []addonv1alpha1.AddOnConfig{
+	t.addOn.Spec.Configs = []addonv1beta1.AddOnConfig{
 		{
-			ConfigGroupResource: addonv1alpha1.ConfigGroupResource{
+			ConfigGroupResource: addonv1beta1.ConfigGroupResource{
 				Group:    "addon.open-cluster-management.io",
 				Resource: "addondeploymentconfigs",
 			},
-			ConfigReferent: addonv1alpha1.ConfigReferent{
+			ConfigReferent: addonv1beta1.ConfigReferent{
 				Name:      t.clusterADConfig.Name,
 				Namespace: t.clusterADConfig.Namespace,
 			},

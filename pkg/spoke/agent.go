@@ -157,7 +157,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		AddOnClient:          addOnHubKubeClient,
 		DynamicClient:        spokeDynamicClient,
 		NodeInformer:         spokeKubeInformers.Core().V1().Nodes(),
-		AddOnInformer:        addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		AddOnInformer:        addOnInformers.Addon().V1beta1().ManagedClusterAddOns(),
 		ConfigInformer:       configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 		SubmarinerInformer:   submarinerInformer,
 		CloudProviderFactory: cloud.NewProviderFactory(restMapper, spokeKubeClient, spokeDynamicClient, hubClient),

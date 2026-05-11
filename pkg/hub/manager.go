@@ -180,7 +180,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		clusterClient.ClusterV1beta2().ManagedClusterSets(),
 		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
 		addOnClient,
-		addOnInformers.Addon().V1alpha1(),
+		addOnInformers.Addon().V1beta1(),
 		controllerContext.KubeConfig,
 		controllerContext.EventRecorder)
 
@@ -196,9 +196,9 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
 		workInformers.Work().V1().ManifestWorks(),
 		configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
-		addOnInformers.Addon().V1alpha1().ClusterManagementAddOns(),
-		addOnInformers.Addon().V1alpha1().ManagedClusterAddOns(),
-		addOnInformers.Addon().V1alpha1().AddOnDeploymentConfigs(),
+		addOnInformers.Addon().V1beta1().ClusterManagementAddOns(),
+		addOnInformers.Addon().V1beta1().ManagedClusterAddOns(),
+		addOnInformers.Addon().V1beta1().AddOnDeploymentConfigs(),
 		controllerContext.EventRecorder,
 	)
 
