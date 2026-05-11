@@ -335,7 +335,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 			},
 		}
 
-		t.addOnClient = addonfake.NewSimpleClientset()
+		t.addOnClient = addonfake.NewSimpleClientset() //nolint:staticcheck // The non-deprecated function is not available
 		fakereactor.AddBasicReactors(&t.addOnClient.Fake)
 
 		var err error
@@ -344,7 +344,7 @@ func newBrokerControllerTestDriver() *brokerControllerTestDriver {
 			metav1.CreateOptions{})
 		Expect(err).To(Succeed())
 
-		t.clusterSetClient = clusterSetFake.NewSimpleClientset()
+		t.clusterSetClient = clusterSetFake.NewSimpleClientset() //nolint:staticcheck // The non-deprecated function is not available
 		fakereactor.AddBasicReactors(&t.clusterSetClient.Fake)
 	})
 
