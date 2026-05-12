@@ -3,6 +3,8 @@ package hub
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/pprof"
 	"os"
 	"time"
 
@@ -37,6 +39,7 @@ import (
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 	workinformers "open-cluster-management.io/api/client/work/informers/externalversions"
 	controllerclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	mcsv1a1 "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
 )
 
@@ -229,12 +232,45 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return errors.Wrap(err, "error adding agent")
 	}
 
+	// Start HTTP server on port 8081 for health checks and pprof debugging
+	// /healthz - Used by kubelet liveness/readiness probes
+	// /debug/pprof/* - Debug profiling endpoints (access via kubectl port-forward)
+	mux := http.NewServeMux()
+	mux.Handle("/healthz", healthz.CheckHandler{Checker: healthz.Ping})
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	healthServer := &http.Server{
+		Addr:              ":8081",
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	go func() {
+		klog.Info("Starting HTTP server on :8081 (health checks and pprof debug endpoints)")
+
+		if err := healthServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			klog.Errorf("HTTP server error: %v", err)
+		}
+	}()
+
 	err = mgr.Start(ctx)
 	if err != nil {
 		return errors.Wrap(err, "error starting addon manager")
 	}
 
 	<-ctx.Done()
+
+	// Shutdown HTTP server gracefully
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	//nolint:contextcheck // need a fresh context for shutdown since parent ctx is already cancelled
+	if err := healthServer.Shutdown(shutdownCtx); err != nil {
+		klog.Warningf("HTTP server shutdown error: %v", err)
+	}
 
 	return nil
 }
