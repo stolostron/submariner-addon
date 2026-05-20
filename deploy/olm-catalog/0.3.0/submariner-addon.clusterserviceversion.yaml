@@ -175,16 +175,16 @@ spec:
                 livenessProbe:
                   httpGet:
                     path: /healthz
-                    port: 8443
-                    scheme: HTTPS
+                    port: 8081
+                    scheme: HTTP
                   initialDelaySeconds: 2
                   periodSeconds: 10
                 name: submariner-addon
                 readinessProbe:
                   httpGet:
                     path: /healthz
-                    port: 8443
-                    scheme: HTTPS
+                    port: 8081
+                    scheme: HTTP
                   initialDelaySeconds: 2
                 resources:
                   requests:
