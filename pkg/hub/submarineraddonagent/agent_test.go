@@ -206,7 +206,8 @@ var _ = Describe("GetAgentAddonOptions", func() {
 					"system:open-cluster-management:addon:submariner",
 					"system:open-cluster-management:cluster:" + clusterName + ":addon:submariner",
 				},
-				CN: "system:open-cluster-management:cluster:" + clusterName + ":addon:submariner:agent:submariner-addon-agent",
+				CN:       "system:open-cluster-management:cluster:" + clusterName + ":addon:submariner:agent:submariner-addon-agent",
+				Username: "system:open-cluster-management:" + clusterName + ":test-addon-sa",
 			}
 		})
 
@@ -215,7 +216,11 @@ var _ = Describe("GetAgentAddonOptions", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: clusterName,
 				},
-			}, &addonapiv1beta1.ManagedClusterAddOn{}, newCSR(csr))
+			}, &addonapiv1beta1.ManagedClusterAddOn{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: constants.SubmarinerAddOnName,
+				},
+			}, newCSR(&csr))
 		})
 
 		When("the CSR is valid", func() {
@@ -224,29 +229,9 @@ var _ = Describe("GetAgentAddonOptions", func() {
 			})
 		})
 
-		When("the signer name is invalid", func() {
-			BeforeEach(func() {
-				csr.SignerName = invalid
-			})
-
-			It("should return false", func() {
-				Expect(result).To(BeFalse())
-			})
-		})
-
 		When("the block type is invalid", func() {
 			BeforeEach(func() {
 				csr.ReqBlockType = "RSA PRIVATE KEY"
-			})
-
-			It("should return false", func() {
-				Expect(result).To(BeFalse())
-			})
-		})
-
-		When("the authenticated group is missing from the orgs", func() {
-			BeforeEach(func() {
-				csr.Orgs[0] = invalid
 			})
 
 			It("should return false", func() {
@@ -467,9 +452,10 @@ type csrHolder struct {
 	CN           string
 	Orgs         []string
 	ReqBlockType string
+	Username     string
 }
 
-func newCSR(holder csrHolder) *certificatesv1.CertificateSigningRequest {
+func newCSR(holder *csrHolder) *certificatesv1.CertificateSigningRequest {
 	//nolint:gosec // These are test credentials, using insecure rand vs crypto/rand is okay
 	insecureRand := rand.New(rand.NewSource(0))
 	pk, err := ecdsa.GenerateKey(elliptic.P256(), insecureRand)
@@ -487,13 +473,18 @@ func newCSR(holder csrHolder) *certificatesv1.CertificateSigningRequest {
 
 	Expect(err).To(Succeed())
 
+	username := holder.Username
+	if username == "" {
+		username = "test"
+	}
+
 	return &certificatesv1.CertificateSigningRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         "test-csr",
 			GenerateName: "csr-",
 		},
 		Spec: certificatesv1.CertificateSigningRequestSpec{
-			Username:   "test",
+			Username:   username,
 			Usages:     []certificatesv1.KeyUsage{},
 			SignerName: holder.SignerName,
 			Request:    pem.EncodeToMemory(&pem.Block{Type: holder.ReqBlockType, Bytes: csrb}),

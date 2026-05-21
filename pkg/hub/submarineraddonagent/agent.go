@@ -2,9 +2,7 @@ package submarineraddonagent
 
 import (
 	"context"
-	"crypto/x509"
 	"embed"
-	"encoding/pem"
 	goerrors "errors"
 	"fmt"
 	"os"
@@ -15,11 +13,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	appsv1 "k8s.io/api/apps/v1"
-	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
@@ -34,13 +30,7 @@ import (
 const (
 	agentName                  = "submariner-addon-agent"
 	selfManagedClusterLabelKey = "local-cluster"
-)
-
-const (
-	addOnGroup         = "system:open-cluster-management:addon:submariner"
-	agentUserName      = "system:open-cluster-management:cluster:%s:addon:submariner:agent:submariner-addon-agent"
-	clusterAddOnGroup  = "system:open-cluster-management:cluster:%s:addon:submariner"
-	authenticatedGroup = "system:authenticated"
+	clusterAddOnGroup          = "system:open-cluster-management:cluster:%s:addon:submariner"
 )
 
 var agentHubPermissionFiles = []string{
@@ -76,7 +66,7 @@ func NewAddOnAgent(kubeClient kubernetes.Interface, clusterClient clusterclient.
 
 	registrationOption := &agent.RegistrationOption{
 		Configurations:   agent.KubeClientSignerConfigurations(constants.SubmarinerAddOnName, agentName),
-		CSRApproveCheck:  csrApproveCheck,
+		CSRApproveCheck:  utils.DefaultCSRApprover(agentName),
 		PermissionConfig: a.permissionConfig,
 	}
 
@@ -155,51 +145,6 @@ func (a *addOnAgent) getValues(cluster *clusterv1.ManagedCluster, _ *addonapiv1b
 	}
 
 	return addonfactory.StructToValues(manifestConfig), nil
-}
-
-// To check the addon agent csr, we check
-// 1. if the signer name in csr request is valid.
-// 2. if organization field and commonName field in csr request is valid.
-// 3. if user name in csr is the same as commonName field in csr request.
-func csrApproveCheck(ctx context.Context, cluster *clusterv1.ManagedCluster, _ *addonapiv1beta1.ManagedClusterAddOn,
-	csr *certificatesv1.CertificateSigningRequest,
-) bool {
-	if csr.Spec.SignerName != certificatesv1.KubeAPIServerClientSignerName {
-		return false
-	}
-
-	block, _ := pem.Decode(csr.Spec.Request)
-	if block == nil || block.Type != "CERTIFICATE REQUEST" {
-		klog.V(4).Infof("csr %q was not recognized: PEM block type is not CERTIFICATE REQUEST", csr.Name)
-
-		return false
-	}
-
-	x509cr, err := x509.ParseCertificateRequest(block.Bytes)
-	if err != nil {
-		klog.V(4).Infof("csr %q was not recognized: %v", csr.Name, err)
-
-		return false
-	}
-
-	requestingOrgs := sets.NewString(x509cr.Subject.Organization...)
-	if requestingOrgs.Len() != 3 {
-		return false
-	}
-
-	if !requestingOrgs.Has(authenticatedGroup) {
-		return false
-	}
-
-	if !requestingOrgs.Has(addOnGroup) {
-		return false
-	}
-
-	if !requestingOrgs.Has(fmt.Sprintf(clusterAddOnGroup, cluster.Name)) {
-		return false
-	}
-
-	return fmt.Sprintf(agentUserName, cluster.Name) == x509cr.Subject.CommonName
 }
 
 // Generates manifestworks to deploy the required roles of submariner-addon agent.
