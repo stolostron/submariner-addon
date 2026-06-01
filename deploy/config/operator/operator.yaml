@@ -26,15 +26,15 @@ spec:
           livenessProbe:
             httpGet:
               path: /healthz
-              scheme: HTTP
-              port: 8081
+              scheme: HTTPS
+              port: 8443
             initialDelaySeconds: 2
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /healthz
-              scheme: HTTP
-              port: 8081
+              scheme: HTTPS
+              port: 8443
             initialDelaySeconds: 2
           resources:
             requests:

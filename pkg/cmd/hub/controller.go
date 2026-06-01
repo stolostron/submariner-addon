@@ -10,15 +10,9 @@ import (
 
 func NewController() *cobra.Command {
 	addOnOptions := hub.NewAddOnOptions()
-
-	// Create base command config with serving disabled
-	cmdConfig := controllercmd.
-		NewControllerCommandConfig("submariner-controller", version.Get(), addOnOptions.RunControllerManager, clock.RealClock{})
-
-	// Disable controllercmd's HTTPS server - we'll use our own HTTP server
-	cmdConfig.DisableServing = true
-
-	cmd := cmdConfig.NewCommand()
+	cmd := controllercmd.
+		NewControllerCommandConfig("submariner-controller", version.Get(), addOnOptions.RunControllerManager, clock.RealClock{}).
+		NewCommand()
 	cmd.Use = "controller"
 	cmd.Short = "Start the ACM Submariner Controller"
 
