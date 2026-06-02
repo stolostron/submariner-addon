@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
@@ -28,7 +28,9 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/clock"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
@@ -47,7 +49,8 @@ const (
 )
 
 type AddOnOptions struct {
-	AgentImage string
+	AgentImage    string
+	EventRecorder events.Recorder // Optional: for test injection
 }
 
 func NewAddOnOptions() *AddOnOptions {
@@ -91,14 +94,15 @@ func (o *AddOnOptions) Complete(ctx context.Context, kubeClient kubernetes.Inter
 }
 
 // RunControllerManager starts the controllers on hub to manage submariner deployment.
+// The markReady callback is called after informer caches are synced (optional, can be nil).
 //
 //nolint:gocyclo // This function has a lot of error checking which isn't complex.
-func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
+func (o *AddOnOptions) RunControllerManager(ctx context.Context, kubeConfig *rest.Config, markReady func()) error {
 	utilruntime.Must(submarinerv1alpha1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(submarinerv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(mcsv1a1.Install(scheme.Scheme))
 
-	kubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "error creating kube client")
 	}
@@ -107,39 +111,55 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		return err
 	}
 
-	dynamicClient, err := dynamic.NewForConfig(controllerContext.KubeConfig)
+	dynamicClient, err := dynamic.NewForConfig(kubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "error creating dynamic client")
 	}
 
-	clusterClient, err := clusterclient.NewForConfig(controllerContext.KubeConfig)
+	clusterClient, err := clusterclient.NewForConfig(kubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "error creating controller client")
 	}
 
-	workClient, err := workclient.NewForConfig(controllerContext.KubeConfig)
+	workClient, err := workclient.NewForConfig(kubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "error creating work client")
 	}
 
-	configClient, err := configclient.NewForConfig(controllerContext.KubeConfig)
+	configClient, err := configclient.NewForConfig(kubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "error creating config client")
 	}
 
-	apiExtensionClient, err := apiextensionsclientset.NewForConfig(controllerContext.KubeConfig)
+	apiExtensionClient, err := apiextensionsclientset.NewForConfig(kubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "error creating apiExtension client")
 	}
 
-	addOnClient, err := addonclient.NewForConfig(controllerContext.KubeConfig)
+	addOnClient, err := addonclient.NewForConfig(kubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "error creating addon client")
 	}
 
-	controllerClient, err := controllerclient.New(controllerContext.KubeConfig, controllerclient.Options{})
+	controllerClient, err := controllerclient.New(kubeConfig, controllerclient.Options{})
 	if err != nil {
 		return errors.Wrap(err, "error creating controller client")
+	}
+
+	namespace := resource.GetCurrentNamespace(defaultNamespace)
+
+	// Use injected event recorder (for tests) or create one
+	eventRecorder := o.EventRecorder
+	if eventRecorder == nil {
+		// Get controller reference for the current pod (walks ownership chain to find Deployment)
+		controllerRef, err := events.GetControllerReferenceForCurrentPod(ctx, kubeClient, namespace, nil)
+		if err != nil {
+			klog.Warningf("unable to get owner reference (falling back to namespace): %v", err)
+		}
+
+		// Create event recorder using library-go events package
+		eventRecorder = events.NewKubeRecorder(kubeClient.CoreV1().Events(namespace),
+			"submariner-addon-controller", controllerRef, clock.RealClock{})
 	}
 
 	// Informer transform to trim ManagedFields for memory efficiency.
@@ -168,7 +188,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	submarinerBrokerCRDsController := submarinerbroker.NewCRDsController(
 		apiExtensionClient,
 		apiExtensionsInformers.Apiextensions().V1().CustomResourceDefinitions(),
-		controllerContext.EventRecorder,
+		eventRecorder,
 	)
 
 	err = createClusterRoleToAllowBrokerCRD(ctx, kubeClient)
@@ -181,8 +201,8 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
 		addOnClient,
 		addOnInformers.Addon().V1beta1(),
-		controllerContext.KubeConfig,
-		controllerContext.EventRecorder)
+		kubeConfig,
+		eventRecorder)
 
 	submarinerAgentController := submarineragent.NewSubmarinerAgentController(
 		kubeClient,
@@ -199,7 +219,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 		addOnInformers.Addon().V1beta1().ClusterManagementAddOns(),
 		addOnInformers.Addon().V1beta1().ManagedClusterAddOns(),
 		addOnInformers.Addon().V1beta1().AddOnDeploymentConfigs(),
-		controllerContext.EventRecorder,
+		eventRecorder,
 	)
 
 	clusterInformers.Start(ctx.Done())
@@ -209,17 +229,30 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, controllerConte
 	apiExtensionsInformers.Start(ctx.Done())
 	addOnInformers.Start(ctx.Done())
 
+	// Wait for informer caches to sync before starting controllers
+	clusterInformers.WaitForCacheSync(ctx.Done())
+	workInformers.WaitForCacheSync(ctx.Done())
+	kubeInformers.WaitForCacheSync(ctx.Done())
+	configInformers.WaitForCacheSync(ctx.Done())
+	apiExtensionsInformers.WaitForCacheSync(ctx.Done())
+	addOnInformers.WaitForCacheSync(ctx.Done())
+
+	// Notify that informer caches are synced (for readiness probe)
+	if markReady != nil {
+		markReady()
+	}
+
 	go submarinerBrokerCRDsController.Run(ctx, 1)
 	go submarinerBrokerController.Run(ctx, 1)
 	go submarinerAgentController.Run(ctx, 1)
 
-	mgr, err := addonmanager.New(controllerContext.KubeConfig)
+	mgr, err := addonmanager.New(kubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "error creating addon manager")
 	}
 
 	agent, err := submarineraddonagent.NewAddOnAgent(kubeClient, clusterClient, addOnClient,
-		controllerContext.EventRecorder, o.AgentImage)
+		eventRecorder, o.AgentImage)
 	if err != nil {
 		return errors.Wrap(err, "error creating addon agent")
 	}
