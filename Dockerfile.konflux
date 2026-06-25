@@ -5,7 +5,7 @@ COPY . .
 ENV GO_PACKAGE github.com/stolostron/submariner-addon
 RUN make GO_BUILD_FLAGS=-mod=mod build --warn-undefined-variables
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM registry.access.redhat.com/hi/core-runtime:latest-openssl-fips
 
 LABEL com.redhat.component="rhacm-submariner-addon" \
       description="This image provides the Submariner addon, which integrates with Red Hat Advanced Cluster Management (ACM) to establish secure and direct Layer 3 network connectivity between Kubernetes clusters." \
