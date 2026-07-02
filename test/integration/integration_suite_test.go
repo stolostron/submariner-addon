@@ -8,7 +8,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	configclientset "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/hub"
@@ -224,10 +223,7 @@ func startControllerManager() func() {
 		createClusterManagementAddOn(ctx)
 
 		addOnOptions := hub.AddOnOptions{AgentImage: "test"}
-		err := addOnOptions.RunControllerManager(ctx, &controllercmd.ControllerContext{
-			KubeConfig:    cfg,
-			EventRecorder: util.NewIntegrationTestEventRecorder("submariner-addon"),
-		})
+		err := addOnOptions.RunControllerManager(ctx, cfg)
 		Expect(err).NotTo(HaveOccurred())
 	}()
 
