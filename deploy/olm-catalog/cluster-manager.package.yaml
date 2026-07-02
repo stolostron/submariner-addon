@@ -1,5 +1,0 @@
-channels:
-  - name: stable
-    currentCSV: submariner-addon.v0.3.0
-defaultChannel: stable
-packageName: submariner-addon
