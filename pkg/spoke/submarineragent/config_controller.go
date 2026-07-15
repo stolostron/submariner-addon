@@ -231,9 +231,23 @@ func (c *submarinerConfigController) sync(ctx context.Context, syncCtx factory.S
 func (c *submarinerConfigController) syncConfig(ctx context.Context, recorder events.Recorder,
 	config *configv1alpha1.SubmarinerConfig,
 ) error {
-	if c.skipSyncingUnchangedConfig(config) {
-		c.logger.V(log.DEBUG).Infof("Skip syncing submariner config %q as it didn't change", config.Namespace+"/"+config.Name)
+	// Check if we need to reconcile gateway labels even if config hasn't changed.
+	// This handles scenarios like node replacement during cluster upgrades where
+	// gateway-labeled nodes are deleted and new nodes need to be labeled.
+	needsGatewayReconciliation, err := c.needsGatewayReconciliation(config)
+	if err != nil {
+		return errors.Wrapf(err, "error checking if gateway reconciliation is needed")
+	}
+
+	if !needsGatewayReconciliation && c.skipSyncingUnchangedConfig(config) {
+		c.logger.V(log.DEBUG).Info("Skip syncing submariner config as it didn't change",
+			"config", config.Namespace+"/"+config.Name)
+
 		return nil
+	}
+
+	if needsGatewayReconciliation {
+		c.logger.Info("Gateway reconciliation needed for config", "config", config.Namespace+"/"+config.Name)
 	}
 
 	isValid, err := c.validateOCPVersion(ctx, config, recorder)
@@ -248,6 +262,25 @@ func (c *submarinerConfigController) syncConfig(ctx context.Context, recorder ev
 // skipSyncingUnchangedConfig if last submariner config is known and is equal to the given config.
 func (c *submarinerConfigController) skipSyncingUnchangedConfig(config *configv1alpha1.SubmarinerConfig) bool {
 	return c.lastKnownConfig != nil && reflect.DeepEqual(c.lastKnownConfig.Spec, config.Spec)
+}
+
+// needsGatewayReconciliation checks if the actual number of labeled gateway nodes
+// matches the desired count specified in the config. Returns true if reconciliation
+// is needed (e.g., during node replacement scenarios).
+func (c *submarinerConfigController) needsGatewayReconciliation(config *configv1alpha1.SubmarinerConfig) (bool, error) {
+	if config.Spec.Gateways < 1 {
+		return false, nil
+	}
+
+	currentGateways, err := c.getLabeledNodes(
+		nodeLabelSelector{submarinerGatewayLabel, selection.Exists},
+	)
+	if err != nil {
+		return false, errors.Wrap(err, "error retrieving gateway nodes")
+	}
+
+	// Need reconciliation if the actual count doesn't match the desired count
+	return len(currentGateways) != config.Spec.Gateways, nil
 }
 
 func (c *submarinerConfigController) prepareForSubmariner(ctx context.Context, config *configv1alpha1.SubmarinerConfig,
