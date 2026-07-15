@@ -61,7 +61,7 @@ func labelGateway(node *corev1.Node, isGateway bool) {
 	node.Labels["submariner.io/gateway"] = strconv.FormatBool(isGateway)
 }
 
-func testWorkerNodeLabeling(t *configControllerTestDriver) {
+func testWorkerNodeLabeling(t *configControllerTestDriver) { //nolint:maintidx // Test function complexity is acceptable
 	When("no existing worker nodes are labeled as gateways", func() {
 		It("should label the desired number of gateway nodes", func(ctx context.Context) {
 			t.awaitLabeledNodes(ctx)
@@ -238,6 +238,94 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 					}
 				}
 			}
+		})
+	})
+
+	When("a gateway node is deleted and a new worker node is added (node replacement scenario)", func() {
+		BeforeEach(func() {
+			// Start with multiple worker nodes: 1 will be the gateway, others are available as replacement candidates
+			t.nodes = []*corev1.Node{
+				newWorkerNode("worker-1"),
+				newWorkerNode("worker-2"),
+				newWorkerNode("worker-3"),
+			}
+			// Initially label worker-1 as gateway
+			labelGateway(t.nodes[0], true)
+			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
+			t.nodes[0].Annotations = map[string]string{"submariner.io/random-gateway-node": "true"}
+		})
+
+		It("should automatically label one of the available nodes as gateway", func(ctx context.Context) {
+			// Wait for initial gateway to be labeled
+			t.awaitGatewaysLabeledSuccessCondition(ctx)
+
+			// Simulate node replacement during cluster upgrade:
+			// 1. Delete the gateway node
+			deletedNodeName := t.nodes[0].Name
+			err := t.kubeClient.CoreV1().Nodes().Delete(ctx, deletedNodeName, metav1.DeleteOptions{})
+			Expect(err).To(Succeed(), "failed to delete gateway node")
+
+			// Update t.nodes to remove the deleted node
+			t.nodes = t.nodes[1:]
+
+			// 2. Add a new worker node (simulating new node provisioned after upgrade)
+			// Now we have worker-2, worker-3, and the new worker-new as potential gateway candidates
+			newNode := newWorkerNode("worker-new")
+			t.nodes = append(t.nodes, newNode)
+			_, err = t.kubeClient.CoreV1().Nodes().Create(ctx, newNode, metav1.CreateOptions{})
+			Expect(err).To(Succeed(), "failed to create replacement worker node")
+
+			DeferCleanup(func(ctx context.Context) {
+				_ = t.kubeClient.CoreV1().Nodes().Delete(ctx, newNode.Name, metav1.DeleteOptions{})
+			})
+
+			// The controller should automatically detect the missing gateway and label one of the available nodes
+			t.awaitLabeledNodes(ctx)
+			t.awaitGatewaysLabeledSuccessCondition(ctx)
+
+			// Verify that exactly one node got labeled (could be worker-2, worker-3, or worker-new)
+			labeledNodes := t.getLabeledWorkerNodes(ctx)
+			Expect(labeledNodes).To(HaveLen(1), "expected exactly one worker node to be labeled as gateway")
+
+			labeledNode := labeledNodes[0]
+			Expect(labeledNode.Labels["submariner.io/gateway"]).To(Equal("true"), "expected gateway label to be true")
+			Expect(labeledNode.Labels["gateway.submariner.io/udp-port"]).To(
+				Equal(strconv.Itoa(t.config.Spec.IPSecNATTPort)), "expected UDP port label to match config")
+
+			// The labeled node should be one of the available candidates (not the deleted one)
+			Expect(labeledNode.Name).To(SatisfyAny(
+				Equal("worker-2"),
+				Equal("worker-3"),
+				Equal("worker-new"),
+			), "expected labeled node to be one of the available worker candidates")
+		})
+	})
+
+	When("a gateway node is deleted and no replacement nodes are available", func() {
+		BeforeEach(func() {
+			// Start with only 1 worker node - no other candidates
+			t.nodes = []*corev1.Node{newWorkerNode("worker-1")}
+			labelGateway(t.nodes[0], true)
+			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
+			t.nodes[0].Annotations = map[string]string{"submariner.io/random-gateway-node": "true"}
+		})
+
+		It("should report InsufficientNodes", func(ctx context.Context) {
+			// Wait for initial gateway to be labeled
+			t.awaitGatewaysLabeledSuccessCondition(ctx)
+
+			// Delete the only gateway node
+			err := t.kubeClient.CoreV1().Nodes().Delete(ctx, t.nodes[0].Name, metav1.DeleteOptions{})
+			Expect(err).To(Succeed(), "failed to delete the only gateway node")
+
+			t.nodes = []*corev1.Node{}
+
+			// Controller should detect missing gateway and report InsufficientNodes
+			t.awaitSubmarinerConfigStatusCondition(ctx, &metav1.Condition{
+				Type:   gatewayConditionType,
+				Status: metav1.ConditionFalse,
+				Reason: "InsufficientNodes",
+			})
 		})
 	})
 }
