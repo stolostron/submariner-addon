@@ -2,11 +2,13 @@ package spoke
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"time"
 
-	"github.com/openshift/library-go/pkg/controller/controllercmd"
-	"github.com/pkg/errors"
+	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/spf13/cobra"
 	configclient "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/clientset/versioned"
 	configinformers "github.com/stolostron/submariner-addon/pkg/client/submarinerconfig/informers/externalversions"
@@ -14,6 +16,7 @@ import (
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/stolostron/submariner-addon/pkg/spoke/submarineragent"
+	"github.com/stolostron/submariner-addon/pkg/version"
 	submarinermv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -25,6 +28,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
+	"k8s.io/utils/clock"
 	"open-cluster-management.io/addon-framework/pkg/lease"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
@@ -79,7 +84,7 @@ func (o *AgentOptions) Validate() error {
 	return nil
 }
 
-func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
+func (o *AgentOptions) RunAgent(ctx context.Context, spokeConfig *rest.Config) error {
 	o.Complete()
 
 	if err := o.Validate(); err != nil {
@@ -93,39 +98,41 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	if hubRestConfig == nil {
 		hubRestConfig, err = clientcmd.BuildConfigFromFlags("" /* leave masterurl as empty */, o.HubKubeconfigFile)
 		if err != nil {
-			return errors.Wrap(err, "error creating hub REST config")
+			return fmt.Errorf("error creating hub REST config: %w", err)
 		}
 	}
 
 	addOnHubKubeClient, err := addonclient.NewForConfig(hubRestConfig)
 	if err != nil {
-		return errors.Wrap(err, "error creating addon client")
+		return fmt.Errorf("error creating addon client: %w", err)
 	}
 
 	configHubKubeClient, err := configclient.NewForConfig(hubRestConfig)
 	if err != nil {
-		return errors.Wrap(err, "error creating hub kube client")
+		return fmt.Errorf("error creating hub kube client: %w", err)
 	}
 
-	spokeKubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
+	spokeKubeClient, err := kubernetes.NewForConfig(spokeConfig)
 	if err != nil {
-		return errors.Wrap(err, "error creating spoke kube client")
+		return fmt.Errorf("error creating spoke kube client: %w", err)
 	}
 
-	spokeDynamicClient, err := dynamic.NewForConfig(controllerContext.KubeConfig)
+	spokeDynamicClient, err := dynamic.NewForConfig(spokeConfig)
 	if err != nil {
-		return errors.Wrap(err, "error creating spoke dynamic client")
+		return fmt.Errorf("error creating spoke dynamic client: %w", err)
 	}
 
 	hubClient, err := kubernetes.NewForConfig(hubRestConfig)
 	if err != nil {
-		return errors.Wrap(err, "error creating hub client")
+		return fmt.Errorf("error creating hub client: %w", err)
 	}
 
-	restMapper, err := buildRestMapper(controllerContext.KubeConfig)
+	restMapper, err := buildRestMapper(spokeConfig)
 	if err != nil {
-		return errors.Wrap(err, "error creating REST mapper")
+		return fmt.Errorf("error creating REST mapper: %w", err)
 	}
+
+	eventRecorder := o.getEventRecorder(ctx, spokeKubeClient)
 
 	// Informer transform to trim ManagedFields for memory efficiency.
 	trim := func(obj any) (any, error) {
@@ -161,22 +168,22 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		ConfigInformer:       configInformers.Submarineraddon().V1alpha1().SubmarinerConfigs(),
 		SubmarinerInformer:   submarinerInformer,
 		CloudProviderFactory: cloud.NewProviderFactory(restMapper, spokeKubeClient, spokeDynamicClient, hubClient),
-		Recorder:             controllerContext.EventRecorder,
+		Recorder:             eventRecorder,
 	})
 
 	gatewaysStatusController := submarineragent.NewGatewaysStatusController(
 		o.ClusterName,
 		addOnHubKubeClient,
 		spokeKubeInformers.Core().V1().Nodes(),
-		controllerContext.EventRecorder,
+		eventRecorder,
 	)
 
 	deploymentStatusController := submarineragent.NewDeploymentStatusController(o.ClusterName, o.InstallationNamespace,
 		addOnHubKubeClient, spokeKubeInformers.Apps().V1().DaemonSets(), spokeKubeInformers.Apps().V1().Deployments(),
-		dynamicInformers.ForResource(subscriptionGVR), submarinerInformer, controllerContext.EventRecorder)
+		dynamicInformers.ForResource(subscriptionGVR), submarinerInformer, eventRecorder)
 
 	connectionsStatusController := submarineragent.NewConnectionsStatusController(o.ClusterName, addOnHubKubeClient,
-		dynamicInformers.ForResource(submarinerGVR), routeAgentInformer, controllerContext.EventRecorder)
+		dynamicInformers.ForResource(submarinerGVR), routeAgentInformer, eventRecorder)
 
 	go addOnInformers.Start(ctx.Done())
 	go configInformers.Start(ctx.Done())
@@ -196,9 +203,30 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 	)
 	go leaseUpdater.Start(ctx)
 
+	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()
+	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
+
+	serviceability.StartProfiler()
+
 	<-ctx.Done()
 
 	return nil
+}
+
+func (o *AgentOptions) getEventRecorder(ctx context.Context, spokeKubeClient *kubernetes.Clientset) events.Recorder {
+	// Get controller reference for the current pod (walks ownership chain to find Deployment)
+	// Use a short timeout to avoid blocking agent startup if API server is slow
+	lookupCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	controllerRef, err := events.GetControllerReferenceForCurrentPod(lookupCtx, spokeKubeClient, o.InstallationNamespace, nil)
+	if err != nil {
+		klog.Warningf("unable to get owner reference (falling back to namespace): %v", err)
+	}
+
+	// Create event recorder using library-go events package
+	return events.NewKubeRecorder(spokeKubeClient.CoreV1().Events(o.InstallationNamespace),
+		"submariner-agent", controllerRef, clock.RealClock{})
 }
 
 func buildRestMapper(restConfig *rest.Config) (meta.RESTMapper, error) {
