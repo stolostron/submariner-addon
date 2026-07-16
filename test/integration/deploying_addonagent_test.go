@@ -6,7 +6,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/stolostron/submariner-addon/pkg/constants"
 	"github.com/stolostron/submariner-addon/pkg/spoke"
 	"github.com/stolostron/submariner-addon/test/util"
@@ -85,10 +84,7 @@ var _ = Describe("Submariner addon agent", func() {
 					ClusterName:           managedClusterName,
 				}
 
-				err := agentOptions.RunAgent(ctx, &controllercmd.ControllerContext{
-					KubeConfig:    cfg,
-					EventRecorder: util.NewIntegrationTestEventRecorder("submariner-addon-agent-test"),
-				})
+				err := agentOptions.RunAgent(ctx, cfg)
 				Expect(err).NotTo(HaveOccurred())
 			}()
 

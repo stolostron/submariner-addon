@@ -1,20 +1,21 @@
 package spoke
 
 import (
-	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/spf13/cobra"
 	"github.com/stolostron/submariner-addon/pkg/spoke"
-	"github.com/stolostron/submariner-addon/pkg/version"
-	"k8s.io/utils/clock"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func NewAgent() *cobra.Command {
 	agentOptions := spoke.NewAgentOptions()
-	cmd := controllercmd.
-		NewControllerCommandConfig("submariner-agent", version.Get(), agentOptions.RunAgent, clock.RealClock{}).
-		NewCommand()
-	cmd.Use = "agent"
-	cmd.Short = "Start the ACM Submariner Agent"
+
+	cmd := &cobra.Command{
+		Use:   "agent",
+		Short: "Start the ACM Submariner Agent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return agentOptions.RunAgent(ctrl.SetupSignalHandler(), ctrl.GetConfigOrDie())
+		},
+	}
 
 	agentOptions.AddFlags(cmd)
 

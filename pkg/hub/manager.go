@@ -44,7 +44,7 @@ import (
 
 const (
 	containerName                = "submariner-addon"
-	defaultNamespace             = "open-cluster-management"
+	DefaultNamespace             = "open-cluster-management"
 	accessToBrokerCRDClusterRole = "access-to-brokers-submariner-crd"
 )
 
@@ -69,7 +69,7 @@ func (o *AddOnOptions) Complete(ctx context.Context, kubeClient kubernetes.Inter
 		return nil
 	}
 
-	namespace := resource.GetCurrentNamespace(defaultNamespace)
+	namespace := resource.GetCurrentNamespace(DefaultNamespace)
 
 	podName := os.Getenv("POD_NAME")
 	if podName == "" {
@@ -146,7 +146,7 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, kubeConfig *res
 		return errors.Wrap(err, "error creating controller client")
 	}
 
-	namespace := resource.GetCurrentNamespace(defaultNamespace)
+	namespace := resource.GetCurrentNamespace(DefaultNamespace)
 
 	// Use injected event recorder (for tests) or create one
 	eventRecorder := o.EventRecorder
@@ -236,6 +236,11 @@ func (o *AddOnOptions) RunControllerManager(ctx context.Context, kubeConfig *res
 	configInformers.WaitForCacheSync(ctx.Done())
 	apiExtensionsInformers.WaitForCacheSync(ctx.Done())
 	addOnInformers.WaitForCacheSync(ctx.Done())
+
+	// Check if context was cancelled during cache sync
+	if ctx.Err() != nil {
+		return errors.Wrap(ctx.Err(), "context cancelled during cache sync")
+	}
 
 	// Notify that informer caches are synced (for readiness probe)
 	if markReady != nil {

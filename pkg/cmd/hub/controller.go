@@ -2,19 +2,22 @@ package hub
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"sync/atomic"
 	"time"
 
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stolostron/submariner-addon/pkg/hub"
+	"github.com/stolostron/submariner-addon/pkg/resource"
 	"github.com/stolostron/submariner-addon/pkg/version"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 func NewController() *cobra.Command {
@@ -48,27 +51,31 @@ func startManager(ctx context.Context, addOnOptions *hub.AddOnOptions) error {
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		LeaderElection:                true,
 		LeaderElectionID:              "submariner-controller-lock",
+		LeaderElectionNamespace:       resource.GetCurrentNamespace(hub.DefaultNamespace),
 		LeaderElectionReleaseOnCancel: true,
 		LeaseDuration:                 &leaseDuration,
 		RenewDeadline:                 &renewDeadline,
 		RetryPeriod:                   &retryPeriod,
 		HealthProbeBindAddress:        ":8081",
+		Metrics: metricsserver.Options{
+			BindAddress: "0",
+		},
 	})
 	if err != nil {
-		return errors.Wrap(err, "unable to create manager")
+		return fmt.Errorf("unable to create manager: %w", err)
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		return errors.Wrap(err, "unable to add healthz check")
+		return fmt.Errorf("unable to add healthz check: %w", err)
 	}
 
 	// Custom readyz check that waits for informer caches to sync
 	if err := mgr.AddReadyzCheck("informers", runnable.readyzCheck); err != nil {
-		return errors.Wrap(err, "unable to add readyz check")
+		return fmt.Errorf("unable to add readyz check: %w", err)
 	}
 
 	if err := mgr.Add(runnable); err != nil {
-		return errors.Wrap(err, "unable to add addon controller runnable")
+		return fmt.Errorf("unable to add addon controller runnable: %w", err)
 	}
 
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()
