@@ -30,7 +30,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/clock"
-	"k8s.io/utils/ptr"
 	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonfake "open-cluster-management.io/api/client/addon/clientset/versioned/fake"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
@@ -219,8 +218,8 @@ func testClusterManagementAddOn() {
 					Kind:               "ClusterManagementAddOn",
 					Name:               t.clusterMgmtAddon.Name,
 					UID:                t.clusterMgmtAddon.UID,
-					BlockOwnerDeletion: ptr.To(true),
-					Controller:         ptr.To(true),
+					BlockOwnerDeletion: new(true),
+					Controller:         new(true),
 				}
 
 				addOn1 = &addonv1beta1.ManagedClusterAddOn{
