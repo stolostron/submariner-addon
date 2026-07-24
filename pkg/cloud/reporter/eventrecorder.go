@@ -1,8 +1,6 @@
 package reporter
 
 import (
-	"fmt"
-
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/submariner-io/admiral/pkg/reporter"
 )
@@ -22,7 +20,7 @@ func NewEventRecorderWrapper(reason string, recorder events.Recorder) reporter.I
 
 // Start will report that an operation started on the cloud.
 func (g eventRecorderReporter) Start(message string, args ...any) {
-	g.eventRecorder.Eventf(g.reason, fmt.Sprintf(message, args...))
+	g.eventRecorder.Eventf(g.reason, message, args...)
 }
 
 // Success will report that the last operation on the cloud has succeeded.
