@@ -45,7 +45,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
@@ -821,7 +820,7 @@ func (c *submarinerAgentController) deleteClusterBrokerResources(ctx context.Con
 				if len(existing.Status.Clusters) == 0 {
 					err := serviceImportClient.Delete(ctx, existing.Name, metav1.DeleteOptions{
 						Preconditions: &metav1.Preconditions{
-							ResourceVersion: ptr.To(existing.ResourceVersion),
+							ResourceVersion: new(existing.ResourceVersion),
 						},
 					})
 					if apierrors.IsNotFound(err) {

@@ -17,7 +17,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	mcscrd "sigs.k8s.io/mcs-api/config/crd"
 )
 
@@ -80,8 +79,8 @@ func (c *submarinerBrokerCRDsController) sync(ctx context.Context, syncCtx facto
 		Kind:               "CustomResourceDefinition",
 		Name:               configCRD.GetName(),
 		UID:                configCRD.GetUID(),
-		Controller:         ptr.To(true),
-		BlockOwnerDeletion: ptr.To(true),
+		Controller:         new(true),
+		BlockOwnerDeletion: new(true),
 	}
 
 	//nolint:wrapcheck // No need to wrap here
