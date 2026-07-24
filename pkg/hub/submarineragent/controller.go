@@ -555,7 +555,7 @@ func (c *submarinerAgentController) updateManagedClusterAddOnStatus(ctx context.
 	}
 
 	if updated {
-		c.eventRecorder.Eventf(reason, message)
+		c.eventRecorder.Event(reason, message)
 	}
 }
 
