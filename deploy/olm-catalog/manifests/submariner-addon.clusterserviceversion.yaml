@@ -298,6 +298,17 @@ spec:
           - create
           - update
           - delete
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - networkpolicies
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - delete
         serviceAccountName: submariner-addon
       deployments:
       - name: submariner-addon
