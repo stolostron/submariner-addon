@@ -4,20 +4,26 @@ metadata:
   name: open-cluster-management:submariner-addon:agent
   namespace: {{ .ClusterName }}
 rules:
-# Allow submariner-addon agent to operator managedclusteraddons on the hub cluster
+# Allow submariner-addon agent to read managedclusteraddons on the hub cluster.
+# The agent only writes status (UpdateStatus in pkg/addon/update_status.go).
 - apiGroups: ["addon.open-cluster-management.io"]
   resources: ["managedclusteraddons"]
-  verbs: ["get", "list", "watch", "update", "patch"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: ["addon.open-cluster-management.io"]
   resources: ["managedclusteraddons/finalizers"]
   verbs: ["update"]
 - apiGroups: ["addon.open-cluster-management.io"]
   resources: ["managedclusteraddons/status"]
   verbs: ["patch", "update"]
-# Allow submariner-addon agent to operator submarinerconfigs on the hub cluster
+# Allow submariner-addon agent to read submarinerconfigs on the hub cluster.
+# The agent must NOT have update/patch on the main resource: spec.imagePullSpecs
+# and spec.subscriptionConfig flow verbatim into privileged hostNetwork pods on
+# the spoke, so a compromised spoke could otherwise write its own SubmarinerConfig
+# spec to gain arbitrary code execution on its gateway nodes. The agent only
+# writes status (UpdateStatus in pkg/spoke/submarineragent/config_controller.go).
 - apiGroups: ["submarineraddon.open-cluster-management.io"]
   resources: ["submarinerconfigs"]
-  verbs: ["get", "list", "watch", "update", "patch"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: ["submarineraddon.open-cluster-management.io"]
   resources: ["submarinerconfigs/finalizers"]
   verbs: ["update"]
