@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -13,11 +14,13 @@ import (
 	"github.com/stolostron/submariner-addon/test/util"
 	"github.com/submariner-io/admiral/pkg/finalizer"
 	"github.com/submariner-io/submariner-operator/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	"open-cluster-management.io/api/client/addon/clientset/versioned/scheme"
+	workv1 "open-cluster-management.io/api/work/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -42,7 +45,21 @@ var _ = Describe("Submariner Deployment", func() {
 		})
 
 		It("should successfully deploy the submariner ManifestWork resources", func() {
-			awaitSubmarinerManifestWorks(managedClusterName)
+			works := awaitSubmarinerManifestWorks(managedClusterName)
+
+			submarinerCRWork := works[1]
+			Expect(submarinerCRWork.Spec.Workload.Manifests).To(HaveLen(2), "Expected 2 manifests (PSK Secret and Submariner CR)")
+
+			// Verify PSK Secret manifest
+			secret := &corev1.Secret{}
+			Expect(json.Unmarshal(submarinerCRWork.Spec.Workload.Manifests[0].Raw, secret)).To(Succeed())
+			Expect(secret.Name).To(Equal(constants.IPSecPSKSecretName))
+			Expect(secret.Data["psk"]).NotTo(BeEmpty(), "PSK data should not be empty")
+
+			// Verify Submariner CR manifest
+			submariner := &v1alpha1.Submariner{}
+			Expect(json.Unmarshal(submarinerCRWork.Spec.Workload.Manifests[1].Raw, submariner)).To(Succeed())
+			Expect(submariner.Spec.CeIPSecPSKSecret).To(Equal(constants.IPSecPSKSecretName))
 		})
 	})
 
@@ -191,9 +208,10 @@ var _ = Describe("Submariner Deployment", func() {
 	})
 })
 
-func awaitSubmarinerManifestWorks(managedClusterName string) {
+func awaitSubmarinerManifestWorks(managedClusterName string) []*workv1.ManifestWork {
 	By("Await deployment of the ManifestWorks")
-	awaitManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName,
+
+	return awaitManifestWorks(workClient, managedClusterName, submarineragent.OperatorManifestWorkName,
 		submarineragent.SubmarinerCRManifestWorkName)
 }
 
