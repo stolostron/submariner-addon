@@ -14,7 +14,7 @@ spec:
   ceIPSecDebug: {{ .IPSecDebug }}
   ceIPSecForceUDPEncaps: {{ .ForceUDPEncaps }}
   ceIPSecNATTPort: {{ .IPSecNATTPort }}
-  ceIPSecPSK: {{ .IPSecPSK }}
+  ceIPSecPSKSecret: submariner-ipsec-psk
   clusterCIDR: ""
   globalCIDR: "{{ .GlobalCIDR }}"
   airGappedDeployment: {{ .AirGappedDeployment }}
