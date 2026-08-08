@@ -801,6 +801,15 @@ func (t *testDriver) awaitSubmarinerManifestWork() {
 func (t *testDriver) assertSubmarinerManifestWork(work *workv1.ManifestWork) {
 	manifestObjs := unmarshallManifestObjs(work)
 
+	// Assert IPSec PSK Secret
+	secret := &corev1.Secret{}
+	Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
+		assertManifestObj(manifestObjs, "Secret", constants.IPSecPSKSecretName).Object, secret)).To(Succeed())
+	Expect(secret.Namespace).To(Equal(installNamespace))
+	// Secret.Data is automatically base64-decoded when unmarshalled from JSON/YAML
+	Expect(secret.Data["psk"]).To(Equal([]byte(ipsecPSK)))
+
+	// Assert Submariner CR
 	submariner := &submarinerv1alpha1.Submariner{}
 	Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
 		assertManifestObj(manifestObjs, "Submariner", "").Object, submariner)).To(Succeed())
@@ -809,7 +818,8 @@ func (t *testDriver) assertSubmarinerManifestWork(work *workv1.ManifestWork) {
 	Expect(submariner.Spec.BrokerK8sApiServerToken).To(Equal(brokerToken))
 	Expect(submariner.Spec.BrokerK8sCA).To(Equal(base64.StdEncoding.EncodeToString([]byte(brokerCA))))
 	Expect(submariner.Spec.BrokerK8sRemoteNamespace).To(Equal(brokerNamespace))
-	Expect(submariner.Spec.CeIPSecPSK).To(Equal(base64.StdEncoding.EncodeToString([]byte(ipsecPSK))))
+	Expect(submariner.Spec.CeIPSecPSKSecret).To(Equal(constants.IPSecPSKSecretName))
+	Expect(submariner.Spec.CeIPSecPSK).To(BeEmpty())
 	Expect(submariner.Spec.ClusterID).To(Equal(clusterName))
 	Expect(submariner.Spec.Namespace).To(Equal(installNamespace))
 
