@@ -14,7 +14,7 @@ spec:
   ceIPSecDebug: {{ .IPSecDebug }}
   ceIPSecForceUDPEncaps: {{ .ForceUDPEncaps }}
   ceIPSecNATTPort: {{ .IPSecNATTPort }}
-  ceIPSecPSK: {{ .IPSecPSK }}
+  ceIPSecPSKSecret: submariner-ipsec-psk
   ceIPSecUseOVNCertAuthMode: {{ .CeIPSecUseOVNCertAuthMode }}
   clusterCIDR: ""
   globalCIDR: "{{ .GlobalCIDR }}"
