@@ -71,6 +71,7 @@ const (
 	SubmarinerCRManifestWorkName  = "submariner-resource"
 	agentRBACFile                 = "manifests/rbac/operatorgroup-aggregate-clusterrole.yaml"
 	submarinerCRFile              = "manifests/operator/submariner.io-submariners-cr.yaml"
+	submarinerIPSecPSKSecretFile  = "manifests/operator/submariner-ipsec-psk-secret.yaml"
 	BrokerCfgApplied              = "SubmarinerBrokerConfigApplied"
 	BrokerObjectName              = "submariner-broker"
 	BackupLabelKey                = "cluster.open-cluster-management.io/backup"
@@ -615,7 +616,9 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 }
 
 func newSubmarinerManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}) (*workv1.ManifestWork, error) {
-	return newManifestWork(SubmarinerCRManifestWorkName, managedCluster.Name, config, submarinerCRFile)
+	return newManifestWork(SubmarinerCRManifestWorkName, managedCluster.Name, config,
+		submarinerIPSecPSKSecretFile, // Secret first, so it exists before CR references it
+		submarinerCRFile)
 }
 
 func newOperatorManifestWork(managedCluster *clusterv1.ManagedCluster, config interface{}, skipOperatorGroup bool,
