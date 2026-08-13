@@ -2,11 +2,8 @@ package hub
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"github.com/openshift/library-go/pkg/serviceability"
@@ -69,8 +66,7 @@ func startManager(ctx context.Context, addOnOptions *hub.AddOnOptions) error {
 		return fmt.Errorf("unable to add healthz check: %w", err)
 	}
 
-	// Custom readyz check that waits for informer caches to sync
-	if err := mgr.AddReadyzCheck("informers", runnable.readyzCheck); err != nil {
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		return fmt.Errorf("unable to add readyz check: %w", err)
 	}
 
@@ -91,28 +87,13 @@ func startManager(ctx context.Context, addOnOptions *hub.AddOnOptions) error {
 type addonControllerRunnable struct {
 	config       *rest.Config
 	addOnOptions *hub.AddOnOptions
-	ready        atomic.Bool
 }
 
 func (r *addonControllerRunnable) Start(ctx context.Context) error {
-	return r.addOnOptions.RunControllerManager(ctx, r.config, r.markReady) //nolint:wrapcheck // No need to wrap
+	return r.addOnOptions.RunControllerManager(ctx, r.config, nil) //nolint:wrapcheck // No need to wrap
 }
 
 // NeedLeaderElection ensures the addon controllers only run on the elected leader.
 func (r *addonControllerRunnable) NeedLeaderElection() bool {
 	return true
-}
-
-// markReady is called by RunControllerManager after informer caches are synced.
-func (r *addonControllerRunnable) markReady() {
-	r.ready.Store(true)
-}
-
-// readyzCheck is the health check for readiness - waits for informer caches to sync.
-func (r *addonControllerRunnable) readyzCheck(_ *http.Request) error {
-	if r.ready.Load() {
-		return nil
-	}
-
-	return errors.New("informer caches not yet synced")
 }
