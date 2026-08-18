@@ -526,7 +526,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 				return t.dynamicClient.Resource(submarinerv1a1.GroupVersion.WithResource("submariners")).Namespace(submarinerNS)
 			}
 
-			BeforeEach(func() {
+			BeforeEach(func(ctx context.Context) {
 				submariner := &submarinerv1a1.Submariner{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      submarinerName,
@@ -534,7 +534,7 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 					},
 				}
 
-				syncertest.CreateResource(submarinerClient(), submariner)
+				syncertest.CreateResource(ctx, submarinerClient(), submariner)
 			})
 
 			It("should eventually perform cleanup after the Submariner resource is deleted", func(ctx context.Context) {

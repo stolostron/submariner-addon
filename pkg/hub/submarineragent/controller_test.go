@@ -82,25 +82,25 @@ var _ = Describe("Controller", func() {
 
 	When("a ManagedClusterAddon is created", func() {
 		Context("after the ManagedCluster and ManagedClusterSet", func() {
-			JustBeforeEach(func() {
-				t.createManagedClusterSet()
-				t.createAddonDeploymentConfig(t.defaultADConfig)
-				t.createClusterManagementAddon()
+			JustBeforeEach(func(ctx context.Context) {
+				t.createManagedClusterSet(ctx)
+				t.createAddonDeploymentConfig(t.defaultADConfig, ctx)
+				t.createClusterManagementAddon(ctx)
 				t.ensureNoManifestWorks()
 
-				t.createManagedCluster()
+				t.createManagedCluster(ctx)
 				t.ensureNoManifestWorks()
 
-				t.createGlobalnetConfigMap()
-				t.createAddon()
+				t.createGlobalnetConfigMap(ctx)
+				t.createAddon(ctx)
 			})
 
-			It("should deploy the ManifestWorks", func() {
-				t.awaitManifestWorks()
+			It("should deploy the ManifestWorks", func(ctx context.Context) {
+				t.awaitManifestWorks(ctx)
 			})
 
-			It("should create RBAC resources for the managed cluster", func() {
-				t.awaitClusterRBACResources()
+			It("should create RBAC resources for the managed cluster", func(ctx context.Context) {
+				t.awaitClusterRBACResources(ctx)
 			})
 
 			It("should add the backup label to the globalnet ConfigMap", func() {
@@ -133,8 +133,8 @@ var _ = Describe("Controller", func() {
 					}
 				})
 
-				It("should deploy the ManifestWorks with the SubmarinerConfig overrides", func() {
-					t.awaitManifestWorks()
+				It("should deploy the ManifestWorks with the SubmarinerConfig overrides", func(ctx context.Context) {
+					t.awaitManifestWorks(ctx)
 
 					expCond := &metav1.Condition{
 						Type:   configv1alpha1.SubmarinerConfigConditionApplied,
@@ -214,51 +214,51 @@ var _ = Describe("Controller", func() {
 					}
 				})
 
-				It("should deploy the operator ManifestWork with the Openshift security resources", func() {
-					t.assertSCCManifestObjs(t.awaitOperatorManifestWork())
+				It("should deploy the operator ManifestWork with the Openshift security resources", func(ctx context.Context) {
+					t.assertSCCManifestObjs(t.awaitOperatorManifestWork(ctx))
 				})
 			})
 		})
 
 		Context("before the ManagedCluster and ManagedClusterSet", func() {
-			JustBeforeEach(func() {
-				t.createAddon()
+			JustBeforeEach(func(ctx context.Context) {
+				t.createAddon(ctx)
 				t.ensureNoManifestWorks()
 
-				t.createManagedCluster()
+				t.createManagedCluster(ctx)
 				t.ensureNoManifestWorks()
 
-				t.createManagedClusterSet()
-				t.createAddonDeploymentConfig(t.defaultADConfig)
-				t.createClusterManagementAddon()
-				t.createGlobalnetConfigMap()
+				t.createManagedClusterSet(ctx)
+				t.createAddonDeploymentConfig(t.defaultADConfig, ctx)
+				t.createClusterManagementAddon(ctx)
+				t.createGlobalnetConfigMap(ctx)
 			})
 
-			It("should deploy the ManifestWorks", func() {
-				t.awaitManifestWorks()
+			It("should deploy the ManifestWorks", func(ctx context.Context) {
+				t.awaitManifestWorks(ctx)
 			})
 
 			t.testFinalizers()
 		})
 
 		Context("with cluster specific AddonDeploymentConfig", func() {
-			JustBeforeEach(func() {
-				t.createAddonDeploymentConfigForCluster(t.managedCluster.Name)
+			JustBeforeEach(func(ctx context.Context) {
+				t.createAddonDeploymentConfigForCluster(ctx, t.managedCluster.Name)
 				t.setClusterADConfig()
-				t.createAddon()
+				t.createAddon(ctx)
 				t.ensureNoManifestWorks()
 
-				t.createManagedCluster()
+				t.createManagedCluster(ctx)
 				t.ensureNoManifestWorks()
 
-				t.createManagedClusterSet()
-				t.createAddonDeploymentConfig(t.defaultADConfig)
-				t.createClusterManagementAddon()
-				t.createGlobalnetConfigMap()
+				t.createManagedClusterSet(ctx)
+				t.createAddonDeploymentConfig(t.defaultADConfig, ctx)
+				t.createClusterManagementAddon(ctx)
+				t.createGlobalnetConfigMap(ctx)
 			})
 
-			It("should deploy the ManifestWorks", func() {
-				t.awaitManifestWorks()
+			It("should deploy the ManifestWorks", func(ctx context.Context) {
+				t.awaitManifestWorks(ctx)
 			})
 
 			t.testFinalizers()
@@ -278,8 +278,8 @@ var _ = Describe("Controller", func() {
 			t.createSubmarinerConfig(submarinerConfig)
 		})
 
-		It("should allocate a global CIDR in the Submariner resource", func() {
-			t.initManifestWorks()
+		It("should allocate a global CIDR in the Submariner resource", func(ctx context.Context) {
+			t.initManifestWorks(ctx)
 			t.awaitBackupLabelOnConfigMap()
 		})
 
@@ -288,15 +288,15 @@ var _ = Describe("Controller", func() {
 				submarinerConfig.Spec.GlobalCIDR = "199.0.0.0/16"
 			})
 
-			It("should set the global CIDR in the Submariner resource", func() {
-				t.initManifestWorks()
+			It("should set the global CIDR in the Submariner resource", func(ctx context.Context) {
+				t.initManifestWorks(ctx)
 			})
 		})
 	})
 
 	When("the SubmarinerConfig is created after the submariner ManifestWork is deployed", func() {
-		JustBeforeEach(func() {
-			t.initManifestWorks()
+		JustBeforeEach(func(ctx context.Context) {
+			t.initManifestWorks(ctx)
 			t.createSubmarinerConfig(newSubmarinerConfig())
 		})
 
@@ -325,8 +325,8 @@ var _ = Describe("Controller", func() {
 			Expect(err).To(Succeed())
 		})
 
-		JustBeforeEach(func() {
-			t.initManifestWorks()
+		JustBeforeEach(func(ctx context.Context) {
+			t.initManifestWorks(ctx)
 			t.createSubmarinerBroker(true)
 
 			if beforeAddonDelete != nil {
@@ -388,8 +388,8 @@ var _ = Describe("Controller", func() {
 				}).Namespace(brokerNamespace)
 			}
 
-			BeforeEach(func() {
-				syncertest.CreateResource(brokerEndpointClient(), &submarinerv1.Endpoint{
+			BeforeEach(func(ctx context.Context) {
+				syncertest.CreateResource(ctx, brokerEndpointClient(), &submarinerv1.Endpoint{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   clusterName + "-endpoint",
 						Labels: map[string]string{federate.ClusterIDLabelKey: clusterName},
@@ -399,7 +399,7 @@ var _ = Describe("Controller", func() {
 					},
 				})
 
-				syncertest.CreateResource(brokerEndpointClient(), &submarinerv1.Endpoint{
+				syncertest.CreateResource(ctx, brokerEndpointClient(), &submarinerv1.Endpoint{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   otherClusterName + "-endpoint",
 						Labels: map[string]string{federate.ClusterIDLabelKey: otherClusterName},
@@ -409,35 +409,35 @@ var _ = Describe("Controller", func() {
 					},
 				})
 
-				syncertest.CreateResource(brokerClusterClient(), &submarinerv1.Cluster{
+				syncertest.CreateResource(ctx, brokerClusterClient(), &submarinerv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   clusterName,
 						Labels: map[string]string{federate.ClusterIDLabelKey: clusterName},
 					},
 				})
 
-				syncertest.CreateResource(brokerClusterClient(), &submarinerv1.Cluster{
+				syncertest.CreateResource(ctx, brokerClusterClient(), &submarinerv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   otherClusterName,
 						Labels: map[string]string{federate.ClusterIDLabelKey: otherClusterName},
 					},
 				})
 
-				syncertest.CreateResource(brokerEPSClient(), &discovery.EndpointSlice{
+				syncertest.CreateResource(ctx, brokerEPSClient(), &discovery.EndpointSlice{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   "eps-" + clusterName,
 						Labels: map[string]string{federate.ClusterIDLabelKey: clusterName},
 					},
 				})
 
-				syncertest.CreateResource(brokerEPSClient(), &discovery.EndpointSlice{
+				syncertest.CreateResource(ctx, brokerEPSClient(), &discovery.EndpointSlice{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   "eps-" + otherClusterName,
 						Labels: map[string]string{federate.ClusterIDLabelKey: otherClusterName},
 					},
 				})
 
-				syncertest.CreateResource(brokerServiceImportClient(), &mcsv1a1.ServiceImport{
+				syncertest.CreateResource(ctx, brokerServiceImportClient(), &mcsv1a1.ServiceImport{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "nginx-ns1",
 						Labels: map[string]string{
@@ -451,7 +451,7 @@ var _ = Describe("Controller", func() {
 					}},
 				})
 
-				syncertest.CreateResource(brokerServiceImportClient(), &mcsv1a1.ServiceImport{
+				syncertest.CreateResource(ctx, brokerServiceImportClient(), &mcsv1a1.ServiceImport{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "nginx2-ns1",
 						Labels: map[string]string{
@@ -469,18 +469,18 @@ var _ = Describe("Controller", func() {
 				})
 			})
 
-			It("should delete them", func() {
-				syncertest.AwaitNoResource(brokerEndpointClient(), clusterName+"-endpoint")
-				syncertest.AwaitResource(brokerEndpointClient(), otherClusterName+"-endpoint")
+			It("should delete them", func(ctx context.Context) {
+				syncertest.AwaitNoResource(ctx, brokerEndpointClient(), clusterName+"-endpoint")
+				syncertest.AwaitResource(ctx, brokerEndpointClient(), otherClusterName+"-endpoint")
 
-				syncertest.AwaitNoResource(brokerClusterClient(), clusterName)
-				syncertest.AwaitResource(brokerClusterClient(), otherClusterName)
+				syncertest.AwaitNoResource(ctx, brokerClusterClient(), clusterName)
+				syncertest.AwaitResource(ctx, brokerClusterClient(), otherClusterName)
 
-				syncertest.AwaitNoResource(brokerEPSClient(), "eps-"+clusterName)
-				syncertest.AwaitResource(brokerEPSClient(), "eps-"+otherClusterName)
+				syncertest.AwaitNoResource(ctx, brokerEPSClient(), "eps-"+clusterName)
+				syncertest.AwaitResource(ctx, brokerEPSClient(), "eps-"+otherClusterName)
 
-				syncertest.AwaitNoResource(brokerServiceImportClient(), "nginx-ns1")
-				si := syncertest.AwaitResource(brokerServiceImportClient(), "nginx2-ns1")
+				syncertest.AwaitNoResource(ctx, brokerServiceImportClient(), "nginx-ns1")
+				si := syncertest.AwaitResource(ctx, brokerServiceImportClient(), "nginx2-ns1")
 				Expect(coreresource.MustFromUnstructured(si, &mcsv1a1.ServiceImport{}).Status.Clusters).To(Equal([]mcsv1a1.ClusterStatus{
 					{
 						Cluster: otherClusterName,
@@ -506,16 +506,16 @@ var _ = Describe("Controller", func() {
 				}
 			})
 
-			It("should eventually finish the clean up", func() {
-				test.AwaitNoResource(resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
+			It("should eventually finish the clean up", func(ctx context.Context) {
+				test.AwaitNoResource(ctx, resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
 					constants.SubmarinerAddOnName)
 			})
 		})
 	})
 
 	When("the ManagedCluster is removed from the ManagedClusterSet", func() {
-		JustBeforeEach(func() {
-			t.initManifestWorks()
+		JustBeforeEach(func(ctx context.Context) {
+			t.initManifestWorks(ctx)
 
 			t.managedCluster.Labels = nil
 			_, err := t.clusterClient.ClusterV1().ManagedClusters().Update(context.TODO(), t.managedCluster, metav1.UpdateOptions{})
@@ -712,20 +712,20 @@ func newTestDriver() *testDriver {
 	return t
 }
 
-func (t *testDriver) initManifestWorks() {
-	t.createManagedClusterSet()
-	t.createAddonDeploymentConfig(t.defaultADConfig)
-	t.createClusterManagementAddon()
-	t.createManagedCluster()
-	t.createAddon()
-	t.createGlobalnetConfigMap()
-	t.awaitManifestWorks()
+func (t *testDriver) initManifestWorks(ctx context.Context) {
+	t.createManagedClusterSet(ctx)
+	t.createAddonDeploymentConfig(t.defaultADConfig, ctx)
+	t.createClusterManagementAddon(ctx)
+	t.createManagedCluster(ctx)
+	t.createAddon(ctx)
+	t.createGlobalnetConfigMap(ctx)
+	t.awaitManifestWorks(ctx)
 	t.manifestWorkClient.Fake.ClearActions()
 }
 
 func (t *testDriver) testFinalizers() {
-	It("should add finalizers to the ManagedClusterAddon and ManagedCluster", func() {
-		test.AwaitFinalizer(resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
+	It("should add finalizers to the ManagedClusterAddon and ManagedCluster", func(ctx context.Context) {
+		test.AwaitFinalizer(ctx, resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
 			t.addOn.Name, constants.SubmarinerAddOnFinalizer)
 	})
 }
@@ -736,30 +736,30 @@ func (t *testDriver) testAgentCleanup(expMCADeleted bool) {
 	})
 
 	if expMCADeleted {
-		Specify("the ManagedClusterAddOn should be deleted", func() {
-			test.AwaitNoResource(resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
+		Specify("the ManagedClusterAddOn should be deleted", func(ctx context.Context) {
+			test.AwaitNoResource(ctx, resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
 				constants.SubmarinerAddOnName)
 		})
 	} else {
-		It("should remove the ManagedClusterAddOn finalizer", func() {
-			test.AwaitNoFinalizer(resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
+		It("should remove the ManagedClusterAddOn finalizer", func(ctx context.Context) {
+			test.AwaitNoFinalizer(ctx, resource.ForAddon(t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName)),
 				constants.SubmarinerAddOnName, constants.SubmarinerAddOnFinalizer)
 		})
 	}
 
-	It("should delete the RBAC resources for the managed cluster", func() {
-		test.AwaitNoResource(coreresource.ForRoleBinding(t.kubeClient, brokerNamespace), "submariner-k8s-broker-cluster-"+clusterName)
-		test.AwaitNoResource(coreresource.ForServiceAccount(t.kubeClient, brokerNamespace), clusterName)
+	It("should delete the RBAC resources for the managed cluster", func(ctx context.Context) {
+		test.AwaitNoResource(ctx, coreresource.ForRoleBinding(t.kubeClient, brokerNamespace), "submariner-k8s-broker-cluster-"+clusterName)
+		test.AwaitNoResource(ctx, coreresource.ForServiceAccount(t.kubeClient, brokerNamespace), clusterName)
 	})
 }
 
-func (t *testDriver) awaitManifestWorks() {
-	t.awaitOperatorManifestWork()
-	t.awaitSubmarinerManifestWork()
+func (t *testDriver) awaitManifestWorks(ctx context.Context) {
+	t.awaitOperatorManifestWork(ctx)
+	t.awaitSubmarinerManifestWork(ctx)
 }
 
-func (t *testDriver) awaitOperatorManifestWork() []*unstructured.Unstructured {
-	return t.assertOperatorManifestWork(test.AwaitResource[*workv1.ManifestWork](resource.ForManifestWork(
+func (t *testDriver) awaitOperatorManifestWork(ctx context.Context) []*unstructured.Unstructured {
+	return t.assertOperatorManifestWork(test.AwaitResource[*workv1.ManifestWork](ctx, resource.ForManifestWork(
 		t.manifestWorkClient.WorkV1().ManifestWorks(clusterName)), submarineragent.OperatorManifestWorkName))
 }
 
@@ -793,8 +793,8 @@ func (t *testDriver) assertOperatorManifestWork(work *workv1.ManifestWork) []*un
 	return manifestObjs
 }
 
-func (t *testDriver) awaitSubmarinerManifestWork() {
-	t.assertSubmarinerManifestWork(test.AwaitResource[*workv1.ManifestWork](resource.ForManifestWork(
+func (t *testDriver) awaitSubmarinerManifestWork(ctx context.Context) {
+	t.assertSubmarinerManifestWork(test.AwaitResource[*workv1.ManifestWork](ctx, resource.ForManifestWork(
 		t.manifestWorkClient.WorkV1().ManifestWorks(clusterName)), submarineragent.SubmarinerCRManifestWorkName))
 }
 
@@ -874,15 +874,15 @@ func (t *testDriver) awaitNoManifestWork(name string) {
 	}, 3).Should(BeTrue(), "Found unexpected ManifestWork")
 }
 
-func (t *testDriver) awaitClusterRBACResources() {
-	roleBinding := test.AwaitResource[*rbacv1.RoleBinding](coreresource.ForRoleBinding(t.kubeClient, brokerNamespace),
+func (t *testDriver) awaitClusterRBACResources(ctx context.Context) {
+	roleBinding := test.AwaitResource[*rbacv1.RoleBinding](ctx, coreresource.ForRoleBinding(t.kubeClient, brokerNamespace),
 		"submariner-k8s-broker-cluster-"+clusterName)
 	Expect(roleBinding.Subjects).To(HaveLen(1))
 	Expect(roleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
 	Expect(roleBinding.Subjects[0].Name).To(Equal(clusterName))
 	Expect(roleBinding.Subjects[0].Namespace).To(Equal(brokerNamespace))
 
-	test.AwaitResource(coreresource.ForServiceAccount(t.kubeClient, brokerNamespace), clusterName)
+	test.AwaitResource(ctx, coreresource.ForServiceAccount(t.kubeClient, brokerNamespace), clusterName)
 }
 
 func (t *testDriver) assertSCCManifestObjs(objs []*unstructured.Unstructured) {
@@ -952,17 +952,17 @@ func newSubmarinerConfig() *configv1alpha1.SubmarinerConfig {
 	}
 }
 
-func (t *testDriver) createManagedCluster() {
-	_, err := t.clusterClient.ClusterV1().ManagedClusters().Create(context.TODO(), t.managedCluster, metav1.CreateOptions{})
+func (t *testDriver) createManagedCluster(ctx context.Context) {
+	_, err := t.clusterClient.ClusterV1().ManagedClusters().Create(ctx, t.managedCluster, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *testDriver) createAddonDeploymentConfig(config *addonv1beta1.AddOnDeploymentConfig) {
-	_, err := t.addOnClient.AddonV1beta1().AddOnDeploymentConfigs(config.Namespace).Create(context.TODO(), config, metav1.CreateOptions{})
+func (t *testDriver) createAddonDeploymentConfig(config *addonv1beta1.AddOnDeploymentConfig, ctx context.Context) {
+	_, err := t.addOnClient.AddonV1beta1().AddOnDeploymentConfigs(config.Namespace).Create(ctx, config, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *testDriver) createAddonDeploymentConfigForCluster(cluster string) {
+func (t *testDriver) createAddonDeploymentConfigForCluster(ctx context.Context, cluster string) {
 	t.clusterADConfig = &addonv1beta1.AddOnDeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "submariner-adconfig",
@@ -981,33 +981,33 @@ func (t *testDriver) createAddonDeploymentConfigForCluster(cluster string) {
 		},
 	}
 
-	t.createAddonDeploymentConfig(t.clusterADConfig)
+	t.createAddonDeploymentConfig(t.clusterADConfig, ctx)
 }
 
-func (t *testDriver) createClusterManagementAddon() {
-	_, err := t.addOnClient.AddonV1beta1().ClusterManagementAddOns().Create(context.TODO(), t.clusterMgmtAddon, metav1.CreateOptions{})
+func (t *testDriver) createClusterManagementAddon(ctx context.Context) {
+	_, err := t.addOnClient.AddonV1beta1().ClusterManagementAddOns().Create(ctx, t.clusterMgmtAddon, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *testDriver) createManagedClusterSet() {
+func (t *testDriver) createManagedClusterSet(ctx context.Context) {
 	mcs := &clusterv1beta2.ManagedClusterSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterSetName,
 		},
 	}
 
-	_, err := t.clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.TODO(), mcs, metav1.CreateOptions{})
+	_, err := t.clusterClient.ClusterV1beta2().ManagedClusterSets().Create(ctx, mcs, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *testDriver) createAddon() {
-	_, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName).Create(context.TODO(), t.addOn, metav1.CreateOptions{})
+func (t *testDriver) createAddon(ctx context.Context) {
+	_, err := t.addOnClient.AddonV1beta1().ManagedClusterAddOns(clusterName).Create(ctx, t.addOn, metav1.CreateOptions{})
 	Expect(err).To(Succeed())
 }
 
-func (t *testDriver) createGlobalnetConfigMap() {
+func (t *testDriver) createGlobalnetConfigMap(ctx context.Context) {
 	if t.globalnetConfigMap != nil {
-		Expect(t.controllerClient.Create(context.TODO(), t.globalnetConfigMap)).To(Succeed())
+		Expect(t.controllerClient.Create(ctx, t.globalnetConfigMap)).To(Succeed())
 	}
 }
 
