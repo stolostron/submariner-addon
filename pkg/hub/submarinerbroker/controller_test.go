@@ -54,8 +54,8 @@ func testManagedClusterSet() {
 	t := newBrokerControllerTestDriver()
 
 	When("a ManagedClusterSet is created", func() {
-		It("should add the Finalizer", func() {
-			test.AwaitFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
+		It("should add the Finalizer", func(ctx context.Context) {
+			test.AwaitFinalizer(ctx, resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
 				clusterSetName, finalizerName)
 		})
 
@@ -119,8 +119,8 @@ func testManagedClusterSet() {
 			t.clusterSet.Spec.ClusterSelector.SelectorType = clusterv1beta2.LabelSelector
 		})
 
-		It("should not deploy the broker components", func() {
-			t.ensureNoNamespace()
+		It("should not deploy the broker components", func(ctx context.Context) {
+			t.ensureNoNamespace(ctx)
 		})
 	})
 
@@ -148,11 +148,12 @@ func testManagedClusterSet() {
 				metav1.DeleteOptions{})).To(Succeed())
 		})
 
-		It("should clean up the broker resources", func() {
-			t.awaitNoNamespace()
-			t.awaitNoBrokerRole()
+		It("should clean up the broker resources", func(ctx context.Context) {
+			t.awaitNoNamespace(ctx)
+			t.awaitNoBrokerRole(ctx)
 
-			test.AwaitNoResource(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()), clusterSetName)
+			test.AwaitNoResource(ctx, resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
+				clusterSetName)
 		})
 
 		Context("and deletion of the broker Namespace initially fails", func() {
@@ -162,8 +163,8 @@ func testManagedClusterSet() {
 				}
 			})
 
-			It("should eventually delete it", func() {
-				t.awaitNoNamespace()
+			It("should eventually delete it", func(ctx context.Context) {
+				t.awaitNoNamespace(ctx)
 			})
 		})
 	})
@@ -249,33 +250,32 @@ func testClusterManagementAddOn() {
 			})
 
 			It("should delete the owned ManagedClusterAddOns and clean up the broker resources after all the ManagedClusterAddOns "+
-				"are deleted", func() {
-				t.ensureNamespace()
+				"are deleted", func(ctx context.Context) {
+				t.ensureNamespace(ctx)
 
 				Eventually(func() error {
-					return finalizer.Remove(context.Background(), resource.ForAddon(t.addOnClient.AddonV1beta1().
+					return finalizer.Remove(ctx, resource.ForAddon(t.addOnClient.AddonV1beta1().
 						ManagedClusterAddOns(addOn1.Namespace)), addOn1, constants.SubmarinerAddOnFinalizer)
 				}).Should(Succeed())
 
-				t.awaitNoNamespace()
-				t.awaitNoBrokerRole()
+				t.awaitNoNamespace(ctx)
+				t.awaitNoBrokerRole(ctx)
 
-				test.AwaitNoFinalizer(resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
+				test.AwaitNoFinalizer(ctx, resource.ForManagedClusterSet(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets()),
 					clusterSetName, finalizerName)
 
 				// Ensure broker setup doesn't happen after the ClusterManagementAddOn is actually deleted.
 
-				test.AwaitNoResource(resource.ForClusterAddon(t.addOnClient.AddonV1beta1().ClusterManagementAddOns()),
+				test.AwaitNoResource(ctx, resource.ForClusterAddon(t.addOnClient.AddonV1beta1().ClusterManagementAddOns()),
 					t.clusterMgmtAddon.Name)
 
-				Expect(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Delete(context.Background(), t.clusterSet.Name,
+				Expect(t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Delete(ctx, t.clusterSet.Name,
 					metav1.DeleteOptions{})).To(Succeed())
 
-				_, err := t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), t.clusterSet,
-					metav1.CreateOptions{})
+				_, err := t.clusterSetClient.ClusterV1beta2().ManagedClusterSets().Create(ctx, t.clusterSet, metav1.CreateOptions{})
 				Expect(err).To(Succeed())
 
-				t.ensureNoNamespace()
+				t.ensureNoNamespace(ctx)
 			})
 		})
 
@@ -286,8 +286,8 @@ func testClusterManagementAddOn() {
 				}
 			})
 
-			It("should eventually delete it", func() {
-				t.awaitNoNamespace()
+			It("should eventually delete it", func(ctx context.Context) {
+				t.awaitNoNamespace(ctx)
 			})
 		})
 	})
@@ -428,33 +428,33 @@ func (t *brokerControllerTestDriver) awaitNamespace() {
 	}).Should(Succeed(), "Broker Namespace not found")
 }
 
-func (t *brokerControllerTestDriver) awaitNoNamespace() {
+func (t *brokerControllerTestDriver) awaitNoNamespace(ctx context.Context) {
 	Eventually(func() bool {
-		_, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), brokerNS, metav1.GetOptions{})
+		_, err := t.kubeClient.CoreV1().Namespaces().Get(ctx, brokerNS, metav1.GetOptions{})
 
 		return errors.IsNotFound(err)
 	}).Should(BeTrue(), "Broker Namespace still exists")
 }
 
-func (t *brokerControllerTestDriver) ensureNoNamespace() {
+func (t *brokerControllerTestDriver) ensureNoNamespace(ctx context.Context) {
 	Consistently(func() bool {
-		_, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), brokerNS, metav1.GetOptions{})
+		_, err := t.kubeClient.CoreV1().Namespaces().Get(ctx, brokerNS, metav1.GetOptions{})
 
 		return errors.IsNotFound(err)
 	}).Should(BeTrue(), "Broker Namespace exists")
 }
 
-func (t *brokerControllerTestDriver) ensureNamespace() {
+func (t *brokerControllerTestDriver) ensureNamespace(ctx context.Context) {
 	Consistently(func() bool {
-		_, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), brokerNS, metav1.GetOptions{})
+		_, err := t.kubeClient.CoreV1().Namespaces().Get(ctx, brokerNS, metav1.GetOptions{})
 
 		return err == nil
 	}).Should(BeTrue(), "Broker Namespace does not exist")
 }
 
-func (t *brokerControllerTestDriver) awaitNoBrokerRole() {
+func (t *brokerControllerTestDriver) awaitNoBrokerRole(ctx context.Context) {
 	Eventually(func() bool {
-		_, err := t.kubeClient.RbacV1().Roles(brokerNS).Get(context.TODO(), brokerRoleName, metav1.GetOptions{})
+		_, err := t.kubeClient.RbacV1().Roles(brokerNS).Get(ctx, brokerRoleName, metav1.GetOptions{})
 
 		return errors.IsNotFound(err)
 	}).Should(BeTrue(), "Broker Role still exists")
