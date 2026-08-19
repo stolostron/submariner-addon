@@ -6,8 +6,7 @@ metadata:
 spec:
   broker: k8s
   brokerK8sApiServer: {{ .BrokerAPIServer }}
-  brokerK8sApiServerToken: {{ .BrokerToken }}
-  brokerK8sCA: {{ .BrokerCA }}
+  brokerK8sSecret: submariner-broker-secret
   brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
   brokerK8sInsecure: {{ .InsecureBrokerConnection }}
   cableDriver: {{ .CableDriver }}
