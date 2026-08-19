@@ -2,7 +2,6 @@ package submarineragent_test
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -804,14 +803,24 @@ func (t *testDriver) assertSubmarinerManifestWork(work *workv1.ManifestWork) {
 	// Secret.Data is automatically base64-decoded when unmarshalled from JSON/YAML
 	Expect(secret.Data["psk"]).To(Equal([]byte(ipsecPSK)))
 
+	// Assert Broker Secret
+	brokerSecret := &corev1.Secret{}
+	Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
+		assertManifestObj(manifestObjs, "Secret", constants.BrokerK8sSecretName).Object, brokerSecret)).To(Succeed())
+	Expect(brokerSecret.Namespace).To(Equal(installNamespace))
+	// Secret.Data is automatically base64-decoded when unmarshalled from JSON/YAML
+	Expect(brokerSecret.Data["token"]).To(Equal([]byte(brokerToken)))
+	Expect(brokerSecret.Data["ca.crt"]).To(Equal([]byte(brokerCA)))
+
 	// Assert Submariner CR
 	submariner := &submarinerv1alpha1.Submariner{}
 	Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
 		assertManifestObj(manifestObjs, "Submariner", "").Object, submariner)).To(Succeed())
 	Expect(submariner.Namespace).To(Equal(installNamespace))
 	Expect(submariner.Spec.BrokerK8sApiServer).To(Equal("127.0.0.1"))
-	Expect(submariner.Spec.BrokerK8sApiServerToken).To(Equal(brokerToken))
-	Expect(submariner.Spec.BrokerK8sCA).To(Equal(base64.StdEncoding.EncodeToString([]byte(brokerCA))))
+	Expect(submariner.Spec.BrokerK8sSecret).To(Equal(constants.BrokerK8sSecretName))
+	Expect(submariner.Spec.BrokerK8sApiServerToken).To(BeEmpty())
+	Expect(submariner.Spec.BrokerK8sCA).To(BeEmpty())
 	Expect(submariner.Spec.BrokerK8sRemoteNamespace).To(Equal(brokerNamespace))
 	Expect(submariner.Spec.CeIPSecPSKSecret).To(Equal(constants.IPSecPSKSecretName))
 	Expect(submariner.Spec.CeIPSecPSK).To(BeEmpty())

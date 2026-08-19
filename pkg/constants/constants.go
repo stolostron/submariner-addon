@@ -11,7 +11,8 @@ const (
 	ProductROKS       = "ROKS"
 	OCPVersionForOVNK = "4.11.0-rc"
 
-	IPSecPSKSecretName = "submariner-ipsec-psk"
+	IPSecPSKSecretName  = "submariner-ipsec-psk"
+	BrokerK8sSecretName = "submariner-broker-secret"
 
 	SubmarinerNatTPort          = 4500
 	SubmarinerNatTDiscoveryPort = 4900
