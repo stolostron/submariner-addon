@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
 	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	"open-cluster-management.io/api/client/addon/clientset/versioned/scheme"
@@ -47,19 +47,45 @@ var _ = Describe("Submariner Deployment", func() {
 		It("should successfully deploy the submariner ManifestWork resources", func() {
 			works := awaitSubmarinerManifestWorks(managedClusterName)
 
-			submarinerCRWork := works[1]
-			Expect(submarinerCRWork.Spec.Workload.Manifests).To(HaveLen(2), "Expected 2 manifests (PSK Secret and Submariner CR)")
+			var submarinerCRWork *workv1.ManifestWork
+
+			for _, w := range works {
+				if w.Name == submarineragent.SubmarinerCRManifestWorkName {
+					submarinerCRWork = w
+					break
+				}
+			}
+
+			Expect(submarinerCRWork).NotTo(BeNil(), "SubmarinerCR ManifestWork not found")
+
+			Expect(submarinerCRWork.Spec.Workload.Manifests).To(HaveLen(3),
+				"Expected 3 manifests (PSK Secret, Broker Secret, and Submariner CR)")
+
+			manifestObjs := util.UnmarshallManifestObjs(submarinerCRWork)
 
 			// Verify PSK Secret manifest
-			secret := &corev1.Secret{}
-			Expect(json.Unmarshal(submarinerCRWork.Spec.Workload.Manifests[0].Raw, secret)).To(Succeed())
-			Expect(secret.Name).To(Equal(constants.IPSecPSKSecretName))
-			Expect(secret.Data["psk"]).NotTo(BeEmpty(), "PSK data should not be empty")
+			pskSecret := &corev1.Secret{}
+			Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
+				util.AssertManifestObj(manifestObjs, "Secret", constants.IPSecPSKSecretName).Object, pskSecret)).To(Succeed())
+			Expect(pskSecret.Name).To(Equal(constants.IPSecPSKSecretName))
+			Expect(pskSecret.Data["psk"]).NotTo(BeEmpty(), "PSK data should not be empty")
+
+			// Verify Broker Secret manifest
+			brokerSecret := &corev1.Secret{}
+			Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
+				util.AssertManifestObj(manifestObjs, "Secret", constants.BrokerK8sSecretName).Object, brokerSecret)).To(Succeed())
+			Expect(brokerSecret.Name).To(Equal(constants.BrokerK8sSecretName))
+			Expect(brokerSecret.Data["token"]).NotTo(BeEmpty(), "Broker token should not be empty")
+			Expect(brokerSecret.Data["ca.crt"]).NotTo(BeEmpty(), "Broker CA should not be empty")
 
 			// Verify Submariner CR manifest
 			submariner := &v1alpha1.Submariner{}
-			Expect(json.Unmarshal(submarinerCRWork.Spec.Workload.Manifests[1].Raw, submariner)).To(Succeed())
+			Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
+				util.AssertManifestObj(manifestObjs, "Submariner", "").Object, submariner)).To(Succeed())
 			Expect(submariner.Spec.CeIPSecPSKSecret).To(Equal(constants.IPSecPSKSecretName))
+			Expect(submariner.Spec.BrokerK8sSecret).To(Equal(constants.BrokerK8sSecretName))
+			Expect(submariner.Spec.BrokerK8sApiServerToken).To(BeEmpty())
+			Expect(submariner.Spec.BrokerK8sCA).To(BeEmpty())
 		})
 	})
 
