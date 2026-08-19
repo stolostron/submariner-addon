@@ -289,3 +289,29 @@ func (r *IntegrationTestEventRecorder) Warningf(reason, messageFmt string, args 
 
 func (r *IntegrationTestEventRecorder) Shutdown() {
 }
+
+func UnmarshallManifestObjs(work *workv1.ManifestWork) []*unstructured.Unstructured {
+	manifestObjs := make([]*unstructured.Unstructured, len(work.Spec.Workload.Manifests))
+
+	for i := range work.Spec.Workload.Manifests {
+		obj := &unstructured.Unstructured{}
+		err := obj.UnmarshalJSON(work.Spec.Workload.Manifests[i].Raw)
+		Expect(err).To(Succeed())
+
+		manifestObjs[i] = obj
+	}
+
+	return manifestObjs
+}
+
+func AssertManifestObj(objs []*unstructured.Unstructured, kind, name string) *unstructured.Unstructured {
+	for _, o := range objs {
+		if o.GetKind() == kind && (name == "" || o.GetName() == name) {
+			return o
+		}
+	}
+
+	Fail(fmt.Sprintf("Expected manifest resource with kind %q and name %q", kind, name))
+
+	return nil
+}
