@@ -7,9 +7,9 @@ import (
 
 var fieldsToRedact = []string{
 	"brokerK8sApiServer",
-	"brokerK8sApiServerToken",
-	"brokerK8sCA",
-	"ceIPSecPSK",
+	"token",
+	"ca.crt",
+	"psk",
 }
 
 var regex *regexp.Regexp
@@ -18,14 +18,14 @@ func init() {
 	var sb strings.Builder
 
 	sb.WriteString("(\"(")
-	sb.WriteString(fieldsToRedact[0])
+	sb.WriteString(regexp.QuoteMeta(fieldsToRedact[0]))
 
 	for i := 1; i < len(fieldsToRedact); i++ {
 		sb.WriteString("|")
-		sb.WriteString(fieldsToRedact[i])
+		sb.WriteString(regexp.QuoteMeta(fieldsToRedact[i]))
 	}
 
-	sb.WriteString(")\"\\s*:\\s*)\".*\"")
+	sb.WriteString(")\"\\s*:\\s*)\"(\\\\.|[^\"\\\\])*\"")
 
 	regex = regexp.MustCompile(sb.String())
 }
