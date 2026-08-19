@@ -130,7 +130,7 @@ var _ = Describe("Function Get", func() {
 		It("should return the correct broker credentials", func() {
 			Expect(brokerInfo.BrokerNamespace).To(Equal(brokerNamespace))
 			Expect(brokerInfo.BrokerAPIServer).To(Equal(apiServerHostPort))
-			Expect(brokerInfo.BrokerToken).To(Equal(brokerToken))
+			Expect(brokerInfo.BrokerToken).To(Equal(base64.StdEncoding.EncodeToString([]byte(brokerToken))))
 			Expect(brokerInfo.BrokerCA).To(Equal(base64.StdEncoding.EncodeToString([]byte(brokerCA))))
 		})
 
