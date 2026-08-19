@@ -403,10 +403,12 @@ func getTokenAndCAFromSecret(ctx context.Context, tokenSecret *corev1.Secret, ku
 	}
 
 	if kubeAPIServerCA == nil {
-		return string(tokenSecret.Data["token"]), base64.StdEncoding.EncodeToString(tokenSecret.Data["ca.crt"]), nil
+		return base64.StdEncoding.EncodeToString(tokenSecret.Data["token"]),
+			base64.StdEncoding.EncodeToString(tokenSecret.Data["ca.crt"]), nil
 	}
 
-	return string(tokenSecret.Data["token"]), base64.StdEncoding.EncodeToString(kubeAPIServerCA), nil
+	return base64.StdEncoding.EncodeToString(tokenSecret.Data["token"]),
+		base64.StdEncoding.EncodeToString(kubeAPIServerCA), nil
 }
 
 func GenerateBrokerName(name string) string {
