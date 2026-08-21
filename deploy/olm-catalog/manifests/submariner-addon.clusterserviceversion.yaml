@@ -335,18 +335,37 @@ spec:
                     path: /healthz
                     port: 8443
                     scheme: HTTPS
-                  initialDelaySeconds: 2
+                  initialDelaySeconds: 5
                 resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
                   requests:
                     cpu: 100m
                     memory: 128Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  readOnlyRootFilesystem: true
                 volumeMounts:
                 - mountPath: /tmp
                   name: tmp
+                - mountPath: /tmp/k8s-webhook-server/serving-certs
+                  name: cert
+                  readOnly: true
+              securityContext:
+                runAsNonRoot: true
               serviceAccountName: submariner-addon
               volumes:
               - emptyDir: {}
                 name: tmp
+              - name: cert
+                secret:
+                  defaultMode: 420
+                  optional: false
+                  secretName: submariner-addon-webhook-cert
     strategy: deployment
   installModes:
   - supported: true
