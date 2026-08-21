@@ -17,12 +17,22 @@ spec:
         app: submariner-addon
     spec:
       serviceAccountName: submariner-addon
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: submariner-addon
           image: quay.io/stolostron/submariner-addon:latest
           args:
             - "/submariner"
             - "controller"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           livenessProbe:
             httpGet:
               path: /healthz
@@ -35,11 +45,14 @@ spec:
               path: /healthz
               scheme: HTTPS
               port: 8443
-            initialDelaySeconds: 2
+            initialDelaySeconds: 5
           resources:
             requests:
               cpu: 100m
               memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
           env:
             - name: POD_NAME
               valueFrom:
@@ -48,6 +61,14 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: cert
+              mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: cert
+          secret:
+            secretName: submariner-addon-webhook-cert
+            optional: false
+            defaultMode: 420
