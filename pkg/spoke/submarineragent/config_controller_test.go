@@ -42,9 +42,10 @@ import (
 )
 
 const (
-	aws                  = "AWS"
-	gcp                  = "GCP"
-	gatewayConditionType = "SubmarinerGatewaysLabeled"
+	aws                      = "AWS"
+	gcp                      = "GCP"
+	gatewayConditionType     = "SubmarinerGatewaysLabeled"
+	gatewayLabeledAnnotation = "submariner.io/random-gateway-node"
 )
 
 var _ = Describe("Config Controller", func() {
@@ -156,9 +157,11 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) { //nolint:maintidx /
 			t.config.Spec.Gateways = 2
 			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
+			t.nodes[0].Annotations[gatewayLabeledAnnotation] = strconv.FormatBool(true)
 
 			labelGateway(t.nodes[1], true)
 			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
+			t.nodes[1].Annotations[gatewayLabeledAnnotation] = strconv.FormatBool(true)
 		})
 
 		JustBeforeEach(func(ctx context.Context) {
@@ -252,7 +255,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) { //nolint:maintidx /
 			// Initially label worker-1 as gateway
 			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
-			t.nodes[0].Annotations = map[string]string{"submariner.io/random-gateway-node": "true"}
+			t.nodes[0].Annotations = map[string]string{gatewayLabeledAnnotation: strconv.FormatBool(true)}
 		})
 
 		It("should automatically label one of the available nodes as gateway", func(ctx context.Context) {
@@ -288,7 +291,8 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) { //nolint:maintidx /
 			Expect(labeledNodes).To(HaveLen(1), "expected exactly one worker node to be labeled as gateway")
 
 			labeledNode := labeledNodes[0]
-			Expect(labeledNode.Labels["submariner.io/gateway"]).To(Equal("true"), "expected gateway label to be true")
+			Expect(labeledNode.Labels["submariner.io/gateway"]).To(Equal(strconv.FormatBool(true)),
+				"expected gateway label to be true")
 			Expect(labeledNode.Labels["gateway.submariner.io/udp-port"]).To(
 				Equal(strconv.Itoa(t.config.Spec.IPSecNATTPort)), "expected UDP port label to match config")
 
@@ -307,7 +311,7 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) { //nolint:maintidx /
 			t.nodes = []*corev1.Node{newWorkerNode("worker-1")}
 			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
-			t.nodes[0].Annotations = map[string]string{"submariner.io/random-gateway-node": "true"}
+			t.nodes[0].Annotations = map[string]string{gatewayLabeledAnnotation: strconv.FormatBool(true)}
 		})
 
 		It("should report InsufficientNodes", func(ctx context.Context) {
@@ -495,9 +499,11 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 			t.config.Spec.Gateways = 2
 			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
+			t.nodes[0].Annotations[gatewayLabeledAnnotation] = strconv.FormatBool(true)
 
 			labelGateway(t.nodes[1], true)
 			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
+			t.nodes[1].Annotations[gatewayLabeledAnnotation] = strconv.FormatBool(true)
 
 			t.addOn.Finalizers = []string{constants.SubmarinerAddOnFinalizer}
 		})
@@ -828,7 +834,7 @@ func (t *configControllerTestDriver) getLabeledWorkerNodes(ctx context.Context) 
 			continue
 		}
 
-		if actual.Labels["submariner.io/gateway"] == "true" &&
+		if actual.Labels["submariner.io/gateway"] == strconv.FormatBool(true) &&
 			actual.Labels["gateway.submariner.io/udp-port"] == strconv.Itoa(t.config.Spec.IPSecNATTPort) {
 			foundNodes = append(foundNodes, actual)
 		}
@@ -848,7 +854,7 @@ func (t *configControllerTestDriver) getAnnotatedGatewayNodes(ctx context.Contex
 			continue
 		}
 
-		if actual.Annotations["submariner.io/random-gateway-node"] == "true" {
+		if actual.Annotations[gatewayLabeledAnnotation] == "true" {
 			foundNodes = append(foundNodes, actual)
 		}
 	}
