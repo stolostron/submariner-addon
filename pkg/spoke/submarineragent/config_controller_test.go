@@ -42,9 +42,10 @@ import (
 )
 
 const (
-	aws                  = "AWS"
-	gcp                  = "GCP"
-	gatewayConditionType = "SubmarinerGatewaysLabeled"
+	aws                      = "AWS"
+	gcp                      = "GCP"
+	gatewayConditionType     = "SubmarinerGatewaysLabeled"
+	gatewayLabeledAnnotation = "submariner.io/random-gateway-node"
 )
 
 var _ = Describe("Config Controller", func() {
@@ -156,9 +157,11 @@ func testWorkerNodeLabeling(t *configControllerTestDriver) {
 			t.config.Spec.Gateways = 2
 			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
+			t.nodes[0].Annotations[gatewayLabeledAnnotation] = strconv.FormatBool(true)
 
 			labelGateway(t.nodes[1], true)
 			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
+			t.nodes[1].Annotations[gatewayLabeledAnnotation] = strconv.FormatBool(true)
 		})
 
 		JustBeforeEach(func() {
@@ -406,9 +409,11 @@ func testManagedClusterAddOn(t *configControllerTestDriver) {
 			t.config.Spec.Gateways = 2
 			labelGateway(t.nodes[0], true)
 			t.nodes[0].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
+			t.nodes[0].Annotations[gatewayLabeledAnnotation] = strconv.FormatBool(true)
 
 			labelGateway(t.nodes[1], true)
 			t.nodes[1].Labels["gateway.submariner.io/udp-port"] = strconv.Itoa(t.config.Spec.IPSecNATTPort)
+			t.nodes[1].Annotations[gatewayLabeledAnnotation] = strconv.FormatBool(true)
 
 			t.addOn.Finalizers = []string{constants.SubmarinerAddOnFinalizer}
 		})
@@ -740,7 +745,7 @@ func (t *configControllerTestDriver) getLabeledWorkerNodes() []*corev1.Node {
 			continue
 		}
 
-		if actual.Labels["submariner.io/gateway"] == "true" &&
+		if actual.Labels["submariner.io/gateway"] == strconv.FormatBool(true) &&
 			actual.Labels["gateway.submariner.io/udp-port"] == strconv.Itoa(t.config.Spec.IPSecNATTPort) {
 			foundNodes = append(foundNodes, actual)
 		}
@@ -760,7 +765,7 @@ func (t *configControllerTestDriver) getAnnotatedGatewayNodes() []*corev1.Node {
 			continue
 		}
 
-		if actual.Annotations["submariner.io/random-gateway-node"] == "true" {
+		if actual.Annotations[gatewayLabeledAnnotation] == "true" {
 			foundNodes = append(foundNodes, actual)
 		}
 	}
