@@ -1,0 +1,52 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: submariner-addon-broker-validator
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+webhooks:
+  - name: broker-validator.submariner.io
+    clientConfig:
+      service:
+        name: submariner-addon-webhook
+        namespace: open-cluster-management
+        path: /validate
+    rules:
+      - operations: ["CREATE", "UPDATE", "DELETE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["secrets"]
+        scope: "Namespaced"
+      - operations: ["CREATE", "UPDATE", "DELETE"]
+        apiGroups: ["submariner.io"]
+        apiVersions: ["v1"]
+        resources: ["endpoints"]
+        scope: "Namespaced"
+      - operations: ["CREATE", "UPDATE", "DELETE"]
+        apiGroups: ["submariner.io"]
+        apiVersions: ["v1"]
+        resources: ["clusters"]
+        scope: "Namespaced"
+      - operations: ["CREATE", "UPDATE", "DELETE"]
+        apiGroups: ["discovery.k8s.io"]
+        apiVersions: ["v1"]
+        resources: ["endpointslices"]
+        scope: "Namespaced"
+      - operations: ["CREATE", "UPDATE", "DELETE"]
+        apiGroups: ["multicluster.x-k8s.io"]
+        apiVersions: ["v1alpha1"]
+        resources: ["serviceimports"]
+        scope: "Namespaced"
+      - operations: ["UPDATE"]
+        apiGroups: ["multicluster.x-k8s.io"]
+        apiVersions: ["v1alpha1"]
+        resources: ["serviceimports/status"]
+        scope: "Namespaced"
+    namespaceSelector:
+      matchLabels:
+        submariner.io/broker: "true"
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Fail
+    timeoutSeconds: 10
