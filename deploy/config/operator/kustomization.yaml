@@ -2,5 +2,3 @@ resources:
   - namespace.yaml
   - service_account.yaml
   - operator.yaml
-  - webhook-service.yaml
-  - validating_webhook_config.yaml
