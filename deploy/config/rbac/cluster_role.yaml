@@ -58,7 +58,7 @@ rules:
 # Allow submariner-addon hub controller to configure submariner cluster environment
 - apiGroups: ["config.openshift.io"]
   resources: ["apiservers", "infrastructures", "infrastructures/status"]
-  verbs: ["get"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: ["submarineraddon.open-cluster-management.io"]
   resources: ["submarinerconfigs"]
   verbs: ["get", "list", "watch", "update", "patch"]
