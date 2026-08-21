@@ -47,8 +47,7 @@ spec:
                 type: boolean
               IPSecCertAuthMode:
                 default: false
-                description: IPSecCertAuthMode enables certificate-based authentication
-                  mode for IPSec instead of PSK.
+                description: IPSecCertAuthMode enables certificate-based authentication mode for IPSec instead of PSK.
                 type: boolean
               IPSecDebug:
                 default: false
