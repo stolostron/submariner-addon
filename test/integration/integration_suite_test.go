@@ -18,6 +18,7 @@ import (
 	"github.com/submariner-io/admiral/pkg/log/kzerolog"
 	resourceu "github.com/submariner-io/admiral/pkg/resource"
 	admutil "github.com/submariner-io/admiral/pkg/util"
+	"github.com/submariner-io/submariner-operator/pkg/names"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -193,7 +194,7 @@ func deployManagedClusterWithAddOn(managedClusterSetName, managedClusterName, br
 
 	By("Setup the service account")
 
-	err = util.SetupServiceAccount(kubeClient, brokerNamespace, managedClusterName)
+	err = util.SetupServiceAccount(kubeClient, brokerNamespace, names.ForClusterSA(managedClusterName))
 	Expect(err).NotTo(HaveOccurred())
 }
 
