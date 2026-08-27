@@ -9,5 +9,5 @@ roleRef:
   name: submariner-k8s-broker-cluster
 subjects:
   - kind: ServiceAccount
-    name: {{ .ManagedClusterName }}
+    name: {{ .ClusterSAName }}
     namespace: {{ .SubmarinerBrokerNamespace }}
