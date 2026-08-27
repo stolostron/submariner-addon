@@ -33,6 +33,7 @@ import (
 	"github.com/submariner-io/admiral/pkg/util"
 	submarinerv1a1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
+	"github.com/submariner-io/submariner-operator/pkg/names"
 	submarinerv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	discovery "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -120,6 +121,7 @@ var logger = log.Logger{Logger: logf.Log.WithName("SubmarinerAgentController")}
 
 type clusterRBACConfig struct {
 	ManagedClusterName        string
+	ClusterSAName             string
 	SubmarinerBrokerNamespace string
 }
 
@@ -582,6 +584,7 @@ func (c *submarinerAgentController) deleteManifestWork(ctx context.Context, name
 func (c *submarinerAgentController) applyClusterRBACFiles(ctx context.Context, brokerNamespace, managedClusterName string) error {
 	config := &clusterRBACConfig{
 		ManagedClusterName:        managedClusterName,
+		ClusterSAName:             names.ForClusterSA(managedClusterName),
 		SubmarinerBrokerNamespace: brokerNamespace,
 	}
 
@@ -591,8 +594,10 @@ func (c *submarinerAgentController) applyClusterRBACFiles(ctx context.Context, b
 }
 
 func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, managedClusterName string) error {
+	saName := names.ForClusterSA(managedClusterName)
+
 	serviceAccounts, err := c.kubeClient.CoreV1().ServiceAccounts(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", serviceAccountLabel, managedClusterName),
+		LabelSelector: fmt.Sprintf("%s=%s", serviceAccountLabel, saName),
 	})
 	if err != nil {
 		return errors.Wrap(err, "error listing ServiceAccounts")
@@ -609,7 +614,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 
 	// Delete created secret if present
 	brokerNamespace := serviceAccounts.Items[0].Namespace
-	secretName := brokerinfo.GenerateBrokerName(managedClusterName)
+	secretName := brokerinfo.GenerateBrokerName(saName)
 	err = c.kubeClient.CoreV1().Secrets(brokerNamespace).Delete(ctx, secretName, metav1.DeleteOptions{})
 
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -618,6 +623,7 @@ func (c *submarinerAgentController) removeClusterRBACFiles(ctx context.Context, 
 
 	config := &clusterRBACConfig{
 		ManagedClusterName:        managedClusterName,
+		ClusterSAName:             saName,
 		SubmarinerBrokerNamespace: serviceAccounts.Items[0].Namespace,
 	}
 
