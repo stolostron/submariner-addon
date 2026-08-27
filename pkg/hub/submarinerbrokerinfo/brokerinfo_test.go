@@ -11,6 +11,7 @@ import (
 	configv1alpha1 "github.com/stolostron/submariner-addon/pkg/apis/submarinerconfig/v1alpha1"
 	"github.com/stolostron/submariner-addon/pkg/hub/submarinerbrokerinfo"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
+	"github.com/submariner-io/submariner-operator/pkg/names"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -80,7 +81,7 @@ var _ = Describe("Function Get", func() {
 
 		serviceAccount = &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterName,
+				Name:      names.ForClusterSA(clusterName),
 				Namespace: brokerNamespace,
 			},
 		}
