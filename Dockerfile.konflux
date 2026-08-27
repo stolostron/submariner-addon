@@ -5,7 +5,7 @@ COPY . .
 ENV GO_PACKAGE github.com/stolostron/submariner-addon
 RUN make GO_BUILD_FLAGS=-mod=mod build --warn-undefined-variables
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM registry.redhat.io/ubi9/ubi-minimal-pqc:latest
 
 LABEL com.redhat.component="rhacm-submariner-addon" \
       url="https://github.com/stolostron/submariner-addon" \
