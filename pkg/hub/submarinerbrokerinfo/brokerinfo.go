@@ -15,6 +15,7 @@ import (
 	"github.com/submariner-io/admiral/pkg/log"
 	"github.com/submariner-io/admiral/pkg/reporter"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
+	"github.com/submariner-io/submariner-operator/pkg/names"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -340,9 +341,11 @@ func getKubeAPIServerCA(ctx context.Context, kubeAPIServer string, kubeClient ku
 func getBrokerTokenAndCA(ctx context.Context, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
 	brokerNS, clusterName, kubeAPIServer string,
 ) (string, string, error) {
-	sa, err := kubeClient.CoreV1().ServiceAccounts(brokerNS).Get(ctx, clusterName, metav1.GetOptions{})
+	saName := names.ForClusterSA(clusterName)
+
+	sa, err := kubeClient.CoreV1().ServiceAccounts(brokerNS).Get(ctx, saName, metav1.GetOptions{})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get agent ServiceAccount %v/%v: %w", brokerNS, clusterName, err)
+		return "", "", fmt.Errorf("failed to get agent ServiceAccount %v/%v: %w", brokerNS, saName, err)
 	}
 
 	tokenSecret, err := getTokenSecretForSA(ctx, kubeClient, sa)
