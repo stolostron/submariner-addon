@@ -24,6 +24,7 @@ import (
 	"github.com/submariner-io/admiral/pkg/test"
 	submarinerv1alpha1 "github.com/submariner-io/submariner-operator/api/v1alpha1"
 	"github.com/submariner-io/submariner-operator/pkg/discovery/globalnet"
+	"github.com/submariner-io/submariner-operator/pkg/names"
 	submarinerv1 "github.com/submariner-io/submariner/pkg/apis/submariner.io/v1"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
@@ -645,7 +646,7 @@ func newTestDriver() *testDriver {
 			},
 			&corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      clusterName,
+					Name:      names.ForClusterSA(clusterName),
 					Namespace: brokerNamespace,
 				},
 			},
@@ -653,7 +654,7 @@ func newTestDriver() *testDriver {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        clusterName + "-token-5pw5c",
 					Namespace:   brokerNamespace,
-					Annotations: map[string]string{corev1.ServiceAccountNameKey: clusterName},
+					Annotations: map[string]string{corev1.ServiceAccountNameKey: names.ForClusterSA(clusterName)},
 				},
 				Data: map[string][]byte{
 					"ca.crt": []byte(brokerCA),
@@ -746,7 +747,7 @@ func (t *testDriver) testAgentCleanup(expMCADeleted bool) {
 
 	It("should delete the RBAC resources for the managed cluster", func() {
 		test.AwaitNoResource(coreresource.ForRoleBinding(t.kubeClient, brokerNamespace), "submariner-k8s-broker-cluster-"+clusterName)
-		test.AwaitNoResource(coreresource.ForServiceAccount(t.kubeClient, brokerNamespace), clusterName)
+		test.AwaitNoResource(coreresource.ForServiceAccount(t.kubeClient, brokerNamespace), names.ForClusterSA(clusterName))
 	})
 }
 
@@ -896,10 +897,10 @@ func (t *testDriver) awaitClusterRBACResources() {
 		"submariner-k8s-broker-cluster-"+clusterName)
 	Expect(roleBinding.Subjects).To(HaveLen(1))
 	Expect(roleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
-	Expect(roleBinding.Subjects[0].Name).To(Equal(clusterName))
+	Expect(roleBinding.Subjects[0].Name).To(Equal(names.ForClusterSA(clusterName)))
 	Expect(roleBinding.Subjects[0].Namespace).To(Equal(brokerNamespace))
 
-	test.AwaitResource(coreresource.ForServiceAccount(t.kubeClient, brokerNamespace), clusterName)
+	test.AwaitResource(coreresource.ForServiceAccount(t.kubeClient, brokerNamespace), names.ForClusterSA(clusterName))
 }
 
 func (t *testDriver) assertSCCManifestObjs(objs []*unstructured.Unstructured) {
