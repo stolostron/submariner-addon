@@ -1,32 +1,31 @@
 TEST_TMP :=/tmp
 
-export KUBEBUILDER_ASSETS ?=$(TEST_TMP)/kubebuilder/bin
+SETUP_ENVTEST := $(PERMANENT_TMP_GOPATH)/bin/setup-envtest
 
-K8S_VERSION ?=1.19.2
-KB_TOOLS_ARCHIVE_NAME :=kubebuilder-tools-$(K8S_VERSION)-$(GOHOSTOS)-$(GOHOSTARCH).tar.gz
-KB_TOOLS_ARCHIVE_PATH := $(TEST_TMP)/$(KB_TOOLS_ARCHIVE_NAME)
+K8S_VERSION ?=1.29.x
 
-# download the kubebuilder-tools to get kube-apiserver binaries from it
-ensure-kubebuilder-tools:
-ifeq "" "$(wildcard $(KUBEBUILDER_ASSETS))"
-	$(info Downloading kube-apiserver into '$(KUBEBUILDER_ASSETS)')
-	mkdir -p '$(KUBEBUILDER_ASSETS)'
-	curl -s -f -L https://storage.googleapis.com/kubebuilder-tools/$(KB_TOOLS_ARCHIVE_NAME) -o '$(KB_TOOLS_ARCHIVE_PATH)'
-	tar -C '$(KUBEBUILDER_ASSETS)' --strip-components=2 -zvxf '$(KB_TOOLS_ARCHIVE_PATH)'
-else
-	$(info Using existing kube-apiserver from "$(KUBEBUILDER_ASSETS)")
-endif
+# Install setup-envtest tool
+$(SETUP_ENVTEST):
+	$(info Installing setup-envtest)
+	GOBIN=$(shell pwd)/$(PERMANENT_TMP_GOPATH)/bin $(GO) install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+# Use setup-envtest to download and configure kubebuilder tools
+ensure-kubebuilder-tools: $(SETUP_ENVTEST)
+	$(eval KUBEBUILDER_ASSETS := $(shell $(SETUP_ENVTEST) use $(K8S_VERSION) -p path))
+	@echo "Using kubebuilder assets from $(KUBEBUILDER_ASSETS)"
 .PHONY: ensure-kubebuilder-tools
 
 clean-integration-test:
-	$(RM) '$(KB_TOOLS_ARCHIVE_PATH)'
-	rm -rf $(TEST_TMP)/kubebuilder
+	rm -rf $(TEST_TMP)/envtest-*
 	$(RM) ./integration.test
 .PHONY: clean-integration-test
 
 clean: clean-integration-test
 
-test-integration: ensure-kubebuilder-tools
-	go test -c ./test/integration
+test-integration: vendor $(SETUP_ENVTEST)
+	@KUBEBUILDER_ASSETS=$$($(SETUP_ENVTEST) use $(K8S_VERSION) -p path) && \
+	export KUBEBUILDER_ASSETS && \
+	echo "Using KUBEBUILDER_ASSETS=$$KUBEBUILDER_ASSETS" && \
+	go test -c ./test/integration && \
 	./integration.test -ginkgo.v -ginkgo.fail-fast
 .PHONY: test-integration
