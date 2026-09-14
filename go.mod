@@ -8,27 +8,27 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gophercloud/gophercloud/v2 v2.14.0
 	github.com/gophercloud/utils/v2 v2.0.0-20260107124036-1d7954eb9711
-	github.com/onsi/ginkgo/v2 v2.32.1
+	github.com/onsi/ginkgo/v2 v2.32.2
 	github.com/onsi/gomega v1.43.0
 	github.com/openshift/api v0.0.0-20251015095338-264e80a2b6e7
 	github.com/openshift/library-go v0.0.0-20250711143941-47604345e7ea
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
-	github.com/submariner-io/admiral v0.23.1
-	github.com/submariner-io/cloud-prepare v0.23.2-0.20260401061355-a15a125ed7c5
-	github.com/submariner-io/submariner v0.23.1
-	github.com/submariner-io/submariner-operator v0.23.2-0.20260821014033-5766bd9c41c8
+	github.com/submariner-io/admiral v0.23.2
+	github.com/submariner-io/cloud-prepare v0.23.2
+	github.com/submariner-io/submariner v0.23.2
+	github.com/submariner-io/submariner-operator v0.23.2
 	go.uber.org/mock v0.6.0
 	golang.org/x/oauth2 v0.36.0
-	google.golang.org/api v0.294.0
+	google.golang.org/api v0.296.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.35.7
-	k8s.io/apiextensions-apiserver v0.35.7
-	k8s.io/apimachinery v0.35.7
-	k8s.io/client-go v0.35.7
-	k8s.io/code-generator v0.35.7
-	k8s.io/component-base v0.35.7
+	k8s.io/api v0.35.8
+	k8s.io/apiextensions-apiserver v0.35.8
+	k8s.io/apimachinery v0.35.8
+	k8s.io/client-go v0.35.8
+	k8s.io/code-generator v0.35.8
+	k8s.io/component-base v0.35.8
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	open-cluster-management.io/addon-framework v1.1.1
@@ -185,9 +185,9 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	helm.sh/helm/v3 v3.18.6 // indirect
-	k8s.io/apiserver v0.35.7 // indirect
+	k8s.io/apiserver v0.35.8 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
-	k8s.io/kms v0.35.7 // indirect
+	k8s.io/kms v0.35.8 // indirect
 	k8s.io/kube-aggregator v0.33.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
 	open-cluster-management.io/sdk-go v1.1.0 // indirect
