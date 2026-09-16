@@ -18,11 +18,39 @@ import (
 )
 
 // SubmarinerConfigInformer provides access to a shared informer and lister for
-// SubmarinerConfigs.
+// SubmarinerConfigs. Prefer using the type-safe variant (see [TypedSubmarinerConfigInformer]).
 type SubmarinerConfigInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() submarinerconfigv1alpha1.SubmarinerConfigLister
 }
+
+// TypedSubmarinerConfigInformer provides access to a shared informer and lister for
+// SubmarinerConfigs, including the type-safe TypedInformer variant.
+// It is a superset of SubmarinerConfigInformer.
+type TypedSubmarinerConfigInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() SubmarinerConfigIndexInformer
+	Lister() submarinerconfigv1alpha1.SubmarinerConfigLister
+}
+
+// SubmarinerConfigIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type SubmarinerConfigIndexInformer cache.TypedSharedIndexInformer[*apissubmarinerconfigv1alpha1.SubmarinerConfig]
+
+// SubmarinerConfigHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for SubmarinerConfig.
+type SubmarinerConfigHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apissubmarinerconfigv1alpha1.SubmarinerConfig]
+
+// SubmarinerConfigDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for SubmarinerConfig.
+type SubmarinerConfigDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apissubmarinerconfigv1alpha1.SubmarinerConfig]
+
+// SubmarinerConfigFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for SubmarinerConfig.
+type SubmarinerConfigFilteringHandler = cache.TypedFilteringResourceEventHandler[*apissubmarinerconfigv1alpha1.SubmarinerConfig]
+
+// SubmarinerConfigIndexers is a specialization of [cache.TypedIndexers] for SubmarinerConfig.
+type SubmarinerConfigIndexers = cache.TypedIndexers[*apissubmarinerconfigv1alpha1.SubmarinerConfig]
+
+// DeletedSubmarinerConfig is a specialization of [cache.DeletedObject] for SubmarinerConfig.
+type DeletedSubmarinerConfig = cache.DeletedObject[*apissubmarinerconfigv1alpha1.SubmarinerConfig]
 
 type submarinerConfigInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -33,25 +61,49 @@ type submarinerConfigInformer struct {
 // NewSubmarinerConfigInformer constructs a new informer for SubmarinerConfig type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedSubmarinerConfigInformer]).
 func NewSubmarinerConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewSubmarinerConfigInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedSubmarinerConfigInformer constructs a new informer for SubmarinerConfig type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedSubmarinerConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers SubmarinerConfigIndexers) SubmarinerConfigIndexInformer {
+	return NewTypedSubmarinerConfigInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredSubmarinerConfigInformer constructs a new informer for SubmarinerConfig type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredSubmarinerConfigInformer]).
 func NewFilteredSubmarinerConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewSubmarinerConfigInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedSubmarinerConfigInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredSubmarinerConfigInformer constructs a new informer for SubmarinerConfig type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredSubmarinerConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers SubmarinerConfigIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) SubmarinerConfigIndexInformer {
+	return NewTypedSubmarinerConfigInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewSubmarinerConfigInformerWithOptions constructs a new informer for SubmarinerConfig type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedSubmarinerConfigInformerWithOptions]).
 func NewSubmarinerConfigInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedSubmarinerConfigInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedSubmarinerConfigInformerWithOptions constructs a new informer for SubmarinerConfig type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedSubmarinerConfigInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) SubmarinerConfigIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "submarineraddon.open-cluster-management.io", Version: "v1alpha1", Resource: "submarinerconfigs"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apissubmarinerconfigv1alpha1.SubmarinerConfig](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -84,17 +136,57 @@ func NewSubmarinerConfigInformerWithOptions(client versioned.Interface, namespac
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *submarinerConfigInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewSubmarinerConfigInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedSubmarinerConfigInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *submarinerConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apissubmarinerconfigv1alpha1.SubmarinerConfig{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *submarinerConfigInformer) TypedInformer() SubmarinerConfigIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apissubmarinerconfigv1alpha1.SubmarinerConfig](f.factory.InformerFor(&apissubmarinerconfigv1alpha1.SubmarinerConfig{}, f.defaultInformer))
 }
 
 func (f *submarinerConfigInformer) Lister() submarinerconfigv1alpha1.SubmarinerConfigLister {
 	return submarinerconfigv1alpha1.NewSubmarinerConfigLister(f.Informer().GetIndexer())
+}
+
+// ToTypedSubmarinerConfigInformer converts an untyped informer into a TypedSubmarinerConfigInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *SubmarinerConfig. If that is not the case, calling type-safe methods of the returned
+// TypedSubmarinerConfigInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedSubmarinerConfigInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedSubmarinerConfigInformer(informer SubmarinerConfigInformer) TypedSubmarinerConfigInformer {
+	if informer, ok := informer.(TypedSubmarinerConfigInformer); ok {
+		return informer
+	}
+	return &submarinerConfigTypedInformerAdapter{informer}
+}
+
+type submarinerConfigTypedInformerAdapter struct {
+	SubmarinerConfigInformer
+}
+
+func (a *submarinerConfigTypedInformerAdapter) TypedInformer() SubmarinerConfigIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apissubmarinerconfigv1alpha1.SubmarinerConfig](a.Informer())
+}
+
+// ToSubmarinerConfigIndexInformer converts an untyped informer into a SubmarinerConfigIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *SubmarinerConfig. If that is not the case, calling type-safe methods of the returned
+// SubmarinerConfigIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a SubmarinerConfigIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToSubmarinerConfigIndexInformer(informer cache.SharedIndexInformer) SubmarinerConfigIndexInformer {
+	if informer, ok := informer.(SubmarinerConfigIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apissubmarinerconfigv1alpha1.SubmarinerConfig](informer)
 }
