@@ -9,7 +9,7 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// SubmarinerDiagnoseConfigs returns a SubmarinerDiagnoseConfigInformer.
-	SubmarinerDiagnoseConfigs() SubmarinerDiagnoseConfigInformer
+	SubmarinerDiagnoseConfigs() TypedSubmarinerDiagnoseConfigInformer
 }
 
 type version struct {
@@ -23,7 +23,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// SubmarinerDiagnoseConfigs returns a SubmarinerDiagnoseConfigInformer.
-func (v *version) SubmarinerDiagnoseConfigs() SubmarinerDiagnoseConfigInformer {
+// SubmarinerDiagnoseConfigs returns a TypedSubmarinerDiagnoseConfigInformer.
+func (v *version) SubmarinerDiagnoseConfigs() TypedSubmarinerDiagnoseConfigInformer {
 	return &submarinerDiagnoseConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

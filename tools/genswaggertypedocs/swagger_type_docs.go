@@ -49,7 +49,10 @@ func main() {
 	}
 
 	if err == nil && !fi.IsDir() {
-		docsForTypes = kruntime.ParseDocumentationFrom(*typeSrc)
+		docsForTypes, err = kruntime.ParseDocumentationFrom(*typeSrc)
+		if err != nil {
+			klog.Fatalf("error parsing documentation from %s: %v", *typeSrc, err)
+		}
 	} else {
 		m, err := filepath.Glob(*typeSrc)
 		if err != nil {
@@ -61,7 +64,11 @@ func main() {
 		}
 
 		for _, file := range m {
-			docsForTypes = append(docsForTypes, kruntime.ParseDocumentationFrom(file)...)
+			fileDocsForTypes, err := kruntime.ParseDocumentationFrom(file)
+			if err != nil {
+				klog.Fatalf("error parsing documentation from %s: %v", file, err)
+			}
+			docsForTypes = append(docsForTypes, fileDocsForTypes...)
 		}
 	}
 
