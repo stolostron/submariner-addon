@@ -29,7 +29,7 @@ DOCKERFILE ?= ./Dockerfile
 CSV_VERSION?=0.4.0
 
 OPERATOR_SDK?=$(PERMANENT_TMP_GOPATH)/bin/operator-sdk
-OPERATOR_SDK_VERSION?=$(shell $(GO) -C tools/operator-sdk list -m -f {{.Version}} github.com/operator-framework/operator-sdk/cmd/operator-sdk)
+OPERATOR_SDK_VERSION?=$(shell awk '/^github.com\/operator-framework\/operator-sdk v[0-9]/ {print $$2}' tools/operator-sdk/go.sum | head -1)
 OPERATOR_SDK_ARCHOS:=x86_64-linux-gnu
 ifeq ($(GOHOSTOS),darwin)
 	ifeq ($(GOHOSTARCH),amd64)
