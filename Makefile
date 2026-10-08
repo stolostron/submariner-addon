@@ -124,6 +124,7 @@ GOLANGCI_LINT?=$(call gotool,tools,golangci-lint)
 golangci-lint: vendor | $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) version
 	$(GOLANGCI_LINT) linters
+	$(GOLANGCI_LINT) cache clean
 	$(GOLANGCI_LINT) run --timeout 10m
 
 vendor: go.mod
