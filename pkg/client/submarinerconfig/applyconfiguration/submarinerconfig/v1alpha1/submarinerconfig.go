@@ -14,7 +14,7 @@ import (
 // SubmarinerConfig represents the configuration for Submariner, the submariner-addon will use it
 // to configure the Submariner.
 type SubmarinerConfigApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	// Spec defines the configuration of the Submariner
 	Spec *SubmarinerConfigSpecApplyConfiguration `json:"spec,omitempty"`
