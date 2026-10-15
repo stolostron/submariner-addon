@@ -197,7 +197,10 @@ func (c *submarinerBrokerController) reconcileManagedClusterSet(ctx context.Cont
 				annotations[SubmBrokerNamespaceKey] = brokerNS
 				objMeta.SetAnnotations(annotations)
 
-				objMeta.SetFinalizers(append(objMeta.GetFinalizers(), brokerFinalizer))
+				// Only add finalizer if not already present
+				if !finalizer.IsPresent(existing, brokerFinalizer) {
+					objMeta.SetFinalizers(append(objMeta.GetFinalizers(), brokerFinalizer))
+				}
 
 				return existing, nil
 			})
