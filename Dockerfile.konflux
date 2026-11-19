@@ -1,4 +1,4 @@
-FROM registry.redhat.io/openshift/golang-builder:golang-builder-v1.25-rhel8 AS builder
+FROM registry.redhat.io/openshift/golang-builder:golang-builder-v1.26-rhel8 AS builder
 
 WORKDIR /go/src/github.com/stolostron/submariner-addon
 COPY . .
