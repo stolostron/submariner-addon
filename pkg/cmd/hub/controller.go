@@ -55,7 +55,14 @@ func startManager(ctx context.Context, addOnOptions *hub.AddOnOptions) error {
 		return err
 	}
 
-	tlsConfigFunc, _ := openshifttls.NewTLSConfigFromProfile(tlsProfile)
+	tlsConfigFunc, unsupported, err := openshifttls.NewTLSConfigFromProfile(tlsProfile)
+	if err != nil {
+		return fmt.Errorf("unable to configure webhook TLS: %w", err)
+	}
+
+	if len(unsupported) > 0 {
+		klog.Warningf("TLS profile contains unsupported cipher/group names: %v", unsupported)
+	}
 
 	leaseDuration := 137 * time.Second
 	renewDeadline := 107 * time.Second
