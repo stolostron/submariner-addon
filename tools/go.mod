@@ -3,8 +3,8 @@ module github.com/stolostron/submariner-addon/tools
 go 1.26.0
 
 require (
-	github.com/spf13/pflag v1.0.10
-	k8s.io/apimachinery v0.37.0
+	github.com/spf13/pflag v1.1.0
+	k8s.io/apimachinery v0.37.2
 	k8s.io/klog/v2 v2.140.0
 )
 
